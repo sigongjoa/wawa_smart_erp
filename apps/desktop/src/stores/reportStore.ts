@@ -1,0 +1,286 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { Teacher, Student, MonthlyReport, SendHistory, CurrentUser, Exam, AppSettings, AbsenceHistory, ExamSchedule } from '../types';
+
+interface ReportState {
+    // 로그인
+    currentUser: CurrentUser | null;
+    setCurrentUser: (user: CurrentUser | null) => void;
+    logout: () => void;
+
+    // 선생님 목록
+    teachers: Teacher[];
+    setTeachers: (teachers: Teacher[]) => void;
+
+    // 학생 목록
+    students: Student[];
+    setStudents: (students: Student[]) => void;
+
+    // 리포트 관련
+    reports: MonthlyReport[];
+    currentReport: MonthlyReport | null;
+    setReports: (reports: MonthlyReport[]) => void;
+    setCurrentReport: (report: MonthlyReport | null) => void;
+    updateReport: (report: MonthlyReport) => void;
+    addReport: (report: MonthlyReport) => void;
+    updateReportPdfUrl: (reportId: string, pdfUrl: string) => void;
+
+    // 전송 이력
+    sendHistories: SendHistory[];
+    addSendHistory: (history: SendHistory) => void;
+
+    // 현재 선택된 월
+    currentYearMonth: string;
+    setCurrentYearMonth: (yearMonth: string) => void;
+
+    // 시험지 목록
+    exams: Exam[];
+    setExams: (exams: Exam[]) => void;
+    addExam: (exam: Exam) => void;
+    updateExam: (exam: Exam) => void;
+
+    // 앱 설정
+    appSettings: AppSettings;
+    setAppSettings: (settings: Partial<AppSettings>) => void;
+
+    // 결시 이력
+    absenceHistories: AbsenceHistory[];
+    setAbsenceHistories: (histories: AbsenceHistory[]) => void;
+    addAbsenceHistory: (history: AbsenceHistory) => void;
+    updateAbsenceHistory: (history: AbsenceHistory) => void;
+
+    // 월별 시험 일정
+    examSchedules: ExamSchedule[];
+    setExamSchedules: (schedules: ExamSchedule[]) => void;
+    upsertExamSchedule: (schedule: ExamSchedule) => void;
+
+    // 초기화
+    reset: () => void;
+
+    // 데이터 로딩 상태
+    isLoading: boolean;
+    setIsLoading: (isLoading: boolean) => void;
+
+    // 비동기 액션
+    fetchAllData: () => Promise<void>;
+}
+
+const getCurrentYearMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const defaultAppSettings: AppSettings = {
+    notionApiKey: '',
+    notionTeachersDb: '',
+    notionStudentsDb: '',
+    notionScoresDb: '',
+    notionExamsDb: '',
+    notionAbsenceHistoryDb: '',
+    notionExamScheduleDb: '',
+    kakaoJsKey: '',
+    academyName: '',
+};
+
+export const useReportStore = create<ReportState>()(
+    persist(
+        (set) => ({
+            // 로그인
+            currentUser: null,
+            setCurrentUser: (user) => set({ currentUser: user }),
+            logout: () => set({ currentUser: null }),
+
+            // 선생님
+            teachers: [],
+            setTeachers: (teachers) => set({ teachers }),
+
+            // 학생
+            students: [],
+            setStudents: (students) => set({ students }),
+
+            // 리포트
+            reports: [],
+            currentReport: null,
+            setReports: (reports) => set({ reports }),
+            setCurrentReport: (report) => set({ currentReport: report }),
+            updateReport: (report) => set((state) => ({
+                reports: state.reports.map((r) => r.id === report.id ? report : r),
+                currentReport: state.currentReport?.id === report.id ? report : state.currentReport,
+            })),
+            addReport: (report) => set((state) => ({ reports: [...state.reports, report] })),
+            updateReportPdfUrl: (reportId, pdfUrl) => set((state) => ({
+                reports: state.reports.map((r) =>
+                    r.id === reportId ? { ...r, pdfUrl, pdfUploadedAt: new Date().toISOString() } : r
+                ),
+                currentReport: state.currentReport?.id === reportId
+                    ? { ...state.currentReport, pdfUrl, pdfUploadedAt: new Date().toISOString() }
+                    : state.currentReport,
+            })),
+
+            // 전송
+            sendHistories: [],
+            addSendHistory: (history) => set((state) => ({
+                sendHistories: [history, ...state.sendHistories]
+            })),
+
+            // 현재 월
+            currentYearMonth: getCurrentYearMonth(),
+            setCurrentYearMonth: (yearMonth) => set({ currentYearMonth: yearMonth }),
+
+            // 시험지
+            exams: [],
+            setExams: (exams) => set({ exams }),
+            addExam: (exam) => set((state) => ({ exams: [...state.exams, exam] })),
+            updateExam: (exam) => set((state) => ({
+                exams: state.exams.map((e) => e.id === exam.id ? exam : e),
+            })),
+
+            // 앱 설정
+            appSettings: defaultAppSettings,
+            setAppSettings: (settings) => set((state) => ({
+                appSettings: { ...state.appSettings, ...settings },
+            })),
+
+            // 결시 이력
+            absenceHistories: [],
+            setAbsenceHistories: (histories) => set({ absenceHistories: histories }),
+            addAbsenceHistory: (history) => set((state) => ({
+                absenceHistories: [history, ...state.absenceHistories],
+            })),
+            updateAbsenceHistory: (history) => set((state) => ({
+                absenceHistories: state.absenceHistories.map((h) =>
+                    h.id === history.id ? history : h
+                ),
+            })),
+
+            // 월별 시험 일정
+            examSchedules: [],
+            setExamSchedules: (schedules) => set({ examSchedules: schedules }),
+            upsertExamSchedule: (schedule) => set((state) => {
+                const existing = state.examSchedules.find(
+                    s => s.studentId === schedule.studentId && s.yearMonth === schedule.yearMonth
+                );
+                if (existing) {
+                    return {
+                        examSchedules: state.examSchedules.map(s =>
+                            s.studentId === schedule.studentId && s.yearMonth === schedule.yearMonth
+                                ? schedule
+                                : s
+                        ),
+                    };
+                }
+                return {
+                    examSchedules: [...state.examSchedules, schedule],
+                };
+            }),
+
+            // 초기화
+            reset: () => set({
+                currentUser: null,
+                teachers: [],
+                students: [],
+                reports: [],
+                currentReport: null,
+                sendHistories: [],
+                currentYearMonth: getCurrentYearMonth(),
+                exams: [],
+                appSettings: defaultAppSettings,
+                absenceHistories: [],
+                examSchedules: [],
+            }),
+
+            // 로딩 상태
+            isLoading: false,
+            setIsLoading: (isLoading) => set({ isLoading }),
+
+            // 비동기 액션
+            fetchAllData: async () => {
+                const { setIsLoading, setTeachers, setStudents, setExams, setReports, setExamSchedules, currentYearMonth, appSettings } = useReportStore.getState();
+                if (!appSettings.notionApiKey) return;
+
+                setIsLoading(true);
+                try {
+                    // Artificial delay for better UX and to show it's working
+                    await new Promise(resolve => setTimeout(resolve, 800));
+
+                    const notion = await import('../services/notion');
+                    const [teachers, students, exams, reports, schedules] = await Promise.all([
+                        notion.fetchTeachers(),
+                        notion.fetchStudents(),
+                        notion.fetchExams(currentYearMonth),
+                        notion.fetchScores(currentYearMonth),
+                        notion.fetchExamSchedules(currentYearMonth),
+                    ]);
+
+                    const reportsWithNames = reports.map(r => {
+                        const student = students.find(s => s.id === r.studentId);
+                        return { ...r, studentName: student?.name || '알 수 없음' };
+                    });
+
+                    setTeachers(teachers);
+                    setStudents(students);
+                    setExams(exams);
+                    setReports(reportsWithNames);
+                    setExamSchedules(schedules);
+                    console.log('✅ Data fetched successfully');
+                } catch (error) {
+                    console.error('❌ Failed to fetch data:', error);
+                    alert('데이터를 불러오는 중 오류가 발생했습니다. 설정을 확인해주세요.');
+                } finally {
+                    setIsLoading(false);
+                }
+            },
+        }),
+        {
+            name: 'wawa-report-storage',
+            partialize: (state) => ({
+                currentUser: state.currentUser,
+                teachers: state.teachers,
+                students: state.students,
+                reports: state.reports,
+                sendHistories: state.sendHistories,
+                currentYearMonth: state.currentYearMonth,
+                exams: state.exams,
+                appSettings: state.appSettings,
+                absenceHistories: state.absenceHistories,
+                examSchedules: state.examSchedules,
+            }),
+        }
+    )
+);
+
+// 컴포넌트에서 사용하기 쉬운 필터링된 데이터 훅/셀렉터
+export const useFilteredData = () => {
+    const { students, reports, exams, examSchedules, currentUser } = useReportStore();
+
+    if (!currentUser) return { students: [], reports: [], exams: [], examSchedules: [] };
+    if (currentUser.teacher.isAdmin) return { students, reports, exams, examSchedules };
+
+    const teacherSubjects = currentUser.teacher.subjects;
+
+    const filteredStudents = students.filter(student =>
+        student.subjects.some(sub => teacherSubjects.includes(sub))
+    );
+
+    const filteredReports = reports.filter(report =>
+        filteredStudents.some(s => s.id === report.studentId)
+    ).map(report => ({
+        ...report,
+        scores: report.scores.filter(s => teacherSubjects.includes(s.subject))
+    }));
+
+    const filteredExams = exams.filter(exam =>
+        teacherSubjects.includes(exam.subject)
+    );
+
+    const filteredSchedules = examSchedules.filter(schedule =>
+        filteredStudents.some(s => s.id === schedule.studentId)
+    );
+
+    return {
+        students: filteredStudents,
+        reports: filteredReports,
+        exams: filteredExams,
+        examSchedules: filteredSchedules
+    };
+};

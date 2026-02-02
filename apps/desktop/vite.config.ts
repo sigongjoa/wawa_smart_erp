@@ -17,5 +17,15 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      '/api/notion/v1': {
+        target: 'https://api.notion.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/notion\/v1/, ''),
+        headers: {
+          'Notion-Version': '2022-06-28',
+        },
+      },
+    },
   },
 });

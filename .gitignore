@@ -46,3 +46,5 @@ Thumbs.db
 /storybook-static/
 notion_config.json
 .env
+code*.html
+logo.jpg

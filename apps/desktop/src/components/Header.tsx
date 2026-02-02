@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useReportStore } from '../stores/reportStore';
 import type { ModuleType } from '../types';
 
 interface ModuleTab {
@@ -16,6 +17,8 @@ const modules: ModuleTab[] = [
 ];
 
 export default function Header() {
+  const { currentUser, logout } = useReportStore();
+
   return (
     <header className="app-header">
       {/* Logo */}
@@ -44,21 +47,27 @@ export default function Header() {
 
       {/* Right Section */}
       <div className="header-right">
-        <button className="header-icon-btn" title="검색">
-          <span className="material-symbols-outlined">search</span>
-        </button>
+        {currentUser && (
+          <>
+            <div className="header-user">
+              <div className="header-user-info">
+                <span className="header-user-name">{currentUser.teacher.name} 선생님</span>
+                <span className="header-user-role">{currentUser.teacher.isAdmin ? '관리자' : '일반 선생님'}</span>
+              </div>
+              <div className="header-avatar" title={`${currentUser.teacher.subjects.join(', ')}`}>
+                {currentUser.teacher.name[0]}
+              </div>
+            </div>
+            <div className="header-divider"></div>
+            <button className="header-icon-btn" title="로그아웃" onClick={logout}>
+              <span className="material-symbols-outlined">logout</span>
+            </button>
+          </>
+        )}
         <button className="header-icon-btn" title="알림">
           <span className="material-symbols-outlined">notifications</span>
           <span className="notification-dot"></span>
         </button>
-        <div className="header-divider"></div>
-        <div className="header-user">
-          <div className="header-user-info">
-            <span className="header-user-name">김수학 선생님</span>
-            <span className="header-user-role">관리자</span>
-          </div>
-          <div className="header-avatar">김</div>
-        </div>
       </div>
     </header>
   );

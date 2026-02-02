@@ -53,6 +53,50 @@ ipcMain.handle('module:message', async (_, data: { type: string; payload: any })
   return { success: true };
 });
 
+ipcMain.handle('notion:fetch', async (_, endpoint: string, options: any) => {
+  try {
+    const baseUrl = 'https://api.notion.com/v1';
+    const response = await fetch(`${baseUrl}${endpoint}`, {
+      method: options.method || 'GET',
+      headers: {
+        'Authorization': options.headers['Authorization'],
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json',
+      },
+      body: options.body,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data, message: data.message || 'Notion API error' };
+    }
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Network error', error };
+  }
+});
+
+ipcMain.handle('typst:compile', async (_, { source, outputPath }: { source: string; outputPath: string }) => {
+  const { exec } = require('child_process');
+  const fs = require('fs');
+  const tempPath = path.join(app.getPath('temp'), `report_${Date.now()}.typ`);
+
+  try {
+    fs.writeFileSync(tempPath, source);
+    return new Promise((resolve) => {
+      exec(`typst compile "${tempPath}" "${outputPath}"`, (error: any, stdout: string, stderr: string) => {
+        if (error) {
+          resolve({ success: false, message: stderr || error.message });
+        } else {
+          resolve({ success: true, outputPath });
+        }
+      });
+    });
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
+});
+
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
