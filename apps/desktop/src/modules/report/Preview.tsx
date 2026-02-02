@@ -38,15 +38,29 @@ const generateMonthLabels = (currentYearMonth: string): string[] => {
 
 export default function Preview() {
   const { students, reports } = useFilteredData();
-  const { currentYearMonth, fetchAllData, isLoading, appSettings } = useReportStore();
+  const { currentYearMonth, fetchAllData, isLoading, appSettings, currentUser } = useReportStore();
   const { addToast } = useToastStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // 페이지 진입 시 데이터 갱신
   useEffect(() => {
+    console.log('[Preview] Mounted, fetching data...');
     fetchAllData();
   }, [fetchAllData]);
+
+  // 디버깅 로그
+  useEffect(() => {
+    console.log('[Preview] State:', {
+      studentsCount: students.length,
+      reportsCount: reports.length,
+      currentYearMonth,
+      hasApiKey: !!appSettings.notionApiKey,
+      hasScoresDb: !!appSettings.notionScoresDb,
+      isLoggedIn: !!currentUser,
+      isLoading,
+    });
+  }, [students, reports, currentYearMonth, appSettings, currentUser, isLoading]);
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const selectedReport = reports.find(r => r.studentId === selectedStudentId);
@@ -189,7 +203,27 @@ export default function Preview() {
           <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-light)', position: 'sticky', top: 0, zIndex: 10 }}>
             <h3 style={{ fontSize: '14px', fontWeight: 600 }}>학생 목록 ({students.length}명)</h3>
           </div>
-          {students.map(s => {
+          {isLoading ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <div className="spin" style={{ display: 'inline-block', marginBottom: '12px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--primary)' }}>refresh</span>
+              </div>
+              <div style={{ color: 'var(--text-muted)' }}>데이터 로딩 중...</div>
+            </div>
+          ) : students.length === 0 ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '12px', display: 'block' }}>warning</span>
+              <div style={{ fontWeight: 600, marginBottom: '8px' }}>학생 데이터가 없습니다</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                {!appSettings.notionApiKey ? 'Notion API 키를 설정해주세요' :
+                 !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
+                 '설정을 확인하거나 새로고침을 시도해주세요'}
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => window.location.hash = '#/report/settings'}>
+                설정으로 이동
+              </button>
+            </div>
+          ) : students.map(s => {
             const report = reports.find(r => r.studentId === s.id);
             const isSelected = selectedStudentId === s.id;
             const isPartial = report && report.scores.length > 0 && report.scores.length < s.subjects.length;

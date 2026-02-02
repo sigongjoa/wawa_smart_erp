@@ -13,15 +13,26 @@ const getSubjectColor = (subject: string) => SUBJECT_COLORS[subject] || '#6B7280
 
 export default function Input() {
   const { students, reports } = useFilteredData();
-  const { currentYearMonth, currentUser, fetchAllData, isLoading } = useReportStore();
+  const { currentYearMonth, currentUser, fetchAllData, isLoading, appSettings } = useReportStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState<Record<string, { score: number; comment: string }>>({});
 
   // 페이지 진입 시 데이터 로드
   useEffect(() => {
+    console.log('[Input] Mounted, fetching data...');
     fetchAllData();
   }, [fetchAllData]);
+
+  // 디버깅 로그
+  useEffect(() => {
+    console.log('[Input] State:', {
+      studentsCount: students.length,
+      reportsCount: reports.length,
+      hasApiKey: !!appSettings.notionApiKey,
+      hasScoresDb: !!appSettings.notionScoresDb,
+    });
+  }, [students, reports, appSettings]);
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const currentReport = reports.find(r => r.studentId === selectedStudentId);
@@ -122,7 +133,31 @@ export default function Input() {
             />
           </div>
           <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
-            {filteredStudents.map(s => {
+            {isLoading ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <div className="spin" style={{ display: 'inline-block', marginBottom: '12px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--primary)' }}>refresh</span>
+                </div>
+                <div style={{ color: 'var(--text-muted)' }}>데이터 로딩 중...</div>
+              </div>
+            ) : students.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '12px', display: 'block' }}>warning</span>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>학생 데이터가 없습니다</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  {!appSettings.notionApiKey ? 'Notion API 키를 설정해주세요' :
+                   !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
+                   '설정을 확인하거나 새로고침을 시도해주세요'}
+                </div>
+                <button className="btn btn-secondary btn-sm" onClick={() => window.location.hash = '#/report/settings'}>
+                  설정으로 이동
+                </button>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                검색 결과가 없습니다
+              </div>
+            ) : filteredStudents.map(s => {
               const { status, count, total } = getStudentStatus(s.id);
               const isSelected = selectedStudentId === s.id;
               return (
@@ -151,11 +186,6 @@ export default function Input() {
                 </div>
               );
             })}
-            {filteredStudents.length === 0 && (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                검색 결과가 없습니다
-              </div>
-            )}
           </div>
         </div>
 
