@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppShell from './components/AppShell';
 
 // Timer 모듈 페이지
@@ -33,7 +33,7 @@ import ScheduleSettings from './modules/schedule/Settings';
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<AppShell />}>
           {/* 기본 리다이렉트 */}
@@ -79,7 +79,7 @@ function App() {
           </Route>
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
