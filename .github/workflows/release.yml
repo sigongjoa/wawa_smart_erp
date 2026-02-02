@@ -37,14 +37,13 @@ jobs:
         run: pnpm --filter wawa-smart-erp dist
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: ncipollo/release-action@v1
         if: github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
         with:
-          files: apps/desktop/release/*.exe
-          tag_name: ${{ github.event.release.tag_name || 'latest' }}
+          artifacts: apps/desktop/release/*.exe
+          tag: ${{ github.event.release.tag_name || 'latest' }}
           name: ${{ github.event.release.name || 'Latest Release (master)' }}
-          draft: false
-          prerelease: false
-          overwrite: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          removeArtifacts: true
+          replacesArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
