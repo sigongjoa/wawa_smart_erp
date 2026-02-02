@@ -18,12 +18,7 @@ export default function Input() {
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState<Record<string, { score: number; comment: string }>>({});
 
-  // 페이지 진입 시 데이터 로드
-  useEffect(() => {
-    console.log('[Input] Mounted, fetching data...');
-    fetchAllData();
-  }, [fetchAllData]);
-
+  // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
   // 디버깅 로그
   useEffect(() => {
     console.log('[Input] State:', {

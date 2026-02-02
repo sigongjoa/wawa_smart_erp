@@ -11,3 +11,4 @@ python-dotenv
 aiofiles
 PyMuPDF
 pdf2image
+notion-client

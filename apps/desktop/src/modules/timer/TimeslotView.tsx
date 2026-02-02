@@ -17,12 +17,11 @@ const days: { key: DayType; label: string; class: string }[] = [
   { key: '목', label: '목요일', class: 'thu' },
   { key: '금', label: '금요일', class: 'fri' },
   { key: '토', label: '토요일', class: 'sat' },
-  { key: '일', label: '일요일', class: 'sun' },
 ];
 
 const generateTimeSlots = () => {
   const slots: string[] = [];
-  for (let h = 13; h <= 21; h++) {
+  for (let h = 10; h <= 21; h++) {
     slots.push(`${h.toString().padStart(2, '0')}:00`);
     slots.push(`${h.toString().padStart(2, '0')}:30`);
   }

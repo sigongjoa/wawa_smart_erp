@@ -24,13 +24,16 @@ export default function StudentList() {
 
     useEffect(() => {
         fetchStudents();
+    }, [fetchStudents]);
+
+    useEffect(() => {
         // Ensure teachers are loaded for the modal
         if (teachers.length === 0) {
             import('../../services/notion').then(mod => {
                 mod.fetchTeachers().then(setTeachers);
             });
         }
-    }, [fetchStudents, teachers.length, setTeachers]);
+    }, [teachers.length, setTeachers]);
 
     // Parse query params
     useEffect(() => {

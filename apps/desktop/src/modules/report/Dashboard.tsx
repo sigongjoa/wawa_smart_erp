@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 
@@ -6,10 +5,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { students, reports, examSchedules: schedules } = useFilteredData();
   const { sendHistories, fetchAllData, isLoading, currentYearMonth } = useReportStore();
-
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+  // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
 
   if (isLoading && students.length === 0) {
     return (

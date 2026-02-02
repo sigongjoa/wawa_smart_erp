@@ -43,12 +43,7 @@ export default function Preview() {
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 페이지 진입 시 데이터 갱신
-  useEffect(() => {
-    console.log('[Preview] Mounted, fetching data...');
-    fetchAllData();
-  }, [fetchAllData]);
-
+  // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
   // 디버깅 로그
   useEffect(() => {
     console.log('[Preview] State:', {
@@ -181,7 +176,7 @@ export default function Preview() {
   };
 
   // 고유 과목 목록
-  const subjects = selectedReport?.scores.map(s => s.subject) || [];
+  const subjects = Array.from(new Set(selectedReport?.scores.map(s => s.subject) || []));
 
   return (
     <div>
@@ -216,8 +211,8 @@ export default function Preview() {
               <div style={{ fontWeight: 600, marginBottom: '8px' }}>학생 데이터가 없습니다</div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
                 {!appSettings.notionApiKey ? 'Notion API 키를 설정해주세요' :
-                 !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
-                 '설정을 확인하거나 새로고침을 시도해주세요'}
+                  !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
+                    '설정을 확인하거나 새로고침을 시도해주세요'}
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => window.location.hash = '#/report/settings'}>
                 설정으로 이동
@@ -359,8 +354,8 @@ export default function Preview() {
                       {monthLabels[5]} 주요 과목 학업 성취도
                     </h3>
                     <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {selectedReport.scores.map((score) => (
-                        <div key={score.subject} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {selectedReport.scores.map((score, idx) => (
+                        <div key={`${score.subject}-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                             <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{score.subject}</span>
                             <span style={{ fontSize: '13px', fontWeight: 700, color: getSubjectColor(score.subject) }}>{score.score}점</span>
@@ -386,8 +381,9 @@ export default function Preview() {
                       과목별 선생님 코멘트
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {selectedReport.scores.map(s => (
-                        <div key={s.subject} style={{
+                      {selectedReport.scores.map((s, idx) => (
+                        <div key={`${s.subject}-${idx}`} style={{
+
                           background: '#ffffff',
                           border: '1px solid #e2e8f0',
                           borderLeft: `4px solid ${getSubjectColor(s.subject)}`,

@@ -14,6 +14,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@wawa/notion-client':
+        specifier: workspace:*
+        version: link:../../packages/notion-client
       axios:
         specifier: ^1.6.0
         version: 1.13.4

@@ -55,7 +55,9 @@
 /* ========================================
  * BASE
  * ======================================== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -517,11 +519,30 @@ body {
   justify-content: center;
 }
 
-.stat-icon.blue { background: var(--primary-light); color: var(--primary); }
-.stat-icon.green { background: var(--success-light); color: var(--success); }
-.stat-icon.rose { background: var(--danger-light); color: var(--danger); }
-.stat-icon.amber { background: var(--warning-light); color: var(--warning); }
-.stat-icon.purple { background: #f3e8ff; color: #9333ea; }
+.stat-icon.blue {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.stat-icon.green {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.stat-icon.rose {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.stat-icon.amber {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.stat-icon.purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
 
 .stat-label {
   font-size: 13px;
@@ -690,18 +711,49 @@ body {
   min-width: 40px;
 }
 
-.grade-badge.m1 { background: var(--grade-m1); }
-.grade-badge.m2 { background: var(--grade-m2); }
-.grade-badge.m3 { background: var(--grade-m3); }
-.grade-badge.h1 { background: var(--grade-h1); }
-.grade-badge.h2 { background: var(--grade-h2); }
-.grade-badge.h3 { background: var(--grade-h3); }
-.grade-badge.etc { background: var(--grade-etc); }
+.grade-badge.m1 {
+  background: var(--grade-m1);
+}
 
-.day-badge { font-weight: 700; }
-.day-badge.tue { color: #ef4444; }
-.day-badge.thu { color: #3b82f6; }
-.day-badge.sat { color: #10b981; }
+.grade-badge.m2 {
+  background: var(--grade-m2);
+}
+
+.grade-badge.m3 {
+  background: var(--grade-m3);
+}
+
+.grade-badge.h1 {
+  background: var(--grade-h1);
+}
+
+.grade-badge.h2 {
+  background: var(--grade-h2);
+}
+
+.grade-badge.h3 {
+  background: var(--grade-h3);
+}
+
+.grade-badge.etc {
+  background: var(--grade-etc);
+}
+
+.day-badge {
+  font-weight: 700;
+}
+
+.day-badge.tue {
+  color: #ef4444;
+}
+
+.day-badge.thu {
+  color: #3b82f6;
+}
+
+.day-badge.sat {
+  color: #10b981;
+}
 
 .subject-badge {
   display: inline-flex;
@@ -797,32 +849,56 @@ body {
  * TIMESLOT VIEW
  * ======================================== */
 .timeslot-container {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  width: 100%;
 }
 
 .timeslot-day {
-  flex: 1;
-  min-width: 320px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
 }
 
 .timeslot-day-header {
-  padding: 16px;
+  padding: 12px 8px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
   text-align: center;
   color: white;
 }
 
-.timeslot-day-header.tue { background: #ef4444; }
-.timeslot-day-header.thu { background: #3b82f6; }
-.timeslot-day-header.sat { background: #10b981; }
+.timeslot-day-header.mon {
+  background: #f97316;
+}
+
+.timeslot-day-header.tue {
+  background: #ef4444;
+}
+
+.timeslot-day-header.wed {
+  background: #8b5cf6;
+}
+
+.timeslot-day-header.thu {
+  background: #3b82f6;
+}
+
+.timeslot-day-header.fri {
+  background: #06b6d4;
+}
+
+.timeslot-day-header.sat {
+  background: #10b981;
+}
+
+
+
 
 .timeslot-row {
   display: flex;
@@ -840,9 +916,9 @@ body {
 }
 
 .timeslot-time {
-  width: 72px;
-  padding: 10px;
-  font-size: 13px;
+  width: 50px;
+  padding: 10px 4px;
+  font-size: 12px;
   font-weight: 500;
   background: #f8fafc;
   display: flex;
@@ -850,14 +926,15 @@ body {
   justify-content: center;
   border-right: 1px solid var(--border-light);
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .timeslot-students {
   flex: 1;
-  padding: 8px 12px;
+  padding: 4px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
 }
 
@@ -870,13 +947,33 @@ body {
   color: white;
 }
 
-.timeslot-student.m1 { background: var(--grade-m1); }
-.timeslot-student.m2 { background: var(--grade-m2); }
-.timeslot-student.m3 { background: var(--grade-m3); }
-.timeslot-student.h1 { background: var(--grade-h1); }
-.timeslot-student.h2 { background: var(--grade-h2); }
-.timeslot-student.h3 { background: var(--grade-h3); }
-.timeslot-student.etc { background: var(--grade-etc); }
+.timeslot-student.m1 {
+  background: var(--grade-m1);
+}
+
+.timeslot-student.m2 {
+  background: var(--grade-m2);
+}
+
+.timeslot-student.m3 {
+  background: var(--grade-m3);
+}
+
+.timeslot-student.h1 {
+  background: var(--grade-h1);
+}
+
+.timeslot-student.h2 {
+  background: var(--grade-h2);
+}
+
+.timeslot-student.h3 {
+  background: var(--grade-h3);
+}
+
+.timeslot-student.etc {
+  background: var(--grade-etc);
+}
 
 .timeslot-empty {
   color: var(--text-muted);
@@ -944,13 +1041,33 @@ body {
   transform: translateX(4px);
 }
 
-.realtime-card.m1 { border-left-color: var(--grade-m1); }
-.realtime-card.m2 { border-left-color: var(--grade-m2); }
-.realtime-card.m3 { border-left-color: var(--grade-m3); }
-.realtime-card.h1 { border-left-color: var(--grade-h1); }
-.realtime-card.h2 { border-left-color: var(--grade-h2); }
-.realtime-card.h3 { border-left-color: var(--grade-h3); }
-.realtime-card.etc { border-left-color: var(--grade-etc); }
+.realtime-card.m1 {
+  border-left-color: var(--grade-m1);
+}
+
+.realtime-card.m2 {
+  border-left-color: var(--grade-m2);
+}
+
+.realtime-card.m3 {
+  border-left-color: var(--grade-m3);
+}
+
+.realtime-card.h1 {
+  border-left-color: var(--grade-h1);
+}
+
+.realtime-card.h2 {
+  border-left-color: var(--grade-h2);
+}
+
+.realtime-card.h3 {
+  border-left-color: var(--grade-h3);
+}
+
+.realtime-card.etc {
+  border-left-color: var(--grade-etc);
+}
 
 .realtime-card-header {
   display: flex;
@@ -992,8 +1109,16 @@ body {
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0.6; }
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0.6;
+  }
 }
 
 .realtime-card-actions {
@@ -1119,13 +1244,25 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ========================================
