@@ -1,0 +1,52 @@
+{
+  "name": "timer-schedule-manager",
+  "version": "2.0.0",
+  "description": "수학 시간표 관리 시스템",
+  "private": true,
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "start": "electron .",
+    "build:electron": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "zustand": "^4.4.0",
+    "@notionhq/client": "^2.2.15",
+    "@anthropic-ai/sdk": "^0.71.2",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.wawa.timer-schedule",
+    "productName": "수학시간표관리",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "files": [
+      "dist/**/*",
+      "main.js"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "wawa-smart-erp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "통합 학원 관리 시스템 - 시간표, 채점, 보고서",
+  "scripts": {
+    "dev": "pnpm --filter @wawa/desktop dev",
+    "build": "pnpm --filter @wawa/desktop build",
+    "start": "pnpm --filter @wawa/desktop start",
+    "dev:timer": "pnpm --filter @wawa/desktop dev:timer",
+    "dev:grader": "pnpm --filter @wawa/desktop dev:grader",
+    "dev:report": "pnpm --filter @wawa/desktop dev:report"
+  },
+  "keywords": ["electron", "education", "erp", "grading", "schedule"],
+  "author": "sigongjoa",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
+  }
+}

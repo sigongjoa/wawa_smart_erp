@@ -1,0 +1,21 @@
+{
+  "name": "@wawa/notion-client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Notion API 클라이언트 - 학원 데이터 관리",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.14"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "@wawa/shared-types": "workspace:*"
+  }
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wawa Smart ERP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #4f46e5;
+      --bg-dark: #1e1e2e;
+      --bg-sidebar: #181825;
+      --text: #cdd6f4;
+      --text-muted: #6c7086;
+      --border: #313244;
+      --card-bg: #24243a;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      overflow: hidden;
+    }
+    #app { display: flex; height: 100vh; }
+
+    /* 사이드바 */
+    #sidebar {
+      width: 200px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    .logo { padding: 20px; border-bottom: 1px solid var(--border); }
+    .logo h1 { font-size: 16px; font-weight: 600; }
+    .nav-menu { list-style: none; padding: 10px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 8px; cursor: pointer;
+      transition: all 0.2s; margin-bottom: 4px;
+    }
+    .nav-item:hover { background: var(--border); }
+    .nav-item.active { background: var(--primary); color: white; }
+    .nav-item .icon { font-size: 16px; }
+    .nav-item .label { font-size: 13px; font-weight: 500; }
+    .nav-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .version { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+    /* 메인 */
+    #content { flex: 1; overflow: hidden; position: relative; }
+    .module-view {
+      display: none; width: 100%; height: 100%;
+      position: absolute; top: 0; left: 0;
+    }
+    .module-view.active { display: block; }
+    .module-view iframe { width: 100%; height: 100%; border: none; }
+
+    /* 대시보드 */
+    #dashboard-view { padding: 30px; overflow-y: auto; }
+    #dashboard-view h2 { font-size: 22px; margin-bottom: 20px; }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--card-bg); border-radius: 12px;
+      padding: 20px; border: 1px solid var(--border);
+    }
+    .card h3 { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+    .card .stat { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .status-bar {
+      margin-top: 30px; padding: 16px;
+      background: var(--card-bg); border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .status-bar h3 { font-size: 14px; margin-bottom: 12px; }
+    .status-item {
+      display: flex; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .status-item:last-child { border-bottom: none; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block; margin-right: 8px;
+    }
+    .status-dot.online { background: #22c55e; }
+    .status-dot.offline { background: #ef4444; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar">
+      <div class="logo"><h1>📚 Wawa ERP</h1></div>
+      <ul class="nav-menu">
+        <li class="nav-item active" data-module="dashboard">
+          <span class="icon">📊</span><span class="label">대시보드</span>
+        </li>
+        <li class="nav-item" data-module="timer">
+          <span class="icon">⏰</span><span class="label">시간표</span>
+        </li>
+        <li class="nav-item" data-module="grader">
+          <span class="icon">✏️</span><span class="label">채점</span>
+        </li>
+        <li class="nav-item" data-module="report">
+          <span class="icon">📋</span><span class="label">보고서</span>
+        </li>
+      </ul>
+      <div class="nav-footer"><div class="version">v1.0.0</div></div>
+    </nav>
+
+    <main id="content">
+      <div id="dashboard-view" class="module-view active">
+        <h2>대시보드</h2>
+        <div class="dashboard-grid">
+          <div class="card"><h3>오늘 수업</h3><p class="stat">5개</p></div>
+          <div class="card"><h3>채점 대기</h3><p class="stat">12건</p></div>
+          <div class="card"><h3>이번 달 보고서</h3><p class="stat">8개</p></div>
+        </div>
+        <div class="status-bar">
+          <h3>모듈 상태</h3>
+          <div class="status-item">
+            <span><span class="status-dot online" id="timer-status"></span>시간표 (Timer)</span>
+            <span>:5176</span>
+          </div>
+          <div class="status-item">
+            <span><span class="status-dot online" id="grader-status"></span>채점 (Grader)</span>
+            <span>:5174</span>
+          </div>
+          <div class="status-item">
+            <span><span class="status-dot offline" id="report-status"></span>보고서 (Report)</span>
+            <span>:5175</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="timer-view" class="module-view">
+        <iframe src="http://localhost:5176/index.html" id="timer-frame"></iframe>
+      </div>
+      <div id="grader-view" class="module-view">
+        <iframe src="http://localhost:5174" id="grader-frame"></iframe>
+      </div>
+      <div id="report-view" class="module-view">
+        <iframe src="http://localhost:5175" id="report-frame"></iframe>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const navItems = document.querySelectorAll('.nav-item');
+      const moduleViews = document.querySelectorAll('.module-view');
+
+      navItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const module = item.dataset.module;
+          navItems.forEach(nav => nav.classList.remove('active'));
+          item.classList.add('active');
+          moduleViews.forEach(view => view.classList.remove('active'));
+          document.getElementById(`${module}-view`).classList.add('active');
+        });
+      });
+
+      // 모듈 상태 체크
+      async function checkModule(port, statusId) {
+        try {
+          const res = await fetch(`http://localhost:${port}`, { mode: 'no-cors' });
+          document.getElementById(statusId).classList.add('online');
+          document.getElementById(statusId).classList.remove('offline');
+        } catch {
+          document.getElementById(statusId).classList.add('offline');
+          document.getElementById(statusId).classList.remove('online');
+        }
+      }
+      checkModule(5176, 'timer-status');
+      checkModule(5174, 'grader-status');
+      checkModule(5175, 'report-status');
+    });
+  </script>
+</body>
+</html>
