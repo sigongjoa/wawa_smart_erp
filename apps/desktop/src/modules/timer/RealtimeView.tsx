@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../../stores/appStore';
-import type { Student, GradeType } from '../../types';
+import { Student, GradeType } from '../../types';
 
 const gradeClassMap: Record<GradeType, string> = {
   '중1': 'm1', '중2': 'm2', '중3': 'm3',
