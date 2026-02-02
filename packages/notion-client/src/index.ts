@@ -31,24 +31,29 @@ export class NotionClient {
     return await this.client.pages.retrieve({ page_id: id });
   }
 
-  async createStudent(data: { name: string; grade: string; contact: string; parentContact: string }) {
+  async createStudent(data: { name: string; grade: string; contact?: string; parentContact?: string; subject?: string }) {
+    const properties: any = {
+      '이름': { title: [{ text: { content: data.name } }] },
+      '학년': { rich_text: [{ text: { content: data.grade } }] },
+    };
+
+    if (data.contact) properties['연락처'] = { phone_number: data.contact };
+    if (data.parentContact) properties['학부모 연락처'] = { phone_number: data.parentContact };
+    if (data.subject) properties['수강과목'] = { multi_select: [{ name: data.subject }] };
+
     return await this.client.pages.create({
       parent: { database_id: this.config.databases.students },
-      properties: {
-        '이름': { title: [{ text: { content: data.name } }] },
-        '학년': { rich_text: [{ text: { content: data.grade } }] },
-        '연락처': { phone_number: data.contact },
-        '학부모 연락처': { phone_number: data.parentContact },
-      },
+      properties,
     });
   }
 
-  async updateStudent(id: string, data: { name?: string; grade?: string; contact?: string; parentContact?: string }) {
+  async updateStudent(id: string, data: { name?: string; grade?: string; contact?: string; parentContact?: string; subject?: string }) {
     const properties: any = {};
     if (data.name) properties['이름'] = { title: [{ text: { content: data.name } }] };
     if (data.grade) properties['학년'] = { rich_text: [{ text: { content: data.grade } }] };
     if (data.contact) properties['연락처'] = { phone_number: data.contact };
     if (data.parentContact) properties['학부모 연락처'] = { phone_number: data.parentContact };
+    if (data.subject) properties['수강과목'] = { multi_select: [{ name: data.subject }] };
 
     return await this.client.pages.update({
       page_id: id,
@@ -185,16 +190,16 @@ export class NotionClient {
 
   async updateReport(id: string, data: { content: string }) {
     return await this.client.blocks.children.append({
-        block_id: id,
-        children: [
-            {
-                object: 'block',
-                type: 'paragraph',
-                paragraph: {
-                    rich_text: [{ text: { content: data.content } }],
-                },
-            },
-        ],
+      block_id: id,
+      children: [
+        {
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{ text: { content: data.content } }],
+          },
+        },
+      ],
     });
   }
 
