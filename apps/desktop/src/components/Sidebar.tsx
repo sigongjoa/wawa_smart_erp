@@ -33,6 +33,10 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'history', label: '시험 이력', icon: 'history', path: '/schedule/history' },
     { id: 'settings', label: '설정', icon: 'settings', path: '/schedule/settings' },
   ],
+  student: [
+    { id: 'list', label: '전체 학생', icon: 'groups', path: '/student' },
+    { id: 'inactive', label: '비활성 학생', icon: 'person_off', path: '/student?status=inactive' },
+  ],
 };
 
 export default function Sidebar() {
@@ -49,6 +53,7 @@ export default function Sidebar() {
     report: '리포트 시스템',
     grader: '채점 시스템',
     schedule: '시험 일정',
+    student: '학생 관리',
   };
 
   return (

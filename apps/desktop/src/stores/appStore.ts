@@ -1,21 +1,27 @@
 import { create } from 'zustand';
-import type { Student, FilterState, RealtimeSession, DayType, GradeType } from '../types';
+import type { Student, FilterState, RealtimeSession, DayType, GradeType, Enrollment } from '../types';
 import notionClient from '../services/notion';
 
 interface AppState {
   // Timer 모듈 데이터
   students: Student[];
+  enrollments: Enrollment[];
   realtimeSessions: RealtimeSession[];
   timerFilters: FilterState;
 
   // Timer 액션
   fetchStudents: () => Promise<void>;
+  fetchEnrollments: () => Promise<void>;
+  setEnrollments: (enrollments: Enrollment[]) => void;
   addStudent: (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateStudent: (id: string, updates: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
-  setTimerDayFilter: (day: DayType | 'all') => void;
-  setTimerGradeFilter: (grade: GradeType | 'all') => void;
+  setTimerDayFilter: (day: DayType) => void;
+  setTimerDayFilterAll: (days: DayType[]) => void;
+  setTimerGradeFilter: (grade: GradeType) => void;
+  setTimerGradeFilterAll: (grades: GradeType[]) => void;
   setTimerSearchFilter: (search: string) => void;
+  clearFilters: () => void;
   checkIn: (studentId: string) => void;
   checkOut: (studentId: string) => void;
   clearSessions: () => void;
@@ -31,28 +37,33 @@ export const useAppStore = create<AppState>()(
     students: [],
     realtimeSessions: [],
     timerFilters: {
-      day: 'all',
-      grade: 'all',
+      days: [],
+      grades: [],
       search: '',
     },
 
+    enrollments: [],
+    setEnrollments: (enrollments) => set({ enrollments }),
+
+    fetchEnrollments: async () => {
+      try {
+        const enrollments = await notionClient.fetchEnrollments();
+        set({ enrollments });
+      } catch (error) {
+        console.error('[appStore] fetchEnrollments failed:', error);
+      }
+    },
+
     fetchStudents: async () => {
-      const notionStudents = await notionClient.getStudents();
-      const students: Student[] = notionStudents.map((page: any) => {
-        const properties = page.properties;
-        return {
-          id: page.id,
-          name: properties['이름']?.title[0]?.plain_text || '',
-          grade: properties['학년']?.rich_text[0]?.plain_text || properties['학년']?.select?.name || '중1',
-          day: properties['요일']?.select?.name || properties['요일']?.rich_text[0]?.plain_text || '화',
-          startTime: properties['시작시간']?.rich_text[0]?.plain_text || '',
-          endTime: properties['종료시간']?.rich_text[0]?.plain_text || '',
-          subject: properties['수강과목']?.multi_select?.[0]?.name || properties['과목']?.title[0]?.plain_text || '',
-          createdAt: page.created_time,
-          updatedAt: page.last_edited_time,
-        };
-      });
-      set({ students });
+      try {
+        const students = await notionClient.fetchStudents();
+        console.log(`[appStore] Fetched ${students.length} students`);
+        set({ students });
+        // 신규 수강 일정 DB 페칭 병렬 실행
+        get().fetchEnrollments();
+      } catch (error) {
+        console.error('[appStore] fetchStudents failed:', error);
+      }
     },
 
     // 학생 추가
@@ -61,8 +72,7 @@ export const useAppStore = create<AppState>()(
         const response: any = await notionClient.createStudent({
           name: studentData.name,
           grade: studentData.grade,
-          contact: '', // Optional or add to UI later
-          parentContact: '', // Optional
+          subjects: [],
         });
 
         await notionClient.updateStudent(response.id, {
@@ -112,17 +122,37 @@ export const useAppStore = create<AppState>()(
       }
     },
 
-    // 요일 필터
+    // 요일 필터 (토글)
     setTimerDayFilter: (day) => {
+      set((state) => {
+        const days = state.timerFilters.days.includes(day)
+          ? state.timerFilters.days.filter((d) => d !== day)
+          : [...state.timerFilters.days, day];
+        return { timerFilters: { ...state.timerFilters, days } };
+      });
+    },
+
+    // 요일 필터 (일괄 설정)
+    setTimerDayFilterAll: (days) => {
       set((state) => ({
-        timerFilters: { ...state.timerFilters, day },
+        timerFilters: { ...state.timerFilters, days },
       }));
     },
 
-    // 학년 필터
+    // 학년 필터 (토글)
     setTimerGradeFilter: (grade) => {
+      set((state) => {
+        const grades = state.timerFilters.grades.includes(grade)
+          ? state.timerFilters.grades.filter((g) => g !== grade)
+          : [...state.timerFilters.grades, grade];
+        return { timerFilters: { ...state.timerFilters, grades } };
+      });
+    },
+
+    // 학년 필터 (일괄 설정)
+    setTimerGradeFilterAll: (grades) => {
       set((state) => ({
-        timerFilters: { ...state.timerFilters, grade },
+        timerFilters: { ...state.timerFilters, grades },
       }));
     },
 
@@ -133,13 +163,20 @@ export const useAppStore = create<AppState>()(
       }));
     },
 
+    // 필터 초기화
+    clearFilters: () => {
+      set((state) => ({
+        timerFilters: { days: [], grades: [], search: '' },
+      }));
+    },
+
     // 체크인
     checkIn: (studentId) => {
       const student = get().students.find((s) => s.id === studentId);
       if (!student) return;
 
-      const [startH, startM] = student.startTime.split(':').map(Number);
-      const [endH, endM] = student.endTime.split(':').map(Number);
+      const [startH, startM] = (student.startTime || '00:00').split(':').map(Number);
+      const [endH, endM] = (student.endTime || '00:00').split(':').map(Number);
       const scheduledMinutes = (endH * 60 + endM) - (startH * 60 + startM);
 
       const session: RealtimeSession = {
@@ -176,8 +213,8 @@ export const useAppStore = create<AppState>()(
     getFilteredStudents: () => {
       const { students, timerFilters } = get();
       return students.filter((student) => {
-        if (timerFilters.day !== 'all' && student.day !== timerFilters.day) return false;
-        if (timerFilters.grade !== 'all' && student.grade !== timerFilters.grade) return false;
+        if (timerFilters.days.length > 0 && !timerFilters.days.includes(student.day as DayType)) return false;
+        if (timerFilters.grades.length > 0 && !timerFilters.grades.includes(student.grade as GradeType)) return false;
         if (timerFilters.search && !student.name.includes(timerFilters.search)) return false;
         return true;
       });
@@ -194,5 +231,4 @@ export const useAppStore = create<AppState>()(
   })
 );
 
-// Fetch students when the app loads
-useAppStore.getState().fetchStudents();
+export default useAppStore;

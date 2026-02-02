@@ -1,7 +1,67 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
+import { spawn, ChildProcess } from 'child_process';
+import * as fs from 'fs';
 
 let mainWindow: BrowserWindow | null = null;
+let pythonProcess: ChildProcess | null = null;
+
+function startPythonBackend() {
+  const isDev = process.env.NODE_ENV === 'development';
+  // 개발 환경에서는 process.cwd()가 프로젝트 루트(apps/desktop)라고 가정
+  // 프로덕션 환경의 경로는 패키징 방식에 따라 달라질 수 있음 (추후 확인 필요)
+  const backendDir = isDev
+    ? path.join(process.cwd(), 'backend')
+    : path.join(process.resourcesPath, 'backend'); // 예시: 프로덕션 리소스 경로
+
+  const mainScript = path.join(backendDir, 'main.py');
+
+  // venv 확인 및 Python 실행 파일 결정
+  let pythonExecutable = 'python3'; // 기본값 (시스템 python)
+  if (process.platform === 'win32') {
+    const venvPythonWin = path.join(backendDir, 'venv', 'Scripts', 'python.exe');
+    if (fs.existsSync(venvPythonWin)) {
+      pythonExecutable = venvPythonWin;
+    } else {
+      pythonExecutable = 'python'; // Windows fallback
+    }
+  } else {
+    const venvPythonUnix = path.join(backendDir, 'venv', 'bin', 'python');
+    if (fs.existsSync(venvPythonUnix)) {
+      pythonExecutable = venvPythonUnix;
+    }
+  }
+
+  console.log(`[Electron] Starting Python backend...`);
+  console.log(`  Path: ${backendDir}`);
+  console.log(`  Script: ${mainScript}`);
+  console.log(`  Executable: ${pythonExecutable}`);
+
+  pythonProcess = spawn(pythonExecutable, [mainScript], {
+    cwd: backendDir,
+    // stdio: 'inherit' for debugging in terminal
+  });
+
+  if (pythonProcess.stdout) {
+    pythonProcess.stdout.on('data', (data) => {
+      console.log(`[Python] ${data.toString().trim()}`);
+    });
+  }
+
+  if (pythonProcess.stderr) {
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`[Python API] ${data.toString().trim()}`);
+    });
+  }
+
+  pythonProcess.on('error', (err) => {
+    console.error('[Electron] Failed to start Python backend:', err);
+  });
+
+  pythonProcess.on('exit', (code, signal) => {
+    console.log(`[Electron] Python backend exited with code ${code} and signal ${signal}`);
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -97,7 +157,18 @@ ipcMain.handle('typst:compile', async (_, { source, outputPath }: { source: stri
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  startPythonBackend();
+  createWindow();
+});
+
+app.on('will-quit', () => {
+  if (pythonProcess) {
+    console.log('[Electron] Killing Python backend...');
+    pythonProcess.kill();
+    pythonProcess = null;
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

@@ -1,13 +1,23 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { useReportStore } from '../stores/reportStore';
+import useAppStore from '../stores/appStore';
 import Setup from '../modules/report/Setup';
 import Login from '../modules/auth/Login';
 
 export default function AppShell() {
-  const { appSettings, currentUser } = useReportStore();
+  const { appSettings, currentUser, fetchAllData } = useReportStore();
   const isConfigured = !!appSettings.notionApiKey;
+
+  useEffect(() => {
+    if (isConfigured) {
+      fetchAllData();
+      // 학생 데이터 초기화
+      useAppStore.getState().fetchStudents();
+    }
+  }, [isConfigured]);
 
   // 1. 초기 설정이 안 된 경우 (API Key 없음)
   if (!isConfigured) {

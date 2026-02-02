@@ -1,11 +1,11 @@
 // 모듈 타입
-export type ModuleType = 'timer' | 'report' | 'grader' | 'schedule';
+export type ModuleType = 'timer' | 'report' | 'grader' | 'schedule' | 'student';
 
 // 학년 타입
-export type GradeType = '중1' | '중2' | '중3' | '고1' | '고2' | '고3' | '검정고시';
+export type GradeType = '초1' | '초2' | '초3' | '초4' | '초5' | '초6' | '중1' | '중2' | '중3' | '고1' | '고2' | '고3' | '검정고시';
 
 // 요일 타입
-export type DayType = '화' | '목' | '토';
+export type DayType = '월' | '화' | '수' | '목' | '금' | '토' | '일';
 
 // 학생 타입 (통합)
 export interface Student {
@@ -17,6 +17,7 @@ export interface Student {
   endTime?: string;      // 타이머용 종료 시간
   subject?: string;      // 타이머용 주력 과목
   subjects: string[];    // 수강 과목들 (리포트용)
+  teacherIds?: string[]; // 담당 선생님 ID 목록 (relation)
   parentName?: string;   // 학부모 이름
   parentPhone?: string;  // 학부모 전화번호
   examDate?: string;     // 시험 예정일 (YYYY-MM-DD)
@@ -40,10 +41,10 @@ export interface RealtimeSession {
   scheduledMinutes: number;
 }
 
-// 필터 상태
+// 필터 상태 (다중 선택 지원)
 export interface FilterState {
-  day: DayType | 'all';
-  grade: GradeType | 'all';
+  days: DayType[];    // 다중 선택된 요일들
+  grades: GradeType[]; // 다중 선택된 학년들
   search: string;
 }
 
@@ -178,6 +179,7 @@ export interface AppSettings {
   cloudinaryApiSecret?: string;
   notionAbsenceHistoryDb?: string;
   notionExamScheduleDb?: string;
+  notionEnrollmentDb?: string;
 }
 
 // 현재 로그인한 선생님
@@ -206,6 +208,20 @@ export interface ExamSchedule {
   studentName?: string;
   yearMonth: string;
   examDate: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// 수강 일정 타입
+export interface Enrollment {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  day: DayType;
+  startTime: string;
+  endTime: string;
+  subject: string;
+  tuition?: number;
   createdAt?: string;
   updatedAt?: string;
 }

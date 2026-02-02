@@ -1,6 +1,6 @@
-import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, ExamSchedule } from '../types';
+import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, ExamSchedule, Enrollment, DayType } from '../types';
 import { useReportStore } from '../stores/reportStore';
-import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_EXAM_SCHEDULE, NOTION_STATUS_VALUES } from '../constants/notion';
+import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_EXAM_SCHEDULE, NOTION_COLUMNS_ENROLLMENT, NOTION_STATUS_VALUES } from '../constants/notion';
 import { ApiResult } from '../types/api';
 
 const BATCH_CHUNK_SIZE = 10;
@@ -36,6 +36,7 @@ const getDbIds = () => {
     exams: settings.notionExamsDb || '',
     absenceHistory: settings.notionAbsenceHistoryDb || '',
     examSchedule: settings.notionExamScheduleDb || '',
+    enrollment: settings.notionEnrollmentDb || '',
   };
 };
 
@@ -144,7 +145,7 @@ export const fetchTeachers = async (): Promise<Teacher[]> => {
     return data.results.map((page: any) => ({
       id: page.id,
       name: page.properties['선생님']?.title?.[0]?.plain_text || '',
-      subjects: (page.properties['과목']?.rich_text?.[0]?.plain_text || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+      subjects: page.properties['과목']?.multi_select?.map((s: any) => s.name) || [],
       pin: String(page.properties['PIN']?.number || '0000'),
       isAdmin: page.properties['isAdmin']?.select?.name === 'True',
     }));
@@ -159,20 +160,57 @@ export const fetchStudents = async (): Promise<Student[]> => {
       method: 'POST',
       body: JSON.stringify({ sorts: [{ property: '이름', direction: 'ascending' }] }),
     });
-    return data.results.map((page: any) => ({
-      id: page.id,
-      name: page.properties['이름']?.title?.[0]?.plain_text || '',
-      grade: page.properties['학년']?.select?.name || page.properties['학년']?.rich_text?.[0]?.plain_text || '',
-      subjects: page.properties['수강과목']?.multi_select?.map((s: any) => s.name) || [],
-      parentName: page.properties['학부모연락처']?.rich_text?.[0]?.plain_text || page.properties['학부모']?.rich_text?.[0]?.plain_text || '',
-      parentPhone: page.properties['전화번호']?.phone_number || page.properties['학부모전화']?.rich_text?.[0]?.plain_text || '',
-      examDate: page.properties[NOTION_COLUMNS_STUDENT.EXAM_DATE]?.date?.start || undefined,
-      status: page.properties[NOTION_COLUMNS_STUDENT.STATUS]?.select?.name === '비활성' ? 'inactive' : 'active',
-      absenceReason: page.properties[NOTION_COLUMNS_STUDENT.ABSENCE_REASON]?.rich_text?.[0]?.plain_text || undefined,
-      createdAt: page.created_time,
-      updatedAt: page.last_edited_time,
-    }));
-  } catch { return []; }
+
+    return data.results
+      .map((page: any) => {
+        const props = page.properties;
+        const name = props['이름']?.title?.[0]?.plain_text || '';
+        if (!name) return null;
+
+        // 학년 파싱 강화 (Select, MultiSelect, RichText, Formula, Rollup 지원)
+        let grade = '';
+        const gradeProp = props['학년'];
+        if (gradeProp) {
+          if (gradeProp.type === 'select') grade = gradeProp.select?.name || '';
+          else if (gradeProp.type === 'multi_select') grade = gradeProp.multi_select?.[0]?.name || '';
+          else if (gradeProp.type === 'rich_text') grade = gradeProp.rich_text?.[0]?.plain_text || '';
+          else if (gradeProp.type === 'formula') grade = gradeProp.formula?.string || '';
+          else if (gradeProp.type === 'rollup') {
+            const arr = gradeProp.rollup?.array;
+            if (arr && arr.length > 0) {
+              const first = arr[0];
+              if (first.type === 'select') grade = first.select?.name || '';
+              else if (first.type === 'multi_select') grade = first.multi_select?.[0]?.name || '';
+              else if (first.type === 'rich_text') grade = first.rich_text?.[0]?.plain_text || '';
+              else if (first.type === 'formula') grade = first.formula?.string || '';
+            }
+          }
+        }
+
+        return {
+          id: page.id,
+          name,
+          grade,
+          day: props['요일']?.select?.name || props['요일']?.rich_text?.[0]?.plain_text || '월',
+          startTime: props['시작시간']?.rich_text?.[0]?.plain_text || props['시간']?.rich_text?.[0]?.plain_text || '',
+          endTime: props['종료시간']?.rich_text?.[0]?.plain_text || '',
+          subject: props['주력과목']?.select?.name || props['수강과목']?.multi_select?.[0]?.name || '',
+          subjects: props['수강과목']?.multi_select?.map((s: any) => s.name) || [],
+          teacherIds: props['담당선생님']?.relation?.map((r: any) => r.id) || [],
+          parentName: props['학부모연락처']?.rich_text?.[0]?.plain_text || props['학부모']?.rich_text?.[0]?.plain_text || '',
+          parentPhone: props['전화번호']?.phone_number || props['학부모전화']?.rich_text?.[0]?.plain_text || '',
+          examDate: props[NOTION_COLUMNS_STUDENT.EXAM_DATE]?.date?.start || undefined,
+          status: props[NOTION_COLUMNS_STUDENT.STATUS]?.select?.name === '비활성' ? 'inactive' : 'active',
+          absenceReason: props[NOTION_COLUMNS_STUDENT.ABSENCE_REASON]?.rich_text?.[0]?.plain_text || undefined,
+          createdAt: page.created_time,
+          updatedAt: page.last_edited_time,
+        };
+      })
+      .filter((s): s is Student => s !== null);
+  } catch (error) {
+    console.error('❌ fetchStudents failed:', error);
+    return [];
+  }
 };
 
 export const createStudent = async (student: Omit<Student, "id" | "createdAt" | "updatedAt">): Promise<ApiResult<Student>> => {
@@ -188,6 +226,9 @@ export const createStudent = async (student: Omit<Student, "id" | "createdAt" | 
     if (student.parentName) properties[NOTION_COLUMNS_STUDENT.PARENT_NAME] = { rich_text: [{ text: { content: student.parentName } }] };
     if (student.parentPhone) properties[NOTION_COLUMNS_STUDENT.PARENT_PHONE] = { phone_number: student.parentPhone };
     if (student.examDate) properties[NOTION_COLUMNS_STUDENT.EXAM_DATE] = { date: { start: student.examDate } };
+    if (student.teacherIds && student.teacherIds.length > 0) {
+      properties[NOTION_COLUMNS_STUDENT.TEACHERS] = { relation: student.teacherIds.map(id => ({ id })) };
+    }
 
     const data = await notionFetch("/pages", {
       method: "POST",
@@ -212,6 +253,7 @@ export const updateStudent = async (studentId: string, updates: Partial<Student>
     if (updates.parentPhone !== undefined) properties[NOTION_COLUMNS_STUDENT.PARENT_PHONE] = { phone_number: updates.parentPhone };
     if (updates.examDate !== undefined) properties[NOTION_COLUMNS_STUDENT.EXAM_DATE] = updates.examDate ? { date: { start: updates.examDate } } : { date: null };
     if (updates.status) properties[NOTION_COLUMNS_STUDENT.STATUS] = { select: { name: updates.status === "inactive" ? NOTION_STATUS_VALUES.INACTIVE : NOTION_STATUS_VALUES.ACTIVE } };
+    if (updates.teacherIds) properties[NOTION_COLUMNS_STUDENT.TEACHERS] = { relation: updates.teacherIds.map(id => ({ id })) };
 
     await notionFetch(`/pages/${studentId}`, { method: "PATCH", body: JSON.stringify({ properties }) });
     return { success: true, data: true };
@@ -315,15 +357,23 @@ export const fetchScores = async (yearMonth: string): Promise<MonthlyReport[]> =
       }
 
       const report = reportMap.get(studentId)!;
-      report.scores.push({
-        subject: page.properties[NOTION_COLUMNS_SCORE.SUBJECT]?.select?.name || '',
-        score: page.properties[NOTION_COLUMNS_SCORE.SCORE]?.number || 0,
-        teacherId: page.properties[NOTION_COLUMNS_SCORE.TEACHER]?.relation?.[0]?.id || '',
-        teacherName: '',
-        comment: page.properties[NOTION_COLUMNS_SCORE.COMMENT]?.rich_text?.[0]?.plain_text || '',
-        difficulty: page.properties[NOTION_COLUMNS_SCORE.DIFFICULTY]?.select?.name as DifficultyGrade,
-        updatedAt: page.last_edited_time,
-      });
+      const subject = page.properties[NOTION_COLUMNS_SCORE.SUBJECT]?.select?.name || '';
+      const comment = page.properties[NOTION_COLUMNS_SCORE.COMMENT]?.rich_text?.[0]?.plain_text || '';
+
+      if (subject === '__TOTAL_COMMENT__') {
+        // Special subject for total comment
+        reportMap.get(studentId)!.totalComment = comment;
+      } else {
+        report.scores.push({
+          subject,
+          score: page.properties[NOTION_COLUMNS_SCORE.SCORE]?.number || 0,
+          teacherId: page.properties[NOTION_COLUMNS_SCORE.TEACHER]?.relation?.[0]?.id || '',
+          teacherName: '',
+          comment,
+          difficulty: page.properties[NOTION_COLUMNS_SCORE.DIFFICULTY]?.select?.name as DifficultyGrade,
+          updatedAt: page.last_edited_time,
+        });
+      }
     }
     return Array.from(reportMap.values());
   } catch { return []; }
@@ -393,19 +443,29 @@ export const fetchExamSchedules = async (yearMonth: string): Promise<ExamSchedul
   const dbIds = getDbIds();
   if (!dbIds.examSchedule) return [];
   try {
+    // 년월 필터가 가끔 타입 문제(Text vs Date)를 일으키므로,
+    // 우선 전체 데이터를 가져온 후 JS에서 필터링하여 타입 불일치 오류를 방지합니다.
     const data = await notionFetch(`/databases/${dbIds.examSchedule}/query`, {
       method: 'POST',
-      body: JSON.stringify({
-        filter: { property: NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH, rich_text: { equals: yearMonth } },
-      }),
+      body: JSON.stringify({}),
     });
-    return data.results.map((page: any) => ({
-      id: page.id,
-      studentId: page.properties[NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]?.relation?.[0]?.id ||
-        page.properties[NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]?.rich_text?.[0]?.plain_text || '',
-      yearMonth: page.properties[NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]?.rich_text?.[0]?.plain_text || '',
-      examDate: page.properties[NOTION_COLUMNS_EXAM_SCHEDULE.EXAM_DATE]?.date?.start || '',
-    }));
+
+    return data.results
+      .map((page: any) => {
+        const props = page.properties;
+        const ymText = props[NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]?.rich_text?.[0]?.plain_text ||
+          props[NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]?.select?.name ||
+          props[NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]?.date?.start?.substring(0, 7) || '';
+
+        return {
+          id: page.id,
+          studentId: props[NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]?.relation?.[0]?.id ||
+            props[NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]?.rich_text?.[0]?.plain_text || '',
+          yearMonth: ymText,
+          examDate: props[NOTION_COLUMNS_EXAM_SCHEDULE.EXAM_DATE]?.date?.start || '',
+        };
+      })
+      .filter((s: any) => s.yearMonth === yearMonth);
   } catch (error) {
     console.error('❌ fetchExamSchedules failed:', error);
     return [];
@@ -421,17 +481,18 @@ export const updateExamSchedulesBatch = async (
   if (!dbIds.examSchedule) return { success: false, error: { message: "시험표 데이터베이스 ID가 설정되지 않았습니다." } };
 
   try {
+    // 년월을 date 형식으로 변환 (YYYY-MM → YYYY-MM-01)
+    const yearMonthDate = `${yearMonth}-01`;
+
     const results = await Promise.all(studentIds.map(async (studentId) => {
-      // Try to find by relation first, if it fails, the user might have a text field
-      // The error suggested 'database property text does not match filter relation'
-      // This means the property IS text but we filtered by relation.
+      // ExamSchedule DB: 학생=rich_text, 년월=date
       const existing = await notionFetch(`/databases/${dbIds.examSchedule}/query`, {
         method: 'POST',
         body: JSON.stringify({
           filter: {
             and: [
               { property: NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT, rich_text: { contains: studentId } },
-              { property: NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH, rich_text: { equals: yearMonth } },
+              { property: NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH, date: { equals: yearMonthDate } },
             ],
           },
         }),
@@ -452,7 +513,7 @@ export const updateExamSchedulesBatch = async (
             properties: {
               [NOTION_COLUMNS_EXAM_SCHEDULE.NAME]: { title: [{ text: { content: `${studentId}_${yearMonth}` } }] },
               [NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]: { rich_text: [{ text: { content: studentId } }] },
-              [NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]: { rich_text: [{ text: { content: yearMonth } }] },
+              [NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]: { date: { start: yearMonthDate } },
               [NOTION_COLUMNS_EXAM_SCHEDULE.EXAM_DATE]: { date: { start: examDate } },
             },
           }),
@@ -479,6 +540,35 @@ export const getStudents = async () => {
   } catch { return []; }
 };
 
+export const fetchEnrollments = async (): Promise<Enrollment[]> => {
+  const dbIds = getDbIds();
+  if (!dbIds.enrollment) return [];
+  try {
+    const data = await notionFetch(`/databases/${dbIds.enrollment}/query`, {
+      method: 'POST',
+      body: JSON.stringify({ sorts: [{ property: '요일', direction: 'ascending' }] }),
+    });
+    return data.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        studentId: props[NOTION_COLUMNS_ENROLLMENT.STUDENT]?.relation?.[0]?.id || '',
+        day: (props[NOTION_COLUMNS_ENROLLMENT.DAY]?.select?.name || '월') as DayType,
+        startTime: props[NOTION_COLUMNS_ENROLLMENT.START_TIME]?.rich_text?.[0]?.plain_text || '',
+        endTime: props[NOTION_COLUMNS_ENROLLMENT.END_TIME]?.rich_text?.[0]?.plain_text || '',
+        subject: props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.rich_text?.[0]?.plain_text ||
+          props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.select?.name || '',
+        tuition: props[NOTION_COLUMNS_ENROLLMENT.TUITION]?.number || 0,
+        createdAt: page.created_time,
+        updatedAt: page.last_edited_time,
+      };
+    });
+  } catch (error) {
+    console.error('❌ fetchEnrollments failed:', error);
+    return [];
+  }
+};
+
 const notionClient = {
   getStudents,
   fetchStudents,
@@ -493,6 +583,7 @@ const notionClient = {
   updateExamDifficulty,
   fetchExamSchedules,
   updateExamSchedulesBatch,
+  fetchEnrollments,
   testNotionConnection,
 };
 

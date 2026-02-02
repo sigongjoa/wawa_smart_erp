@@ -31,6 +31,9 @@ import ScheduleUpcoming from './modules/schedule/Upcoming';
 import ScheduleHistory from './modules/schedule/History';
 import ScheduleSettings from './modules/schedule/Settings';
 
+// Student 모듈 페이지
+import StudentList from './modules/student/List';
+
 import ToastContainer from './components/common/ToastContainer';
 
 function App() {
@@ -40,6 +43,11 @@ function App() {
         <Route path="/" element={<AppShell />}>
           {/* 기본 리다이렉트 */}
           <Route index element={<Navigate to="/timer/day" replace />} />
+
+          {/* Student 모듈 */}
+          <Route path="student">
+            <Route index element={<StudentList />} />
+          </Route>
 
           {/* Timer 모듈 */}
           <Route path="timer">
