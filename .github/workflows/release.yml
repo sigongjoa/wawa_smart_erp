@@ -45,5 +45,6 @@ jobs:
           name: ${{ github.event.release.name || 'Latest Release (master)' }}
           draft: false
           prerelease: false
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
