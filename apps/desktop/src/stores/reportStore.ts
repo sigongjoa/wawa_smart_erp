@@ -196,14 +196,19 @@ export const useReportStore = create<ReportState>()(
             // 비동기 액션
             fetchAllData: async () => {
                 const { setIsLoading, setTeachers, setStudents, setExams, setReports, setExamSchedules, currentYearMonth, appSettings } = useReportStore.getState();
-                if (!appSettings.notionApiKey) return;
+
+                console.log('[fetchAllData] Starting...', { currentYearMonth, hasApiKey: !!appSettings.notionApiKey });
+
+                if (!appSettings.notionApiKey) {
+                    console.warn('[fetchAllData] No API key configured, skipping fetch');
+                    return;
+                }
 
                 setIsLoading(true);
                 try {
-                    // Artificial delay for better UX and to show it's working
-                    await new Promise(resolve => setTimeout(resolve, 800));
-
                     const notion = await import('../services/notion');
+
+                    console.log('[fetchAllData] Fetching from Notion...');
                     const [teachers, students, exams, reports, schedules] = await Promise.all([
                         notion.fetchTeachers(),
                         notion.fetchStudents(),
@@ -211,6 +216,14 @@ export const useReportStore = create<ReportState>()(
                         notion.fetchScores(currentYearMonth),
                         notion.fetchExamSchedules(currentYearMonth),
                     ]);
+
+                    console.log('[fetchAllData] Results:', {
+                        teachers: teachers.length,
+                        students: students.length,
+                        exams: exams.length,
+                        reports: reports.length,
+                        schedules: schedules.length,
+                    });
 
                     const reportsWithNames = reports.map(r => {
                         const student = students.find(s => s.id === r.studentId);
@@ -222,10 +235,9 @@ export const useReportStore = create<ReportState>()(
                     setExams(exams);
                     setReports(reportsWithNames);
                     setExamSchedules(schedules);
-                    console.log('✅ Data fetched successfully');
+                    console.log('✅ Data fetched and stored successfully');
                 } catch (error) {
                     console.error('❌ Failed to fetch data:', error);
-                    alert('데이터를 불러오는 중 오류가 발생했습니다. 설정을 확인해주세요.');
                 } finally {
                     setIsLoading(false);
                 }
@@ -253,9 +265,12 @@ export const useReportStore = create<ReportState>()(
 export const useFilteredData = () => {
     const { students, reports, exams, examSchedules, currentUser } = useReportStore();
 
-    if (!currentUser) return { students: [], reports: [], exams: [], examSchedules: [] };
-    if (currentUser.teacher.isAdmin) return { students, reports, exams, examSchedules };
+    // 로그인하지 않았거나 관리자인 경우 전체 데이터 반환
+    if (!currentUser || currentUser.teacher.isAdmin) {
+        return { students, reports, exams, examSchedules };
+    }
 
+    // 일반 선생님인 경우 담당 과목 학생만 필터링
     const teacherSubjects = currentUser.teacher.subjects;
 
     const filteredStudents = students.filter(student =>
