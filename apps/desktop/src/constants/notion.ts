@@ -20,6 +20,7 @@ export const NOTION_COLUMNS_STUDENT = {
     EXAM_DATE: '시험일',
     STATUS: '상태',
     ABSENCE_REASON: '결시사유',
+    TEACHERS: '담당선생님',
 } as const;
 
 export const NOTION_COLUMNS_SCORE = {
@@ -57,6 +58,16 @@ export const NOTION_COLUMNS_EXAM_SCHEDULE = {
     STUDENT: '학생',
     YEAR_MONTH: '년월',
     EXAM_DATE: '시험일',
+} as const;
+
+export const NOTION_COLUMNS_ENROLLMENT = {
+    NAME: '이름',
+    STUDENT: '학생',
+    DAY: '요일',
+    START_TIME: '시작시간',
+    END_TIME: '종료시간',
+    SUBJECT: '과목',
+    TUITION: '수강료',
 } as const;
 
 export const NOTION_STATUS_VALUES = {

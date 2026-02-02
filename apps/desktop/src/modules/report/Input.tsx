@@ -23,6 +23,11 @@ export default function Input() {
           comment: existingScore?.comment || '',
         };
       });
+      // Initialize Total Comment
+      initialForm['__TOTAL_COMMENT__'] = {
+        score: 0,
+        comment: currentReport.totalComment || '',
+      };
       setFormData(initialForm);
     }
   }, [selectedStudentId, currentReport, selectedStudent]);
@@ -126,6 +131,29 @@ export default function Input() {
                   </div>
                 </div>
               ))}
+
+              {/* Comprehensive Evaluation */}
+              <div className="card" style={{ padding: '16px', marginBottom: '16px', border: '1px solid var(--border-light)', background: '#fffbeb' }}>
+                <div style={{ fontWeight: 700, marginBottom: '12px', color: '#b45309' }}>종합 평가</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+                  <textarea
+                    className="search-input"
+                    style={{ width: '100%', height: '100px', padding: '10px' }}
+                    placeholder="학생의 전반적인 학습 태도와 향후 계획을 입력해주세요."
+                    value={formData['__TOTAL_COMMENT__']?.comment ?? ''}
+                    onChange={e => setFormData({ ...formData, '__TOTAL_COMMENT__': { ...formData['__TOTAL_COMMENT__'], comment: e.target.value, score: 0 } })}
+                  />
+                </div>
+                <div style={{ textAlign: 'right', marginTop: '12px' }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleSave('__TOTAL_COMMENT__')}
+                    disabled={saveAsync.isLoading}
+                  >
+                    {saveAsync.isLoading ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="empty-state">학생을 선택해주세요.</div>

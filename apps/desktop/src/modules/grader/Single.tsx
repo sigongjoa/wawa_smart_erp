@@ -10,8 +10,13 @@ export default function Single() {
   const { addToast } = useToastStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+
+  const [answerFile, setAnswerFile] = useState<File | null>(null);
+  const [omrFile, setOmrFile] = useState<File | null>(null);
+  const [isGrading, setIsGrading] = useState(false);
   const [gradingResult, setGradingResult] = useState<any>(null);
+
+  const answerInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const saveAsync = useAsync(saveScore);
@@ -27,6 +32,8 @@ export default function Single() {
       setSelectedSubject('');
     }
     setGradingResult(null);
+    setAnswerFile(null);
+    setOmrFile(null);
   }, [selectedStudentId]);
 
   const handleUploadClick = () => {
@@ -41,26 +48,60 @@ export default function Single() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAnswerUploadClick = () => {
+    answerInputRef.current?.click();
+  };
 
-    setIsUploading(true);
+  const handleGrading = async () => {
+    if (!answerFile || !omrFile) {
+      addToast('정답 PDF와 OMR 이미지를 모두 업로드해주세요.', 'warning');
+      return;
+    }
+
+    setIsGrading(true);
     addToast('OMR 카드를 분석 중입니다...', 'info');
 
-    // Mock OMR Processing
-    setTimeout(() => {
-      setIsUploading(false);
-      const mockResult = {
-        score: Math.floor(Math.random() * 20) + 80,
-        wrongAnswers: [3, 7, 12, 18].slice(0, 1 + Math.floor(Math.random() * 3)),
-        omrUrl: URL.createObjectURL(file),
-        examSubject: selectedSubject,
-        examDifficulty: selectedExam?.difficulty || 'C'
-      };
-      setGradingResult(mockResult);
-      addToast('채점이 완료되었습니다.', 'success');
-    }, 2000);
+    const formData = new FormData();
+    formData.append('answer_pdf', answerFile);
+    formData.append('omr_image', omrFile);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/batch-grade', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('채점 서버 오류');
+      }
+
+      const data = await response.json();
+      if (data.students && data.students.length > 0) {
+        // Take the first result
+        const res = data.students[0];
+
+        // Parse wrong answers
+        const wrongAnswers = Object.entries(res.details || {})
+          .filter(([_, isCorrect]) => !isCorrect)
+          .map(([qNum, _]) => Number(qNum));
+
+        setGradingResult({
+          score: res.percentage,
+          wrongAnswers: wrongAnswers,
+          omrUrl: res.image_url ? `http://localhost:8000${res.image_url}` : URL.createObjectURL(omrFile),
+          examSubject: selectedSubject,
+          examDifficulty: selectedExam?.difficulty || 'C'
+        });
+        addToast('채점이 완료되었습니다.', 'success');
+      } else {
+        addToast('OMR을 인식하지 못했습니다.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      addToast('채점 중 오류가 발생했습니다. 백엔드 서버를 확인하세요.', 'error');
+    } finally {
+      setIsGrading(false);
+    }
   };
 
   const handleSaveResult = async () => {
@@ -82,6 +123,8 @@ export default function Single() {
       addToast('성적이 성공적으로 저장되었습니다.', 'success');
       await fetchAllData();
       setGradingResult(null);
+      setAnswerFile(null);
+      setOmrFile(null);
     } else {
       addToast(result.error?.message || '저장에 실패했습니다.', 'error');
     }
@@ -93,7 +136,7 @@ export default function Single() {
         <div className="page-header-row">
           <div>
             <h1 className="page-title">단건 채점</h1>
-            <p className="page-description">OMR 카드를 스캔하여 개별 채점합니다</p>
+            <p className="page-description">OMR 카드와 정답지를 업로드하여 채점합니다</p>
           </div>
         </div>
       </div>
@@ -125,7 +168,7 @@ export default function Single() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>OMR 카드 업로드</h2>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>채점 파일 업로드</h2>
 
             {selectedStudentId && (
               <div style={{ marginBottom: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -151,37 +194,64 @@ export default function Single() {
               </div>
             )}
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              accept="image/*"
-              onChange={handleFileChange}
-            />
-            <div
-              className={`upload-area ${isUploading ? 'uploading' : ''}`}
-              onClick={handleUploadClick}
-              style={{
-                border: '2px dashed var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '48px',
-                textAlign: 'center',
-                cursor: (selectedStudentId && selectedSubject) ? 'pointer' : 'not-allowed',
-                background: isUploading ? 'var(--bg-light)' : 'transparent',
-                transition: 'all 0.2s',
-                opacity: (selectedStudentId && selectedSubject) ? 1 : 0.6
-              }}
-            >
-              {isUploading ? (
-                <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
-              ) : (
-                <span className="material-symbols-outlined" style={{ fontSize: '48px', color: (selectedStudentId && selectedSubject) ? 'var(--primary)' : 'var(--text-muted)' }}>
-                  {(selectedStudentId && selectedSubject) ? 'upload_file' : 'person_search'}
-                </span>
-              )}
-              <div style={{ marginTop: '16px', fontWeight: 500 }}>
-                {isUploading ? '분석 중...' : selectedStudentId ? `${selectedStudent?.name} 학생 OMR 업로드` : '왼쪽에서 학생을 먼저 선택하세요'}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Answer File Upload */}
+              <div>
+                <input type="file" ref={answerInputRef} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff" onChange={e => setAnswerFile(e.target.files?.[0] || null)} />
+                <div
+                  onClick={handleAnswerUploadClick}
+                  style={{
+                    border: `2px dashed ${answerFile ? 'var(--primary)' : 'var(--border)'}`,
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: answerFile ? 'var(--primary-light)' : 'transparent'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--primary)' }}>
+                    {answerFile?.name.endsWith('.pdf') ? 'picture_as_pdf' : 'image'}
+                  </span>
+                  <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: 500 }}>
+                    {answerFile ? answerFile.name : '정답 파일 (PDF/이미지)'}
+                  </div>
+                </div>
               </div>
+
+              {/* OMR Upload */}
+              <div>
+                <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*,.pdf" onChange={e => setOmrFile(e.target.files?.[0] || null)} />
+                <div
+                  onClick={handleUploadClick}
+                  style={{
+                    border: `2px dashed ${omrFile ? 'var(--success)' : 'var(--border)'}`,
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px',
+                    textAlign: 'center',
+                    cursor: (selectedStudentId && selectedSubject) ? 'pointer' : 'not-allowed',
+                    background: omrFile ? '#ecfdf5' : 'transparent',
+                    opacity: (selectedStudentId && selectedSubject) ? 1 : 0.6
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--success)' }}>
+                    {omrFile?.name.endsWith('.pdf') ? 'picture_as_pdf' : 'image'}
+                  </span>
+                  <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: 500 }}>
+                    {omrFile ? omrFile.name : 'OMR 파일 (이미지/PDF)'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+              <button
+                className="btn btn-primary"
+                onClick={handleGrading}
+                disabled={!answerFile || !omrFile || isGrading}
+                style={{ width: '100%', padding: '12px' }}
+              >
+                {isGrading ? '채점 중...' : '채점 시작'}
+              </button>
             </div>
           </div>
 
@@ -231,10 +301,6 @@ export default function Single() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        .upload-area:hover:not(.uploading) {
-          border-color: var(--primary) !important;
-          background: var(--primary-light) !important;
         }
         .badge-a { background: #dcfce7; color: #166534; }
         .badge-b { background: #dbeafe; color: #1e40af; }

@@ -228,7 +228,11 @@ export default function Preview() {
                       종합 평가 및 향후 계획
                     </h3>
                     <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '24px', lineHeight: '1.8', minHeight: '150px' }}>
-                      {selectedReport.totalComment || '이번 달 성적과 학습 태도를 바탕으로 개별 맞춤 클리닉을 진행할 예정입니다. 특히 부족한 단원에 대한 심화 학습과 오답 노트를 통한 꼼꼼한 피드백에 집중하겠습니다.'}
+                      {selectedReport.totalComment || (
+                        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          종합 평가가 아직 입력되지 않았습니다. 성적 입력 페이지에서 종합 평가를 작성해주세요.
+                        </span>
+                      )}
                     </div>
                   </div>
 

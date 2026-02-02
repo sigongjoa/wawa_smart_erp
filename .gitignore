@@ -48,3 +48,19 @@ notion_config.json
 .env
 code*.html
 logo.jpg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+ENV/
+env/
+*.egg-info/
+.eggs/
+
+# Smart Grader temp files
+uploads/
+processed/

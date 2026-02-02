@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../../stores/appStore';
-import { Student, GradeType } from '../../types';
+import { useReportStore } from '../../stores/reportStore';
+import { Student, GradeType, DayType } from '../../types';
 
-const gradeClassMap: Record<GradeType, string> = {
+const gradeClassMap: Record<string, string> = {
+  '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
   '중1': 'm1', '중2': 'm2', '중3': 'm3',
   '고1': 'h1', '고2': 'h2', '고3': 'h3',
   '검정고시': 'etc',
 };
 
 export default function RealtimeView() {
-  const { getTodayStudents, realtimeSessions, checkIn, checkOut } = useAppStore();
+  const { students, enrollments, realtimeSessions, checkIn, checkOut } = useAppStore();
+  const { currentUser } = useReportStore();
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -17,7 +20,46 @@ export default function RealtimeView() {
     return () => clearInterval(timer);
   }, []);
 
-  const todayStudents = getTodayStudents();
+  // 오늘 요일 계산
+  const currentDay = ['일', '월', '화', '수', '목', '금', '토'][new Date().getDay()] as DayType;
+
+  // 담당 학생 필터링 + 오늘 수업이 있는 학생만
+  const todayStudents = useMemo(() => {
+    const teacherId = currentUser?.teacher.id || '';
+    const teacherSubjects = currentUser?.teacher.subjects || [];
+    const hasTeacher = !!teacherId;
+
+    return students
+      .filter(student => {
+        // 담당 학생 필터링
+        if (hasTeacher && !student.teacherIds?.includes(teacherId)) return false;
+        return true;
+      })
+      .map(student => {
+        // 오늘 수강 일정 필터링
+        let todayEnrollments = enrollments.filter(e => e.studentId === student.id && e.day === currentDay);
+
+        // 본인 과목만 필터링
+        if (hasTeacher && teacherSubjects.length > 0) {
+          todayEnrollments = todayEnrollments.filter(e => teacherSubjects.includes(e.subject));
+        }
+
+        // 오늘 수업이 있는 경우 첫 번째 수업 시간 사용
+        if (todayEnrollments.length > 0) {
+          const firstEnrollment = todayEnrollments.sort((a, b) => a.startTime.localeCompare(b.startTime))[0];
+          return {
+            ...student,
+            startTime: firstEnrollment.startTime,
+            endTime: firstEnrollment.endTime,
+            subject: firstEnrollment.subject,
+            day: currentDay,
+            todayEnrollments
+          };
+        }
+        return null;
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null);
+  }, [students, enrollments, currentUser, currentDay]);
   const waitingStudents = todayStudents.filter(
     (s) => !realtimeSessions.some((sess) => sess.studentId === s.id)
   );
