@@ -8,6 +8,7 @@ export default function Settings() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
+    academyName: appSettings.academyName || '',
     notionApiKey: appSettings.notionApiKey || '',
     notionTeachersDb: appSettings.notionTeachersDb || '',
     notionStudentsDb: appSettings.notionStudentsDb || '',
@@ -106,7 +107,14 @@ export default function Settings() {
 
       <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Notion 연동 설정</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>기본 설정</h2>
+          <div className="form-group" style={{ marginBottom: '20px' }}>
+            <label className="form-label" style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>학원 이름</label>
+            <input name="academyName" value={formData.academyName} onChange={handleChange} className="search-input" style={{ width: '100%' }} placeholder="WAWA 학원" />
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>리포트에 표시될 학원 이름입니다</div>
+          </div>
+
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', marginTop: '32px' }}>Notion 연동 설정</h2>
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label className="form-label" style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Notion API Key</label>
             <input name="notionApiKey" type="password" value={formData.notionApiKey} onChange={handleChange} className="search-input" style={{ width: '100%' }} placeholder="secret_..." />
