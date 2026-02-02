@@ -6,6 +6,7 @@ on:
       - master
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   release:
@@ -31,18 +32,26 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm --filter wawa-smart-erp build
+        working-directory: apps/desktop
+        run: |
+          npx tsc -p tsconfig.main.json
+          npx tsc -p tsconfig.preload.json
+          npx vite build
 
       - name: Package
-        run: pnpm --filter wawa-smart-erp dist
+        working-directory: apps/desktop
+        run: npx electron-builder --win
+
+      - name: List release files
+        run: dir apps\desktop\release
+        shell: cmd
 
       - name: Release
         uses: ncipollo/release-action@v1
-        if: github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
         with:
           artifacts: apps/desktop/release/*.exe
-          tag: ${{ github.event.release.tag_name || 'latest' }}
-          name: ${{ github.event.release.name || 'Latest Release (master)' }}
+          tag: latest
+          name: Latest Release (master)
           allowUpdates: true
           removeArtifacts: true
           replacesArtifacts: true
