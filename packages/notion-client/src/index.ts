@@ -31,6 +31,38 @@ export class NotionClient {
     return await this.client.pages.retrieve({ page_id: id });
   }
 
+  async createStudent(data: { name: string; grade: string; contact: string; parentContact: string }) {
+    return await this.client.pages.create({
+      parent: { database_id: this.config.databases.students },
+      properties: {
+        '이름': { title: [{ text: { content: data.name } }] },
+        '학년': { rich_text: [{ text: { content: data.grade } }] },
+        '연락처': { phone_number: data.contact },
+        '학부모 연락처': { phone_number: data.parentContact },
+      },
+    });
+  }
+
+  async updateStudent(id: string, data: { name?: string; grade?: string; contact?: string; parentContact?: string }) {
+    const properties: any = {};
+    if (data.name) properties['이름'] = { title: [{ text: { content: data.name } }] };
+    if (data.grade) properties['학년'] = { rich_text: [{ text: { content: data.grade } }] };
+    if (data.contact) properties['연락처'] = { phone_number: data.contact };
+    if (data.parentContact) properties['학부모 연락처'] = { phone_number: data.parentContact };
+
+    return await this.client.pages.update({
+      page_id: id,
+      properties,
+    });
+  }
+
+  async deleteStudent(id: string) {
+    return await this.client.pages.update({
+      page_id: id,
+      archived: true,
+    });
+  }
+
   // 시간표 관련 메서드
   async getSchedules(filter?: { date?: string; studentId?: string }) {
     const response = await this.client.databases.query({
@@ -38,6 +70,39 @@ export class NotionClient {
       filter: filter ? this.buildFilter(filter) : undefined,
     });
     return response.results;
+  }
+
+  async createSchedule(data: { studentId: string; day: string; startTime: string; endTime: string; subject: string }) {
+    return await this.client.pages.create({
+      parent: { database_id: this.config.databases.schedules },
+      properties: {
+        '학생ID': { rich_text: [{ text: { content: data.studentId } }] },
+        '요일': { select: { name: data.day } },
+        '시작시간': { rich_text: [{ text: { content: data.startTime } }] },
+        '종료시간': { rich_text: [{ text: { content: data.endTime } }] },
+        '과목': { title: [{ text: { content: data.subject } }] },
+      },
+    });
+  }
+
+  async updateSchedule(id: string, data: { day?: string; startTime?: string; endTime?: string; subject?: string }) {
+    const properties: any = {};
+    if (data.day) properties['요일'] = { select: { name: data.day } };
+    if (data.startTime) properties['시작시간'] = { rich_text: [{ text: { content: data.startTime } }] };
+    if (data.endTime) properties['종료시간'] = { rich_text: [{ text: { content: data.endTime } }] };
+    if (data.subject) properties['과목'] = { title: [{ text: { content: data.subject } }] };
+
+    return await this.client.pages.update({
+      page_id: id,
+      properties,
+    });
+  }
+
+  async deleteSchedule(id: string) {
+    return await this.client.pages.update({
+      page_id: id,
+      archived: true,
+    });
   }
 
   // 성적 관련 메서드
@@ -69,6 +134,24 @@ export class NotionClient {
     });
   }
 
+  async updateGrade(id: string, data: { score?: number; date?: string; }) {
+    const properties: any = {};
+    if (data.score) properties['score'] = { number: data.score };
+    if (data.date) properties['date'] = { date: { start: data.date } };
+
+    return await this.client.pages.update({
+      page_id: id,
+      properties,
+    });
+  }
+
+  async deleteGrade(id: string) {
+    return await this.client.pages.update({
+      page_id: id,
+      archived: true,
+    });
+  }
+
   // 보고서 관련 메서드
   async getReports(filter?: { month?: string; studentId?: string }) {
     const response = await this.client.databases.query({
@@ -97,6 +180,28 @@ export class NotionClient {
           },
         },
       ],
+    });
+  }
+
+  async updateReport(id: string, data: { content: string }) {
+    return await this.client.blocks.children.append({
+        block_id: id,
+        children: [
+            {
+                object: 'block',
+                type: 'paragraph',
+                paragraph: {
+                    rich_text: [{ text: { content: data.content } }],
+                },
+            },
+        ],
+    });
+  }
+
+  async deleteReport(id: string) {
+    return await this.client.pages.update({
+      page_id: id,
+      archived: true,
     });
   }
 

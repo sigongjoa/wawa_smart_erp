@@ -44,3 +44,5 @@ Thumbs.db
 .eslintcache
 .prettierignore
 /storybook-static/
+notion_config.json
+.env
