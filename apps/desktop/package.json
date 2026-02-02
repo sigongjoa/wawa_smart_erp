@@ -39,12 +39,6 @@
     "directories": {
       "buildResources": "assets",
       "output": "release"
-    },
-    "win": {
-      "icon": "assets/icon.png"
-    },
-    "linux": {
-      "icon": "assets/icon.png"
     }
   }
 }
