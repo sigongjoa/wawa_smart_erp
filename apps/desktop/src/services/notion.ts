@@ -139,7 +139,10 @@ export const testNotionConnection = async (
 
 export const fetchTeachers = async (): Promise<Teacher[]> => {
   const dbIds = getDbIds();
-  if (!dbIds.teachers) return [];
+  if (!dbIds.teachers) {
+    console.warn('[Notion] Teachers DB ID not configured');
+    return [];
+  }
   try {
     const data = await notionFetch(`/databases/${dbIds.teachers}/query`, { method: 'POST', body: JSON.stringify({}) });
     return data.results.map((page: any) => ({
@@ -149,7 +152,10 @@ export const fetchTeachers = async (): Promise<Teacher[]> => {
       pin: String(page.properties['PIN']?.number || '0000'),
       isAdmin: page.properties['isAdmin']?.select?.name === 'True',
     }));
-  } catch { return []; }
+  } catch (error) {
+    console.error('[Notion] fetchTeachers failed:', error);
+    return [];
+  }
 };
 
 export const fetchStudents = async (): Promise<Student[]> => {
@@ -376,7 +382,10 @@ export const fetchScores = async (yearMonth: string): Promise<MonthlyReport[]> =
       }
     }
     return Array.from(reportMap.values());
-  } catch { return []; }
+  } catch (error) {
+    console.error('[Notion] fetchScores failed:', error);
+    return [];
+  }
 };
 
 export const fetchExams = async (yearMonth?: string): Promise<Exam[]> => {
@@ -395,7 +404,10 @@ export const fetchExams = async (yearMonth?: string): Promise<Exam[]> => {
       uploadedBy: page.properties[NOTION_COLUMNS_EXAM.UPLOADER]?.rich_text?.[0]?.plain_text || '',
       uploadedAt: page.created_time,
     }));
-  } catch { return []; }
+  } catch (error) {
+    console.error('[Notion] fetchExams failed:', error);
+    return [];
+  }
 };
 
 export const createExamEntry = async (exam: Omit<Exam, 'id' | 'uploadedAt'>): Promise<ApiResult<Exam>> => {
@@ -530,14 +542,20 @@ export const updateExamSchedulesBatch = async (
 // Compatibility aliases for timer module
 export const getStudents = async () => {
   const dbIds = getDbIds();
-  if (!dbIds.students) return [];
+  if (!dbIds.students) {
+    console.warn('[Notion] Students DB ID not configured');
+    return [];
+  }
   try {
     const data = await notionFetch(`/databases/${dbIds.students}/query`, {
       method: 'POST',
       body: JSON.stringify({ sorts: [{ property: '이름', direction: 'ascending' }] }),
     });
     return data.results;
-  } catch { return []; }
+  } catch (error) {
+    console.error('[Notion] getStudents failed:', error);
+    return [];
+  }
 };
 
 export const fetchEnrollments = async (): Promise<Enrollment[]> => {
