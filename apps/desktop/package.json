@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "WAWA Smart ERP - 통합 학원 관리 시스템",
   "private": true,
-  "type": "module",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "vite",
@@ -41,6 +40,14 @@
     "directories": {
       "buildResources": "assets",
       "output": "release"
-    }
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "asar": true
   }
 }
