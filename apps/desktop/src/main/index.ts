@@ -14,8 +14,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       webviewTag: true,
+      webSecurity: false, // file:// 프로토콜에서 ES 모듈 로드 허용
     },
-    titleBarStyle: 'hiddenInset',
     show: false,
   });
 
@@ -26,6 +26,11 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
+
+  // 로드 에러 핸들링
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load:', errorCode, errorDescription);
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
