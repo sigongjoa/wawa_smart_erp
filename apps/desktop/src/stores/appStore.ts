@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { Student, FilterState, RealtimeSession, DayType, GradeType } from '../types';
+import notionClient from '../services/notion';
 
 interface AppState {
   // Timer 모듈 데이터
@@ -9,6 +9,7 @@ interface AppState {
   timerFilters: FilterState;
 
   // Timer 액션
+  fetchStudents: () => Promise<void>;
   addStudent: (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateStudent: (id: string, updates: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
@@ -24,10 +25,7 @@ interface AppState {
   getTodayStudents: () => Student[];
 }
 
-const generateId = () => Math.random().toString(36).substring(2, 15);
-
 export const useAppStore = create<AppState>()(
-  persist(
     (set, get) => ({
       // 초기 상태
       students: [],
@@ -38,34 +36,38 @@ export const useAppStore = create<AppState>()(
         search: '',
       },
 
+      fetchStudents: async () => {
+        const notionStudents = await notionClient.getStudents();
+        const students: Student[] = notionStudents.map((page: any) => {
+            const properties = page.properties;
+            return {
+                id: page.id,
+                name: properties['이름']?.title[0]?.plain_text || '',
+                grade: properties['학년']?.rich_text[0]?.plain_text || '중1',
+                day: properties['요일']?.select?.name || '화',
+                startTime: properties['시작시간']?.rich_text[0]?.plain_text || '',
+                endTime: properties['종료시간']?.rich_text[0]?.plain_text || '',
+                subject: properties['과목']?.title[0]?.plain_text || '',
+                createdAt: page.created_time,
+                updatedAt: page.last_edited_time,
+            };
+        });
+        set({ students });
+      },
+
       // 학생 추가
       addStudent: (studentData) => {
-        const now = new Date().toISOString();
-        const newStudent: Student = {
-          ...studentData,
-          id: generateId(),
-          createdAt: now,
-          updatedAt: now,
-        };
-        set((state) => ({
-          students: [...state.students, newStudent],
-        }));
+        // This should be updated to use notionClient.createStudent
       },
 
       // 학생 수정
       updateStudent: (id, updates) => {
-        set((state) => ({
-          students: state.students.map((s) =>
-            s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
-          ),
-        }));
+        // This should be updated to use notionClient.updateStudent
       },
 
       // 학생 삭제
       deleteStudent: (id) => {
-        set((state) => ({
-          students: state.students.filter((s) => s.id !== id),
-        }));
+        // This should be updated to use notionClient.deleteStudent
       },
 
       // 요일 필터
@@ -147,12 +149,8 @@ export const useAppStore = create<AppState>()(
         if (!today) return [];
         return students.filter((s) => s.day === today);
       },
-    }),
-    {
-      name: 'wawa-erp-storage',
-      partialize: (state) => ({
-        students: state.students,
-      }),
-    }
-  )
+    })
 );
+
+// Fetch students when the app loads
+useAppStore.getState().fetchStudents();
