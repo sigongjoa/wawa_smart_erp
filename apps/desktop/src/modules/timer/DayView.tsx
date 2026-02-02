@@ -235,7 +235,7 @@ export default function DayView() {
             <tr>
               <th style={{ width: '120px' }}>이름</th>
               <th style={{ width: '80px', textAlign: 'center' }}>학년</th>
-              <th style={{ width: '240px' }}>수강 과목 및 시간</th>
+              <th style={{ minWidth: '350px' }}>수강 과목 및 시간</th>
               <th style={{ width: '60px', textAlign: 'center' }}>요일</th>
               <th>수업 비고</th>
             </tr>
@@ -277,11 +277,14 @@ export default function DayView() {
                                 <span key={sub} className="subject-badge">{sub}</span>
                               )) || <span className="subject-badge">{student.subject}</span>}
                             </div>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                              ({student.startTime || '—'})
-                            </span>
+                            {student.startTime && (
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                ({student.startTime})
+                              </span>
+                            )}
                           </div>
                         )}
+
                       </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>

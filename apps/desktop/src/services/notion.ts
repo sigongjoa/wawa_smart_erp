@@ -78,9 +78,19 @@ const notionFetch = async (endpoint: string, options: RequestInit = {}, apiKey?:
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    console.error('Notion API error (Web):', error);
-    throw new Error(error.message || 'Notion API error');
+    // 500 에러 시 빈 응답일 수 있으므로 안전하게 처리
+    let errorMessage = `Notion API error: ${response.status}`;
+    try {
+      const text = await response.text();
+      if (text) {
+        const error = JSON.parse(text);
+        errorMessage = error.message || errorMessage;
+      }
+    } catch {
+      // 빈 응답이거나 JSON 파싱 실패 - 기본 에러 메시지 사용
+    }
+    console.error('Notion API error (Web):', errorMessage);
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
@@ -97,6 +107,7 @@ export const testNotionConnection = async (
     exams?: string;
     absenceHistory?: string;
     examSchedule?: string;
+    enrollment?: string;
   }
 ) => {
   const details: any = {};
@@ -127,6 +138,7 @@ export const testNotionConnection = async (
   details.exams = await testDb('시험지', dbIds.exams);
   details.absenceHistory = await testDb('결시이력', dbIds.absenceHistory);
   details.examSchedule = await testDb('시험일정', dbIds.examSchedule);
+  details.enrollment = await testDb('수강일정', dbIds.enrollment);
 
   const connectedCount = Object.values(details).filter(Boolean).length;
 
@@ -170,6 +182,10 @@ export const fetchStudents = async (): Promise<Student[]> => {
     return data.results
       .map((page: any) => {
         const props = page.properties;
+        // Debug: Log properties to identify column names
+        // if (data.results.indexOf(page) === 0) {
+        //     console.log('[fetchStudents] Student Properties:', Object.keys(props));
+        // }
         const name = props['이름']?.title?.[0]?.plain_text || '';
         if (!name) return null;
 
@@ -225,12 +241,22 @@ export const createStudent = async (student: Omit<Student, "id" | "createdAt" | 
   try {
     const properties: any = {
       [NOTION_COLUMNS_STUDENT.NAME]: { title: [{ text: { content: student.name } }] },
-      [NOTION_COLUMNS_STUDENT.GRADE]: { select: { name: student.grade } },
-      [NOTION_COLUMNS_STUDENT.SUBJECTS]: { multi_select: student.subjects.map((s) => ({ name: s })) },
-      [NOTION_COLUMNS_STUDENT.STATUS]: { select: { name: NOTION_STATUS_VALUES.ACTIVE } },
+      [NOTION_COLUMNS_STUDENT.GRADE]: {
+        multi_select: [{ name: student.grade }],
+      },
+      // [NOTION_COLUMNS_STUDENT.STATUS]: {
+      //   select: { name: NOTION_STATUS_VALUES.ACTIVE },
+      // },
+      [NOTION_COLUMNS_STUDENT.SUBJECTS]: {
+        multi_select: student.subjects.map((sub) => ({ name: sub })),
+      },
+      // [NOTION_COLUMNS_STUDENT.PARENT_NAME]: {
+      //   rich_text: [{ text: { content: student.parentName || '' } }],
+      // },
+      // [NOTION_COLUMNS_STUDENT.PARENT_PHONE]: {
+      //   phone_number: student.parentPhone || null,
+      // },
     };
-    if (student.parentName) properties[NOTION_COLUMNS_STUDENT.PARENT_NAME] = { rich_text: [{ text: { content: student.parentName } }] };
-    if (student.parentPhone) properties[NOTION_COLUMNS_STUDENT.PARENT_PHONE] = { phone_number: student.parentPhone };
     if (student.examDate) properties[NOTION_COLUMNS_STUDENT.EXAM_DATE] = { date: { start: student.examDate } };
     if (student.teacherIds && student.teacherIds.length > 0) {
       properties[NOTION_COLUMNS_STUDENT.TEACHERS] = { relation: student.teacherIds.map(id => ({ id })) };
@@ -253,12 +279,12 @@ export const updateStudent = async (studentId: string, updates: Partial<Student>
   try {
     const properties: any = {};
     if (updates.name) properties[NOTION_COLUMNS_STUDENT.NAME] = { title: [{ text: { content: updates.name } }] };
-    if (updates.grade) properties[NOTION_COLUMNS_STUDENT.GRADE] = { select: { name: updates.grade } };
+    if (updates.grade) properties[NOTION_COLUMNS_STUDENT.GRADE] = { multi_select: [{ name: updates.grade }] };
     if (updates.subjects) properties[NOTION_COLUMNS_STUDENT.SUBJECTS] = { multi_select: updates.subjects.map((s) => ({ name: s })) };
-    if (updates.parentName !== undefined) properties[NOTION_COLUMNS_STUDENT.PARENT_NAME] = { rich_text: [{ text: { content: updates.parentName } }] };
-    if (updates.parentPhone !== undefined) properties[NOTION_COLUMNS_STUDENT.PARENT_PHONE] = { phone_number: updates.parentPhone };
+    // if (updates.parentName !== undefined) properties[NOTION_COLUMNS_STUDENT.PARENT_NAME] = { rich_text: [{ text: { content: updates.parentName } }] };
+    // if (updates.parentPhone !== undefined) properties[NOTION_COLUMNS_STUDENT.PARENT_PHONE] = { phone_number: updates.parentPhone };
     if (updates.examDate !== undefined) properties[NOTION_COLUMNS_STUDENT.EXAM_DATE] = updates.examDate ? { date: { start: updates.examDate } } : { date: null };
-    if (updates.status) properties[NOTION_COLUMNS_STUDENT.STATUS] = { select: { name: updates.status === "inactive" ? NOTION_STATUS_VALUES.INACTIVE : NOTION_STATUS_VALUES.ACTIVE } };
+    // if (updates.status) properties[NOTION_COLUMNS_STUDENT.STATUS] = { select: { name: updates.status === "inactive" ? NOTION_STATUS_VALUES.INACTIVE : NOTION_STATUS_VALUES.ACTIVE } };
     if (updates.teacherIds) properties[NOTION_COLUMNS_STUDENT.TEACHERS] = { relation: updates.teacherIds.map(id => ({ id })) };
 
     await notionFetch(`/pages/${studentId}`, { method: "PATCH", body: JSON.stringify({ properties }) });
@@ -344,10 +370,16 @@ export const fetchScores = async (yearMonth: string): Promise<MonthlyReport[]> =
       body: JSON.stringify({ filter: { property: NOTION_COLUMNS_SCORE.YEAR_MONTH, rich_text: { equals: yearMonth } } }),
     });
 
+    // No debug logs needed
+
+
     const reportMap = new Map<string, MonthlyReport>();
     for (const page of data.results) {
       const studentId = page.properties[NOTION_COLUMNS_SCORE.STUDENT]?.relation?.[0]?.id;
-      if (!studentId) continue;
+      if (!studentId) {
+        console.warn('[fetchScores] No studentId found, skipping. Property value:', page.properties[NOTION_COLUMNS_SCORE.STUDENT]);
+        continue;
+      }
 
       if (!reportMap.has(studentId)) {
         reportMap.set(studentId, {
@@ -566,6 +598,10 @@ export const fetchEnrollments = async (): Promise<Enrollment[]> => {
       method: 'POST',
       body: JSON.stringify({ sorts: [{ property: '요일', direction: 'ascending' }] }),
     });
+    console.log('[fetchEnrollments] Raw data count:', data.results.length);
+    if (data.results.length > 0) {
+      console.log('[fetchEnrollments] First item properties:', JSON.stringify(data.results[0].properties, null, 2));
+    }
     return data.results.map((page: any) => {
       const props = page.properties;
       return {
@@ -576,7 +612,7 @@ export const fetchEnrollments = async (): Promise<Enrollment[]> => {
         endTime: props[NOTION_COLUMNS_ENROLLMENT.END_TIME]?.rich_text?.[0]?.plain_text || '',
         subject: props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.rich_text?.[0]?.plain_text ||
           props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.select?.name || '',
-        tuition: props[NOTION_COLUMNS_ENROLLMENT.TUITION]?.number || 0,
+        tuition: 0, // Column missing in DB
         createdAt: page.created_time,
         updatedAt: page.last_edited_time,
       };

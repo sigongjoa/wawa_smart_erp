@@ -3,7 +3,6 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { useReportStore } from '../stores/reportStore';
-import useAppStore from '../stores/appStore';
 import Setup from '../modules/report/Setup';
 import Login from '../modules/auth/Login';
 
@@ -14,8 +13,7 @@ export default function AppShell() {
   useEffect(() => {
     if (isConfigured) {
       fetchAllData();
-      // 학생 데이터 초기화
-      useAppStore.getState().fetchStudents();
+      // appStore는 Timer 모듈에서 필요할 때 직접 fetch하므로 여기서는 호출하지 않음
     }
   }, [isConfigured]);
 

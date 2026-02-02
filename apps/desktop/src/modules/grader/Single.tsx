@@ -15,6 +15,8 @@ export default function Single() {
   const [omrFile, setOmrFile] = useState<File | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [gradingResult, setGradingResult] = useState<any>(null);
+  const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
+  const [examDifficulty, setExamDifficulty] = useState('C');
 
   const answerInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,8 +24,6 @@ export default function Single() {
   const saveAsync = useAsync(saveScore);
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
-  const studentExams = exams.filter(e => e.yearMonth === currentYearMonth && selectedStudent?.subjects.includes(e.subject));
-  const selectedExam = studentExams.find(e => e.subject === selectedSubject);
 
   useEffect(() => {
     if (selectedStudent && selectedStudent.subjects.length > 0) {
@@ -72,7 +72,8 @@ export default function Single() {
       });
 
       if (!response.ok) {
-        throw new Error('채점 서버 오류');
+        const errData = await response.json();
+        throw new Error(errData.detail || '채점 서버 오류');
       }
 
       const data = await response.json();
@@ -90,7 +91,7 @@ export default function Single() {
           wrongAnswers: wrongAnswers,
           omrUrl: res.image_url ? `http://localhost:8000${res.image_url}` : URL.createObjectURL(omrFile),
           examSubject: selectedSubject,
-          examDifficulty: selectedExam?.difficulty || 'C'
+          examDifficulty: examDifficulty
         });
         addToast('채점이 완료되었습니다.', 'success');
       } else {
@@ -108,10 +109,11 @@ export default function Single() {
     if (!selectedStudent || !gradingResult) return;
 
     const teacherId = currentUser?.teacher?.id || '';
+    const yearMonth = examDate.substring(0, 7); // YYYY-MM
     const result = await saveAsync.execute(
       selectedStudent.id,
       selectedStudent.name,
-      currentYearMonth,
+      yearMonth,
       selectedSubject,
       gradingResult.score,
       teacherId,
@@ -186,10 +188,30 @@ export default function Single() {
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>시험 정보</label>
-                  <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '6px', fontSize: '14px', border: '1px solid #e2e8f0' }}>
-                    {selectedExam ? `난이도: ${selectedExam.difficulty} | ${selectedExam.yearMonth}` : '등록된 시험지 없음'}
-                  </div>
+                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>시험 날짜</label>
+                  <input
+                    type="date"
+                    className="search-input"
+                    style={{ width: '100%' }}
+                    value={examDate}
+                    onChange={e => setExamDate(e.target.value)}
+                  />
+                </div>
+                <div style={{ width: '100px' }}>
+                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>난이도</label>
+                  <select
+                    className="search-input"
+                    style={{ width: '100%' }}
+                    value={examDifficulty}
+                    onChange={e => setExamDifficulty(e.target.value)}
+                  >
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                  </select>
                 </div>
               </div>
             )}
@@ -197,7 +219,7 @@ export default function Single() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               {/* Answer File Upload */}
               <div>
-                <input type="file" ref={answerInputRef} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff" onChange={e => setAnswerFile(e.target.files?.[0] || null)} />
+                <input type="file" ref={answerInputRef} style={{ display: 'none' }} accept=".pdf" onChange={e => setAnswerFile(e.target.files?.[0] || null)} />
                 <div
                   onClick={handleAnswerUploadClick}
                   style={{
@@ -210,10 +232,10 @@ export default function Single() {
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--primary)' }}>
-                    {answerFile?.name.endsWith('.pdf') ? 'picture_as_pdf' : 'image'}
+                    picture_as_pdf
                   </span>
                   <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: 500 }}>
-                    {answerFile ? answerFile.name : '정답 파일 (PDF/이미지)'}
+                    {answerFile ? answerFile.name : '정답 파일 (PDF 필수)'}
                   </div>
                 </div>
               </div>

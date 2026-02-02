@@ -15,8 +15,8 @@ export const NOTION_COLUMNS_STUDENT = {
     SUBJECTS: '수강과목',
     PARENT_NAME: '학부모',
     PARENT_PHONE: '전화번호',
-    PARENT_CONTACT: '학부모연락처',
-    PARENT_PHONE_ALT: '학부모전화',
+    PARENT_CONTACT: '학부모', // Updated alias
+    PARENT_PHONE_ALT: '전화번호', // Updated alias
     EXAM_DATE: '시험일',
     STATUS: '상태',
     ABSENCE_REASON: '결시사유',
@@ -67,7 +67,7 @@ export const NOTION_COLUMNS_ENROLLMENT = {
     START_TIME: '시작시간',
     END_TIME: '종료시간',
     SUBJECT: '과목',
-    TUITION: '수강료',
+    // TUITION: '수강료',
 } as const;
 
 export const NOTION_STATUS_VALUES = {

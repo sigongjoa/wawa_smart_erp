@@ -193,9 +193,16 @@ export const useReportStore = create<ReportState>()(
             isLoading: false,
             setIsLoading: (isLoading) => set({ isLoading }),
 
-            // 비동기 액션
+            // 비동기 액션 - 중복 호출 방지용 lock
             fetchAllData: async () => {
-                const { setIsLoading, setTeachers, setStudents, setExams, setReports, setExamSchedules, currentYearMonth, appSettings } = useReportStore.getState();
+                const state = useReportStore.getState();
+                const { setIsLoading, setTeachers, setStudents, setExams, setReports, setExamSchedules, currentYearMonth, appSettings, isLoading } = state;
+
+                // 이미 로딩 중이면 중복 호출 방지
+                if (isLoading) {
+                    console.log('[fetchAllData] Already loading, skipping...');
+                    return;
+                }
 
                 console.log('[fetchAllData] Starting...', { currentYearMonth, hasApiKey: !!appSettings.notionApiKey });
 

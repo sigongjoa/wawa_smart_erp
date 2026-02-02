@@ -50,6 +50,8 @@ class AnswerExtractorConfig:
         r'\((\d+)\)\s*([①②③④⑤\d])',
         # Space separated: 1 ③, 1 3
         r'(\d+)\s+([①②③④⑤])',
+        # Simple space separated number: 1 3
+        r'(\d+)\s+([1-5])',
         # Compact format: 1③2①3④ (continuous)
         r'(\d+)([①②③④⑤])',
     ])

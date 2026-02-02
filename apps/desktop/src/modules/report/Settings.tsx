@@ -14,6 +14,7 @@ export default function Settings() {
     notionStudentsDb: appSettings.notionStudentsDb || '',
     notionScoresDb: appSettings.notionScoresDb || '',
     notionExamsDb: appSettings.notionExamsDb || '',
+    notionEnrollmentDb: appSettings.notionEnrollmentDb || '',
     notionAbsenceHistoryDb: appSettings.notionAbsenceHistoryDb || '',
     notionExamScheduleDb: appSettings.notionExamScheduleDb || '',
     kakaoBizChannelId: appSettings.kakaoBizChannelId || '',
@@ -42,6 +43,7 @@ export default function Settings() {
         exams: formData.notionExamsDb,
         absenceHistory: formData.notionAbsenceHistoryDb,
         examSchedule: formData.notionExamScheduleDb,
+        enrollment: formData.notionEnrollmentDb,
       });
       setTestResult({ success: result.success, message: result.message });
     } catch (error: any) {
@@ -136,6 +138,18 @@ export default function Settings() {
             <div className="form-group">
               <label className="form-label">시험지 DB ID</label>
               <input name="notionExamsDb" value={formData.notionExamsDb} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">수강 일정 DB ID</label>
+              <input name="notionEnrollmentDb" value={formData.notionEnrollmentDb} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">결시 이력 DB ID</label>
+              <input name="notionAbsenceHistoryDb" value={formData.notionAbsenceHistoryDb} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">시험 일정 DB ID</label>
+              <input name="notionExamScheduleDb" value={formData.notionExamScheduleDb} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
             </div>
           </div>
 
