@@ -7,7 +7,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.main.json && vite build",
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json && vite build",
     "preview": "vite preview",
     "dist": "electron-builder"
   },
@@ -35,6 +35,7 @@
     "productName": "WAWA Smart ERP",
     "files": [
       "dist/main/**/*",
+      "dist/preload/**/*",
       "dist/renderer/**/*"
     ],
     "directories": {
