@@ -19,6 +19,13 @@ contextBridge.exposeInMainWorld('wawaAPI', {
 
   // 앱 버전
   version: process.env.npm_package_version || '1.0.0',
+
+  // Notion API 호출
+  notionFetch: (endpoint: string, options: any) =>
+    ipcRenderer.invoke('notion:fetch', endpoint, options),
+  // Typst 컴파일
+  typstCompile: (data: { source: string; outputPath: string }) =>
+    ipcRenderer.invoke('typst:compile', data),
 });
 
 // TypeScript 타입 선언
@@ -30,6 +37,8 @@ declare global {
       onBroadcast: (callback: (data: any) => void) => void;
       platform: string;
       version: string;
+      notionFetch: (endpoint: string, options: any) => Promise<{ success: boolean; data?: any; message?: string; error?: any }>;
+      typstCompile: (data: { source: string; outputPath: string }) => Promise<{ success: boolean; outputPath?: string; message?: string }>;
     };
   }
 }

@@ -31,6 +31,8 @@ import ScheduleUpcoming from './modules/schedule/Upcoming';
 import ScheduleHistory from './modules/schedule/History';
 import ScheduleSettings from './modules/schedule/Settings';
 
+import ToastContainer from './components/common/ToastContainer';
+
 function App() {
   return (
     <HashRouter>
@@ -79,6 +81,7 @@ function App() {
           </Route>
         </Route>
       </Routes>
+      <ToastContainer />
     </HashRouter>
   );
 }
