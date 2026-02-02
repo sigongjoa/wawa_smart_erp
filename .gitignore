@@ -44,4 +44,3 @@ Thumbs.db
 .eslintcache
 .prettierignore
 /storybook-static/
-pnpm-lock.yaml
