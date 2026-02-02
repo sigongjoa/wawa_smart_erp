@@ -10,7 +10,7 @@ interface ModuleTab {
 
 const modules: ModuleTab[] = [
   { id: 'timer', label: '시간표', icon: 'schedule', path: '/timer' },
-  { id: 'report', label: '리포트', icon: 'description', path: '/report' },
+  { id: 'report', label: '월말평가', icon: 'description', path: '/report' },
   { id: 'grader', label: '채점', icon: 'grading', path: '/grader' },
   { id: 'schedule', label: '시험일정', icon: 'event', path: '/schedule' },
 ];
