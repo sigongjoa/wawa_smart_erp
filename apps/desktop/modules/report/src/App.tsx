@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useReportStore } from './stores/reportStore';
 import LoginPage from './pages/LoginPage';
@@ -17,6 +18,18 @@ function useIsSetupComplete() {
   const { appSettings } = useReportStore();
   const hasNotionConfig = !!(appSettings.notionApiKey && appSettings.notionTeachersDb);
   return hasNotionConfig;
+}
+
+// 앱 초기화 시 Notion에서 데이터 로드
+function useInitializeData() {
+  const { fetchAllData, appSettings, teachers, isLoading } = useReportStore();
+
+  useEffect(() => {
+    // Notion 설정이 있고, 데이터가 없고, 로딩 중이 아닐 때만 로드
+    if (appSettings.notionApiKey && teachers.length === 0 && !isLoading) {
+      fetchAllData();
+    }
+  }, [appSettings.notionApiKey, teachers.length, isLoading, fetchAllData]);
 }
 
 // 초기 설정이 필요한 페이지용 래퍼
@@ -42,6 +55,9 @@ function HomeRoute() {
 }
 
 function App() {
+  // Notion에서 데이터 로드
+  useInitializeData();
+
   return (
     <HashRouter>
       <Routes>

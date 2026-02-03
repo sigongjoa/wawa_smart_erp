@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Student, FilterState, ViewMode, NotionSettings, RealtimeSession, DayType, GradeType } from '../types';
+import { fetchSchedules, testConnection } from '../services/notion';
 
 interface ScheduleState {
   // 데이터
@@ -11,6 +12,8 @@ interface ScheduleState {
   viewMode: ViewMode;
   filters: FilterState;
   selectedStudentId: string | null;
+  isLoading: boolean;
+  error: string | null;
 
   // 설정
   notionSettings: NotionSettings;
@@ -34,6 +37,10 @@ interface ScheduleState {
   // 설정 액션
   setNotionSettings: (settings: NotionSettings) => void;
 
+  // Notion 연동 액션
+  loadFromNotion: () => Promise<void>;
+  testNotionConnection: () => Promise<{ success: boolean; message: string }>;
+
   // 유틸리티
   getFilteredStudents: () => Student[];
   getTodayStudents: () => Student[];
@@ -54,6 +61,8 @@ export const useScheduleStore = create<ScheduleState>()(
         search: '',
       },
       selectedStudentId: null,
+      isLoading: false,
+      error: null,
       notionSettings: {
         apiKey: '',
         studentsDbId: '',
@@ -162,6 +171,33 @@ export const useScheduleStore = create<ScheduleState>()(
       // Notion 설정
       setNotionSettings: (settings) => {
         set({ notionSettings: settings });
+      },
+
+      // Notion에서 데이터 로드
+      loadFromNotion: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const students = await fetchSchedules();
+          set({
+            students,
+            isLoading: false,
+            notionSettings: { ...get().notionSettings, isConnected: true }
+          });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : '데이터 로드 실패'
+          });
+        }
+      },
+
+      // Notion 연결 테스트
+      testNotionConnection: async () => {
+        const result = await testConnection();
+        if (result.success) {
+          set({ notionSettings: { ...get().notionSettings, isConnected: true } });
+        }
+        return result;
       },
 
       // 필터된 학생 목록

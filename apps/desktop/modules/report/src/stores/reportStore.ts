@@ -56,6 +56,13 @@ interface ReportState {
 
   // 초기화
   reset: () => void;
+
+  // 데이터 로딩 상태
+  isLoading: boolean;
+  setIsLoading: (isLoading: boolean) => void;
+
+  // Notion 연동 - 비동기 액션
+  fetchAllData: () => Promise<void>;
 }
 
 const getCurrentYearMonth = () => {
@@ -64,8 +71,13 @@ const getCurrentYearMonth = () => {
 };
 
 const defaultAppSettings: AppSettings = {
-  notionDbId: '',
   notionApiKey: '',
+  notionTeachersDb: '',
+  notionStudentsDb: '',
+  notionScoresDb: '',
+  notionExamsDb: '',
+  notionAbsenceHistoryDb: '',
+  notionExamScheduleDb: '',
   kakaoJsKey: '',
   academyName: '',
   academyLogo: undefined,
@@ -180,6 +192,67 @@ export const useReportStore = create<ReportState>()(
         absenceHistories: [],
         examSchedules: [],
       }),
+
+      // 로딩 상태
+      isLoading: false,
+      setIsLoading: (isLoading) => set({ isLoading }),
+
+      // Notion에서 데이터 로드
+      fetchAllData: async () => {
+        const state = useReportStore.getState();
+        const { setIsLoading, setTeachers, setStudents, setExams, setReports, setExamSchedules, currentYearMonth, appSettings, isLoading } = state;
+
+        // 이미 로딩 중이면 중복 호출 방지
+        if (isLoading) {
+          console.log('[fetchAllData] Already loading, skipping...');
+          return;
+        }
+
+        console.log('[fetchAllData] Starting...', { currentYearMonth, hasApiKey: !!appSettings.notionApiKey });
+
+        if (!appSettings.notionApiKey) {
+          console.warn('[fetchAllData] No API key configured, skipping fetch');
+          return;
+        }
+
+        setIsLoading(true);
+        try {
+          const notion = await import('../services/notion');
+
+          console.log('[fetchAllData] Fetching from Notion...');
+          const [teachers, students, exams, reports, schedules] = await Promise.all([
+            notion.fetchTeachers(),
+            notion.fetchStudents(),
+            notion.fetchExams(currentYearMonth),
+            notion.fetchScores(currentYearMonth),
+            notion.fetchExamSchedules(currentYearMonth),
+          ]);
+
+          console.log('[fetchAllData] Results:', {
+            teachers: teachers.length,
+            students: students.length,
+            exams: exams.length,
+            reports: reports.length,
+            schedules: schedules.length,
+          });
+
+          const reportsWithNames = reports.map(r => {
+            const student = students.find(s => s.id === r.studentId);
+            return { ...r, studentName: student?.name || '알 수 없음' };
+          });
+
+          setTeachers(teachers);
+          setStudents(students);
+          setExams(exams);
+          setReports(reportsWithNames);
+          setExamSchedules(schedules);
+          console.log('✅ Data fetched and stored successfully');
+        } catch (error) {
+          console.error('❌ Failed to fetch data:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      },
     }),
     {
       name: 'wawa-report-storage',
@@ -198,3 +271,42 @@ export const useReportStore = create<ReportState>()(
     }
   )
 );
+
+// 컴포넌트에서 사용하기 쉬운 필터링된 데이터 훅/셀렉터
+export const useFilteredData = () => {
+  const { students, reports, exams, examSchedules, currentUser } = useReportStore();
+
+  // 로그인하지 않았거나 관리자인 경우 전체 데이터 반환
+  if (!currentUser || currentUser.teacher.isAdmin) {
+    return { students, reports, exams, examSchedules };
+  }
+
+  // 일반 선생님인 경우 담당 과목 학생만 필터링
+  const teacherSubjects = currentUser.teacher.subjects;
+
+  const filteredStudents = students.filter(student =>
+    student.subjects.some(sub => teacherSubjects.includes(sub))
+  );
+
+  const filteredReports = reports.filter(report =>
+    filteredStudents.some(s => s.id === report.studentId)
+  ).map(report => ({
+    ...report,
+    scores: report.scores.filter(s => teacherSubjects.includes(s.subject))
+  }));
+
+  const filteredExams = exams.filter(exam =>
+    teacherSubjects.includes(exam.subject)
+  );
+
+  const filteredSchedules = examSchedules.filter(schedule =>
+    filteredStudents.some(s => s.id === schedule.studentId)
+  );
+
+  return {
+    students: filteredStudents,
+    reports: filteredReports,
+    exams: filteredExams,
+    examSchedules: filteredSchedules
+  };
+};

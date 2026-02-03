@@ -20,7 +20,7 @@ const dayClassMap: Record<string, string> = {
 };
 
 export default function DayView() {
-  const { students, filters, getFilteredStudents } = useScheduleStore();
+  const { students, getFilteredStudents } = useScheduleStore();
   const filteredStudents = getFilteredStudents();
 
   // 시간순 정렬
