@@ -273,16 +273,15 @@ export default function Preview() {
                         리포트 기간: {currentYearMonth.replace('-', '년 ')}월
                       </div>
                     </div>
-                    <div style={{
-                      backgroundColor: '#FF6B00',
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      color: '#ffffff',
-                      fontWeight: 700,
-                      fontSize: '14px'
-                    }}>
-                      {appSettings.academyName || 'WAWA 학원'}
-                    </div>
+                    <img
+                      src="/wawa_logo.jpg"
+                      alt="WAWA 와와학습코칭센터"
+                      style={{
+                        height: '56px',
+                        width: 'auto',
+                        borderRadius: '4px',
+                      }}
+                    />
                   </div>
 
                   {/* 성적 변화 추이 차트 */}
@@ -422,7 +421,7 @@ export default function Preview() {
                   {/* 푸터 */}
                   <div style={{ marginTop: '40px', textAlign: 'center', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>
-                      {appSettings.academyName || 'WAWA 학원'} | {new Date().toLocaleDateString()}
+                      와와학습코칭학원 | 상담문의: 053-214-2705
                     </div>
                   </div>
                 </div>

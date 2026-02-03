@@ -203,25 +203,15 @@ export default function PreviewPage() {
                 리포트 기간: {currentYearMonth.replace('-', '년 ')}월
               </p>
             </div>
-            <div style={{
-              backgroundColor: '#FF6B00',
-              borderRadius: '8px',
-              padding: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <div style={{ color: '#ffffff', fontWeight: '900', fontSize: '12px', lineHeight: '1', textAlign: 'center' }}>
-                {appSettings.academyName ? (
-                  <span style={{ fontSize: '10px' }}>{appSettings.academyName}</span>
-                ) : (
-                  <>
-                    WAWA<br />
-                    <span style={{ fontSize: '8px', fontWeight: 'normal', opacity: 0.9 }}>COACHING CENTER</span>
-                  </>
-                )}
-              </div>
-            </div>
+            <img
+              src="/wawa_logo.jpg"
+              alt="WAWA 와와학습코칭센터"
+              style={{
+                height: '48px',
+                width: 'auto',
+                borderRadius: '4px',
+              }}
+            />
           </header>
 
           <main style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
