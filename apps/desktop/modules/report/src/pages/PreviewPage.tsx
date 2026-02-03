@@ -4,6 +4,7 @@ import { downloadReportAsPdf } from '../services/pdf';
 import { uploadReportToCloudinary, getCloudinaryConfig } from '../services/cloudinary';
 import { useState } from 'react';
 import type { SubjectScore } from '../types';
+import wawaLogo from '../assets/wawa_logo.jpg';
 
 // 과목별 색상 정의
 const SUBJECT_COLORS: Record<string, string> = {
@@ -204,7 +205,7 @@ export default function PreviewPage() {
               </p>
             </div>
             <img
-              src="/wawa_logo.jpg"
+              src={wawaLogo}
               alt="WAWA 와와학습코칭센터"
               style={{
                 height: '48px',
