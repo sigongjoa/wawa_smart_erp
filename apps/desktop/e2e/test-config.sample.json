@@ -1,0 +1,8 @@
+{
+  "notionApiKey": "your_notion_api_key_here",
+  "notionTeachersDb": "your_teachers_db_id",
+  "notionStudentsDb": "your_students_db_id",
+  "notionScoresDb": "your_scores_db_id",
+  "notionExamScheduleDb": "your_exam_schedule_db_id",
+  "notionEnrollmentDb": "your_enrollment_db_id"
+}
