@@ -187,14 +187,21 @@ export const fetchTeachers = async (): Promise<Teacher[]> => {
     });
 
     return data.results.map((page: any) => {
-      const subjectStr = page.properties['과목']?.rich_text?.[0]?.plain_text || '';
-      // 쉼표로 구분된 과목을 배열로 변환
-      const subjects = subjectStr.split(',').map((s: string) => s.trim()).filter(Boolean);
+      // multi_select 타입으로 과목 읽기 (또는 rich_text 폴백)
+      const multiSelectSubjects = page.properties['과목']?.multi_select;
+      let subjects: string[];
+      if (multiSelectSubjects && Array.isArray(multiSelectSubjects)) {
+        subjects = multiSelectSubjects.map((s: any) => s.name);
+      } else {
+        // rich_text 폴백 (쉼표로 구분된 과목)
+        const subjectStr = page.properties['과목']?.rich_text?.[0]?.plain_text || '';
+        subjects = subjectStr.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
       return {
         id: page.id,
         name: page.properties['선생님']?.title?.[0]?.plain_text || '',
         subjects,
-        pin: String(page.properties['PIN']?.number || '0000'),
+        pin: String(page.properties['PIN']?.number || '0000').padStart(4, '0'),
         isAdmin: page.properties['isAdmin']?.select?.name === 'True',
       };
     });

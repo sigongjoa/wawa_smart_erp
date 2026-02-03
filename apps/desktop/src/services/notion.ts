@@ -228,7 +228,7 @@ export const fetchStudents = async (): Promise<Student[]> => {
           updatedAt: page.last_edited_time,
         };
       })
-      .filter((s): s is Student => s !== null);
+      .filter((s: Student | null): s is Student => s !== null);
   } catch (error) {
     console.error('❌ fetchStudents failed:', error);
     return [];
@@ -623,6 +623,120 @@ export const fetchEnrollments = async (): Promise<Enrollment[]> => {
   }
 };
 
+
+export const fetchEnrollmentsByStudent = async (studentId: string): Promise<Enrollment[]> => {
+  const dbIds = getDbIds();
+  if (!dbIds.enrollment) return [];
+  try {
+    const data = await notionFetch(`/databases/${dbIds.enrollment}/query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: {
+          property: NOTION_COLUMNS_ENROLLMENT.STUDENT,
+          relation: { contains: studentId },
+        },
+        sorts: [{ property: '요일', direction: 'ascending' }],
+      }),
+    });
+
+    return data.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        studentId: props[NOTION_COLUMNS_ENROLLMENT.STUDENT]?.relation?.[0]?.id || '',
+        day: (props[NOTION_COLUMNS_ENROLLMENT.DAY]?.select?.name || '월') as DayType,
+        startTime: props[NOTION_COLUMNS_ENROLLMENT.START_TIME]?.rich_text?.[0]?.plain_text || '',
+        endTime: props[NOTION_COLUMNS_ENROLLMENT.END_TIME]?.rich_text?.[0]?.plain_text || '',
+        subject: props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.rich_text?.[0]?.plain_text ||
+          props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.select?.name || '',
+        tuition: 0,
+        createdAt: page.created_time,
+        updatedAt: page.last_edited_time,
+      };
+    });
+  } catch (error) {
+    console.error('❌ fetchEnrollmentsByStudent failed:', error);
+    return [];
+  }
+};
+
+export const updateStudentEnrollments = async (
+  studentId: string,
+  enrollments: { subject: string; day: string; startTime: string; endTime: string }[]
+): Promise<ApiResult<boolean>> => {
+  const dbIds = getDbIds();
+  if (!dbIds.enrollment) return { success: false, error: { message: "수강일정 데이터베이스 ID가 설정되지 않았습니다." } };
+
+  try {
+    // Upsert 패턴: 기존 레코드 조회 → 매칭되면 업데이트, 없으면 생성, 불필요한 것 삭제
+    const existingEnrollments = await fetchEnrollmentsByStudent(studentId);
+
+    // 새 enrollment 키 생성 (subject+day)
+    const newEnrollmentKeys = new Set(
+      enrollments
+        .filter(e => e.startTime && e.endTime)
+        .map(e => `${e.subject}_${e.day}`)
+    );
+
+    // 기존 enrollment를 Map으로 (subject+day → enrollment)
+    const existingMap = new Map<string, Enrollment>();
+    for (const e of existingEnrollments) {
+      const key = `${e.subject}_${e.day}`;
+      existingMap.set(key, e);
+    }
+
+    console.log('[updateStudentEnrollments] Existing:', existingEnrollments.length, 'New:', enrollments.length);
+
+    // 1. 불필요한 기존 레코드 삭제 (새 목록에 없는 것)
+    const toDelete = existingEnrollments.filter(e => !newEnrollmentKeys.has(`${e.subject}_${e.day}`));
+    await Promise.all(toDelete.map(e =>
+      notionFetch(`/pages/${e.id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) })
+    ));
+    console.log('[updateStudentEnrollments] Deleted:', toDelete.length);
+
+    // 2. Upsert: 매칭되면 업데이트, 없으면 생성
+    await Promise.all(enrollments.map(async (e) => {
+      if (!e.startTime || !e.endTime) return;
+
+      const key = `${e.subject}_${e.day}`;
+      const existing = existingMap.get(key);
+
+      const properties: any = {
+        [NOTION_COLUMNS_ENROLLMENT.SUBJECT]: { rich_text: [{ text: { content: e.subject } }] },
+        [NOTION_COLUMNS_ENROLLMENT.DAY]: { select: { name: e.day } },
+        [NOTION_COLUMNS_ENROLLMENT.START_TIME]: { rich_text: [{ text: { content: e.startTime } }] },
+        [NOTION_COLUMNS_ENROLLMENT.END_TIME]: { rich_text: [{ text: { content: e.endTime } }] },
+      };
+
+      if (existing) {
+        // 업데이트 (시간만 변경될 수 있음)
+        await notionFetch(`/pages/${existing.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ properties }),
+        });
+      } else {
+        // 새로 생성
+        await notionFetch('/pages', {
+          method: 'POST',
+          body: JSON.stringify({
+            parent: { database_id: dbIds.enrollment },
+            properties: {
+              ...properties,
+              [NOTION_COLUMNS_ENROLLMENT.STUDENT]: { relation: [{ id: studentId }] },
+              [NOTION_COLUMNS_ENROLLMENT.NAME]: { title: [{ text: { content: `${e.subject}_${e.day}` } }] },
+            },
+          }),
+        });
+      }
+    }));
+
+    return { success: true, data: true };
+  } catch (error: any) {
+    console.error('❌ updateStudentEnrollments failed:', error);
+    return { success: false, error: { message: error.message || "수강일정 업데이트 실패" } };
+  }
+};
+
 const notionClient = {
   getStudents,
   fetchStudents,
@@ -638,6 +752,8 @@ const notionClient = {
   fetchExamSchedules,
   updateExamSchedulesBatch,
   fetchEnrollments,
+  fetchEnrollmentsByStudent,
+  updateStudentEnrollments,
   testNotionConnection,
 };
 

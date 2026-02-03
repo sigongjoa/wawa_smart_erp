@@ -1,7 +1,10 @@
+import os
+os.environ["DISABLE_MODEL_SOURCE_CHECK"] = "True"
+os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import os
 import uuid
 import cv2
 import logging

@@ -100,10 +100,20 @@ export default function Preview() {
     if (!selectedReport || !selectedStudent) return;
     setIsGenerating(true);
 
-    const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-    const student = selectedStudent;
+    try {
+      // 브라우저 환경에서는 wawaAPI가 없으므로 체크
+      if (!window.wawaAPI?.typstCompile) {
+        // 브라우저 환경: window.print() 사용
+        addToast('브라우저 환경에서는 인쇄 기능을 사용해주세요.', 'info');
+        setIsGenerating(false);
+        window.print();
+        return;
+      }
 
-    const source = `
+      const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+      const student = selectedStudent;
+
+      const source = `
 #set page(paper: "a4", margin: (x: 2cm, y: 2.5cm))
 #set text(font: "Noto Sans KR", size: 10pt)
 #set heading(numbering: "1.")
@@ -162,16 +172,21 @@ export default function Preview() {
 #align(right)[
   #text(size: 12pt, weight: "bold")[WAWA 수학학원 원장 귀하]
 ]
-    `;
+      `;
 
-    const outputPath = `/tmp/report_${selectedReport.studentName}_${currentYearMonth}.pdf`;
-    const result = await window.wawaAPI.typstCompile({ source, outputPath });
+      const outputPath = `/tmp/report_${selectedReport.studentName}_${currentYearMonth}.pdf`;
+      const result = await window.wawaAPI.typstCompile({ source, outputPath });
 
-    setIsGenerating(false);
-    if (result.success) {
-      addToast(`PDF가 생성되었습니다: ${result.outputPath}`, 'success');
-    } else {
-      addToast(`성공하지 못했습니다: ${result.message}`, 'error');
+      if (result.success) {
+        addToast(`PDF가 생성되었습니다: ${result.outputPath}`, 'success');
+      } else {
+        addToast(`PDF 생성 실패: ${result.message}`, 'error');
+      }
+    } catch (error) {
+      console.error('PDF 생성 오류:', error);
+      addToast('PDF 생성 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -233,8 +248,10 @@ export default function Preview() {
                   cursor: 'pointer',
                   background: isSelected ? 'var(--primary-light)' : 'transparent',
                   borderBottom: '1px solid var(--border-light)',
+                  borderTop: 'none',
+                  borderRight: 'none',
+                  borderLeft: isSelected ? '4px solid var(--primary)' : '4px solid transparent',
                   transition: 'all 0.2s',
-                  borderLeft: isSelected ? '4px solid var(--primary)' : '4px solid transparent'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
