@@ -64,3 +64,6 @@ env/
 # Smart Grader temp files
 uploads/
 processed/
+
+# E2E test config (contains API keys)
+apps/desktop/e2e/test-config.json
