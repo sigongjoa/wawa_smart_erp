@@ -3,7 +3,7 @@ import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import wawaLogo from '../../assets/wawa_logo.jpg';
+import { wawaLogoBase64 } from '../../assets/wawaLogo';
 
 // 과목별 색상 정의
 const SUBJECT_COLORS: Record<string, string> = {
@@ -275,7 +275,7 @@ export default function Preview() {
                       </div>
                     </div>
                     <img
-                      src={wawaLogo}
+                      src={wawaLogoBase64}
                       alt="WAWA 와와학습코칭센터"
                       style={{
                         height: '56px',
