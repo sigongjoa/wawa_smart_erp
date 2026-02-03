@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 // 과목별 색상 정의
 const SUBJECT_COLORS: Record<string, string> = {
@@ -42,6 +44,7 @@ export default function Preview() {
   const { addToast } = useToastStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
   // 디버깅 로그
@@ -97,91 +100,56 @@ export default function Preview() {
   };
 
   const generatePDF = async () => {
-    if (!selectedReport || !selectedStudent) return;
+    if (!selectedReport || !selectedStudent || !reportRef.current) return;
     setIsGenerating(true);
 
     try {
-      // 브라우저 환경에서는 wawaAPI가 없으므로 체크
-      if (!window.wawaAPI?.typstCompile) {
-        // 브라우저 환경: window.print() 사용
-        addToast('브라우저 환경에서는 인쇄 기능을 사용해주세요.', 'info');
-        setIsGenerating(false);
-        window.print();
-        return;
+      const element = reportRef.current;
+
+      // html2canvas로 캡처
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+
+      // jsPDF로 PDF 생성
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      // 이미지가 페이지보다 길면 여러 페이지로 나눔
+      const scaledHeight = (imgHeight * pdfWidth) / imgWidth;
+      let heightLeft = scaledHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - scaledHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
+        heightLeft -= pdfHeight;
       }
 
-      const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-      const student = selectedStudent;
+      // 파일 저장
+      const fileName = `${selectedStudent.name}_월별평가서_${currentYearMonth}.pdf`;
+      pdf.save(fileName);
 
-      const source = `
-#set page(paper: "a4", margin: (x: 2cm, y: 2.5cm))
-#set text(font: "Noto Sans KR", size: 10pt)
-#set heading(numbering: "1.")
-
-#align(center)[
-  #text(size: 24pt, weight: "bold")[월간 학습 성과 리포트]
-  #v(5mm)
-  #text(size: 14pt)[${currentYearMonth}]
-]
-
-#v(1cm)
-
-#grid(
-  columns: (1fr, 1fr),
-  gutter: 1cm,
-  [
-    #set text(weight: "bold")
-    학생명: ${selectedReport.studentName} \
-    학년: ${student?.grade || '-'} \
-  ],
-  [
-    #set text(weight: "bold")
-    성적 산출일: ${dateStr} \
-    교육기관: WAWA 수학학원 \
-  ]
-)
-
-#v(1cm)
-
-== 과목별 상세 성적
-
-#table(
-  columns: (1fr, 60pt, 60pt, 2fr),
-  inset: 10pt,
-  align: (left, center, center, left),
-  fill: (x, y) => if y == 0 { gray.lighten(80%) } else { white },
-  [*과목*], [*점수*], [*난이도*], [*강사 의견*],
-  ${selectedReport.scores.map(s => `[${s.subject}], [${s.score}점], [${s.difficulty || 'C'}], [${s.comment || '-'}]`).join(',\n  ')}
-)
-
-#v(1cm)
-
-== 종합 평가 및 향후 계획
-
-#rect(
-  width: 100%,
-  inset: 15pt,
-  stroke: 0.5pt + gray,
-  radius: 4pt,
-  [
-    ${selectedReport.totalComment || '이번 달은 전반적으로 성실하게 학습에 임하였습니다. 오답 분석을 통해 부족한 부분을 보완하고 다음 단계로 넘어갈 예정입니다.'}
-  ]
-)
-
-#v(auto)
-#align(right)[
-  #text(size: 12pt, weight: "bold")[WAWA 수학학원 원장 귀하]
-]
-      `;
-
-      const outputPath = `/tmp/report_${selectedReport.studentName}_${currentYearMonth}.pdf`;
-      const result = await window.wawaAPI.typstCompile({ source, outputPath });
-
-      if (result.success) {
-        addToast(`PDF가 생성되었습니다: ${result.outputPath}`, 'success');
-      } else {
-        addToast(`PDF 생성 실패: ${result.message}`, 'error');
-      }
+      addToast(`PDF가 다운로드되었습니다: ${fileName}`, 'success');
     } catch (error) {
       console.error('PDF 생성 오류:', error);
       addToast('PDF 생성 중 오류가 발생했습니다.', 'error');
@@ -286,7 +254,7 @@ export default function Preview() {
               </div>
 
               <div style={{ flex: 1, padding: '40px', background: '#f1f5f9', overflowY: 'auto' }}>
-                <div className="report-paper" style={{
+                <div ref={reportRef} className="report-paper" style={{
                   background: 'white',
                   width: '100%',
                   maxWidth: '800px',
