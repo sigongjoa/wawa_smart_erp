@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Smart-Grader API")
 
 # Configuration
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000").split(",")
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/bmp", "image/tiff", "image/webp"}
 ALLOWED_PDF_EXTENSIONS = {".pdf"}
@@ -519,6 +519,350 @@ async def get_recent_notion_scores(limit: int = 10):
     except Exception as e:
         logger.exception(f"Error fetching Notion scores: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch scores: {str(e)}")
+
+
+# ============ Timer Module: Schedule Endpoints ============
+
+import json
+import httpx
+
+# Notion config from file
+def load_notion_config():
+    """Load Notion config from root config file"""
+    config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'notion_config.json')
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.warning(f"Failed to load notion_config.json: {e}")
+        return {}
+
+NOTION_CONFIG = load_notion_config()
+
+# Grade mapping
+GRADE_MAP = {
+    '중1': '중1', '중2': '중2', '중3': '중3',
+    '고1': '고1', '고2': '고2', '고3': '고3',
+    '검정고시': '검정고시', '초등학생': '검정고시'
+}
+
+# Day mapping (only 화/목/토 supported)
+DAY_MAP = {'화': '화', '목': '목', '토': '토'}
+
+
+@app.get("/api/timer/schedules")
+async def get_timer_schedules():
+    """
+    Get student schedules from Notion Enrollment DB for Timer module.
+    Returns list of students with their schedule info.
+    """
+    try:
+        api_key = NOTION_CONFIG.get('notionApiKey', '')
+        enrollment_db = NOTION_CONFIG.get('notionEnrollmentDb', '')
+        students_db = NOTION_CONFIG.get('notionStudentsDb', '')
+
+        if not api_key or not enrollment_db or not students_db:
+            raise HTTPException(status_code=500, detail="Notion config not properly set")
+
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Notion-Version': '2022-06-28',
+            'Content-Type': 'application/json'
+        }
+
+        async with httpx.AsyncClient() as client:
+            # 1. Fetch students info first (for name/grade lookup)
+            students_resp = await client.post(
+                f'https://api.notion.com/v1/databases/{students_db}/query',
+                headers=headers,
+                json={}
+            )
+            students_resp.raise_for_status()
+            students_data = students_resp.json()
+
+            # Build student cache
+            student_cache = {}
+            for page in students_data.get('results', []):
+                sid = page['id']
+                props = page.get('properties', {})
+                name = ''
+                if props.get('이름', {}).get('title'):
+                    name = props['이름']['title'][0].get('plain_text', '')
+
+                grade_arr = props.get('학년', {}).get('multi_select', [])
+                grade_raw = grade_arr[0].get('name', '중1') if grade_arr else '중1'
+                grade = GRADE_MAP.get(grade_raw, '중1')
+
+                if name:
+                    student_cache[sid] = {'id': sid, 'name': name, 'grade': grade}
+
+            # 2. Fetch enrollment/schedule data
+            schedule_resp = await client.post(
+                f'https://api.notion.com/v1/databases/{enrollment_db}/query',
+                headers=headers,
+                json={}
+            )
+            schedule_resp.raise_for_status()
+            schedule_data = schedule_resp.json()
+
+            # 3. Build response
+            schedules = []
+            for page in schedule_data.get('results', []):
+                props = page.get('properties', {})
+
+                # Get student relation
+                student_rel = props.get('학생', {}).get('relation', [])
+                if not student_rel:
+                    continue
+
+                student_id = student_rel[0].get('id', '')
+                student_info = student_cache.get(student_id)
+                if not student_info:
+                    continue
+
+                # Get day (only 화/목/토)
+                day_raw = props.get('요일', {}).get('select', {})
+                day = DAY_MAP.get(day_raw.get('name', ''), None) if day_raw else None
+                if not day:
+                    continue
+
+                # Get times
+                start_time = '14:00'
+                if props.get('시작시간', {}).get('rich_text'):
+                    start_time = props['시작시간']['rich_text'][0].get('plain_text', '14:00')
+
+                end_time = '16:00'
+                if props.get('종료시간', {}).get('rich_text'):
+                    end_time = props['종료시간']['rich_text'][0].get('plain_text', '16:00')
+
+                subject = '수학'
+                if props.get('과목', {}).get('rich_text'):
+                    subject = props['과목']['rich_text'][0].get('plain_text', '수학')
+
+                schedules.append({
+                    'id': page['id'],
+                    'name': student_info['name'],
+                    'grade': student_info['grade'],
+                    'day': day,
+                    'startTime': start_time,
+                    'endTime': end_time,
+                    'subject': subject,
+                    'createdAt': page.get('created_time', ''),
+                    'updatedAt': page.get('last_edited_time', '')
+                })
+
+            return {
+                'success': True,
+                'count': len(schedules),
+                'schedules': schedules
+            }
+
+    except httpx.HTTPStatusError as e:
+        logger.exception(f"Notion API error: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"Notion API error: {str(e)}")
+    except Exception as e:
+        logger.exception(f"Error fetching schedules: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch schedules: {str(e)}")
+
+
+@app.get("/api/timer/students")
+async def get_timer_students():
+    """
+    Get students from Notion Students DB for Timer module.
+    """
+    try:
+        api_key = NOTION_CONFIG.get('notionApiKey', '')
+        students_db = NOTION_CONFIG.get('notionStudentsDb', '')
+
+        if not api_key or not students_db:
+            raise HTTPException(status_code=500, detail="Notion config not properly set")
+
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Notion-Version': '2022-06-28',
+            'Content-Type': 'application/json'
+        }
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f'https://api.notion.com/v1/databases/{students_db}/query',
+                headers=headers,
+                json={'sorts': [{'property': '이름', 'direction': 'ascending'}]}
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            students = []
+            for page in data.get('results', []):
+                props = page.get('properties', {})
+
+                # Name
+                name = ''
+                if props.get('이름', {}).get('title'):
+                    name = props['이름']['title'][0].get('plain_text', '')
+                if not name:
+                    continue
+
+                # Grade
+                grade = ''
+                grade_prop = props.get('학년', {})
+                if grade_prop.get('type') == 'multi_select' and grade_prop.get('multi_select'):
+                    grade = grade_prop['multi_select'][0].get('name', '')
+                elif grade_prop.get('type') == 'select' and grade_prop.get('select'):
+                    grade = grade_prop['select'].get('name', '')
+
+                # Subjects
+                subjects = []
+                if props.get('수강과목', {}).get('multi_select'):
+                    subjects = [s.get('name', '') for s in props['수강과목']['multi_select']]
+
+                # Teacher IDs
+                teacher_ids = []
+                if props.get('담당선생님', {}).get('relation'):
+                    teacher_ids = [r.get('id', '') for r in props['담당선생님']['relation']]
+
+                students.append({
+                    'id': page['id'],
+                    'name': name,
+                    'grade': grade,
+                    'subjects': subjects,
+                    'teacherIds': teacher_ids,
+                    'status': 'active',
+                    'createdAt': page.get('created_time', ''),
+                    'updatedAt': page.get('last_edited_time', '')
+                })
+
+            return {
+                'success': True,
+                'count': len(students),
+                'students': students
+            }
+
+    except httpx.HTTPStatusError as e:
+        logger.exception(f"Notion API error: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"Notion API error: {str(e)}")
+    except Exception as e:
+        logger.exception(f"Error fetching students: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch students: {str(e)}")
+
+
+@app.get("/api/timer/enrollments")
+async def get_timer_enrollments():
+    """
+    Get enrollment schedules from Notion Enrollment DB for Timer module.
+    """
+    try:
+        api_key = NOTION_CONFIG.get('notionApiKey', '')
+        enrollment_db = NOTION_CONFIG.get('notionEnrollmentDb', '')
+
+        if not api_key or not enrollment_db:
+            raise HTTPException(status_code=500, detail="Notion config not properly set")
+
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Notion-Version': '2022-06-28',
+            'Content-Type': 'application/json'
+        }
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f'https://api.notion.com/v1/databases/{enrollment_db}/query',
+                headers=headers,
+                json={'sorts': [{'property': '요일', 'direction': 'ascending'}]}
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            enrollments = []
+            for page in data.get('results', []):
+                props = page.get('properties', {})
+
+                # Student relation
+                student_rel = props.get('학생', {}).get('relation', [])
+                student_id = student_rel[0].get('id', '') if student_rel else ''
+                if not student_id:
+                    continue
+
+                # Day
+                day = '월'
+                if props.get('요일', {}).get('select'):
+                    day = props['요일']['select'].get('name', '월')
+
+                # Times
+                start_time = ''
+                if props.get('시작시간', {}).get('rich_text'):
+                    start_time = props['시작시간']['rich_text'][0].get('plain_text', '')
+
+                end_time = ''
+                if props.get('종료시간', {}).get('rich_text'):
+                    end_time = props['종료시간']['rich_text'][0].get('plain_text', '')
+
+                # Subject
+                subject = ''
+                if props.get('과목', {}).get('rich_text'):
+                    subject = props['과목']['rich_text'][0].get('plain_text', '')
+                elif props.get('과목', {}).get('select'):
+                    subject = props['과목']['select'].get('name', '')
+
+                enrollments.append({
+                    'id': page['id'],
+                    'studentId': student_id,
+                    'day': day,
+                    'startTime': start_time,
+                    'endTime': end_time,
+                    'subject': subject,
+                    'createdAt': page.get('created_time', ''),
+                    'updatedAt': page.get('last_edited_time', '')
+                })
+
+            return {
+                'success': True,
+                'count': len(enrollments),
+                'enrollments': enrollments
+            }
+
+    except httpx.HTTPStatusError as e:
+        logger.exception(f"Notion API error: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"Notion API error: {str(e)}")
+    except Exception as e:
+        logger.exception(f"Error fetching enrollments: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch enrollments: {str(e)}")
+
+
+@app.get("/api/timer/test-connection")
+async def test_timer_connection():
+    """Test Notion connection for Timer module"""
+    try:
+        api_key = NOTION_CONFIG.get('notionApiKey', '')
+        enrollment_db = NOTION_CONFIG.get('notionEnrollmentDb', '')
+
+        if not api_key or not enrollment_db:
+            return {'success': False, 'message': 'Notion config not set'}
+
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Notion-Version': '2022-06-28'
+        }
+
+        async with httpx.AsyncClient() as client:
+            # Test API key
+            resp = await client.get(
+                'https://api.notion.com/v1/users/me',
+                headers=headers
+            )
+            resp.raise_for_status()
+
+            # Test DB access
+            resp = await client.get(
+                f'https://api.notion.com/v1/databases/{enrollment_db}',
+                headers=headers
+            )
+            resp.raise_for_status()
+
+            return {'success': True, 'message': 'Notion 연결 성공!'}
+
+    except Exception as e:
+        return {'success': False, 'message': f'연결 실패: {str(e)}'}
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useScheduleStore } from '../stores/scheduleStore';
 import type { ViewMode } from '../types';
@@ -30,9 +31,30 @@ const grades = [
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { filters, setDayFilter, setGradeFilter, setSearchFilter } = useScheduleStore();
+  const {
+    filters,
+    setDayFilter,
+    setGradeFilter,
+    setSearchFilter,
+    loadFromNotion,
+    isLoading,
+    error,
+    students,
+    notionSettings
+  } = useScheduleStore();
 
   const currentPath = location.pathname;
+
+  // 앱 시작 시 Notion에서 데이터 로드
+  useEffect(() => {
+    if (students.length === 0 && !isLoading) {
+      loadFromNotion();
+    }
+  }, []);
+
+  const handleRefresh = () => {
+    loadFromNotion();
+  };
 
   return (
     <div className="app-container">
@@ -55,13 +77,32 @@ export default function Layout() {
           </span>
         </div>
         <div className="app-header-right">
+          {/* Notion 연결 상태 표시 */}
+          <span style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '12px',
+            color: notionSettings.isConnected ? 'var(--success)' : 'var(--text-muted)'
+          }}>
+            <span className="material-symbols-outlined icon-sm">
+              {notionSettings.isConnected ? 'cloud_done' : 'cloud_off'}
+            </span>
+            {notionSettings.isConnected ? 'Notion 연결됨' : 'Notion 미연결'}
+          </span>
+          <button
+            className="btn btn-secondary"
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <span className={`material-symbols-outlined icon-sm ${isLoading ? 'spinning' : ''}`}>
+              {isLoading ? 'sync' : 'refresh'}
+            </span>
+            {isLoading ? '로딩 중...' : '새로고침'}
+          </button>
           <button className="btn btn-success" onClick={() => {}}>
             <span className="material-symbols-outlined icon-sm">add</span>
             학생 추가
-          </button>
-          <button className="btn btn-primary" onClick={() => {}}>
-            <span className="material-symbols-outlined icon-sm">save</span>
-            저장
           </button>
           <button className="btn-icon" onClick={() => navigate('/settings')}>
             <span className="material-symbols-outlined">settings</span>
@@ -169,6 +210,38 @@ export default function Layout() {
             />
           </div>
         </div>
+
+        {/* 에러 메시지 */}
+        {error && (
+          <div style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid var(--danger)',
+            borderRadius: '8px',
+            color: 'var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span className="material-symbols-outlined icon-sm">error</span>
+            {error}
+            <button
+              onClick={handleRefresh}
+              style={{
+                marginLeft: 'auto',
+                background: 'var(--danger)',
+                color: 'white',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              재시도
+            </button>
+          </div>
+        )}
 
         {/* Page Content */}
         <Outlet />

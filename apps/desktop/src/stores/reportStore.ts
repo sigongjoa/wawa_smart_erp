@@ -78,6 +78,7 @@ const defaultAppSettings: AppSettings = {
     notionExamsDb: '',
     notionAbsenceHistoryDb: '',
     notionExamScheduleDb: '',
+    notionEnrollmentDb: '',
     kakaoJsKey: '',
     academyName: '',
 };
