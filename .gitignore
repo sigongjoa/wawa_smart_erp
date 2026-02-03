@@ -67,3 +67,8 @@ processed/
 
 # E2E test config (contains API keys)
 apps/desktop/e2e/test-config.json
+
+# E2E test artifacts
+apps/desktop/e2e-report/
+apps/desktop/e2e-screenshots/
+apps/desktop/test-results/

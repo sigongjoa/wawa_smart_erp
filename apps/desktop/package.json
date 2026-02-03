@@ -43,6 +43,7 @@
   "build": {
     "appId": "com.wawa.smart.erp",
     "productName": "WAWA Smart ERP",
+    "publish": null,
     "files": [
       "dist/main/**/*",
       "dist/preload/**/*",
