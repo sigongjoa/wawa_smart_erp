@@ -52,9 +52,9 @@ jobs:
             IS_PRERELEASE="false"
             RELEASE_NAME="WAWA Smart ERP ${VERSION}"
           else
-            VERSION="latest"
+            VERSION="v0.0.0-dev.$(date +'%Y%m%d%H%M%S')"
             IS_PRERELEASE="true"
-            RELEASE_NAME="Latest Build ($(date +'%Y-%m-%d'))"
+            RELEASE_NAME="Development Build ($(date +'%Y-%m-%d %H:%M'))"
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "is_prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
@@ -82,15 +82,17 @@ jobs:
 
       - name: Package Electron App
         working-directory: apps/desktop
-        run: npx electron-builder --win
+        run: npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List release artifacts
+        shell: bash
         run: |
           echo "=== Release Directory Contents ==="
-          dir apps\desktop\release
-        shell: cmd
+          ls -la apps/desktop/release/ || echo "Release directory not found"
+          echo "=== Looking for EXE files ==="
+          find apps/desktop/release -name "*.exe" -type f 2>/dev/null || echo "No exe files found"
 
       - name: Generate Release Notes
         id: release_notes
@@ -99,7 +101,7 @@ jobs:
           echo "## What's New" > release_notes.md
           echo "" >> release_notes.md
           if [[ "${{ steps.version.outputs.is_prerelease }}" == "true" ]]; then
-            echo "This is an automated build from the latest master branch." >> release_notes.md
+            echo "This is an automated development build from the latest master branch." >> release_notes.md
             echo "" >> release_notes.md
             echo "### Recent Changes" >> release_notes.md
             git log --oneline -10 >> release_notes.md
@@ -117,6 +119,15 @@ jobs:
           echo "---" >> release_notes.md
           echo "Built with Electron and React" >> release_notes.md
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.exe.blockmap
+          if-no-files-found: error
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
@@ -126,34 +137,7 @@ jobs:
           bodyFile: release_notes.md
           prerelease: ${{ steps.version.outputs.is_prerelease }}
           allowUpdates: true
+          makeLatest: ${{ steps.version.outputs.is_prerelease == 'false' }}
           removeArtifacts: true
           replacesArtifacts: true
           token: ${{ secrets.GITHUB_TOKEN }}
-
-  # Optional: Build for macOS (uncomment when needed)
-  # build-macos:
-  #   runs-on: macos-latest
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v2
-  #       with:
-  #         version: 8
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20
-  #         cache: 'pnpm'
-  #     - run: pnpm install
-  #     - working-directory: apps/desktop
-  #       run: |
-  #         npx tsc -p tsconfig.main.json
-  #         npx tsc -p tsconfig.preload.json
-  #         npx vite build
-  #         npx electron-builder --mac
-  #     - uses: ncipollo/release-action@v1
-  #       with:
-  #         artifacts: "apps/desktop/release/*.dmg"
-  #         allowUpdates: true
-  #         omitBodyDuringUpdate: true
-  #         token: ${{ secrets.GITHUB_TOKEN }}
