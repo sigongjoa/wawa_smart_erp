@@ -3,6 +3,10 @@ import * as path from 'path';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 
+// Windows에서 한글 렌더링을 위한 폰트 설정
+app.commandLine.appendSwitch('lang', 'ko');
+app.commandLine.appendSwitch('force-color-profile', 'srgb');
+
 let mainWindow: BrowserWindow | null = null;
 let pythonProcess: ChildProcess | null = null;
 
@@ -37,20 +41,30 @@ function startPythonBackend() {
   console.log(`  Script: ${mainScript}`);
   console.log(`  Executable: ${pythonExecutable}`);
 
+  // Windows에서 UTF-8 인코딩을 위한 환경변수 설정
+  const env = { ...process.env };
+  if (process.platform === 'win32') {
+    env.PYTHONIOENCODING = 'utf-8';
+    env.PYTHONUTF8 = '1';
+  }
+
   pythonProcess = spawn(pythonExecutable, [mainScript], {
     cwd: backendDir,
+    env,
     // stdio: 'inherit' for debugging in terminal
   });
 
   if (pythonProcess.stdout) {
-    pythonProcess.stdout.on('data', (data) => {
-      console.log(`[Python] ${data.toString().trim()}`);
+    pythonProcess.stdout.setEncoding('utf8');
+    pythonProcess.stdout.on('data', (data: string) => {
+      console.log(`[Python] ${data.trim()}`);
     });
   }
 
   if (pythonProcess.stderr) {
-    pythonProcess.stderr.on('data', (data) => {
-      console.error(`[Python API] ${data.toString().trim()}`);
+    pythonProcess.stderr.setEncoding('utf8');
+    pythonProcess.stderr.on('data', (data: string) => {
+      console.error(`[Python API] ${data.trim()}`);
     });
   }
 
@@ -75,6 +89,7 @@ function createWindow() {
       nodeIntegration: false,
       webviewTag: true,
       webSecurity: false, // file:// 프로토콜에서 ES 모듈 로드 허용
+      defaultEncoding: 'UTF-8',
     },
     show: false,
   });
@@ -121,18 +136,38 @@ ipcMain.handle('notion:fetch', async (_, endpoint: string, options: any) => {
       headers: {
         'Authorization': options.headers['Authorization'],
         'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
       },
       body: options.body,
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text || 'Unknown error' };
+    }
+
     if (!response.ok) {
-      return { success: false, error: data, message: data.message || 'Notion API error' };
+      // 에러 메시지를 안전하게 추출
+      const errorMessage = typeof data.message === 'string'
+        ? data.message
+        : (data.code || `Notion API 오류 (${response.status})`);
+      return { success: false, error: data, message: errorMessage };
     }
     return { success: true, data };
   } catch (error: any) {
-    return { success: false, message: error.message || 'Network error', error };
+    // 네트워크 에러 메시지를 한글로 변환
+    let message = '네트워크 오류';
+    if (error.code === 'ENOTFOUND') {
+      message = '서버에 연결할 수 없습니다';
+    } else if (error.code === 'ETIMEDOUT') {
+      message = '연결 시간이 초과되었습니다';
+    } else if (error.message) {
+      message = error.message;
+    }
+    return { success: false, message, error: { code: error.code } };
   }
 });
 
