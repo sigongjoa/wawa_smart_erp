@@ -1,9 +1,10 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
-import { createStudent, updateStudent, deleteStudent } from '../../services/notion';
+import { createStudent, updateStudent, deleteStudent, fetchEnrollmentsByStudent, updateStudentEnrollments } from '../../services/notion';
 import type { Student, GradeType, Teacher } from '../../types';
 
 export default function StudentList() {
@@ -84,16 +85,30 @@ export default function StudentList() {
         }
     };
 
-    const handleSave = async (data: any) => {
+    const handleSave = async (data: any, enrollments: any[]) => {
         let result;
+        let finalStudentId = editingStudent?.id;
+
         if (editingStudent) {
             result = await updateStudent(editingStudent.id, data);
         } else {
             result = await createStudent(data);
+            if (result.success && result.data) {
+                finalStudentId = result.data.id;
+            }
         }
 
         if (result.success) {
-            addToast(editingStudent ? '학생 정보가 수정되었습니다.' : '새 학생이 등록되었습니다.', 'success');
+            // Save Enrollments
+            if (finalStudentId) {
+                const enrollResult = await updateStudentEnrollments(finalStudentId, enrollments);
+                if (!enrollResult.success) {
+                    addToast('학생 정보는 저장되었으나, 수강 일정 저장에 실패했습니다.', 'warning');
+                } else {
+                    addToast(editingStudent ? '학생 정보가 수정되었습니다.' : '새 학생이 등록되었습니다.', 'success');
+                }
+            }
+
             fetchStudents();
             setIsModalOpen(false);
             setEditingStudent(null);
@@ -267,7 +282,7 @@ export default function StudentList() {
     );
 }
 
-function StudentModal({ student, teachers, onClose, onSubmit }: { student: Student | null; teachers: Teacher[]; onClose: () => void; onSubmit: (data: any) => void }) {
+function StudentModal({ student, teachers, onClose, onSubmit }: { student: Student | null; teachers: Teacher[]; onClose: () => void; onSubmit: (data: any, enrollments: any[]) => void }) {
     const [formData, setFormData] = useState({
         name: '',
         grade: '중1',
@@ -278,6 +293,10 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
     });
 
     const [subjectTeachers, setSubjectTeachers] = useState<Record<string, string>>({});
+
+    // Enrollments State: Subject -> Array of { day, startTime, endTime }
+    type Schedule = { day: string; startTime: string; endTime: string };
+    const [subjectSchedules, setSubjectSchedules] = useState<Record<string, Schedule[]>>({});
 
     useEffect(() => {
         if (student) {
@@ -304,6 +323,42 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
                 });
             }
             setSubjectTeachers(mapping);
+
+            // Fetch Enrollments
+            fetchEnrollmentsByStudent(student.id).then(enrollments => {
+                const scheduleMap: Record<string, Schedule[]> = {};
+                enrollments.forEach(en => {
+                    if (!scheduleMap[en.subject]) {
+                        scheduleMap[en.subject] = [];
+                        // Initial Fill with 3 empty slots is NOT done here, we just fill with actual data
+                        // and then padding will happen in render or setter helpers?
+                        // Let's just push actual data.
+                    }
+                    scheduleMap[en.subject].push({
+                        day: en.day,
+                        startTime: en.startTime,
+                        endTime: en.endTime,
+                    });
+                });
+
+                // Pad to 3 slots for UI consistency if needed, or just let dynamic adding handle it?
+                // Request said "3 time slots", implying fixed 3 slots or at least up to 3.
+                // Let's standardise to always having 3 slots in the state for easier UI mapping.
+
+                const paddedMap: Record<string, Schedule[]> = {};
+                // Only for current subjects
+                student.subjects.forEach(sub => {
+                    const existing = scheduleMap[sub] || [];
+                    paddedMap[sub] = [
+                        existing[0] || { day: '월', startTime: '', endTime: '' },
+                        existing[1] || { day: '수', startTime: '', endTime: '' }, // Default day suggestion?
+                        existing[2] || { day: '금', startTime: '', endTime: '' },
+                    ];
+                });
+
+                setSubjectSchedules(paddedMap);
+            });
+
         } else {
             // Reset when adding new student
             setFormData({
@@ -315,6 +370,7 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
                 status: 'active',
             });
             setSubjectTeachers({});
+            setSubjectSchedules({});
         }
     }, [student, teachers]);
 
@@ -322,17 +378,33 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
 
     const toggleSubject = (sub: string) => {
         setFormData(prev => {
-            const newSubjects = prev.subjects.includes(sub)
-                ? prev.subjects.filter(s => s !== sub)
-                : [...prev.subjects, sub];
+            const isAdding = !prev.subjects.includes(sub);
+            const newSubjects = isAdding
+                ? [...prev.subjects, sub]
+                : prev.subjects.filter(s => s !== sub);
 
             // If removing subject, also remove from map
-            if (prev.subjects.includes(sub)) {
+            if (!isAdding) {
                 setSubjectTeachers(curr => {
                     const next = { ...curr };
                     delete next[sub];
                     return next;
                 });
+                setSubjectSchedules(curr => {
+                    const next = { ...curr };
+                    delete next[sub];
+                    return next;
+                });
+            } else {
+                // Initialize empty schedule for new subject
+                setSubjectSchedules(curr => ({
+                    ...curr,
+                    [sub]: [
+                        { day: '월', startTime: '', endTime: '' },
+                        { day: '월', startTime: '', endTime: '' },
+                        { day: '월', startTime: '', endTime: '' },
+                    ]
+                }));
             }
 
             return { ...prev, subjects: newSubjects };
@@ -343,16 +415,41 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
         setSubjectTeachers(prev => ({ ...prev, [subject]: teacherId }));
     };
 
+    const handleScheduleChange = (subject: string, index: number, field: keyof Schedule, value: string) => {
+        setSubjectSchedules(prev => {
+            const currentList = prev[subject] || [
+                { day: '월', startTime: '', endTime: '' },
+                { day: '월', startTime: '', endTime: '' },
+                { day: '월', startTime: '', endTime: '' }
+            ];
+
+            const newList = [...currentList];
+            if (!newList[index]) newList[index] = { day: '월', startTime: '', endTime: '' };
+
+            newList[index] = { ...newList[index], [field]: value };
+
+            return { ...prev, [subject]: newList };
+        });
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         // Collect distinct teacher IDs
         const distinctTeacherIds = Array.from(new Set(Object.values(subjectTeachers).filter(Boolean)));
-        onSubmit({ ...formData, teacherIds: distinctTeacherIds });
+
+        // Flatten enrollments
+        const enrollments = Object.entries(subjectSchedules).flatMap(([subject, schedules]) =>
+            schedules
+                .filter(s => s.startTime && s.endTime) // Only valid schedules
+                .map(s => ({ subject, ...s }))
+        );
+
+        onSubmit({ ...formData, teacherIds: distinctTeacherIds }, enrollments);
     };
 
     return (
         <div className="modal-overlay">
-            <div className="modal-content">
+            <div className="modal-content" style={{ maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className="modal-header">
                     <h2 className="modal-title">{student ? '학생 정보 수정' : '새 학생 추가'}</h2>
                     <button onClick={onClose} className="modal-close-btn">
@@ -416,7 +513,7 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
 
                         {/* Subjects */}
                         <section style={{ marginBottom: '24px' }}>
-                            <h3 style={{ fontSize: '14px', color: 'var(--primary)', marginBottom: '16px', fontWeight: 600 }}>수강 과목</h3>
+                            <h3 style={{ fontSize: '14px', color: 'var(--primary)', marginBottom: '16px', fontWeight: 600 }}>수강 과목 및 일정</h3>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                                 {availableSubjects.map(sub => (
                                     <button
@@ -437,21 +534,33 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
                                 ))}
                             </div>
 
-                            {/* Teacher Selection */}
+                            {/* Teacher & Schedule Selection */}
                             {formData.subjects.length > 0 && (
-                                <div style={{ background: 'var(--background)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-                                    <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-secondary)' }}>담당 선생님 배정</h4>
-                                    <div style={{ display: 'grid', gap: '12px' }}>
-                                        {formData.subjects.map(sub => {
-                                            const subTeachers = teachers.filter(t => t.subjects.includes(sub));
-                                            return (
-                                                <div key={sub} style={{ display: 'grid', gridTemplateColumns: '80px 1fr', alignItems: 'center', gap: '12px' }}>
-                                                    <span className="subject-badge" style={{ justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)' }}>{sub}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {formData.subjects.map(sub => {
+                                        const subTeachers = teachers.filter(t => t.subjects.includes(sub));
+                                        const schedules = subjectSchedules[sub] || [
+                                            { day: '월', startTime: '', endTime: '' },
+                                            { day: '월', startTime: '', endTime: '' },
+                                            { day: '월', startTime: '', endTime: '' }
+                                        ];
+
+                                        return (
+                                            <div key={sub} style={{ background: 'var(--background)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span className="subject-badge" style={{ background: 'var(--surface)', border: '1px solid var(--border)', fontSize: '13px' }}>{sub}</span>
+                                                        <span style={{ fontSize: '13px', fontWeight: 600 }}>담당 선생님</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Teacher Select */}
+                                                <div style={{ marginBottom: '16px' }}>
                                                     <select
                                                         className="form-select"
                                                         value={subjectTeachers[sub] || ''}
                                                         onChange={e => handleTeacherChange(sub, e.target.value)}
-                                                        style={{ padding: '8px 12px', fontSize: '13px' }}
+                                                        style={{ padding: '8px 12px', fontSize: '13px', background: 'var(--surface)' }}
                                                     >
                                                         <option value="">선생님 미지정</option>
                                                         {subTeachers.map(t => (
@@ -460,9 +569,45 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
                                                         {subTeachers.length === 0 && <option disabled>해당 과목 선생님 없음</option>}
                                                     </select>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
+
+                                                {/* Schedule Table */}
+                                                <div>
+                                                    <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>수강 시간표 (3개)</h4>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                        {[0, 1, 2].map(idx => (
+                                                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 20px 1fr', gap: '8px', alignItems: 'center' }}>
+                                                                <select
+                                                                    className="form-select"
+                                                                    style={{ padding: '6px', fontSize: '12px', height: '32px' }}
+                                                                    value={schedules[idx]?.day || '월'}
+                                                                    onChange={e => handleScheduleChange(sub, idx, 'day', e.target.value)}
+                                                                >
+                                                                    {['월', '화', '수', '목', '금', '토', '일'].map(d => (
+                                                                        <option key={d} value={d}>{d}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <input
+                                                                    type="time"
+                                                                    className="form-input"
+                                                                    style={{ padding: '4px 8px', fontSize: '12px', height: '32px' }}
+                                                                    value={schedules[idx]?.startTime || ''}
+                                                                    onChange={e => handleScheduleChange(sub, idx, 'startTime', e.target.value)}
+                                                                />
+                                                                <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>~</span>
+                                                                <input
+                                                                    type="time"
+                                                                    className="form-input"
+                                                                    style={{ padding: '4px 8px', fontSize: '12px', height: '32px' }}
+                                                                    value={schedules[idx]?.endTime || ''}
+                                                                    onChange={e => handleScheduleChange(sub, idx, 'endTime', e.target.value)}
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </section>
@@ -505,3 +650,4 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
         </div>
     );
 }
+
