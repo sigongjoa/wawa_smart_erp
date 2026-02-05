@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import { wawaLogoBase64 } from '../../assets/wawaLogo';
 
 // 과목별 색상 정의
@@ -100,7 +99,7 @@ export default function Preview() {
     return points.join(' ');
   };
 
-  const generatePDF = async () => {
+  const generateJPG = async () => {
     if (!selectedReport || !selectedStudent || !reportRef.current) return;
     setIsGenerating(true);
 
@@ -115,45 +114,22 @@ export default function Preview() {
         backgroundColor: '#ffffff',
       });
 
-      // jsPDF로 PDF 생성
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
+      // JPG로 변환
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 10;
+      // 다운로드 링크 생성
+      const fileName = `${selectedStudent.name}_월별평가서_${currentYearMonth}.jpg`;
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      // 이미지가 페이지보다 길면 여러 페이지로 나눔
-      const scaledHeight = (imgHeight * pdfWidth) / imgWidth;
-      let heightLeft = scaledHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - scaledHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
-        heightLeft -= pdfHeight;
-      }
-
-      // 파일 저장
-      const fileName = `${selectedStudent.name}_월별평가서_${currentYearMonth}.pdf`;
-      pdf.save(fileName);
-
-      addToast(`PDF가 다운로드되었습니다: ${fileName}`, 'success');
+      addToast(`이미지가 다운로드되었습니다: ${fileName}`, 'success');
     } catch (error) {
-      console.error('PDF 생성 오류:', error);
-      addToast('PDF 생성 중 오류가 발생했습니다.', 'error');
+      console.error('이미지 생성 오류:', error);
+      addToast('이미지 생성 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -168,7 +144,7 @@ export default function Preview() {
         <div className="page-header-row">
           <div>
             <h1 className="page-title">리포트 미리보기</h1>
-            <p className="page-description">생성된 리포트를 검토하고 PDF로 내보냅니다 ({currentYearMonth})</p>
+            <p className="page-description">생성된 리포트를 검토하고 JPG로 내보냅니다 ({currentYearMonth})</p>
           </div>
           <button className="btn btn-secondary" onClick={() => fetchAllData()} disabled={isLoading}>
             <span className={`material-symbols-outlined ${isLoading ? 'spin' : ''}`}>refresh</span>
@@ -247,9 +223,9 @@ export default function Preview() {
                   <button className="btn btn-secondary" onClick={() => window.print()}>
                     <span className="material-symbols-outlined">print</span>인쇄
                   </button>
-                  <button className="btn btn-primary" onClick={generatePDF} disabled={isGenerating}>
-                    <span className="material-symbols-outlined">{isGenerating ? 'hourglass_top' : 'picture_as_pdf'}</span>
-                    {isGenerating ? '생성 중...' : 'PDF 다운로드'}
+                  <button className="btn btn-primary" onClick={generateJPG} disabled={isGenerating}>
+                    <span className="material-symbols-outlined">{isGenerating ? 'hourglass_top' : 'image'}</span>
+                    {isGenerating ? '생성 중...' : 'JPG 다운로드'}
                   </button>
                 </div>
               </div>
