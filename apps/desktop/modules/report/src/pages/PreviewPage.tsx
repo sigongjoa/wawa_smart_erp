@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useReportStore } from '../stores/reportStore';
-import { downloadReportAsPdf } from '../services/pdf';
+import { downloadReportAsJpg } from '../services/pdf';
 import { uploadReportToCloudinary, getCloudinaryConfig } from '../services/cloudinary';
 import { useState } from 'react';
 import type { SubjectScore } from '../types';
@@ -99,8 +99,8 @@ export default function PreviewPage() {
     setUploadStatus('idle');
 
     try {
-      // 1. PDF 다운로드
-      await downloadReportAsPdf('report-content', `${currentReport.studentName}_${currentReport.yearMonth}_리포트.pdf`);
+      // 1. JPG 이미지 다운로드
+      await downloadReportAsJpg('report-content', `${currentReport.studentName}_${currentReport.yearMonth}_리포트.jpg`);
 
       // 2. Cloudinary 설정이 있으면 자동 업로드
       const cloudinaryConfig = getCloudinaryConfig();
@@ -123,8 +123,8 @@ export default function PreviewPage() {
         }
       }
     } catch (error) {
-      console.error('PDF download error:', error);
-      alert('PDF 다운로드 중 오류가 발생했습니다.');
+      console.error('JPG download error:', error);
+      alert('이미지 다운로드 중 오류가 발생했습니다.');
     } finally {
       setDownloading(false);
     }
@@ -172,7 +172,7 @@ export default function PreviewPage() {
                 fontWeight: '600',
               }}
             >
-              {downloading ? 'PDF 생성 중...' : uploadStatus === 'uploading' ? '업로드 중...' : 'PDF 다운로드'}
+              {downloading ? '이미지 생성 중...' : uploadStatus === 'uploading' ? '업로드 중...' : 'JPG 다운로드'}
             </button>
           </div>
         </div>
