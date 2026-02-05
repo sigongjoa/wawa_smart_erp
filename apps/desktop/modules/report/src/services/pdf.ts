@@ -124,7 +124,7 @@ export const downloadPdf = async (
   URL.revokeObjectURL(url);
 };
 
-// 이미지 다운로드
+// 이미지 다운로드 (PNG)
 export const downloadImage = async (
   elementId: string,
   fileName: string = 'report.png'
@@ -137,6 +137,41 @@ export const downloadImage = async (
   link.click();
   document.body.removeChild(link);
 };
+
+// HTML 요소를 JPG 이미지로 변환
+export const elementToJpg = async (elementId: string, quality: number = 0.92): Promise<string> => {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    throw new Error(`Element with id "${elementId}" not found`);
+  }
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#FFFFFF', // JPG는 투명 미지원이므로 흰색 배경
+    logging: false,
+  });
+
+  return canvas.toDataURL('image/jpeg', quality);
+};
+
+// JPG 이미지 다운로드
+export const downloadJpg = async (
+  elementId: string,
+  fileName: string = 'report.jpg',
+  quality: number = 0.92
+): Promise<void> => {
+  const imageData = await elementToJpg(elementId, quality);
+  const link = document.createElement('a');
+  link.href = imageData;
+  link.download = fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ? fileName : `${fileName}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Alias for report download
+export const downloadReportAsJpg = downloadJpg;
 
 // PDF를 Base64로 변환 (전송용)
 export const pdfToBase64 = async (elementId: string): Promise<string> => {
