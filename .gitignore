@@ -72,3 +72,10 @@ apps/desktop/e2e/test-config.json
 apps/desktop/e2e-report/
 apps/desktop/e2e-screenshots/
 apps/desktop/test-results/
+
+# Utility scripts (may contain personal data)
+scripts/
+
+# Source logo files (ico/png already in assets)
+/app_logo.jpg
+/wawa_logo.jpg

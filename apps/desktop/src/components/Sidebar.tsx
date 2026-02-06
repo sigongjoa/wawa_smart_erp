@@ -17,6 +17,7 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'input', label: '성적 입력', icon: 'edit_note', path: '/report/input' },
     { id: 'preview', label: '리포트 미리보기', icon: 'preview', path: '/report/preview' },
     { id: 'send', label: '리포트 전송', icon: 'send', path: '/report/send' },
+    { id: 'ai-settings', label: 'AI 설정', icon: 'smart_toy', path: '/report/ai-settings' },
     { id: 'settings', label: '설정', icon: 'settings', path: '/report/settings' },
   ],
   grader: [
