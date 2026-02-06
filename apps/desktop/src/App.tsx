@@ -16,6 +16,7 @@ import ReportInput from './modules/report/Input';
 import ReportPreview from './modules/report/Preview';
 import ReportSend from './modules/report/Send';
 import ReportSettings from './modules/report/Settings';
+import ReportAISettings from './modules/report/AISettings';
 
 // Grader 모듈 페이지
 import GraderSingle from './modules/grader/Single';
@@ -67,6 +68,7 @@ function App() {
             <Route path="input" element={<ReportInput />} />
             <Route path="preview" element={<ReportPreview />} />
             <Route path="send" element={<ReportSend />} />
+            <Route path="ai-settings" element={<ReportAISettings />} />
             <Route path="settings" element={<ReportSettings />} />
           </Route>
 

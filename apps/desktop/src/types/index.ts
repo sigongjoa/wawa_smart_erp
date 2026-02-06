@@ -225,3 +225,71 @@ export interface Enrollment {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// ========== AI 종합평가 관련 타입 ==========
+
+// AI 프로바이더
+export type AIProvider = 'gemini' | 'openai' | 'claude';
+
+// AI 모델 정보
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: AIProvider;
+  inputPricePerMToken: number;   // USD per 1M input tokens
+  outputPricePerMToken: number;  // USD per 1M output tokens
+}
+
+// AI 설정
+export interface AISettings {
+  geminiApiKey?: string;
+  openaiApiKey?: string;
+  claudeApiKey?: string;
+  defaultProvider: AIProvider;
+  defaultModel: string;
+  promptTemplate: string;
+  generationCount: number;  // 생성할 버전 수 (2~3)
+  maxTokens: number;
+}
+
+// AI 사용량 기록
+export interface AIUsageRecord {
+  month: string;          // "2026-02"
+  provider: AIProvider;
+  model: string;
+  callCount: number;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCost: number;  // USD
+}
+
+// AI 생성 요청
+export interface AIGenerationRequest {
+  studentName: string;
+  grade: string;
+  yearMonth: string;
+  subjects: string[];
+  scores: Array<{ subject: string; score: number; comment?: string }>;
+  historicalData?: Array<{
+    yearMonth: string;
+    scores: Array<{ subject: string; score: number }>;
+  }>;
+  provider: AIProvider;
+  model: string;
+  promptTemplate: string;
+  generationCount: number;
+  maxTokens: number;
+}
+
+// AI 생성 결과
+export interface AIGenerationResult {
+  success: boolean;
+  versions: string[];
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    model: string;
+    provider: AIProvider;
+  };
+  error?: string;
+}

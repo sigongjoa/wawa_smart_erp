@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
+import { useAIStore, AI_MODELS } from '../../stores/aiStore';
 import { useAsync } from '../../hooks/useAsync';
 import { saveScore } from '../../services/notion';
+import type { AIProvider } from '../../types';
 
 // 과목별 색상
 const SUBJECT_COLORS: Record<string, string> = {
@@ -275,35 +277,17 @@ export default function Input() {
                   );
                 })}
 
-                {/* 종합 평가 */}
-                <div style={{
-                  padding: '20px',
-                  background: '#FFF7ED',
-                  borderRadius: '12px',
-                  border: '1px solid #FDBA74'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <span style={{ color: '#FF6B00', fontSize: '20px' }}>📝</span>
-                    <span style={{ fontWeight: 700, color: '#9A3412' }}>종합 평가</span>
-                  </div>
-                  <textarea
-                    className="search-input"
-                    style={{ width: '100%', minHeight: '120px', padding: '12px', resize: 'vertical', background: 'white' }}
-                    placeholder="학생의 전반적인 학습 태도와 향후 계획을 입력해주세요..."
-                    value={formData['__TOTAL_COMMENT__']?.comment ?? ''}
-                    onChange={e => setFormData({ ...formData, '__TOTAL_COMMENT__': { score: 0, comment: e.target.value } })}
-                  />
-                  <div style={{ textAlign: 'right', marginTop: '16px' }}>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleSave('__TOTAL_COMMENT__')}
-                      disabled={saveAsync.isLoading}
-                      style={{ minWidth: '100px' }}
-                    >
-                      {saveAsync.isLoading ? '저장 중...' : '저장'}
-                    </button>
-                  </div>
-                </div>
+                {/* 종합 평가 + AI 생성 */}
+                <AITotalComment
+                  selectedStudent={selectedStudent}
+                  currentReport={currentReport}
+                  currentYearMonth={currentYearMonth}
+                  reports={reports}
+                  formData={formData}
+                  setFormData={setFormData}
+                  handleSave={() => handleSave('__TOTAL_COMMENT__')}
+                  isSaving={saveAsync.isLoading}
+                />
               </div>
             </div>
           ) : (
@@ -323,6 +307,288 @@ export default function Input() {
         }
         .spin { animation: spin 1s linear infinite; }
       `}</style>
+    </div>
+  );
+}
+
+// ==================== AI 종합평가 컴포넌트 ====================
+
+function AITotalComment({
+  selectedStudent,
+  currentReport,
+  currentYearMonth,
+  reports,
+  formData,
+  setFormData,
+  handleSave,
+  isSaving,
+}: {
+  selectedStudent: any;
+  currentReport: any;
+  currentYearMonth: string;
+  reports: any[];
+  formData: Record<string, { score: number; comment: string }>;
+  setFormData: (d: Record<string, { score: number; comment: string }>) => void;
+  handleSave: () => void;
+  isSaving: boolean;
+}) {
+  const { aiSettings, isGenerating, generatedVersions, generateEvaluation, setGeneratedVersions } = useAIStore();
+  const { addToast } = useToastStore();
+  const [selectedVersion, setSelectedVersion] = useState(-1);
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>(aiSettings.defaultProvider);
+  const [selectedModel, setSelectedModel] = useState(aiSettings.defaultModel);
+
+  // 프로바이더 변경 시 모델도 변경
+  useEffect(() => {
+    const firstModel = AI_MODELS.find((m) => m.provider === selectedProvider);
+    if (firstModel) setSelectedModel(firstModel.id);
+  }, [selectedProvider]);
+
+  // 사용 가능한 모델
+  const availableModels = AI_MODELS.filter((m) => m.provider === selectedProvider);
+
+  // API 키 확인
+  const getApiKey = (provider: AIProvider): string => {
+    switch (provider) {
+      case 'gemini': return aiSettings.geminiApiKey || '';
+      case 'openai': return aiSettings.openaiApiKey || '';
+      case 'claude': return aiSettings.claudeApiKey || '';
+    }
+  };
+
+  const hasApiKey = !!getApiKey(selectedProvider);
+
+  // 과거 6개월 데이터 수집
+  const getHistoricalData = () => {
+    if (!selectedStudent) return [];
+    const [year, month] = currentYearMonth.split('-').map(Number);
+    const historical: Array<{ yearMonth: string; scores: Array<{ subject: string; score: number }> }> = [];
+
+    for (let i = 5; i >= 0; i--) {
+      let m = month - i;
+      let y = year;
+      if (m <= 0) { m += 12; y -= 1; }
+      const ym = `${y}-${String(m).padStart(2, '0')}`;
+      const report = reports.find((r) => r.studentId === selectedStudent.id && r.yearMonth === ym);
+      if (report) {
+        historical.push({
+          yearMonth: ym,
+          scores: report.scores.map((s: any) => ({ subject: s.subject, score: s.score })),
+        });
+      }
+    }
+    return historical;
+  };
+
+  const handleGenerate = async () => {
+    if (!hasApiKey) {
+      addToast(`${selectedProvider} API 키를 설정해주세요. AI 설정 페이지에서 등록할 수 있습니다.`, 'warning');
+      return;
+    }
+
+    // 현재 입력된 점수 데이터 수집
+    const scores = selectedStudent.subjects
+      .filter((sub: string) => formData[sub]?.score > 0)
+      .map((sub: string) => ({
+        subject: sub,
+        score: formData[sub].score,
+        comment: formData[sub].comment || undefined,
+      }));
+
+    if (scores.length === 0) {
+      addToast('점수가 입력된 과목이 없습니다. 먼저 과목별 점수를 입력해주세요.', 'warning');
+      return;
+    }
+
+    const result = await generateEvaluation({
+      studentName: selectedStudent.name,
+      grade: selectedStudent.grade,
+      yearMonth: currentYearMonth,
+      subjects: selectedStudent.subjects,
+      scores,
+      historicalData: getHistoricalData(),
+      provider: selectedProvider,
+      model: selectedModel,
+      promptTemplate: aiSettings.promptTemplate,
+      generationCount: aiSettings.generationCount,
+      maxTokens: aiSettings.maxTokens,
+      apiKey: getApiKey(selectedProvider),
+    } as any);
+
+    if (result.success && result.versions.length > 0) {
+      setSelectedVersion(0);
+      addToast(`${result.versions.length}개 버전이 생성되었습니다.`, 'success');
+    } else {
+      addToast(result.error || 'AI 생성에 실패했습니다.', 'error');
+    }
+  };
+
+  const handleUseVersion = (index: number) => {
+    const text = generatedVersions[index];
+    if (text) {
+      setFormData({ ...formData, '__TOTAL_COMMENT__': { score: 0, comment: text } });
+      setGeneratedVersions([]);
+      setSelectedVersion(-1);
+      addToast('선택한 버전이 종합평가에 적용되었습니다.', 'success');
+    }
+  };
+
+  const providerLabels: Record<AIProvider, string> = {
+    gemini: 'Gemini',
+    openai: 'ChatGPT',
+    claude: 'Claude',
+  };
+
+  return (
+    <div style={{
+      padding: '20px',
+      background: '#FFF7ED',
+      borderRadius: '12px',
+      border: '1px solid #FDBA74',
+    }}>
+      {/* 헤더 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ color: '#FF6B00', fontSize: '20px' }}>edit_note</span>
+          <span style={{ fontWeight: 700, color: '#9A3412' }}>종합 평가</span>
+        </div>
+
+        {/* AI 생성 컨트롤 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <select
+            className="search-input"
+            style={{ width: '110px', padding: '6px 10px', fontSize: '12px' }}
+            value={selectedProvider}
+            onChange={(e) => setSelectedProvider(e.target.value as AIProvider)}
+          >
+            {(['gemini', 'openai', 'claude'] as AIProvider[]).map((p) => (
+              <option key={p} value={p}>{providerLabels[p]}</option>
+            ))}
+          </select>
+          <select
+            className="search-input"
+            style={{ width: '160px', padding: '6px 10px', fontSize: '12px' }}
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+          >
+            {availableModels.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {isGenerating ? (
+              <>
+                <span className="material-symbols-outlined spin" style={{ fontSize: '16px' }}>progress_activity</span>
+                생성 중...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_awesome</span>
+                AI 생성
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* API 키 미설정 경고 */}
+      {!hasApiKey && (
+        <div style={{
+          padding: '10px 14px', marginBottom: '12px', borderRadius: '8px',
+          background: '#FEF2F2', border: '1px solid #FECACA', fontSize: '13px', color: '#991B1B',
+          display: 'flex', alignItems: 'center', gap: '8px',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>warning</span>
+          {providerLabels[selectedProvider]} API 키가 설정되지 않았습니다.
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ marginLeft: 'auto', fontSize: '12px', padding: '4px 10px' }}
+            onClick={() => window.location.hash = '#/report/ai-settings'}
+          >
+            AI 설정으로 이동
+          </button>
+        </div>
+      )}
+
+      {/* AI 생성 결과 - 버전 선택 */}
+      {generatedVersions.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          {/* 탭 */}
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
+            {generatedVersions.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setSelectedVersion(idx)}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '13px',
+                  fontWeight: selectedVersion === idx ? 700 : 500,
+                  background: selectedVersion === idx ? 'var(--primary)' : 'white',
+                  color: selectedVersion === idx ? 'white' : 'var(--text-secondary)',
+                  border: selectedVersion === idx ? 'none' : '1px solid var(--border)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                버전 {idx + 1}
+              </button>
+            ))}
+          </div>
+          {/* 선택된 버전 미리보기 */}
+          {selectedVersion >= 0 && (
+            <div style={{
+              padding: '14px', background: 'white', borderRadius: '8px',
+              border: '1px solid var(--border)', fontSize: '14px', lineHeight: '1.7',
+              whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto',
+            }}>
+              {generatedVersions[selectedVersion]}
+            </div>
+          )}
+          {/* 버전 사용 버튼 */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setGeneratedVersions([]); setSelectedVersion(-1); }}
+            >
+              닫기
+            </button>
+            {selectedVersion >= 0 && (
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => handleUseVersion(selectedVersion)}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check</span>
+                이 버전 사용
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 종합평가 텍스트 입력 */}
+      <textarea
+        className="search-input"
+        style={{ width: '100%', minHeight: '120px', padding: '12px', resize: 'vertical', background: 'white' }}
+        placeholder="학생의 전반적인 학습 태도와 향후 계획을 입력해주세요... (AI 생성 버튼으로 자동 작성 가능)"
+        value={formData['__TOTAL_COMMENT__']?.comment ?? ''}
+        onChange={(e) => setFormData({ ...formData, '__TOTAL_COMMENT__': { score: 0, comment: e.target.value } })}
+      />
+      <div style={{ textAlign: 'right', marginTop: '16px' }}>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={handleSave}
+          disabled={isSaving}
+          style={{ minWidth: '100px' }}
+        >
+          {isSaving ? '저장 중...' : '저장'}
+        </button>
+      </div>
     </div>
   );
 }

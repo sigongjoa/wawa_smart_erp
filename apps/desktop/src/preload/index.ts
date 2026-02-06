@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('wawaAPI', {
   // Typst 컴파일
   typstCompile: (data: { source: string; outputPath: string }) =>
     ipcRenderer.invoke('typst:compile', data),
+
+  // AI 종합평가 생성
+  aiGenerate: (request: any) =>
+    ipcRenderer.invoke('ai:generate', request),
 });
 
 // TypeScript 타입 선언
@@ -39,6 +43,7 @@ declare global {
       version: string;
       notionFetch: (endpoint: string, options: any) => Promise<{ success: boolean; data?: any; message?: string; error?: any }>;
       typstCompile: (data: { source: string; outputPath: string }) => Promise<{ success: boolean; outputPath?: string; message?: string }>;
+      aiGenerate: (request: any) => Promise<{ success: boolean; versions?: string[]; usage?: { inputTokens: number; outputTokens: number; model: string; provider: string }; error?: string }>;
     };
   }
 }
