@@ -25,7 +25,7 @@ interface AppState {
   setTimerGradeFilterAll: (grades: GradeType[]) => void;
   setTimerSearchFilter: (search: string) => void;
   clearFilters: () => void;
-  checkIn: (studentId: string) => void;
+  checkIn: (studentId: string, enrollment?: { startTime: string; endTime: string; subject?: string }) => void;
   checkOut: (studentId: string) => void;
   clearSessions: () => void;
 
@@ -205,12 +205,28 @@ export const useAppStore = create<AppState>()(
     },
 
     // 체크인
-    checkIn: (studentId) => {
+    checkIn: (studentId, enrollment) => {
       const student = get().students.find((s) => s.id === studentId);
       if (!student) return;
 
-      const [startH, startM] = (student.startTime || '00:00').split(':').map(Number);
-      const [endH, endM] = (student.endTime || '00:00').split(':').map(Number);
+      // enrollment 파라미터가 있으면 사용, 없으면 enrollments에서 오늘 수업 검색
+      let startTime = enrollment?.startTime;
+      let endTime = enrollment?.endTime;
+
+      if (!startTime || !endTime) {
+        const dayMap = ['일', '월', '화', '수', '목', '금', '토'];
+        const todayDay = dayMap[new Date().getDay()];
+        const todayEnrollment = get().enrollments
+          .filter(e => e.studentId === studentId && e.day === todayDay)
+          .sort((a, b) => a.startTime.localeCompare(b.startTime))[0];
+        if (todayEnrollment) {
+          startTime = todayEnrollment.startTime;
+          endTime = todayEnrollment.endTime;
+        }
+      }
+
+      const [startH, startM] = (startTime || '00:00').split(':').map(Number);
+      const [endH, endM] = (endTime || '00:00').split(':').map(Number);
       const scheduledMinutes = (endH * 60 + endM) - (startH * 60 + startM);
 
       const session: RealtimeSession = {
@@ -219,7 +235,7 @@ export const useAppStore = create<AppState>()(
         checkInTime: new Date().toISOString(),
         status: 'active',
         elapsedMinutes: 0,
-        scheduledMinutes,
+        scheduledMinutes: Math.max(scheduledMinutes, 0),
       };
 
       set((state) => ({
