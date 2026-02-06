@@ -40,14 +40,18 @@ jobs:
         working-directory: apps/desktop
         run: npx vite build
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+      - name: Set version from tag
+        working-directory: apps/desktop
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$VERSION'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
+          echo "Set version to $VERSION"
+          node -e "console.log(require('./package.json').version)"
         shell: bash
 
       - name: Package Electron App
         working-directory: apps/desktop
-        run: npx electron-builder --win --publish never -c.extraMetadata.version=${{ steps.version.outputs.VERSION }}
+        run: npx electron-builder --win --publish never
 
       - name: List built files
         working-directory: apps/desktop
