@@ -10,57 +10,66 @@ const gradeClassMap: Record<string, string> = {
   '검정고시': 'etc',
 };
 
+const dayOptions: { key: DayType; label: string }[] = [
+  { key: '월', label: '월' },
+  { key: '화', label: '화' },
+  { key: '수', label: '수' },
+  { key: '목', label: '목' },
+  { key: '금', label: '금' },
+  { key: '토', label: '토' },
+];
+
 export default function RealtimeView() {
   const { students, enrollments, realtimeSessions, checkIn, checkOut } = useAppStore();
   const { currentUser } = useReportStore();
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 오늘 요일
+  const todayDay = ['일', '월', '화', '수', '목', '금', '토'][new Date().getDay()] as DayType;
+  // 선택된 요일 (기본값: 오늘)
+  const [selectedDay, setSelectedDay] = useState<DayType>(todayDay);
+  const isToday = selectedDay === todayDay;
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 오늘 요일 계산
-  const currentDay = ['일', '월', '화', '수', '목', '금', '토'][new Date().getDay()] as DayType;
-
-  // 담당 학생 필터링 + 오늘 수업이 있는 학생만
-  const todayStudents = useMemo(() => {
+  // 선택된 요일의 수업 학생 목록
+  const dayStudents = useMemo(() => {
     const teacherId = currentUser?.teacher.id || '';
     const teacherSubjects = currentUser?.teacher.subjects || [];
     const hasTeacher = !!teacherId;
 
     return students
       .filter(student => {
-        // 담당 학생 필터링
         if (hasTeacher && !student.teacherIds?.includes(teacherId)) return false;
         return true;
       })
       .map(student => {
-        // 오늘 수강 일정 필터링
-        let todayEnrollments = enrollments.filter(e => e.studentId === student.id && e.day === currentDay);
+        let dayEnrollments = enrollments.filter(e => e.studentId === student.id && e.day === selectedDay);
 
-        // 본인 과목만 필터링
         if (hasTeacher && teacherSubjects.length > 0) {
-          todayEnrollments = todayEnrollments.filter(e => teacherSubjects.includes(e.subject));
+          dayEnrollments = dayEnrollments.filter(e => teacherSubjects.includes(e.subject));
         }
 
-        // 오늘 수업이 있는 경우 첫 번째 수업 시간 사용
-        if (todayEnrollments.length > 0) {
-          const firstEnrollment = todayEnrollments.sort((a, b) => a.startTime.localeCompare(b.startTime))[0];
+        if (dayEnrollments.length > 0) {
+          const firstEnrollment = dayEnrollments.sort((a, b) => a.startTime.localeCompare(b.startTime))[0];
           return {
             ...student,
             startTime: firstEnrollment.startTime,
             endTime: firstEnrollment.endTime,
             subject: firstEnrollment.subject,
-            day: currentDay,
-            todayEnrollments
+            day: selectedDay,
+            todayEnrollments: dayEnrollments
           };
         }
         return null;
       })
       .filter((s): s is NonNullable<typeof s> => s !== null);
-  }, [students, enrollments, currentUser, currentDay]);
-  const waitingStudents = todayStudents.filter(
+  }, [students, enrollments, currentUser, selectedDay]);
+
+  const waitingStudents = dayStudents.filter(
     (s) => !realtimeSessions.some((sess) => sess.studentId === s.id)
   );
   const activeStudents = realtimeSessions.filter((s) => s.status === 'active');
@@ -85,8 +94,35 @@ export default function RealtimeView() {
         <div className="page-header-row">
           <div>
             <h1 className="page-title">실시간 수업 관리</h1>
-            <p className="page-description">오늘 수업의 출석 현황을 실시간으로 관리합니다</p>
+            <p className="page-description">수업 출석 현황을 실시간으로 관리합니다</p>
           </div>
+        </div>
+      </div>
+
+      {/* 요일 선택 */}
+      <div className="filter-bar" style={{ marginBottom: '16px' }}>
+        <div className="filter-buttons" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          {dayOptions.map((day) => (
+            <button
+              key={day.key}
+              className={`filter-btn ${selectedDay === day.key ? 'active' : ''}`}
+              onClick={() => setSelectedDay(day.key)}
+              style={{ position: 'relative' }}
+            >
+              {day.label}
+              {day.key === todayDay && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: 'var(--primary)',
+                }} />
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -132,18 +168,25 @@ export default function RealtimeView() {
       <div className="realtime-container">
         <div className="realtime-panel">
           <div className="realtime-panel-header waiting">
-            <span>대기 중인 학생</span>
+            <span>{isToday ? '대기 중인 학생' : `${selectedDay}요일 수업 학생`}</span>
             <span>{waitingStudents.length}명</span>
           </div>
           <div className="realtime-panel-body">
             {waitingStudents.length === 0 ? (
               <div className="empty-state" style={{ padding: '40px 20px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>person_off</span>
-                <div className="empty-state-title">대기 중인 학생이 없습니다</div>
+                <div className="empty-state-title">
+                  {isToday ? '대기 중인 학생이 없습니다' : `${selectedDay}요일 수업 학생이 없습니다`}
+                </div>
               </div>
             ) : (
               waitingStudents.map((student) => (
-                <div key={student.id} className={`realtime-card ${gradeClassMap[student.grade]}`} onClick={() => checkIn(student.id)}>
+                <div
+                  key={student.id}
+                  className={`realtime-card ${gradeClassMap[student.grade]}`}
+                  onClick={isToday ? () => checkIn(student.id, { startTime: student.startTime || '', endTime: student.endTime || '', subject: student.subject }) : undefined}
+                  style={!isToday ? { cursor: 'default', opacity: 0.85 } : undefined}
+                >
                   <div className="realtime-card-header">
                     <span className="realtime-card-name">{student.name}</span>
                     <span className={`grade-badge ${gradeClassMap[student.grade]}`}>{student.grade}</span>
@@ -151,10 +194,13 @@ export default function RealtimeView() {
                   <div className="realtime-card-time">
                     <span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle' }}>schedule</span>
                     {' '}{student.startTime} — {student.endTime}
+                    {student.subject && <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>({student.subject})</span>}
                   </div>
-                  <div style={{ textAlign: 'center', marginTop: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                    클릭하여 수업 시작
-                  </div>
+                  {isToday && (
+                    <div style={{ textAlign: 'center', marginTop: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                      클릭하여 수업 시작
+                    </div>
+                  )}
                 </div>
               ))
             )}
