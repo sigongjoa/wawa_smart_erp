@@ -1,5 +1,5 @@
 // 모듈 타입
-export type ModuleType = 'timer' | 'report' | 'grader' | 'schedule' | 'student';
+export type ModuleType = 'timer' | 'report' | 'grader' | 'schedule' | 'student' | 'makeup';
 
 // 학년 타입
 export type GradeType = '초1' | '초2' | '초3' | '초4' | '초5' | '초6' | '중1' | '중2' | '중3' | '고1' | '고2' | '고3' | '검정고시';
@@ -180,6 +180,8 @@ export interface AppSettings {
   notionAbsenceHistoryDb?: string;
   notionExamScheduleDb?: string;
   notionEnrollmentDb?: string;
+  notionMakeupDb?: string;
+  notionDmMessagesDb?: string;
 }
 
 // 현재 로그인한 선생님
@@ -224,6 +226,50 @@ export interface Enrollment {
   tuition?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// ========== 보강관리 관련 타입 ==========
+
+// 보강 상태
+export type MakeupStatus = '시작 전' | '진행 중' | '완료';
+
+// 보강 기록
+export interface MakeupRecord {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  subject: string;
+  teacherId?: string;
+  teacherName?: string;
+  absentDate: string;         // 결석일
+  absentReason: string;       // 결석사유
+  makeupDate?: string;        // 보강예정일
+  makeupTime?: string;        // 보강시간 (예: "14:00~15:00")
+  status: MakeupStatus;
+  memo?: string;
+  createdAt?: string;
+}
+
+// ========== DM (쪽지) 관련 타입 ==========
+
+// DM 메시지
+export interface DirectMessage {
+  id: string;
+  senderId: string;
+  senderName?: string;
+  receiverId: string;
+  receiverName?: string;
+  content: string;
+  createdAt: string;
+}
+
+// DM 대화 상대
+export interface DMContact {
+  teacherId: string;
+  teacherName: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadCount: number;
 }
 
 // ========== AI 종합평가 관련 타입 ==========

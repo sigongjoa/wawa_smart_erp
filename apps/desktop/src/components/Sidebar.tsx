@@ -38,6 +38,13 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'list', label: '전체 학생', icon: 'groups', path: '/student' },
     { id: 'inactive', label: '비활성 학생', icon: 'person_off', path: '/student?status=inactive' },
   ],
+  makeup: [
+    { id: 'dashboard', label: '대시보드', icon: 'dashboard', path: '/makeup' },
+    { id: 'pending', label: '대기 중', icon: 'pending_actions', path: '/makeup/pending' },
+    { id: 'progress', label: '진행 중', icon: 'autorenew', path: '/makeup/progress' },
+    { id: 'completed', label: '완료', icon: 'task_alt', path: '/makeup/completed' },
+    { id: 'settings', label: '설정', icon: 'settings', path: '/makeup/settings' },
+  ],
 };
 
 export default function Sidebar() {
@@ -55,6 +62,7 @@ export default function Sidebar() {
     grader: '채점 시스템',
     schedule: '시험 일정',
     student: '학생 관리',
+    makeup: '보강관리',
   };
 
   return (
