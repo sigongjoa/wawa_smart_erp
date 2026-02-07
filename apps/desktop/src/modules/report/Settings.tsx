@@ -17,6 +17,8 @@ export default function Settings() {
     notionEnrollmentDb: appSettings.notionEnrollmentDb || '',
     notionAbsenceHistoryDb: appSettings.notionAbsenceHistoryDb || '',
     notionExamScheduleDb: appSettings.notionExamScheduleDb || '',
+    notionMakeupDb: appSettings.notionMakeupDb || '',
+    notionDmMessagesDb: appSettings.notionDmMessagesDb || '',
     kakaoBizChannelId: appSettings.kakaoBizChannelId || '',
     kakaoBizSenderKey: appSettings.kakaoBizSenderKey || '',
     kakaoBizTemplateId: appSettings.kakaoBizTemplateId || '',
@@ -150,6 +152,14 @@ export default function Settings() {
             <div className="form-group">
               <label className="form-label">시험 일정 DB ID</label>
               <input name="notionExamScheduleDb" value={formData.notionExamScheduleDb} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">보강관리 DB ID</label>
+              <input name="notionMakeupDb" value={formData.notionMakeupDb} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">쪽지(DM) DB ID</label>
+              <input name="notionDmMessagesDb" value={formData.notionDmMessagesDb} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
             </div>
           </div>
 

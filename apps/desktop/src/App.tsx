@@ -35,6 +35,12 @@ import ScheduleSettings from './modules/schedule/Settings';
 // Student 모듈 페이지
 import StudentList from './modules/student/List';
 
+// Makeup 모듈 페이지
+import MakeupDashboard from './modules/makeup/Dashboard';
+import MakeupPending from './modules/makeup/Pending';
+import MakeupCompleted from './modules/makeup/Completed';
+import MakeupSettings from './modules/makeup/Settings';
+
 import ToastContainer from './components/common/ToastContainer';
 
 function App() {
@@ -79,6 +85,15 @@ function App() {
             <Route path="history" element={<GraderHistory />} />
             <Route path="stats" element={<GraderStats />} />
             <Route path="settings" element={<GraderSettings />} />
+          </Route>
+
+          {/* Makeup 모듈 */}
+          <Route path="makeup">
+            <Route index element={<MakeupDashboard />} />
+            <Route path="pending" element={<MakeupPending />} />
+            <Route path="progress" element={<MakeupPending />} />
+            <Route path="completed" element={<MakeupCompleted />} />
+            <Route path="settings" element={<MakeupSettings />} />
           </Route>
 
           {/* Schedule 모듈 */}

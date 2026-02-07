@@ -70,6 +70,31 @@ export const NOTION_COLUMNS_ENROLLMENT = {
     // TUITION: '수강료',
 } as const;
 
+export const NOTION_COLUMNS_MAKEUP = {
+    NAME: '이름',
+    STUDENT: '학생',
+    SUBJECT: '과목',
+    TEACHER: '담당선생님',
+    ABSENT_DATE: '결석일',
+    ABSENT_REASON: '결석사유',
+    MAKEUP_DATE: '보강예정일',
+    MAKEUP_TIME: '보강시간',
+    STATUS: '상태',
+    MEMO: '메모',
+} as const;
+
+export const NOTION_COLUMNS_DM = {
+    SENDER_ID: 'SenderID',
+    RECEIVER_ID: 'ReceiverID',
+    CONTENT: 'Content',
+} as const;
+
+export const NOTION_MAKEUP_STATUS = {
+    PENDING: '시작 전',
+    IN_PROGRESS: '진행 중',
+    COMPLETED: '완료',
+} as const;
+
 export const NOTION_STATUS_VALUES = {
     ACTIVE: '활성',
     INACTIVE: '비활성',

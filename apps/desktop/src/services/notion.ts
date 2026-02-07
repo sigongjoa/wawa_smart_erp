@@ -1,6 +1,6 @@
-import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, ExamSchedule, Enrollment, DayType } from '../types';
+import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, ExamSchedule, Enrollment, DayType, MakeupRecord, MakeupStatus, DirectMessage, DMContact } from '../types';
 import { useReportStore } from '../stores/reportStore';
-import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_EXAM_SCHEDULE, NOTION_COLUMNS_ENROLLMENT, NOTION_STATUS_VALUES } from '../constants/notion';
+import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_EXAM_SCHEDULE, NOTION_COLUMNS_ENROLLMENT, NOTION_STATUS_VALUES, NOTION_COLUMNS_MAKEUP, NOTION_COLUMNS_DM, NOTION_MAKEUP_STATUS } from '../constants/notion';
 import { ApiResult } from '../types/api';
 
 const BATCH_CHUNK_SIZE = 10;
@@ -37,6 +37,8 @@ const getDbIds = () => {
     absenceHistory: settings.notionAbsenceHistoryDb || '',
     examSchedule: settings.notionExamScheduleDb || '',
     enrollment: settings.notionEnrollmentDb || '',
+    makeup: settings.notionMakeupDb || '',
+    dmMessages: settings.notionDmMessagesDb || '',
   };
 };
 
@@ -737,6 +739,207 @@ export const updateStudentEnrollments = async (
   }
 };
 
+// ========== 보강관리 함수 ==========
+
+export const fetchMakeupRecords = async (status?: MakeupStatus): Promise<MakeupRecord[]> => {
+  const dbIds = getDbIds();
+  if (!dbIds.makeup) return [];
+  try {
+    const filter = status
+      ? { property: NOTION_COLUMNS_MAKEUP.STATUS, multi_select: { contains: status } }
+      : undefined;
+    const data = await notionFetch(`/databases/${dbIds.makeup}/query`, {
+      method: 'POST',
+      body: JSON.stringify(filter ? { filter, sorts: [{ timestamp: 'created_time', direction: 'descending' }] } : { sorts: [{ timestamp: 'created_time', direction: 'descending' }] }),
+    });
+    return data.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        studentId: props[NOTION_COLUMNS_MAKEUP.STUDENT]?.relation?.[0]?.id || '',
+        studentName: props[NOTION_COLUMNS_MAKEUP.NAME]?.title?.[0]?.plain_text || '',
+        subject: props[NOTION_COLUMNS_MAKEUP.SUBJECT]?.rich_text?.[0]?.plain_text || '',
+        teacherId: props[NOTION_COLUMNS_MAKEUP.TEACHER]?.relation?.[0]?.id || '',
+        absentDate: props[NOTION_COLUMNS_MAKEUP.ABSENT_DATE]?.date?.start || '',
+        absentReason: props[NOTION_COLUMNS_MAKEUP.ABSENT_REASON]?.rich_text?.[0]?.plain_text || '',
+        makeupDate: props[NOTION_COLUMNS_MAKEUP.MAKEUP_DATE]?.date?.start || '',
+        makeupTime: props[NOTION_COLUMNS_MAKEUP.MAKEUP_TIME]?.rich_text?.[0]?.plain_text || '',
+        status: (props[NOTION_COLUMNS_MAKEUP.STATUS]?.multi_select?.[0]?.name || '시작 전') as MakeupStatus,
+        memo: props[NOTION_COLUMNS_MAKEUP.MEMO]?.rich_text?.[0]?.plain_text || '',
+        createdAt: page.created_time,
+      };
+    });
+  } catch (error) {
+    console.error('[Notion] fetchMakeupRecords failed:', error);
+    return [];
+  }
+};
+
+export const createMakeupRecord = async (record: {
+  studentId: string;
+  studentName: string;
+  subject: string;
+  teacherId?: string;
+  absentDate: string;
+  absentReason: string;
+  makeupDate?: string;
+  makeupTime?: string;
+  memo?: string;
+}): Promise<ApiResult<MakeupRecord>> => {
+  const dbIds = getDbIds();
+  if (!dbIds.makeup) return { success: false, error: { message: '보강 데이터베이스 ID가 설정되지 않았습니다.' } };
+  try {
+    const properties: any = {
+      [NOTION_COLUMNS_MAKEUP.NAME]: { title: [{ text: { content: `${record.studentName}_${record.absentDate}` } }] },
+      [NOTION_COLUMNS_MAKEUP.STUDENT]: { relation: [{ id: record.studentId }] },
+      [NOTION_COLUMNS_MAKEUP.SUBJECT]: { rich_text: [{ text: { content: record.subject } }] },
+      [NOTION_COLUMNS_MAKEUP.ABSENT_DATE]: { date: { start: record.absentDate } },
+      [NOTION_COLUMNS_MAKEUP.ABSENT_REASON]: { rich_text: [{ text: { content: record.absentReason } }] },
+      [NOTION_COLUMNS_MAKEUP.STATUS]: { multi_select: [{ name: NOTION_MAKEUP_STATUS.PENDING }] },
+    };
+    if (record.teacherId) properties[NOTION_COLUMNS_MAKEUP.TEACHER] = { relation: [{ id: record.teacherId }] };
+    if (record.makeupDate) properties[NOTION_COLUMNS_MAKEUP.MAKEUP_DATE] = { date: { start: record.makeupDate } };
+    if (record.makeupTime) properties[NOTION_COLUMNS_MAKEUP.MAKEUP_TIME] = { rich_text: [{ text: { content: record.makeupTime } }] };
+    if (record.memo) properties[NOTION_COLUMNS_MAKEUP.MEMO] = { rich_text: [{ text: { content: record.memo } }] };
+
+    const data = await notionFetch('/pages', {
+      method: 'POST',
+      body: JSON.stringify({ parent: { database_id: dbIds.makeup }, properties }),
+    });
+    return { success: true, data: { ...record, id: data.id, status: '시작 전' as MakeupStatus, createdAt: data.created_time } };
+  } catch (error: any) {
+    console.error('[Notion] createMakeupRecord failed:', error);
+    return { success: false, error: { message: error.message || '보강 기록 추가에 실패했습니다.' } };
+  }
+};
+
+export const updateMakeupRecord = async (id: string, updates: {
+  makeupDate?: string;
+  makeupTime?: string;
+  status?: MakeupStatus;
+  memo?: string;
+}): Promise<ApiResult<boolean>> => {
+  try {
+    const properties: any = {};
+    if (updates.makeupDate !== undefined) properties[NOTION_COLUMNS_MAKEUP.MAKEUP_DATE] = updates.makeupDate ? { date: { start: updates.makeupDate } } : { date: null };
+    if (updates.makeupTime !== undefined) properties[NOTION_COLUMNS_MAKEUP.MAKEUP_TIME] = { rich_text: [{ text: { content: updates.makeupTime } }] };
+    if (updates.status) properties[NOTION_COLUMNS_MAKEUP.STATUS] = { multi_select: [{ name: updates.status }] };
+    if (updates.memo !== undefined) properties[NOTION_COLUMNS_MAKEUP.MEMO] = { rich_text: [{ text: { content: updates.memo } }] };
+
+    await notionFetch(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ properties }) });
+    return { success: true, data: true };
+  } catch (error: any) {
+    console.error('[Notion] updateMakeupRecord failed:', error);
+    return { success: false, error: { message: error.message || '보강 기록 수정에 실패했습니다.' } };
+  }
+};
+
+export const deleteMakeupRecord = async (id: string): Promise<ApiResult<boolean>> => {
+  try {
+    await notionFetch(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+    return { success: true, data: true };
+  } catch (error: any) {
+    console.error('[Notion] deleteMakeupRecord failed:', error);
+    return { success: false, error: { message: error.message || '보강 기록 삭제에 실패했습니다.' } };
+  }
+};
+
+// ========== DM (쪽지) 함수 ==========
+
+export const fetchDMMessages = async (userId: string, partnerId: string): Promise<DirectMessage[]> => {
+  const dbIds = getDbIds();
+  if (!dbIds.dmMessages) return [];
+  try {
+    const data = await notionFetch(`/databases/${dbIds.dmMessages}/query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: {
+          or: [
+            {
+              and: [
+                { property: NOTION_COLUMNS_DM.SENDER_ID, rich_text: { equals: userId } },
+                { property: NOTION_COLUMNS_DM.RECEIVER_ID, rich_text: { equals: partnerId } },
+              ],
+            },
+            {
+              and: [
+                { property: NOTION_COLUMNS_DM.SENDER_ID, rich_text: { equals: partnerId } },
+                { property: NOTION_COLUMNS_DM.RECEIVER_ID, rich_text: { equals: userId } },
+              ],
+            },
+          ],
+        },
+        sorts: [{ timestamp: 'created_time', direction: 'ascending' }],
+      }),
+    });
+    return data.results.map((page: any) => ({
+      id: page.id,
+      senderId: page.properties[NOTION_COLUMNS_DM.SENDER_ID]?.rich_text?.[0]?.plain_text || '',
+      receiverId: page.properties[NOTION_COLUMNS_DM.RECEIVER_ID]?.rich_text?.[0]?.plain_text || '',
+      content: page.properties[NOTION_COLUMNS_DM.CONTENT]?.rich_text?.[0]?.plain_text || '',
+      createdAt: page.created_time,
+    }));
+  } catch (error) {
+    console.error('[Notion] fetchDMMessages failed:', error);
+    return [];
+  }
+};
+
+export const sendDMMessage = async (senderId: string, receiverId: string, content: string): Promise<ApiResult<DirectMessage>> => {
+  const dbIds = getDbIds();
+  if (!dbIds.dmMessages) return { success: false, error: { message: 'DM 데이터베이스 ID가 설정되지 않았습니다.' } };
+  try {
+    const data = await notionFetch('/pages', {
+      method: 'POST',
+      body: JSON.stringify({
+        parent: { database_id: dbIds.dmMessages },
+        properties: {
+          [NOTION_COLUMNS_DM.SENDER_ID]: { rich_text: [{ text: { content: senderId } }] },
+          [NOTION_COLUMNS_DM.RECEIVER_ID]: { rich_text: [{ text: { content: receiverId } }] },
+          [NOTION_COLUMNS_DM.CONTENT]: { rich_text: [{ text: { content } }] },
+        },
+      }),
+    });
+    return {
+      success: true,
+      data: { id: data.id, senderId, receiverId, content, createdAt: data.created_time },
+    };
+  } catch (error: any) {
+    console.error('[Notion] sendDMMessage failed:', error);
+    return { success: false, error: { message: error.message || '메시지 전송에 실패했습니다.' } };
+  }
+};
+
+export const fetchRecentDMForUser = async (userId: string): Promise<DirectMessage[]> => {
+  const dbIds = getDbIds();
+  if (!dbIds.dmMessages) return [];
+  try {
+    const data = await notionFetch(`/databases/${dbIds.dmMessages}/query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: {
+          or: [
+            { property: NOTION_COLUMNS_DM.SENDER_ID, rich_text: { equals: userId } },
+            { property: NOTION_COLUMNS_DM.RECEIVER_ID, rich_text: { equals: userId } },
+          ],
+        },
+        sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+        page_size: 100,
+      }),
+    });
+    return data.results.map((page: any) => ({
+      id: page.id,
+      senderId: page.properties[NOTION_COLUMNS_DM.SENDER_ID]?.rich_text?.[0]?.plain_text || '',
+      receiverId: page.properties[NOTION_COLUMNS_DM.RECEIVER_ID]?.rich_text?.[0]?.plain_text || '',
+      content: page.properties[NOTION_COLUMNS_DM.CONTENT]?.rich_text?.[0]?.plain_text || '',
+      createdAt: page.created_time,
+    }));
+  } catch (error) {
+    console.error('[Notion] fetchRecentDMForUser failed:', error);
+    return [];
+  }
+};
+
 const notionClient = {
   getStudents,
   fetchStudents,
@@ -755,6 +958,13 @@ const notionClient = {
   fetchEnrollmentsByStudent,
   updateStudentEnrollments,
   testNotionConnection,
+  fetchMakeupRecords,
+  createMakeupRecord,
+  updateMakeupRecord,
+  deleteMakeupRecord,
+  fetchDMMessages,
+  sendDMMessage,
+  fetchRecentDMForUser,
 };
 
 export default notionClient;

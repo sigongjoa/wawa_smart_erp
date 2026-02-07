@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import DMWidget from './dm/DMWidget';
 import { useReportStore } from '../stores/reportStore';
 import Setup from '../modules/report/Setup';
 import Login from '../modules/auth/Login';
@@ -46,6 +47,7 @@ export default function AppShell() {
           <Outlet />
         </main>
       </div>
+      <DMWidget />
     </div>
   );
 }
