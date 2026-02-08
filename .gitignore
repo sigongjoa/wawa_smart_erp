@@ -48,6 +48,12 @@ notion_config.json
 .env
 code*.html
 logo.jpg
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+
 
 # Python
 __pycache__/
@@ -79,3 +85,11 @@ scripts/
 # Source logo files (ico/png already in assets)
 /app_logo.jpg
 /wawa_logo.jpg
+
+# Global blocks for assets that might be added later
+**/assets/**/*.pdf
+**/assets/**/*.png
+**/assets/**/*.jpg
+**/assets/**/*.jpeg
+**/assets/**/*.gif
+
