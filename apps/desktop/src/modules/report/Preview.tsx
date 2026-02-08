@@ -1,26 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import html2canvas from 'html2canvas';
 import { wawaLogoBase64 } from '../../assets/wawaLogo';
-
-// 과목별 색상 정의
-const SUBJECT_COLORS: Record<string, string> = {
-  '국어': '#FF6B00',
-  '영어': '#3B82F6',
-  '수학': '#10B981',
-  '과학': '#8B5CF6',
-  '사회': '#EC4899',
-  '역사': '#F59E0B',
-  '물리': '#06B6D4',
-  '화학': '#84CC16',
-  '생물': '#22C55E',
-  '지구과학': '#6366F1',
-};
-
-const getSubjectColor = (subject: string): string => {
-  return SUBJECT_COLORS[subject] || '#6B7280';
-};
+import { getSubjectColor } from '../../constants/common';
 
 // 최근 6개월 라벨 생성
 const generateMonthLabels = (currentYearMonth: string): string[] => {
@@ -136,7 +119,10 @@ export default function Preview() {
   };
 
   // 고유 과목 목록
-  const subjects = Array.from(new Set(selectedReport?.scores.map(s => s.subject) || []));
+  const subjects = useMemo(
+    () => Array.from(new Set(selectedReport?.scores.map(s => s.subject) || [])),
+    [selectedReport?.scores]
+  );
 
   return (
     <div>

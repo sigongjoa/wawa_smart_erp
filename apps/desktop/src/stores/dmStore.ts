@@ -68,7 +68,8 @@ export const useDMStore = create<DMState>((set, get) => ({
     try {
       const messages = await fetchDMMessages(userId, partnerId);
       set({ messages, isLoading: false });
-    } catch {
+    } catch (error) {
+      console.error('[DMStore] fetchMessages failed:', error);
       set({ isLoading: false });
     }
   },

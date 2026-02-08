@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useDMStore } from '../../stores/dmStore';
 import { useReportStore } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
+import { formatTimeOnly } from '../../constants/common';
 
 interface Props {
   userId: string;
@@ -50,10 +51,6 @@ export default function DMChatWindow({ userId, partnerId }: Props) {
     }
   };
 
-  const formatTime = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-  };
 
   return (
     <>
@@ -82,7 +79,7 @@ export default function DMChatWindow({ userId, partnerId }: Props) {
                 <div className="dm-bubble">
                   {msg.content}
                 </div>
-                <div className="dm-message-time">{formatTime(msg.createdAt)}</div>
+                <div className="dm-message-time">{formatTimeOnly(msg.createdAt)}</div>
               </div>
             );
           })

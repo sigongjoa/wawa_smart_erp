@@ -51,7 +51,8 @@ export const useMakeupStore = create<MakeupState>((set, get) => ({
         return true;
       }
       return false;
-    } catch {
+    } catch (error) {
+      console.error('[MakeupStore] addRecord failed:', error);
       return false;
     }
   },
@@ -64,7 +65,8 @@ export const useMakeupStore = create<MakeupState>((set, get) => ({
         return true;
       }
       return false;
-    } catch {
+    } catch (error) {
+      console.error('[MakeupStore] updateRecord failed:', error);
       return false;
     }
   },
@@ -77,7 +79,8 @@ export const useMakeupStore = create<MakeupState>((set, get) => ({
         return true;
       }
       return false;
-    } catch {
+    } catch (error) {
+      console.error('[MakeupStore] deleteRecord failed:', error);
       return false;
     }
   },

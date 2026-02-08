@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMakeupStore } from '../../stores/makeupStore';
 import { useReportStore } from '../../stores/reportStore';
+import { getTeacherName } from '../../constants/common';
 
 export default function MakeupCompleted() {
   const { records, isLoading, fetchRecords } = useMakeupStore();
@@ -18,10 +19,6 @@ export default function MakeupCompleted() {
       r.subject?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  const getTeacherName = (teacherId: string) => {
-    const teacher = teachers.find((t) => t.id === teacherId);
-    return teacher?.name || '';
-  };
 
   return (
     <div>
@@ -67,7 +64,7 @@ export default function MakeupCompleted() {
                 <tr key={r.id}>
                   <td style={{ fontWeight: 500 }}>{r.studentName}</td>
                   <td>{r.subject}</td>
-                  <td>{getTeacherName(r.teacherId || '')}</td>
+                  <td>{getTeacherName(teachers, r.teacherId || '')}</td>
                   <td>{r.absentDate}</td>
                   <td>{r.absentReason}</td>
                   <td>{r.makeupDate || '-'}</td>

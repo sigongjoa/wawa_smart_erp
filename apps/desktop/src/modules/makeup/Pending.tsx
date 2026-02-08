@@ -5,6 +5,7 @@ import { useToastStore } from '../../stores/toastStore';
 import AddAbsenceModal from './components/AddAbsenceModal';
 import ScheduleMakeupModal from './components/ScheduleMakeupModal';
 import type { MakeupRecord } from '../../types';
+import { getTeacherName } from '../../constants/common';
 
 export default function MakeupPending() {
   const { records, isLoading, fetchRecords, updateRecord, deleteRecord } = useMakeupStore();
@@ -46,10 +47,6 @@ export default function MakeupPending() {
     }
   };
 
-  const getTeacherName = (teacherId: string) => {
-    const teacher = teachers.find((t) => t.id === teacherId);
-    return teacher?.name || '';
-  };
 
   return (
     <div>
@@ -103,7 +100,7 @@ export default function MakeupPending() {
                 <tr key={r.id}>
                   <td style={{ fontWeight: 500 }}>{r.studentName}</td>
                   <td>{r.subject}</td>
-                  <td>{getTeacherName(r.teacherId || '')}</td>
+                  <td>{getTeacherName(teachers, r.teacherId || '')}</td>
                   <td>{r.absentDate}</td>
                   <td>{r.absentReason}</td>
                   <td>{r.makeupDate || <span style={{ color: 'var(--danger)' }}>미지정</span>}</td>

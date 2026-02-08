@@ -1,18 +1,8 @@
 import { useDMStore } from '../../stores/dmStore';
+import { formatMessageTime } from '../../constants/common';
 
 export default function DMContactList() {
   const { contacts, selectContact, closeWidget } = useDMStore();
-
-  const formatTime = (dateStr?: string) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    const now = new Date();
-    const isToday = d.toDateString() === now.toDateString();
-    if (isToday) {
-      return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    }
-    return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-  };
 
   return (
     <>
@@ -55,7 +45,7 @@ export default function DMContactList() {
                 )}
               </div>
               {contact.lastMessageAt && (
-                <div className="dm-contact-time">{formatTime(contact.lastMessageAt)}</div>
+                <div className="dm-contact-time">{formatMessageTime(contact.lastMessageAt)}</div>
               )}
             </div>
           ))

@@ -225,6 +225,19 @@ describe('DMStore', () => {
       expect(useDMStore.getState().pollingTimer).toBeNull();
     });
 
+    it('채팅 중일 때 폴링이 fetchMessages도 호출한다', async () => {
+      vi.mocked(fetchRecentDMForUser).mockResolvedValue([]);
+      vi.mocked(fetchDMMessages).mockResolvedValue([]);
+
+      // 채팅 상대가 설정된 상태에서 폴링 시작
+      useDMStore.setState({ currentChatPartnerId: 'tea-2' });
+      useDMStore.getState().startPolling('tea-1', mockTeachers);
+
+      // 초기 poll() 호출이 fetchMessages를 호출했는지 확인
+      await new Promise((r) => setTimeout(r, 100));
+      expect(fetchDMMessages).toHaveBeenCalledWith('tea-1', 'tea-2');
+    });
+
     it('중복 폴링 시작 시 이전 타이머를 정리한다', () => {
       vi.mocked(fetchRecentDMForUser).mockResolvedValue([]);
       useDMStore.getState().startPolling('tea-1', mockTeachers);

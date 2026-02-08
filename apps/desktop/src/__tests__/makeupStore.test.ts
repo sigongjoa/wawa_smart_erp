@@ -145,6 +145,20 @@ describe('MakeupStore', () => {
       expect(result).toBe(false);
     });
 
+    it('API 예외(throw) 시 false를 반환한다', async () => {
+      vi.mocked(createMakeupRecord).mockRejectedValue(new Error('Network error'));
+
+      const result = await useMakeupStore.getState().addRecord({
+        studentId: 'stu-1',
+        studentName: '홍길동',
+        subject: '수학',
+        absentDate: '2026-02-05',
+        absentReason: '감기',
+      });
+
+      expect(result).toBe(false);
+    });
+
     // 엣지케이스
     it('선택 필드 없이도 추가할 수 있다', async () => {
       vi.mocked(createMakeupRecord).mockResolvedValue({ success: true, data: mockRecords[0] });
@@ -191,6 +205,13 @@ describe('MakeupStore', () => {
       expect(result).toBe(true);
     });
 
+    it('API 예외(throw) 시 false를 반환한다', async () => {
+      vi.mocked(updateMakeupRecord).mockRejectedValue(new Error('Network error'));
+
+      const result = await useMakeupStore.getState().updateRecord('rec-1', { status: '완료' });
+      expect(result).toBe(false);
+    });
+
     // 엣지케이스
     it('존재하지 않는 레코드 수정 시 false를 반환한다', async () => {
       vi.mocked(updateMakeupRecord).mockResolvedValue({
@@ -211,6 +232,13 @@ describe('MakeupStore', () => {
 
       const result = await useMakeupStore.getState().deleteRecord('rec-1');
       expect(result).toBe(true);
+    });
+
+    it('API 예외(throw) 시 false를 반환한다', async () => {
+      vi.mocked(deleteMakeupRecord).mockRejectedValue(new Error('Network error'));
+
+      const result = await useMakeupStore.getState().deleteRecord('rec-1');
+      expect(result).toBe(false);
     });
 
     // 엣지케이스

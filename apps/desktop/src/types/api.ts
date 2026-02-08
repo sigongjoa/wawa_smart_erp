@@ -1,9 +1,9 @@
-export interface ApiResult<T = any> {
+export interface ApiResult<T = unknown> {
     success: boolean;
     data?: T;
     error?: {
         code?: string;
         message: string;
-        details?: any;
+        details?: Record<string, unknown>;
     };
 }

@@ -3,6 +3,7 @@ import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { useAsync } from '../../hooks/useAsync';
 import { createStudent, updateStudent, deleteStudent } from '../../services/notion';
+import type { Student } from '../../types';
 
 export default function Students() {
   const { students } = useFilteredData();
@@ -10,7 +11,7 @@ export default function Students() {
   const { addToast } = useToastStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
   const createAsync = useAsync(createStudent);
   const updateAsync = useAsync(updateStudent);
@@ -22,7 +23,7 @@ export default function Students() {
 
   const isLoading = storeLoading || createAsync.isLoading || updateAsync.isLoading || deleteAsync.isLoading;
 
-  const handleCreate = async (student: any) => {
+  const handleCreate = async (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>) => {
     const result = await createAsync.execute(student);
     if (result.success) {
       addToast('학생이 성공적으로 등록되었습니다.', 'success');

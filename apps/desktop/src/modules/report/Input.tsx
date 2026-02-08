@@ -5,13 +5,7 @@ import { useAIStore, AI_MODELS } from '../../stores/aiStore';
 import { useAsync } from '../../hooks/useAsync';
 import { saveScore } from '../../services/notion';
 import type { AIProvider } from '../../types';
-
-// 과목별 색상
-const SUBJECT_COLORS: Record<string, string> = {
-  '국어': '#FF6B00', '영어': '#3B82F6', '수학': '#10B981',
-  '과학': '#8B5CF6', '사회': '#EC4899', '역사': '#F59E0B',
-};
-const getSubjectColor = (subject: string) => SUBJECT_COLORS[subject] || '#6B7280';
+import { getSubjectColor } from '../../constants/common';
 
 export default function Input() {
   const { students, reports } = useFilteredData();

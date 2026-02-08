@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import type { GradeType, DayType, Enrollment } from '../../types';
+import { getTodayDay } from '../../constants/common';
 
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
@@ -48,7 +49,7 @@ export default function DayView() {
 
   const { currentUser } = useReportStore();
 
-  const currentDay = ['일', '월', '화', '수', '목', '금', '토'][new Date().getDay()] as DayType;
+  const currentDay = getTodayDay();
 
   // 필터링 및 데이터 결합
   const studentsWithSessions = useMemo(() => {

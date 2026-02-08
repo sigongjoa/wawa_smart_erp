@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import type { Student, GradeType, DayType, Enrollment } from '../../types';
+import { getTodayDay } from '../../constants/common';
 
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
@@ -45,7 +46,7 @@ export default function TimeslotView() {
 
   const now = new Date();
   const currentSlot = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes() >= 30 ? '30' : '00'}`;
-  const todayDay = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()] as DayType;
+  const todayDay = getTodayDay();
 
   // 필터링된 요일 (선택 없으면 전체)
   const visibleDays = timerFilters.days.length > 0

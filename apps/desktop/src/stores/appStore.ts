@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Student, FilterState, RealtimeSession, DayType, GradeType, Enrollment } from '../types';
 import notionClient from '../services/notion';
+import { getTodayDay } from '../constants/common';
 
 // Backend API base URL
 const API_BASE = 'http://localhost:8000';
@@ -214,8 +215,7 @@ export const useAppStore = create<AppState>()(
       let endTime = enrollment?.endTime;
 
       if (!startTime || !endTime) {
-        const dayMap = ['일', '월', '화', '수', '목', '금', '토'];
-        const todayDay = dayMap[new Date().getDay()];
+        const todayDay = getTodayDay();
         const todayEnrollment = get().enrollments
           .filter(e => e.studentId === studentId && e.day === todayDay)
           .sort((a, b) => a.startTime.localeCompare(b.startTime))[0];

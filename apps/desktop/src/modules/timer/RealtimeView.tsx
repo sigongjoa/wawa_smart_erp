@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import { Student, GradeType, DayType } from '../../types';
+import { getTodayDay } from '../../constants/common';
 
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
@@ -25,7 +26,7 @@ export default function RealtimeView() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // 오늘 요일
-  const todayDay = ['일', '월', '화', '수', '목', '금', '토'][new Date().getDay()] as DayType;
+  const todayDay = getTodayDay();
   // 선택된 요일 (기본값: 오늘)
   const [selectedDay, setSelectedDay] = useState<DayType>(todayDay);
   const isToday = selectedDay === todayDay;

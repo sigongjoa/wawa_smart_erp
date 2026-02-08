@@ -49,7 +49,6 @@ const notionFetch = async (endpoint: string, options: RequestInit = {}, apiKey?:
   }
 
   console.log(`[Notion Request] ${options.method || 'GET'} ${endpoint}`);
-  if (options.body) console.log(`[Notion Body]`, JSON.parse(options.body as string));
 
   if (isElectron() && window.wawaAPI) {
     const result = await window.wawaAPI.notionFetch(endpoint, {
@@ -86,7 +85,7 @@ const notionFetch = async (endpoint: string, options: RequestInit = {}, apiKey?:
       const text = await response.text();
       if (text) {
         const error = JSON.parse(text);
-        errorMessage = error.message || errorMessage;
+        errorMessage = (error instanceof Error ? error.message : '') || errorMessage;
       }
     } catch {
       // 빈 응답이거나 JSON 파싱 실패 - 기본 에러 메시지 사용
@@ -96,7 +95,6 @@ const notionFetch = async (endpoint: string, options: RequestInit = {}, apiKey?:
   }
 
   const data = await response.json();
-  console.log(`[Notion Response]`, data);
   return data;
 };
 
@@ -112,7 +110,7 @@ export const testNotionConnection = async (
     enrollment?: string;
   }
 ) => {
-  const details: any = {};
+  const details: Record<string, boolean> = {};
   const errors: string[] = [];
   let totalConfigured = 0;
 
@@ -241,7 +239,7 @@ export const createStudent = async (student: Omit<Student, "id" | "createdAt" | 
   const dbIds = getDbIds();
   if (!dbIds.students) return { success: false, error: { message: "학생 데이터베이스 ID가 설정되지 않았습니다." } };
   try {
-    const properties: any = {
+    const properties: Record<string, unknown> = {
       [NOTION_COLUMNS_STUDENT.NAME]: { title: [{ text: { content: student.name } }] },
       [NOTION_COLUMNS_STUDENT.GRADE]: {
         multi_select: [{ name: student.grade }],
@@ -269,9 +267,9 @@ export const createStudent = async (student: Omit<Student, "id" | "createdAt" | 
       body: JSON.stringify({ parent: { database_id: dbIds.students }, properties }),
     });
     return { success: true, data: { ...student, id: data.id, createdAt: data.created_time, updatedAt: data.last_edited_time } as Student };
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ createStudent failed:", error);
-    return { success: false, error: { message: error.message || "학생 정보를 생성하는 데 실패했습니다." } };
+    return { success: false, error: { message: error instanceof Error ? error.message : "학생 정보를 생성하는 데 실패했습니다." } };
   }
 };
 
@@ -279,7 +277,7 @@ export const updateStudent = async (studentId: string, updates: Partial<Student>
   const dbIds = getDbIds();
   if (!dbIds.students) return { success: false, error: { message: "학생 데이터베이스 ID가 설정되지 않았습니다." } };
   try {
-    const properties: any = {};
+    const properties: Record<string, unknown> = {};
     if (updates.name) properties[NOTION_COLUMNS_STUDENT.NAME] = { title: [{ text: { content: updates.name } }] };
     if (updates.grade) properties[NOTION_COLUMNS_STUDENT.GRADE] = { multi_select: [{ name: updates.grade }] };
     if (updates.subjects) properties[NOTION_COLUMNS_STUDENT.SUBJECTS] = { multi_select: updates.subjects.map((s) => ({ name: s })) };
@@ -291,9 +289,9 @@ export const updateStudent = async (studentId: string, updates: Partial<Student>
 
     await notionFetch(`/pages/${studentId}`, { method: "PATCH", body: JSON.stringify({ properties }) });
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ updateStudent failed:", error);
-    return { success: false, error: { message: error.message || "학생 정보를 수정하는 데 실패했습니다." } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "학생 정보를 수정하는 데 실패했습니다." } };
   }
 };
 
@@ -301,9 +299,9 @@ export const deleteStudent = async (studentId: string): Promise<ApiResult<boolea
   try {
     await notionFetch(`/pages/${studentId}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ deleteStudent failed:', error);
-    return { success: false, error: { message: error.message || "학생 정보를 삭제하는 데 실패했습니다." } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "학생 정보를 삭제하는 데 실패했습니다." } };
   }
 };
 
@@ -333,7 +331,7 @@ export const saveScore = async (
       }),
     });
 
-    const properties: any = {
+    const properties: Record<string, unknown> = {
       [NOTION_COLUMNS_SCORE.NAME]: { title: [{ text: { content: `${studentName}_${subject}_${yearMonth}` } }] },
       [NOTION_COLUMNS_SCORE.YEAR_MONTH]: { rich_text: [{ text: { content: yearMonth } }] },
       [NOTION_COLUMNS_SCORE.SUBJECT]: { select: { name: subject } },
@@ -357,9 +355,9 @@ export const saveScore = async (
       });
     }
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ saveScore failed:', error);
-    return { success: false, error: { message: error.message || "성적 정보를 저장하는 데 실패했습니다." } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "성적 정보를 저장하는 데 실패했습니다." } };
   }
 };
 
@@ -462,9 +460,9 @@ export const createExamEntry = async (exam: Omit<Exam, 'id' | 'uploadedAt'>): Pr
       }),
     });
     return { success: true, data: { ...exam, id: data.id, uploadedAt: data.created_time } as Exam };
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ createExamEntry failed:', error);
-    return { success: false, error: { message: error.message || "시험 정보를 등록하는 데 실패했습니다." } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "시험 정보를 등록하는 데 실패했습니다." } };
   }
 };
 
@@ -479,9 +477,9 @@ export const updateExamDifficulty = async (examId: string, difficulty: Difficult
       }),
     });
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ updateExamDifficulty failed:', error);
-    return { success: false, error: { message: error.message || "난이도 수정에 실패했습니다." } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "난이도 수정에 실패했습니다." } };
   }
 };
 
@@ -567,9 +565,9 @@ export const updateExamSchedulesBatch = async (
       }
     }));
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ updateExamSchedulesBatch failed:', error);
-    return { success: false, error: { message: error.message || "일괄 날짜 지정에 실패했습니다." } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "일괄 날짜 지정에 실패했습니다." } };
   }
 };
 
@@ -592,6 +590,23 @@ export const getStudents = async () => {
   }
 };
 
+// Shared enrollment page mapper
+const mapEnrollmentPage = (page: any): Enrollment => {
+  const props = page.properties;
+  return {
+    id: page.id,
+    studentId: props[NOTION_COLUMNS_ENROLLMENT.STUDENT]?.relation?.[0]?.id || '',
+    day: (props[NOTION_COLUMNS_ENROLLMENT.DAY]?.select?.name || '월') as DayType,
+    startTime: props[NOTION_COLUMNS_ENROLLMENT.START_TIME]?.rich_text?.[0]?.plain_text || '',
+    endTime: props[NOTION_COLUMNS_ENROLLMENT.END_TIME]?.rich_text?.[0]?.plain_text || '',
+    subject: props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.rich_text?.[0]?.plain_text ||
+      props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.select?.name || '',
+    tuition: 0,
+    createdAt: page.created_time,
+    updatedAt: page.last_edited_time,
+  };
+};
+
 export const fetchEnrollments = async (): Promise<Enrollment[]> => {
   const dbIds = getDbIds();
   if (!dbIds.enrollment) return [];
@@ -600,31 +615,12 @@ export const fetchEnrollments = async (): Promise<Enrollment[]> => {
       method: 'POST',
       body: JSON.stringify({ sorts: [{ property: '요일', direction: 'ascending' }] }),
     });
-    console.log('[fetchEnrollments] Raw data count:', data.results.length);
-    if (data.results.length > 0) {
-      console.log('[fetchEnrollments] First item properties:', JSON.stringify(data.results[0].properties, null, 2));
-    }
-    return data.results.map((page: any) => {
-      const props = page.properties;
-      return {
-        id: page.id,
-        studentId: props[NOTION_COLUMNS_ENROLLMENT.STUDENT]?.relation?.[0]?.id || '',
-        day: (props[NOTION_COLUMNS_ENROLLMENT.DAY]?.select?.name || '월') as DayType,
-        startTime: props[NOTION_COLUMNS_ENROLLMENT.START_TIME]?.rich_text?.[0]?.plain_text || '',
-        endTime: props[NOTION_COLUMNS_ENROLLMENT.END_TIME]?.rich_text?.[0]?.plain_text || '',
-        subject: props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.rich_text?.[0]?.plain_text ||
-          props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.select?.name || '',
-        tuition: 0, // Column missing in DB
-        createdAt: page.created_time,
-        updatedAt: page.last_edited_time,
-      };
-    });
+    return data.results.map(mapEnrollmentPage);
   } catch (error) {
     console.error('❌ fetchEnrollments failed:', error);
     return [];
   }
 };
-
 
 export const fetchEnrollmentsByStudent = async (studentId: string): Promise<Enrollment[]> => {
   const dbIds = getDbIds();
@@ -640,22 +636,7 @@ export const fetchEnrollmentsByStudent = async (studentId: string): Promise<Enro
         sorts: [{ property: '요일', direction: 'ascending' }],
       }),
     });
-
-    return data.results.map((page: any) => {
-      const props = page.properties;
-      return {
-        id: page.id,
-        studentId: props[NOTION_COLUMNS_ENROLLMENT.STUDENT]?.relation?.[0]?.id || '',
-        day: (props[NOTION_COLUMNS_ENROLLMENT.DAY]?.select?.name || '월') as DayType,
-        startTime: props[NOTION_COLUMNS_ENROLLMENT.START_TIME]?.rich_text?.[0]?.plain_text || '',
-        endTime: props[NOTION_COLUMNS_ENROLLMENT.END_TIME]?.rich_text?.[0]?.plain_text || '',
-        subject: props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.rich_text?.[0]?.plain_text ||
-          props[NOTION_COLUMNS_ENROLLMENT.SUBJECT]?.select?.name || '',
-        tuition: 0,
-        createdAt: page.created_time,
-        updatedAt: page.last_edited_time,
-      };
-    });
+    return data.results.map(mapEnrollmentPage);
   } catch (error) {
     console.error('❌ fetchEnrollmentsByStudent failed:', error);
     return [];
@@ -687,14 +668,11 @@ export const updateStudentEnrollments = async (
       existingMap.set(key, e);
     }
 
-    console.log('[updateStudentEnrollments] Existing:', existingEnrollments.length, 'New:', enrollments.length);
-
     // 1. 불필요한 기존 레코드 삭제 (새 목록에 없는 것)
     const toDelete = existingEnrollments.filter(e => !newEnrollmentKeys.has(`${e.subject}_${e.day}`));
     await Promise.all(toDelete.map(e =>
       notionFetch(`/pages/${e.id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) })
     ));
-    console.log('[updateStudentEnrollments] Deleted:', toDelete.length);
 
     // 2. Upsert: 매칭되면 업데이트, 없으면 생성
     await Promise.all(enrollments.map(async (e) => {
@@ -703,7 +681,7 @@ export const updateStudentEnrollments = async (
       const key = `${e.subject}_${e.day}`;
       const existing = existingMap.get(key);
 
-      const properties: any = {
+      const properties: Record<string, unknown> = {
         [NOTION_COLUMNS_ENROLLMENT.SUBJECT]: { rich_text: [{ text: { content: e.subject } }] },
         [NOTION_COLUMNS_ENROLLMENT.DAY]: { select: { name: e.day } },
         [NOTION_COLUMNS_ENROLLMENT.START_TIME]: { rich_text: [{ text: { content: e.startTime } }] },
@@ -733,9 +711,9 @@ export const updateStudentEnrollments = async (
     }));
 
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ updateStudentEnrollments failed:', error);
-    return { success: false, error: { message: error.message || "수강일정 업데이트 실패" } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "수강일정 업데이트 실패" } };
   }
 };
 
@@ -789,7 +767,7 @@ export const createMakeupRecord = async (record: {
   const dbIds = getDbIds();
   if (!dbIds.makeup) return { success: false, error: { message: '보강 데이터베이스 ID가 설정되지 않았습니다.' } };
   try {
-    const properties: any = {
+    const properties: Record<string, unknown> = {
       [NOTION_COLUMNS_MAKEUP.NAME]: { title: [{ text: { content: `${record.studentName}_${record.absentDate}` } }] },
       [NOTION_COLUMNS_MAKEUP.STUDENT]: { relation: [{ id: record.studentId }] },
       [NOTION_COLUMNS_MAKEUP.SUBJECT]: { rich_text: [{ text: { content: record.subject } }] },
@@ -807,9 +785,9 @@ export const createMakeupRecord = async (record: {
       body: JSON.stringify({ parent: { database_id: dbIds.makeup }, properties }),
     });
     return { success: true, data: { ...record, id: data.id, status: '시작 전' as MakeupStatus, createdAt: data.created_time } };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Notion] createMakeupRecord failed:', error);
-    return { success: false, error: { message: error.message || '보강 기록 추가에 실패했습니다.' } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || '보강 기록 추가에 실패했습니다.' } };
   }
 };
 
@@ -820,7 +798,7 @@ export const updateMakeupRecord = async (id: string, updates: {
   memo?: string;
 }): Promise<ApiResult<boolean>> => {
   try {
-    const properties: any = {};
+    const properties: Record<string, unknown> = {};
     if (updates.makeupDate !== undefined) properties[NOTION_COLUMNS_MAKEUP.MAKEUP_DATE] = updates.makeupDate ? { date: { start: updates.makeupDate } } : { date: null };
     if (updates.makeupTime !== undefined) properties[NOTION_COLUMNS_MAKEUP.MAKEUP_TIME] = { rich_text: [{ text: { content: updates.makeupTime } }] };
     if (updates.status) properties[NOTION_COLUMNS_MAKEUP.STATUS] = { multi_select: [{ name: updates.status }] };
@@ -828,9 +806,9 @@ export const updateMakeupRecord = async (id: string, updates: {
 
     await notionFetch(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ properties }) });
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Notion] updateMakeupRecord failed:', error);
-    return { success: false, error: { message: error.message || '보강 기록 수정에 실패했습니다.' } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || '보강 기록 수정에 실패했습니다.' } };
   }
 };
 
@@ -838,9 +816,9 @@ export const deleteMakeupRecord = async (id: string): Promise<ApiResult<boolean>
   try {
     await notionFetch(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
     return { success: true, data: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Notion] deleteMakeupRecord failed:', error);
-    return { success: false, error: { message: error.message || '보강 기록 삭제에 실패했습니다.' } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || '보강 기록 삭제에 실패했습니다.' } };
   }
 };
 
@@ -904,9 +882,9 @@ export const sendDMMessage = async (senderId: string, receiverId: string, conten
       success: true,
       data: { id: data.id, senderId, receiverId, content, createdAt: data.created_time },
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Notion] sendDMMessage failed:', error);
-    return { success: false, error: { message: error.message || '메시지 전송에 실패했습니다.' } };
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || '메시지 전송에 실패했습니다.' } };
   }
 };
 
