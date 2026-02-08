@@ -43,6 +43,7 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'pending', label: '대기 중', icon: 'pending_actions', path: '/makeup/pending' },
     { id: 'progress', label: '진행 중', icon: 'autorenew', path: '/makeup/progress' },
     { id: 'completed', label: '완료', icon: 'task_alt', path: '/makeup/completed' },
+    { id: 'calendar', label: '캘린더', icon: 'calendar_month', path: '/makeup/calendar' },
     { id: 'settings', label: '설정', icon: 'settings', path: '/makeup/settings' },
   ],
 };

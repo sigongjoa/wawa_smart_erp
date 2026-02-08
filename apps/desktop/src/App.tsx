@@ -37,6 +37,7 @@ const StudentList = lazy(() => import('./modules/student/List'));
 const MakeupDashboard = lazy(() => import('./modules/makeup/Dashboard'));
 const MakeupPending = lazy(() => import('./modules/makeup/Pending'));
 const MakeupCompleted = lazy(() => import('./modules/makeup/Completed'));
+const MakeupCalendar = lazy(() => import('./modules/makeup/Calendar'));
 const MakeupSettings = lazy(() => import('./modules/makeup/Settings'));
 
 function PageLoader() {
@@ -97,6 +98,7 @@ function App() {
             <Route path="pending" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupPending /></Suspense></ErrorBoundary>} />
             <Route path="progress" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupPending /></Suspense></ErrorBoundary>} />
             <Route path="completed" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCompleted /></Suspense></ErrorBoundary>} />
+            <Route path="calendar" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCalendar /></Suspense></ErrorBoundary>} />
             <Route path="settings" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupSettings /></Suspense></ErrorBoundary>} />
           </Route>
 

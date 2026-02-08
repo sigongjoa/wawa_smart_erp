@@ -153,7 +153,7 @@ async function generatePDF() {
     <div class="meta">
       <p>생성일: ${today}</p>
       <p>총 페이지: ${screenshots.length}개</p>
-      <p>버전: v1.1.0</p>
+      <p>버전: v1.3.0</p>
     </div>
   </div>
 
