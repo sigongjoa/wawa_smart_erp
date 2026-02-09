@@ -430,7 +430,8 @@ ipcMain.handle('typst:compile', async (_, { source, outputPath }: { source: stri
 });
 
 app.whenReady().then(() => {
-  startPythonBackend();
+  // Python 백엔드는 Grader 모듈 전용 - 필요 시 수동 실행
+  // startPythonBackend();
   createWindow();
 });
 

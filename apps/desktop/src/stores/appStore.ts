@@ -3,9 +3,6 @@ import type { Student, FilterState, RealtimeSession, DayType, GradeType, Enrollm
 import notionClient from '../services/notion';
 import { getTodayDay } from '../constants/common';
 
-// Backend API base URL
-const API_BASE = 'http://localhost:8000';
-
 interface AppState {
   // Timer 모듈 데이터
   students: Student[];
@@ -51,53 +48,20 @@ export const useAppStore = create<AppState>()(
 
     fetchEnrollments: async () => {
       try {
-        // 백엔드 API에서 수강 일정 가져오기
-        const response = await fetch(`${API_BASE}/api/timer/enrollments`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch enrollments: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data.success && data.enrollments) {
-          console.log(`[appStore] Fetched ${data.enrollments.length} enrollments from backend`);
-          set({ enrollments: data.enrollments });
-        }
+        const enrollments = await notionClient.fetchEnrollments();
+        set({ enrollments });
       } catch (error) {
         console.error('[appStore] fetchEnrollments failed:', error);
-        // 백엔드 실패 시 Notion 직접 호출 fallback
-        try {
-          const enrollments = await notionClient.fetchEnrollments();
-          set({ enrollments });
-        } catch (fallbackError) {
-          console.error('[appStore] fetchEnrollments fallback failed:', fallbackError);
-        }
       }
     },
 
     fetchStudents: async () => {
       try {
-        // 백엔드 API에서 학생 목록 가져오기
-        const response = await fetch(`${API_BASE}/api/timer/students`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch students: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data.success && data.students) {
-          console.log(`[appStore] Fetched ${data.students.length} students from backend`);
-          set({ students: data.students });
-          // 수강 일정도 함께 가져오기
-          get().fetchEnrollments();
-        }
+        const students = await notionClient.fetchStudents();
+        set({ students });
+        get().fetchEnrollments();
       } catch (error) {
-        console.error('[appStore] fetchStudents from backend failed:', error);
-        // 백엔드 실패 시 Notion 직접 호출 fallback
-        try {
-          const students = await notionClient.fetchStudents();
-          console.log(`[appStore] Fetched ${students.length} students from Notion (fallback)`);
-          set({ students });
-          get().fetchEnrollments();
-        } catch (fallbackError) {
-          console.error('[appStore] fetchStudents fallback failed:', fallbackError);
-        }
+        console.error('[appStore] fetchStudents failed:', error);
       }
     },
 
