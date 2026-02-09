@@ -65,9 +65,10 @@ async function login(page: Page, teacherName: string, pin: string) {
 
     await page.locator('input[type="password"]').fill(pin);
     await page.locator('button:has-text("접속하기")').click();
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000);
   }
-  await expect(page.locator('.header-nav')).toBeVisible({ timeout: 15000 });
+  // .sidebar는 로그인 완료 후에만 표시됨 (.header-nav는 항상 보이므로 사용 금지)
+  await expect(page.locator('.sidebar')).toBeVisible({ timeout: 30000 });
 }
 
 async function logout(page: Page) {

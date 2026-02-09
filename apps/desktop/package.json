@@ -1,6 +1,6 @@
 {
   "name": "wawa-smart-erp",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "WAWA Smart ERP - 통합 학원 관리 시스템",
   "private": true,
   "main": "dist/main/index.js",

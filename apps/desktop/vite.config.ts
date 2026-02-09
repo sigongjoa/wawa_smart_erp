@@ -25,6 +25,9 @@ export default defineConfig({
         headers: {
           'Notion-Version': '2022-06-28',
         },
+        timeout: 60000,
+        proxyTimeout: 60000,
+        secure: true,
       },
     },
   },
