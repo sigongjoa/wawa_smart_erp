@@ -6,6 +6,7 @@ export default function Send() {
   const { reports, students } = useFilteredData();
   const { addSendHistory, currentYearMonth } = useReportStore();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isSending, setIsSending] = useState(false);
 
   const toggleSelect = (id: string) => {
@@ -70,6 +71,29 @@ export default function Send() {
         </div>
       </div>
 
+      {/* 검색 필터 바 */}
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-surface)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+        <div style={{ flex: 1, maxWidth: '300px', position: 'relative' }}>
+          <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '20px' }}>search</span>
+          <input
+            type="text"
+            placeholder="학생 이름 검색..."
+            className="search-input"
+            style={{ width: '100%', paddingLeft: '36px' }}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        {searchQuery && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setSearchQuery('')}
+          >
+            초기화
+          </button>
+        )}
+      </div>
+
       <div className="table-container">
         <table className="data-table">
           <thead>
@@ -84,7 +108,13 @@ export default function Send() {
             </tr>
           </thead>
           <tbody>
-            {reports.map(report => {
+            {reports.filter(report => {
+              if (!searchQuery) return true;
+              const student = students.find(s => s.id === report.studentId);
+              const query = searchQuery.toLowerCase();
+              return report.studentName.toLowerCase().includes(query) ||
+                (student?.grade || '').toLowerCase().includes(query);
+            }).map(report => {
               const student = students.find(s => s.id === report.studentId);
               return (
                 <tr key={report.id}>

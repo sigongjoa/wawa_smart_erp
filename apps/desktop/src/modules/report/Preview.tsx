@@ -26,6 +26,7 @@ export default function Preview() {
   const { currentYearMonth, fetchAllData, isLoading, appSettings, currentUser } = useReportStore();
   const { addToast } = useToastStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +43,11 @@ export default function Preview() {
       isLoading,
     });
   }, [students, reports, currentYearMonth, appSettings, currentUser, isLoading]);
+
+  const filteredStudents = students.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.grade.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const selectedReport = reports.find(r => r.studentId === selectedStudentId);
@@ -142,7 +148,14 @@ export default function Preview() {
       <div className="grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
         <div className="card" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: '0' }}>
           <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-light)', position: 'sticky', top: 0, zIndex: 10 }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 600 }}>학생 목록 ({students.length}명)</h3>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>학생 목록 ({students.length}명)</h3>
+            <input
+              className="search-input"
+              style={{ width: '100%' }}
+              placeholder="학생 검색..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
           </div>
           {isLoading ? (
             <div style={{ padding: '40px 20px', textAlign: 'center' }}>
@@ -164,7 +177,11 @@ export default function Preview() {
                 설정으로 이동
               </button>
             </div>
-          ) : students.map(s => {
+          ) : filteredStudents.length === 0 ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              검색 결과가 없습니다
+            </div>
+          ) : filteredStudents.map(s => {
             const report = reports.find(r => r.studentId === s.id);
             const isSelected = selectedStudentId === s.id;
             const isPartial = report && report.scores.length > 0 && report.scores.length < s.subjects.length;

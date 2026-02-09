@@ -351,8 +351,10 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
                     const existing = scheduleMap[sub] || [];
                     paddedMap[sub] = [
                         existing[0] || { day: '월', startTime: '', endTime: '' },
-                        existing[1] || { day: '수', startTime: '', endTime: '' }, // Default day suggestion?
-                        existing[2] || { day: '금', startTime: '', endTime: '' },
+                        existing[1] || { day: '화', startTime: '', endTime: '' },
+                        existing[2] || { day: '수', startTime: '', endTime: '' },
+                        existing[3] || { day: '목', startTime: '', endTime: '' },
+                        existing[4] || { day: '금', startTime: '', endTime: '' },
                     ];
                 });
 
@@ -401,8 +403,10 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
                     ...curr,
                     [sub]: [
                         { day: '월', startTime: '', endTime: '' },
-                        { day: '월', startTime: '', endTime: '' },
-                        { day: '월', startTime: '', endTime: '' },
+                        { day: '화', startTime: '', endTime: '' },
+                        { day: '수', startTime: '', endTime: '' },
+                        { day: '목', startTime: '', endTime: '' },
+                        { day: '금', startTime: '', endTime: '' },
                     ]
                 }));
             }
@@ -419,8 +423,10 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
         setSubjectSchedules(prev => {
             const currentList = prev[subject] || [
                 { day: '월', startTime: '', endTime: '' },
-                { day: '월', startTime: '', endTime: '' },
-                { day: '월', startTime: '', endTime: '' }
+                { day: '화', startTime: '', endTime: '' },
+                { day: '수', startTime: '', endTime: '' },
+                { day: '목', startTime: '', endTime: '' },
+                { day: '금', startTime: '', endTime: '' }
             ];
 
             const newList = [...currentList];
@@ -541,8 +547,10 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
                                         const subTeachers = teachers.filter(t => t.subjects.includes(sub));
                                         const schedules = subjectSchedules[sub] || [
                                             { day: '월', startTime: '', endTime: '' },
-                                            { day: '월', startTime: '', endTime: '' },
-                                            { day: '월', startTime: '', endTime: '' }
+                                            { day: '화', startTime: '', endTime: '' },
+                                            { day: '수', startTime: '', endTime: '' },
+                                            { day: '목', startTime: '', endTime: '' },
+                                            { day: '금', startTime: '', endTime: '' }
                                         ];
 
                                         return (
@@ -572,9 +580,9 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
 
                                                 {/* Schedule Table */}
                                                 <div>
-                                                    <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>수강 시간표 (3개)</h4>
+                                                    <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>수강 시간표 (5개)</h4>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                        {[0, 1, 2].map(idx => (
+                                                        {[0, 1, 2, 3, 4].map(idx => (
                                                             <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 20px 1fr', gap: '8px', alignItems: 'center' }}>
                                                                 <select
                                                                     className="form-select"
