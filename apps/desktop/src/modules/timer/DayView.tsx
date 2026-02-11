@@ -132,99 +132,79 @@ export default function DayView() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      {/* Filter Bar */}
-      <div className="filter-bar" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Stats and Consolidated Filters */}
+      <div className="card" style={{ padding: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end', justifyContent: 'space-between' }}>
 
-        {/* Row 1: Day Filter */}
-        {/* Row 1: Day Filter */}
-        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="filter-group-label" style={{ marginBottom: 0 }}>요일 선택</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setTimerDayFilterAll(days.map(d => d.key))}
-                style={{ fontSize: '12px', color: 'var(--primary)', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 500 }}
-              >
-                전체 선택
-              </button>
-              <button
-                onClick={() => setTimerDayFilterAll([])}
-                style={{ fontSize: '12px', color: 'var(--text-secondary)', border: 'none', background: 'none', cursor: 'pointer' }}
-              >
-                선택 해제
-              </button>
+          {/* Left: Filter Results Stat */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="stat-icon blue" style={{ width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifySelf: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>groups</span>
+            </div>
+            <div>
+              <span className="stat-label" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>필터 결과</span>
+              <div className="stat-value" style={{ fontSize: '20px', lineHeight: 1.2 }}>{stats.filtered}<span className="stat-unit" style={{ fontSize: '14px' }}>명</span></div>
             </div>
           </div>
-          <div className="filter-buttons">
-            {days.map((day) => (
-              <button
-                key={day.key}
-                className={`filter-btn ${timerFilters.days.includes(day.key) ? 'active' : ''}`}
-                onClick={() => setTimerDayFilter(day.key)}
-              >
-                {day.key}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Row 2: Grade Filter */}
-        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="filter-group-label" style={{ marginBottom: 0 }}>학년 필터</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setTimerGradeFilterAll(gradeOptions.map(g => g.key))}
-                style={{ fontSize: '12px', color: 'var(--primary)', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 500 }}
+          {/* Right: Consolidated Filter Controls */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+
+            {/* Day Dropdown */}
+            <div style={{ width: '120px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>요일</label>
+              <select
+                className="search-input"
+                style={{ width: '100%', height: '38px', padding: '0 12px' }}
+                value={timerFilters.days[0] || ''}
+                onChange={(e) => setTimerDayFilterAll(e.target.value ? [e.target.value as DayType] : [])}
               >
-                전체 선택
-              </button>
-              <button
-                onClick={() => setTimerGradeFilterAll([])}
-                style={{ fontSize: '12px', color: 'var(--text-secondary)', border: 'none', background: 'none', cursor: 'pointer' }}
+                <option value="">전체 요일</option>
+                {days.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
+              </select>
+            </div>
+
+            {/* Grade Dropdown */}
+            <div style={{ width: '120px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>학년</label>
+              <select
+                className="search-input"
+                style={{ width: '100%', height: '38px', padding: '0 12px' }}
+                value={timerFilters.grades[0] || ''}
+                onChange={(e) => setTimerGradeFilterAll(e.target.value ? [e.target.value as GradeType] : [])}
               >
-                선택 해제
+                <option value="">전체 학년</option>
+                {gradeOptions.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
+              </select>
+            </div>
+
+            {/* Search Input */}
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>학생 검색</label>
+              <div style={{ position: 'relative' }}>
+                <span className="material-symbols-outlined" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: 'var(--text-muted)' }}>search</span>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="학생 이름으로 검색..."
+                  value={timerFilters.search}
+                  onChange={(e) => setTimerSearchFilter(e.target.value)}
+                  style={{ width: '100%', height: '38px', paddingLeft: '38px' }}
+                />
+              </div>
+            </div>
+
+            {/* Reset Button */}
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={clearFilters}
+                style={{ height: '38px', padding: '0 12px' }}
+                title="필터 초기화"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>refresh</span>
               </button>
             </div>
-          </div>
-          <div className="filter-buttons" style={{ flexWrap: 'wrap' }}>
-            {gradeOptions.map((grade) => (
-              <button
-                key={grade.key}
-                className={`filter-btn ${timerFilters.grades.includes(grade.key) ? 'active' : ''}`}
-                onClick={() => setTimerGradeFilter(grade.key)}
-                style={{ minWidth: '45px' }}
-              >
-                {grade.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Row 3: Search */}
-        <div className="filter-group">
-          <span className="filter-group-label" style={{ marginBottom: '8px', display: 'block' }}>학생 검색</span>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="이름 입력..."
-            value={timerFilters.search}
-            onChange={(e) => setTimerSearchFilter(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="stats-grid" style={{ marginBottom: '16px' }}>
-        <div className="stat-card">
-          <div className="stat-icon blue">
-            <span className="material-symbols-outlined">groups</span>
-          </div>
-          <div>
-            <span className="stat-label">필터 결과</span>
-            <div className="stat-value">{stats.filtered}<span className="stat-unit">명</span></div>
           </div>
         </div>
       </div>
