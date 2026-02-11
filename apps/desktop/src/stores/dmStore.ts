@@ -132,7 +132,7 @@ export const useDMStore = create<DMState>((set, get) => ({
     };
 
     poll(); // Initial fetch
-    const timer = setInterval(poll, 10000);
+    const timer = setInterval(poll, 1000);
     set({ pollingTimer: timer });
   },
 

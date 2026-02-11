@@ -6,8 +6,13 @@ import DMContactList from './DMContactList';
 import DMChatWindow from './DMChatWindow';
 
 export default function DMWidget() {
-  const { isOpen, currentChatPartnerId, startPolling, stopPolling } = useDMStore();
+  const { isOpen, currentChatPartnerId, closeWidget, startPolling, stopPolling } = useDMStore();
   const { currentUser, teachers } = useReportStore();
+
+  // 유저 변경 시 DM 상태 초기화 (로그아웃 → 재로그인 시 이전 채팅방 잔류 방지)
+  useEffect(() => {
+    closeWidget();
+  }, [currentUser?.teacher.id]);
 
   useEffect(() => {
     if (currentUser) {

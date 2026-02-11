@@ -48,13 +48,19 @@ const notionFetch = async (endpoint: string, options: RequestInit = {}, apiKey?:
     throw new Error('Notion API Key가 설정되지 않았습니다.');
   }
 
-  console.log(`[Notion Request] ${options.method || 'GET'} ${endpoint}`);
+  const isQuery = endpoint.includes('/query');
+  console.log(`[Notion ${isElectron() ? 'Electron' : 'Web'}] ${options.method || 'GET'} ${endpoint}`);
+  if (isQuery) {
+    const dbId = endpoint.split('/')[2];
+    console.log(`[Notion Query] Database ID: ${dbId}`);
+  }
 
   if (isElectron() && window.wawaAPI) {
     const result = await window.wawaAPI.notionFetch(endpoint, {
       method: options.method || 'GET',
       headers: {
         'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
       },
       body: options.body,
     });
@@ -724,7 +730,7 @@ export const fetchMakeupRecords = async (status?: MakeupStatus): Promise<MakeupR
   if (!dbIds.makeup) return [];
   try {
     const filter = status
-      ? { property: NOTION_COLUMNS_MAKEUP.STATUS, multi_select: { contains: status } }
+      ? { property: NOTION_COLUMNS_MAKEUP.STATUS, select: { equals: status } }  // changed to select.equals
       : undefined;
     const data = await notionFetch(`/databases/${dbIds.makeup}/query`, {
       method: 'POST',
@@ -732,17 +738,25 @@ export const fetchMakeupRecords = async (status?: MakeupStatus): Promise<MakeupR
     });
     return data.results.map((page: any) => {
       const props = page.properties;
+      const titleName = props[NOTION_COLUMNS_MAKEUP.NAME]?.title?.[0]?.plain_text || '';
+      const richStudentName = props[NOTION_COLUMNS_MAKEUP.STUDENT]?.rich_text?.[0]?.plain_text || '';
+
       return {
         id: page.id,
-        studentId: props[NOTION_COLUMNS_MAKEUP.STUDENT]?.relation?.[0]?.id || '',
-        studentName: props[NOTION_COLUMNS_MAKEUP.NAME]?.title?.[0]?.plain_text || '',
+        // Fallback studentName to '학생' field if '이름' is empty
+        studentId: props[NOTION_COLUMNS_MAKEUP.STUDENT]?.relation?.[0]?.id || richStudentName || '',
+        studentName: titleName || richStudentName || '이름 없음',
         subject: props[NOTION_COLUMNS_MAKEUP.SUBJECT]?.rich_text?.[0]?.plain_text || '',
-        teacherId: props[NOTION_COLUMNS_MAKEUP.TEACHER]?.relation?.[0]?.id || '',
+        // Handling both relation and select for teacherId/teacherName
+        teacherId: props[NOTION_COLUMNS_MAKEUP.TEACHER]?.relation?.[0]?.id ||
+          props[NOTION_COLUMNS_MAKEUP.TEACHER]?.select?.name || '',
         absentDate: props[NOTION_COLUMNS_MAKEUP.ABSENT_DATE]?.date?.start || '',
         absentReason: props[NOTION_COLUMNS_MAKEUP.ABSENT_REASON]?.rich_text?.[0]?.plain_text || '',
         makeupDate: props[NOTION_COLUMNS_MAKEUP.MAKEUP_DATE]?.date?.start || '',
         makeupTime: props[NOTION_COLUMNS_MAKEUP.MAKEUP_TIME]?.rich_text?.[0]?.plain_text || '',
-        status: (props[NOTION_COLUMNS_MAKEUP.STATUS]?.multi_select?.[0]?.name || '시작 전') as MakeupStatus,
+        // Handling select for status
+        status: (props[NOTION_COLUMNS_MAKEUP.STATUS]?.select?.name ||
+          props[NOTION_COLUMNS_MAKEUP.STATUS]?.multi_select?.[0]?.name || '시작 전') as MakeupStatus,
         memo: props[NOTION_COLUMNS_MAKEUP.MEMO]?.rich_text?.[0]?.plain_text || '',
         createdAt: page.created_time,
       };
