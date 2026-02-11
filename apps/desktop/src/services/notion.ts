@@ -734,7 +734,7 @@ export const fetchMakeupRecords = async (status?: MakeupStatus): Promise<MakeupR
   if (!dbIds.makeup) return [];
   try {
     const filter = status
-      ? { property: NOTION_COLUMNS_MAKEUP.STATUS, select: { equals: status } }  // changed to select.equals
+      ? { property: NOTION_COLUMNS_MAKEUP.STATUS, multi_select: { contains: status } }
       : undefined;
     const data = await notionFetch(`/databases/${dbIds.makeup}/query`, {
       method: 'POST',
@@ -747,20 +747,15 @@ export const fetchMakeupRecords = async (status?: MakeupStatus): Promise<MakeupR
 
       return {
         id: page.id,
-        // Fallback studentName to '학생' field if '이름' is empty
         studentId: props[NOTION_COLUMNS_MAKEUP.STUDENT]?.relation?.[0]?.id || richStudentName || '',
         studentName: titleName || richStudentName || '이름 없음',
         subject: props[NOTION_COLUMNS_MAKEUP.SUBJECT]?.rich_text?.[0]?.plain_text || '',
-        // Handling both relation and select for teacherId/teacherName
-        teacherId: props[NOTION_COLUMNS_MAKEUP.TEACHER]?.relation?.[0]?.id ||
-          props[NOTION_COLUMNS_MAKEUP.TEACHER]?.select?.name || '',
+        teacherId: props[NOTION_COLUMNS_MAKEUP.TEACHER]?.relation?.[0]?.id || '',
         absentDate: props[NOTION_COLUMNS_MAKEUP.ABSENT_DATE]?.date?.start || '',
         absentReason: props[NOTION_COLUMNS_MAKEUP.ABSENT_REASON]?.rich_text?.[0]?.plain_text || '',
         makeupDate: props[NOTION_COLUMNS_MAKEUP.MAKEUP_DATE]?.date?.start || '',
         makeupTime: props[NOTION_COLUMNS_MAKEUP.MAKEUP_TIME]?.rich_text?.[0]?.plain_text || '',
-        // Handling select for status
-        status: (props[NOTION_COLUMNS_MAKEUP.STATUS]?.select?.name ||
-          props[NOTION_COLUMNS_MAKEUP.STATUS]?.multi_select?.[0]?.name || '시작 전') as MakeupStatus,
+        status: (props[NOTION_COLUMNS_MAKEUP.STATUS]?.multi_select?.[0]?.name || '시작 전') as MakeupStatus,
         memo: props[NOTION_COLUMNS_MAKEUP.MEMO]?.rich_text?.[0]?.plain_text || '',
         createdAt: page.created_time,
       };
@@ -791,7 +786,7 @@ export const createMakeupRecord = async (record: {
       [NOTION_COLUMNS_MAKEUP.SUBJECT]: { rich_text: [{ text: { content: record.subject } }] },
       [NOTION_COLUMNS_MAKEUP.ABSENT_DATE]: { date: { start: record.absentDate } },
       [NOTION_COLUMNS_MAKEUP.ABSENT_REASON]: { rich_text: [{ text: { content: record.absentReason } }] },
-      [NOTION_COLUMNS_MAKEUP.STATUS]: { multi_select: [{ name: NOTION_MAKEUP_STATUS.PENDING }] },
+      [NOTION_COLUMNS_MAKEUP.STATUS]: { multi_select: [{ name: '시작 전' }] }, // Using string literal for safety
     };
     if (record.teacherId) properties[NOTION_COLUMNS_MAKEUP.TEACHER] = { relation: [{ id: record.teacherId }] };
     if (record.makeupDate) properties[NOTION_COLUMNS_MAKEUP.MAKEUP_DATE] = { date: { start: record.makeupDate } };

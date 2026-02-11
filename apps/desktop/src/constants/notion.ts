@@ -73,14 +73,14 @@ export const NOTION_COLUMNS_ENROLLMENT = {
 export const NOTION_COLUMNS_MAKEUP = {
     NAME: '이름',
     STUDENT: '학생',
-    SUBJECT: '수강내역', // Changed from 과목
+    SUBJECT: '과목',
     TEACHER: '담당선생님',
-    ABSENT_DATE: '날짜',   // Changed from 결석일
+    ABSENT_DATE: '결석일',
     ABSENT_REASON: '결석사유',
-    MAKEUP_DATE: '보강예정', // Changed from 보강예정일
+    MAKEUP_DATE: '보강예정일',
     MAKEUP_TIME: '보강시간',
-    STATUS: '보강진행여부', // Changed from 상태
-    MEMO: '메모',           // Keep for compatibility
+    STATUS: '상태',
+    MEMO: '메모',
 } as const;
 
 export const NOTION_COLUMNS_DM = {
