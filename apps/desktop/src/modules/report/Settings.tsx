@@ -46,6 +46,8 @@ export default function Settings() {
         absenceHistory: formData.notionAbsenceHistoryDb,
         examSchedule: formData.notionExamScheduleDb,
         enrollment: formData.notionEnrollmentDb,
+        makeup: formData.notionMakeupDb,
+        dmMessages: formData.notionDmMessagesDb,
       });
       setTestResult({ success: result.success, message: result.message });
     } catch (error: any) {

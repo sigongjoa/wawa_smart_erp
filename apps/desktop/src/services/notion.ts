@@ -114,6 +114,8 @@ export const testNotionConnection = async (
     absenceHistory?: string;
     examSchedule?: string;
     enrollment?: string;
+    makeup?: string;
+    dmMessages?: string;
   }
 ) => {
   const details: Record<string, boolean> = {};
@@ -145,6 +147,8 @@ export const testNotionConnection = async (
   details.absenceHistory = await testDb('결시이력', dbIds.absenceHistory);
   details.examSchedule = await testDb('시험일정', dbIds.examSchedule);
   details.enrollment = await testDb('수강일정', dbIds.enrollment);
+  details.makeup = await testDb('보강관리', dbIds.makeup);
+  details.dmMessages = await testDb('쪽지(DM)', dbIds.dmMessages);
 
   const connectedCount = Object.values(details).filter(Boolean).length;
 
