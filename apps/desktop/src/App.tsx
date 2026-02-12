@@ -40,6 +40,8 @@ const MakeupCompleted = lazy(() => import('./modules/makeup/Completed'));
 const MakeupCalendar = lazy(() => import('./modules/makeup/Calendar'));
 const MakeupSettings = lazy(() => import('./modules/makeup/Settings'));
 
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
 function PageLoader() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem' }}>
@@ -56,10 +58,8 @@ function App() {
           {/* 기본 리다이렉트 */}
           <Route index element={<Navigate to="/timer/day" replace />} />
 
-          {/* Student 모듈 */}
-          <Route path="student">
-            <Route index element={<ErrorBoundary><Suspense fallback={<PageLoader />}><StudentList /></Suspense></ErrorBoundary>} />
-          </Route>
+          {/* Student 모듈 (ADMIN ONLY) */}
+          <Route path="student" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><StudentList /></Suspense></ErrorBoundary></ProtectedRoute>} />
 
           {/* Timer 모듈 */}
           <Route path="timer">
@@ -68,7 +68,7 @@ function App() {
             <Route path="realtime" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerRealtimeView /></Suspense></ErrorBoundary>} />
             <Route path="student" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerStudentView /></Suspense></ErrorBoundary>} />
             <Route path="timeslot" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerTimeslotView /></Suspense></ErrorBoundary>} />
-            <Route path="settings" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerSettings /></Suspense></ErrorBoundary>} />
+            <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><TimerSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 
           {/* Report 모듈 */}
@@ -79,8 +79,8 @@ function App() {
             <Route path="input" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportInput /></Suspense></ErrorBoundary>} />
             <Route path="preview" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportPreview /></Suspense></ErrorBoundary>} />
             <Route path="send" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportSend /></Suspense></ErrorBoundary>} />
-            <Route path="ai-settings" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportAISettings /></Suspense></ErrorBoundary>} />
-            <Route path="settings" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportSettings /></Suspense></ErrorBoundary>} />
+            <Route path="ai-settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><ReportAISettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
+            <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><ReportSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 
           {/* Grader 모듈 */}
@@ -89,7 +89,7 @@ function App() {
             <Route path="batch" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><GraderBatch /></Suspense></ErrorBoundary>} />
             <Route path="history" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><GraderHistory /></Suspense></ErrorBoundary>} />
             <Route path="stats" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><GraderStats /></Suspense></ErrorBoundary>} />
-            <Route path="settings" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><GraderSettings /></Suspense></ErrorBoundary>} />
+            <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><GraderSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 
           {/* Makeup 모듈 */}
@@ -99,11 +99,11 @@ function App() {
             <Route path="progress" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupPending /></Suspense></ErrorBoundary>} />
             <Route path="completed" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCompleted /></Suspense></ErrorBoundary>} />
             <Route path="calendar" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCalendar /></Suspense></ErrorBoundary>} />
-            <Route path="settings" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupSettings /></Suspense></ErrorBoundary>} />
+            <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 
-          {/* Schedule 모듈 */}
-          <Route path="schedule">
+          {/* Schedule 모듈 (ADMIN ONLY) */}
+          <Route path="schedule" element={<ProtectedRoute adminOnly />}>
             <Route index element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ScheduleToday /></Suspense></ErrorBoundary>} />
             <Route path="pending" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><SchedulePending /></Suspense></ErrorBoundary>} />
             <Route path="upcoming" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ScheduleUpcoming /></Suspense></ErrorBoundary>} />

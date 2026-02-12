@@ -21,6 +21,15 @@ const modules: ModuleTab[] = [
 export default function Header() {
   const { currentUser, logout } = useReportStore();
 
+  const filteredModules = modules.filter(module => {
+    if (!currentUser) return false;
+    // 관리자 전용 메뉴
+    if (['student', 'schedule'].includes(module.id)) {
+      return currentUser.teacher.isAdmin;
+    }
+    return true;
+  });
+
   return (
     <header className="app-header">
       {/* Logo */}
@@ -35,7 +44,7 @@ export default function Header() {
 
       {/* Module Navigation */}
       <nav className="header-nav">
-        {modules.map((module) => (
+        {filteredModules.map((module) => (
           <NavLink
             key={module.id}
             to={module.path}

@@ -50,11 +50,21 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
 
 export default function Sidebar() {
   const location = useLocation();
+  const { currentUser } = useReportStore();
 
   // 현재 모듈 추출
   const pathParts = location.pathname.split('/');
   const currentModule = (pathParts[1] || 'timer') as ModuleType;
-  const menuItems = moduleMenus[currentModule] || moduleMenus.timer;
+
+  const rawMenuItems = moduleMenus[currentModule] || moduleMenus.timer;
+
+  // 관리자 여부에 따른 메뉴 필터링
+  const menuItems = rawMenuItems.filter(item => {
+    if (item.id === 'settings') {
+      return currentUser?.teacher.isAdmin;
+    }
+    return true;
+  });
 
   // 모듈 타이틀
   const moduleTitles: Record<ModuleType, string> = {

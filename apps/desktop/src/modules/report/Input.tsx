@@ -137,8 +137,8 @@ export default function Input() {
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>학생 데이터가 없습니다</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
                   {!appSettings.notionApiKey ? 'Notion API 키를 설정해주세요' :
-                   !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
-                   '설정을 확인하거나 새로고침을 시도해주세요'}
+                    !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
+                      '설정을 확인하거나 새로고침을 시도해주세요'}
                 </div>
                 <button className="btn btn-secondary btn-sm" onClick={() => window.location.hash = '#/report/settings'}>
                   설정으로 이동
@@ -203,6 +203,8 @@ export default function Input() {
                 {selectedStudent.subjects.map(sub => {
                   const existingScore = currentReport?.scores.find(s => s.subject === sub);
                   const isSaved = !!existingScore;
+                  const isEditable = currentUser?.teacher.isAdmin || currentUser?.teacher.subjects.includes(sub);
+
                   return (
                     <div key={sub} style={{
                       padding: '20px',
@@ -210,7 +212,8 @@ export default function Input() {
                       background: 'white',
                       borderRadius: '12px',
                       border: `1px solid ${isSaved ? '#10B981' : '#e2e8f0'}`,
-                      borderLeft: `4px solid ${getSubjectColor(sub)}`
+                      borderLeft: `4px solid ${getSubjectColor(sub)}`,
+                      opacity: isEditable ? 1 : 0.8
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -224,6 +227,11 @@ export default function Input() {
                           }}>
                             {sub}
                           </span>
+                          {!isEditable && (
+                            <span style={{ color: '#64748B', fontSize: '11px', background: '#F1F5F9', padding: '2px 8px', borderRadius: '4px' }}>
+                              읽기 전용 (담당 과목 아님)
+                            </span>
+                          )}
                           {isSaved && (
                             <span style={{ color: '#10B981', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
@@ -243,6 +251,7 @@ export default function Input() {
                             style={{ width: '100px', textAlign: 'center', fontWeight: 600, fontSize: '16px' }}
                             value={formData[sub]?.score ?? ''}
                             onChange={e => setFormData({ ...formData, [sub]: { ...formData[sub], score: parseInt(e.target.value) || 0 } })}
+                            disabled={!isEditable}
                           />
                           <span style={{ color: '#64748B' }}>/ 100점</span>
                         </div>
@@ -252,21 +261,24 @@ export default function Input() {
                         <textarea
                           className="search-input"
                           style={{ width: '100%', minHeight: '80px', padding: '12px', resize: 'vertical' }}
-                          placeholder="학생에 대한 코멘트를 입력하세요..."
+                          placeholder={isEditable ? "학생에 대한 코멘트를 입력하세요..." : "담당 과목이 아닙니다."}
                           value={formData[sub]?.comment ?? ''}
                           onChange={e => setFormData({ ...formData, [sub]: { ...formData[sub], comment: e.target.value } })}
+                          disabled={!isEditable}
                         />
                       </div>
-                      <div style={{ textAlign: 'right', marginTop: '16px' }}>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => handleSave(sub)}
-                          disabled={saveAsync.isLoading}
-                          style={{ minWidth: '100px' }}
-                        >
-                          {saveAsync.isLoading ? '저장 중...' : '저장'}
-                        </button>
-                      </div>
+                      {isEditable && (
+                        <div style={{ textAlign: 'right', marginTop: '16px' }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleSave(sub)}
+                            disabled={saveAsync.isLoading}
+                            style={{ minWidth: '100px' }}
+                          >
+                            {saveAsync.isLoading ? '저장 중...' : '저장'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -281,6 +293,7 @@ export default function Input() {
                   setFormData={setFormData}
                   handleSave={() => handleSave('__TOTAL_COMMENT__')}
                   isSaving={saveAsync.isLoading}
+                  isAdmin={currentUser?.teacher.isAdmin || false}
                 />
               </div>
             </div>
@@ -316,6 +329,7 @@ function AITotalComment({
   setFormData,
   handleSave,
   isSaving,
+  isAdmin,
 }: {
   selectedStudent: any;
   currentReport: any;
@@ -325,6 +339,7 @@ function AITotalComment({
   setFormData: (d: Record<string, { score: number; comment: string }>) => void;
   handleSave: () => void;
   isSaving: boolean;
+  isAdmin: boolean;
 }) {
   const { aiSettings, isGenerating, generatedVersions, generateEvaluation, setGeneratedVersions } = useAIStore();
   const { addToast } = useToastStore();
@@ -447,51 +462,53 @@ function AITotalComment({
           <span style={{ fontWeight: 700, color: '#9A3412' }}>종합 평가</span>
         </div>
 
-        {/* AI 생성 컨트롤 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <select
-            className="search-input"
-            style={{ width: '110px', padding: '6px 10px', fontSize: '12px' }}
-            value={selectedProvider}
-            onChange={(e) => setSelectedProvider(e.target.value as AIProvider)}
-          >
-            {(['gemini', 'openai', 'claude'] as AIProvider[]).map((p) => (
-              <option key={p} value={p}>{providerLabels[p]}</option>
-            ))}
-          </select>
-          <select
-            className="search-input"
-            style={{ width: '160px', padding: '6px 10px', fontSize: '12px' }}
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-          >
-            {availableModels.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            {isGenerating ? (
-              <>
-                <span className="material-symbols-outlined spin" style={{ fontSize: '16px' }}>progress_activity</span>
-                생성 중...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_awesome</span>
-                AI 생성
-              </>
-            )}
-          </button>
-        </div>
+        {/* AI 생성 컨트롤 - 관리자 전용 */}
+        {isAdmin && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              className="search-input"
+              style={{ width: '110px', padding: '6px 10px', fontSize: '12px' }}
+              value={selectedProvider}
+              onChange={(e) => setSelectedProvider(e.target.value as AIProvider)}
+            >
+              {(['gemini', 'openai', 'claude'] as AIProvider[]).map((p) => (
+                <option key={p} value={p}>{providerLabels[p]}</option>
+              ))}
+            </select>
+            <select
+              className="search-input"
+              style={{ width: '160px', padding: '6px 10px', fontSize: '12px' }}
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+            >
+              {availableModels.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              {isGenerating ? (
+                <>
+                  <span className="material-symbols-outlined spin" style={{ fontSize: '16px' }}>progress_activity</span>
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_awesome</span>
+                  AI 생성
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* API 키 미설정 경고 */}
-      {!hasApiKey && (
+      {/* API 키 미설정 경고 - 관리자 전용 */}
+      {isAdmin && !hasApiKey && (
         <div style={{
           padding: '10px 14px', marginBottom: '12px', borderRadius: '8px',
           background: '#FEF2F2', border: '1px solid #FECACA', fontSize: '13px', color: '#991B1B',
