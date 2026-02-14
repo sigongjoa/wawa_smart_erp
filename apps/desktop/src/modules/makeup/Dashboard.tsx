@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMakeupStore } from '../../stores/makeupStore';
+import { useReportStore } from '../../stores/reportStore';
+import { getTeacherName } from '../../constants/common';
 
 export default function MakeupDashboard() {
   const { records, isLoading, fetchRecords } = useMakeupStore();
+  const { teachers } = useReportStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function MakeupDashboard() {
             <tr>
               <th>학생명</th>
               <th>과목</th>
+              <th>담당</th>
               <th>결석일</th>
               <th>보강예정일</th>
               <th>상태</th>
@@ -77,14 +81,15 @@ export default function MakeupDashboard() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>로딩 중...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>로딩 중...</td></tr>
             ) : recentRecords.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>등록된 보강이 없습니다</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>등록된 보강이 없습니다</td></tr>
             ) : (
               recentRecords.map((r) => (
                 <tr key={r.id}>
                   <td style={{ fontWeight: 500 }}>{r.studentName}</td>
                   <td>{r.subject}</td>
+                  <td>{getTeacherName(teachers, r.teacherId || '')}</td>
                   <td>{r.absentDate}</td>
                   <td>{r.makeupDate || <span style={{ color: 'var(--danger)' }}>미지정</span>}</td>
                   <td>

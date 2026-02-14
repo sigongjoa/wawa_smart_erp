@@ -1,23 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useMakeupStore } from '../../stores/makeupStore';
 import { useReportStore } from '../../stores/reportStore';
+import { useSearch } from '../../hooks/useSearch';
 import { getTeacherName } from '../../constants/common';
 
 export default function MakeupCompleted() {
   const { records, isLoading, fetchRecords } = useMakeupStore();
   const { teachers } = useReportStore();
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
 
-  const completedRecords = records
-    .filter((r) => r.status === '완료')
-    .filter((r) =>
-      r.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.subject?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const baseCompletedRecords = records
+    .filter((r) => r.status === '완료');
+
+  const { searchTerm, setSearchTerm, filteredItems: completedRecords } = useSearch(baseCompletedRecords, ['studentName', 'subject']);
 
 
   return (

@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
+import { useSearch } from '../../hooks/useSearch';
 import { createStudent, updateStudent, deleteStudent, fetchEnrollmentsByStudent, updateStudentEnrollments } from '../../services/notion';
 import type { Student, GradeType, Teacher } from '../../types';
 
@@ -17,7 +18,6 @@ export default function StudentList() {
         grade: '전체',
         status: '전체',
         subject: '전체',
-        search: '',
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,24 +48,21 @@ export default function StudentList() {
     }, [location.search]);
 
     // Derived state for filtering
-    const filteredStudents = useMemo(() => {
+    // Base filtering for non-search criteria
+    const baseFilteredStudents = useMemo(() => {
         return students.filter(student => {
             if (filters.grade !== '전체' && student.grade !== filters.grade) return false;
             if (filters.status !== '전체' && (filters.status === '활성' ? student.status !== 'active' : student.status === 'active')) return false;
-            // Subject filter is tricky because a student has multiple subjects.
-            // If student.subjects includes the filter, or student.subject (string) equals it.
             if (filters.subject !== '전체') {
                 const hasSubject = student.subjects.includes(filters.subject) || student.subject === filters.subject;
                 if (!hasSubject) return false;
             }
-            if (filters.search) {
-                const searchLower = filters.search.toLowerCase();
-                return student.name.toLowerCase().includes(searchLower) ||
-                    (student.parentName || '').toLowerCase().includes(searchLower);
-            }
             return true;
         });
     }, [students, filters]);
+
+    // Apply unified search with Chosung support
+    const { searchTerm, setSearchTerm, filteredItems: filteredStudents } = useSearch(baseFilteredStudents, 'name');
 
     const stats = {
         total: students.length,
@@ -141,11 +138,11 @@ export default function StudentList() {
                     <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '20px' }}>search</span>
                     <input
                         type="text"
-                        placeholder="이름, 학부모 이름 검색..."
+                        placeholder="이름 검색 (초성 검색 가능)"
                         className="search-input"
                         style={{ width: '100%', paddingLeft: '36px' }}
-                        value={filters.search}
-                        onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
@@ -192,7 +189,10 @@ export default function StudentList() {
 
                 <button
                     className="btn btn-secondary btn-sm"
-                    onClick={() => setFilters({ grade: '전체', status: '전체', subject: '전체', search: '' })}
+                    onClick={() => {
+                        setFilters({ grade: '전체', status: '전체', subject: '전체' });
+                        setSearchTerm('');
+                    }}
                     style={{ marginLeft: 'auto' }}
                 >
                     초기화

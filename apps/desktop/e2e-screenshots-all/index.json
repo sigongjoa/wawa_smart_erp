@@ -1,0 +1,180 @@
+{
+  "generatedAt": "2026-02-09T13:32:50.126Z",
+  "totalPages": 29,
+  "screenshots": [
+    {
+      "filename": "01_로그인_서재용_로그인_완료.png",
+      "name": "서재용_로그인_완료",
+      "module": "로그인",
+      "description": "서재용 선생님 로그인 성공"
+    },
+    {
+      "filename": "02_시간표_실시간_현황_학생목록.png",
+      "name": "실시간_현황_학생목록",
+      "module": "시간표",
+      "description": "실시간 현황 - 현재 등록된 학생 목록"
+    },
+    {
+      "filename": "03_시간표_요일별_시간표.png",
+      "name": "요일별_시간표",
+      "module": "시간표",
+      "description": "요일별 학생 시간표"
+    },
+    {
+      "filename": "04_시간표_시간대별_보기.png",
+      "name": "시간대별_보기",
+      "module": "시간표",
+      "description": "시간대별 학생 배치 현황"
+    },
+    {
+      "filename": "05_성적표_성적_입력_페이지.png",
+      "name": "성적_입력_페이지",
+      "module": "성적표",
+      "description": "성적 입력 페이지 진입"
+    },
+    {
+      "filename": "06_성적표_정지효_성적_입력중.png",
+      "name": "정지효_성적_입력중",
+      "module": "성적표",
+      "description": "정지효 학생 선택 - 성적 입력 화면"
+    },
+    {
+      "filename": "07_성적표_성적_점수_입력.png",
+      "name": "성적_점수_입력",
+      "module": "성적표",
+      "description": "과목별 점수 입력 완료"
+    },
+    {
+      "filename": "08_성적표_성적_저장_완료.png",
+      "name": "성적_저장_완료",
+      "module": "성적표",
+      "description": "성적 저장 완료"
+    },
+    {
+      "filename": "09_성적표_미리보기_페이지.png",
+      "name": "미리보기_페이지",
+      "module": "성적표",
+      "description": "성적표 미리보기 페이지"
+    },
+    {
+      "filename": "10_성적표_정지효_월말평가서.png",
+      "name": "정지효_월말평가서",
+      "module": "성적표",
+      "description": "정지효 학생 월말평가서 - 6개월 추세 차트"
+    },
+    {
+      "filename": "11_성적표_학생_관리.png",
+      "name": "학생_관리",
+      "module": "성적표",
+      "description": "성적표 학생 관리"
+    },
+    {
+      "filename": "12_성적표_AI_설정.png",
+      "name": "AI_설정",
+      "module": "성적표",
+      "description": "AI 종합평가 생성 설정"
+    },
+    {
+      "filename": "13_보강관리_대기중_보강_목록.png",
+      "name": "대기중_보강_목록",
+      "module": "보강관리",
+      "description": "대기 중인 보강 목록"
+    },
+    {
+      "filename": "14_보강관리_결석기록_모달.png",
+      "name": "결석기록_모달",
+      "module": "보강관리",
+      "description": "결석 기록 추가 모달"
+    },
+    {
+      "filename": "15_보강관리_정지효_결석등록_입력.png",
+      "name": "정지효_결석등록_입력",
+      "module": "보강관리",
+      "description": "정지효 결석 기록 입력 완료"
+    },
+    {
+      "filename": "16_보강관리_정지효_보강_등록완료.png",
+      "name": "정지효_보강_등록완료",
+      "module": "보강관리",
+      "description": "정지효 보강 학생 등록 완료 - 대기 목록에 표시"
+    },
+    {
+      "filename": "17_보강관리_보강_대시보드.png",
+      "name": "보강_대시보드",
+      "module": "보강관리",
+      "description": "보강관리 대시보드 - 현황 통계"
+    },
+    {
+      "filename": "18_보강관리_완료된_보강.png",
+      "name": "완료된_보강",
+      "module": "보강관리",
+      "description": "완료된 보강 이력"
+    },
+    {
+      "filename": "19_보강관리_보강_캘린더.png",
+      "name": "보강_캘린더",
+      "module": "보강관리",
+      "description": "보강 캘린더 - 월별 보강 일정 보기"
+    },
+    {
+      "filename": "20_학생관리_학생_목록.png",
+      "name": "학생_목록",
+      "module": "학생관리",
+      "description": "전체 학생 목록"
+    },
+    {
+      "filename": "21_DM_서재용_연락처목록.png",
+      "name": "서재용_연락처목록",
+      "module": "DM",
+      "description": "서재용 선생님 DM 연락처 목록"
+    },
+    {
+      "filename": "22_DM_서재용_지혜영_채팅방.png",
+      "name": "서재용_지혜영_채팅방",
+      "module": "DM",
+      "description": "서재용 → 지혜영 채팅방"
+    },
+    {
+      "filename": "23_DM_서재용_메시지_입력.png",
+      "name": "서재용_메시지_입력",
+      "module": "DM",
+      "description": "서재용이 메시지 입력"
+    },
+    {
+      "filename": "24_DM_서재용_메시지_전송완료.png",
+      "name": "서재용_메시지_전송완료",
+      "module": "DM",
+      "description": "서재용 메시지 전송 완료"
+    },
+    {
+      "filename": "25_로그인_로그아웃_후.png",
+      "name": "로그아웃_후",
+      "module": "로그인",
+      "description": "로그아웃 후 로그인 화면"
+    },
+    {
+      "filename": "26_로그인_지혜영_로그인_완료.png",
+      "name": "지혜영_로그인_완료",
+      "module": "로그인",
+      "description": "지혜영 선생님 로그인 성공"
+    },
+    {
+      "filename": "27_DM_지혜영_연락처목록.png",
+      "name": "지혜영_연락처목록",
+      "module": "DM",
+      "description": "지혜영 선생님 DM 연락처 (알림 표시)"
+    },
+    {
+      "filename": "28_DM_지혜영_서재용_채팅.png",
+      "name": "지혜영_서재용_채팅",
+      "module": "DM",
+      "description": "지혜영이 서재용과의 채팅 확인"
+    },
+    {
+      "filename": "29_채점_개별_채점.png",
+      "name": "개별_채점",
+      "module": "채점",
+      "description": "채점 모듈 - 개별 채점 (개발 중)"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMakeupStore } from '../../../stores/makeupStore';
+import { useReportStore } from '../../../stores/reportStore';
 import { useToastStore } from '../../../stores/toastStore';
 import type { Student, Teacher } from '../../../types';
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function AddAbsenceModal({ students, teachers, onClose, onSuccess }: Props) {
+  const { currentUser } = useReportStore();
   const { addRecord } = useMakeupStore();
   const { addToast } = useToastStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +20,7 @@ export default function AddAbsenceModal({ students, teachers, onClose, onSuccess
   const [formData, setFormData] = useState({
     studentId: '',
     subject: '',
-    teacherId: '',
+    teacherId: currentUser?.teacher.isAdmin ? '' : (currentUser?.teacher.id || ''),
     absentDate: '',
     absentReason: '',
     makeupDate: '',
@@ -133,11 +135,18 @@ export default function AddAbsenceModal({ students, teachers, onClose, onSuccess
                 className="search-input"
                 value={formData.teacherId}
                 onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
+                disabled={!currentUser?.teacher.isAdmin}
               >
-                <option value="">선택 안함</option>
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
+                {!currentUser?.teacher.isAdmin ? (
+                  <option value={currentUser?.teacher.id}>{currentUser?.teacher.name}</option>
+                ) : (
+                  <>
+                    <option value="">선택 안함</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 

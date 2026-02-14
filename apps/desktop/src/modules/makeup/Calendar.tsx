@@ -45,7 +45,7 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string; dot: stri
 
 export default function MakeupCalendar() {
   const { records, isLoading, fetchRecords } = useMakeupStore();
-  const { teachers } = useReportStore();
+  const { teachers, currentUser } = useReportStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -179,6 +179,10 @@ export default function MakeupCalendar() {
                   {/* 보강 이벤트 뱃지 */}
                   {dayRecords.slice(0, 3).map((r) => {
                     const colors = STATUS_COLORS[r.status] || STATUS_COLORS['시작 전'];
+                    const isOwner = currentUser?.teacher.id === r.teacherId;
+                    const isAdmin = currentUser?.teacher.isAdmin;
+                    const canEdit = isAdmin || isOwner;
+
                     return (
                       <div key={r.id} style={{
                         fontSize: '0.65rem',
@@ -190,6 +194,8 @@ export default function MakeupCalendar() {
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
+                        opacity: canEdit ? 1 : 0.6,
+                        border: isOwner ? '1px solid currentColor' : 'none',
                       }}>
                         {r.studentName} · {r.subject}
                       </div>
@@ -228,16 +234,24 @@ export default function MakeupCalendar() {
                     <th>보강시간</th>
                     <th>상태</th>
                     <th>메모</th>
+                    <th>권한</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedRecords.map((r) => {
                     const colors = STATUS_COLORS[r.status] || STATUS_COLORS['시작 전'];
+                    const isOwner = currentUser?.teacher.id === r.teacherId;
+                    const isAdmin = currentUser?.teacher.isAdmin;
+                    const canEdit = isAdmin || isOwner;
+
                     return (
-                      <tr key={r.id}>
+                      <tr key={r.id} style={{ opacity: canEdit ? 1 : 0.8 }}>
                         <td style={{ fontWeight: 500 }}>{r.studentName}</td>
                         <td>{r.subject}</td>
-                        <td>{getTeacherName(teachers, r.teacherId || '')}</td>
+                        <td style={{ fontWeight: isOwner ? 600 : 400 }}>
+                          {getTeacherName(teachers, r.teacherId || '')}
+                          {isOwner && <span style={{ marginLeft: '4px', fontSize: '10px', color: 'var(--primary)' }}>(나)</span>}
+                        </td>
                         <td>{r.absentDate}</td>
                         <td>{r.makeupTime || '-'}</td>
                         <td>
@@ -251,6 +265,13 @@ export default function MakeupCalendar() {
                           </span>
                         </td>
                         <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{r.memo || '-'}</td>
+                        <td style={{ fontSize: '11px' }}>
+                          {canEdit ? (
+                            <span style={{ color: 'var(--success)' }}>편집 가능</span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>읽기 전용</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}

@@ -303,15 +303,23 @@ test('v1.3.1 전체 기능 검증 + DM 쪽지 시스템', async ({ page }) => {
   if (await dmBtn2.isVisible({ timeout: 5000 }).catch(() => false)) {
     await dmBtn2.click();
     await page.waitForTimeout(3000);
+
+    // 연락처 로딩 대기 (1초 폴링이므로 최대 15초면 충분)
+    for (let i = 0; i < 5; i++) {
+      const cnt = await page.locator('.dm-contact-item').count();
+      if (cnt > 0) break;
+      console.log(`  ⏳ 연락처 로딩 대기... (${(i + 1) * 3}초)`);
+      await page.waitForTimeout(3000);
+    }
+
     await takeScreenshot(page, 'DM_지혜영_위젯열기', '지혜영 DM 위젯 오픈');
 
-    // 연락처 수 확인
     const contactCount = await page.locator('.dm-contact-item').count();
     console.log(`  📋 DM 연락처 수: ${contactCount}`);
 
     // 서재용 선택
     const seoContact = page.locator('.dm-contact-item').filter({ hasText: '서재용' }).first();
-    if (await seoContact.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await seoContact.isVisible({ timeout: 10000 }).catch(() => false)) {
       await seoContact.click();
       await page.waitForTimeout(2000);
       await takeScreenshot(page, 'DM_지혜영_메시지확인', '지혜영이 서재용 메시지 확인');
@@ -352,10 +360,17 @@ test('v1.3.1 전체 기능 검증 + DM 쪽지 시스템', async ({ page }) => {
   const dmBtn3 = page.locator('.dm-floating-btn');
   if (await dmBtn3.isVisible({ timeout: 5000 }).catch(() => false)) {
     await dmBtn3.click();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
+
+    // 연락처 로딩 대기
+    for (let i = 0; i < 5; i++) {
+      const cnt = await page.locator('.dm-contact-item').count();
+      if (cnt > 0) break;
+      await page.waitForTimeout(3000);
+    }
 
     const jihyeContact2 = page.locator('.dm-contact-item').filter({ hasText: '지혜영' }).first();
-    if (await jihyeContact2.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await jihyeContact2.isVisible({ timeout: 10000 }).catch(() => false)) {
       await jihyeContact2.click();
       await page.waitForTimeout(2000);
     }

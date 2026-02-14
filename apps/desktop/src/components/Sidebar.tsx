@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useReportStore } from '../stores/reportStore';
 import type { ModuleType, SidebarItem } from '../types';
 
 // 각 모듈별 사이드바 메뉴 설정

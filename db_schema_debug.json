@@ -1,0 +1,8 @@
+{
+  "날짜": "date",
+  "수업시간": "number",
+  "체크아웃": "rich_text",
+  "체크인": "rich_text",
+  "학년": "select",
+  "이름": "title"
+}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMakeupStore } from '../../stores/makeupStore';
 import { useReportStore } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
+import { useSearch } from '../../hooks/useSearch';
 import AddAbsenceModal from './components/AddAbsenceModal';
 import ScheduleMakeupModal from './components/ScheduleMakeupModal';
 import type { MakeupRecord } from '../../types';
@@ -9,23 +10,20 @@ import { getTeacherName } from '../../constants/common';
 
 export default function MakeupPending() {
   const { records, isLoading, fetchRecords, updateRecord, deleteRecord } = useMakeupStore();
-  const { students, teachers } = useReportStore();
+  const { students, teachers, currentUser } = useReportStore();
   const { addToast } = useToastStore();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [scheduleTarget, setScheduleTarget] = useState<MakeupRecord | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
 
-  const pendingRecords = records
-    .filter((r) => r.status === '시작 전' || r.status === '진행 중')
-    .filter((r) =>
-      r.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.subject?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const basePendingRecords = records
+    .filter((r) => r.status === '시작 전' || r.status === '진행 중');
+
+  const { searchTerm, setSearchTerm, filteredItems: pendingRecords } = useSearch(basePendingRecords, ['studentName', 'subject']);
 
   const handleMarkComplete = async (record: MakeupRecord) => {
     if (!confirm(`${record.studentName} 학생의 보강을 완료 처리하시겠습니까?`)) return;
@@ -96,49 +94,64 @@ export default function MakeupPending() {
             ) : pendingRecords.length === 0 ? (
               <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>대기 중인 보강이 없습니다</td></tr>
             ) : (
-              pendingRecords.map((r) => (
-                <tr key={r.id}>
-                  <td style={{ fontWeight: 500 }}>{r.studentName}</td>
-                  <td>{r.subject}</td>
-                  <td>{getTeacherName(teachers, r.teacherId || '')}</td>
-                  <td>{r.absentDate}</td>
-                  <td>{r.absentReason}</td>
-                  <td>{r.makeupDate || <span style={{ color: 'var(--danger)' }}>미지정</span>}</td>
-                  <td>{r.makeupTime || '-'}</td>
-                  <td>
-                    <span className={`status-badge ${r.status === '진행 중' ? 'info' : 'warning'}`}>
-                      <span className="dot"></span>
-                      {r.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setScheduleTarget(r)}
-                        title="일정 등록"
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit_calendar</span>
-                      </button>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleMarkComplete(r)}
-                        title="완료 처리"
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handleDelete(r)}
-                        title="삭제"
-                        style={{ color: 'var(--danger)' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              pendingRecords.map((r) => {
+                const isOwner = currentUser?.teacher.id === r.teacherId;
+                const isAdmin = currentUser?.teacher.isAdmin;
+                const canEdit = isAdmin || isOwner;
+
+                return (
+                  <tr key={r.id} style={{ opacity: canEdit ? 1 : 0.7 }}>
+                    <td style={{ fontWeight: 500 }}>{r.studentName}</td>
+                    <td>{r.subject}</td>
+                    <td style={{ fontWeight: isOwner ? 600 : 400 }}>
+                      {getTeacherName(teachers, r.teacherId || '')}
+                      {isOwner && <span style={{ marginLeft: '4px', fontSize: '10px', color: 'var(--primary)' }}>(나)</span>}
+                    </td>
+                    <td>{r.absentDate}</td>
+                    <td>{r.absentReason}</td>
+                    <td>{r.makeupDate || <span style={{ color: 'var(--danger)' }}>미지정</span>}</td>
+                    <td>{r.makeupTime || '-'}</td>
+                    <td>
+                      <span className={`status-badge ${r.status === '진행 중' ? 'info' : 'warning'}`}>
+                        <span className="dot"></span>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        {canEdit ? (
+                          <>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => setScheduleTarget(r)}
+                              title="일정 등록"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit_calendar</span>
+                            </button>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleMarkComplete(r)}
+                              title="완료 처리"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => handleDelete(r)}
+                              title="삭제"
+                              style={{ color: 'var(--danger)' }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                            </button>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: '#94a3b8', padding: '4px' }}>권한 없음</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
