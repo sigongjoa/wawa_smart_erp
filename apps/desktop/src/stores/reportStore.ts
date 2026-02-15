@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useMemo } from 'react';
 import type { Teacher, Student, MonthlyReport, SendHistory, CurrentUser, Exam, AppSettings, AbsenceHistory } from '../types';
 
 interface ReportState {
@@ -224,49 +225,48 @@ export const useReportStore = create<ReportState>()(
             name: 'wawa-report-storage',
             partialize: (state) => ({
                 currentUser: state.currentUser,
-                teachers: state.teachers,
-                students: state.students,
-                reports: state.reports,
-                sendHistories: state.sendHistories,
                 currentYearMonth: state.currentYearMonth,
-                exams: state.exams,
                 appSettings: state.appSettings,
-                absenceHistories: state.absenceHistories,
             }),
         }
     )
 );
 
-// 컴포넌트에서 사용하기 쉬운 필터링된 데이터 훅/셀렉터
+// 컴포넌트에서 사용하기 쉬운 필터링된 데이터 훅/셀렉터 (메모이제이션 적용)
 export const useFilteredData = () => {
-    const { students, reports, exams, currentUser } = useReportStore();
+    const students = useReportStore(s => s.students);
+    const reports = useReportStore(s => s.reports);
+    const exams = useReportStore(s => s.exams);
+    const currentUser = useReportStore(s => s.currentUser);
 
-    // 로그인하지 않았거나 관리자인 경우 전체 데이터 반환
-    if (!currentUser || currentUser.teacher.isAdmin) {
-        return { students, reports, exams };
-    }
+    return useMemo(() => {
+        // 로그인하지 않았거나 관리자인 경우 전체 데이터 반환
+        if (!currentUser || currentUser.teacher.isAdmin) {
+            return { students, reports, exams };
+        }
 
-    // 일반 선생님인 경우 담당 과목 학생만 필터링
-    const teacherSubjects = currentUser.teacher.subjects;
+        // 일반 선생님인 경우 담당 과목 학생만 필터링
+        const teacherSubjects = currentUser.teacher.subjects;
 
-    const filteredStudents = students.filter(student =>
-        student.subjects.some(sub => teacherSubjects.includes(sub))
-    );
+        const filteredStudents = students.filter(student =>
+            student.subjects.some(sub => teacherSubjects.includes(sub))
+        );
 
-    const filteredReports = reports.filter(report =>
-        filteredStudents.some(s => s.id === report.studentId)
-    ).map(report => ({
-        ...report,
-        scores: report.scores.filter(s => teacherSubjects.includes(s.subject))
-    }));
+        const filteredReports = reports.filter(report =>
+            filteredStudents.some(s => s.id === report.studentId)
+        ).map(report => ({
+            ...report,
+            scores: report.scores.filter(s => teacherSubjects.includes(s.subject))
+        }));
 
-    const filteredExams = exams.filter(exam =>
-        teacherSubjects.includes(exam.subject)
-    );
+        const filteredExams = exams.filter(exam =>
+            teacherSubjects.includes(exam.subject)
+        );
 
-    return {
-        students: filteredStudents,
-        reports: filteredReports,
-        exams: filteredExams
-    };
+        return {
+            students: filteredStudents,
+            reports: filteredReports,
+            exams: filteredExams
+        };
+    }, [students, reports, exams, currentUser]);
 };

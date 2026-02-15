@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMakeupStore } from '../../stores/makeupStore';
 import { useReportStore } from '../../stores/reportStore';
 import { getTeacherName } from '../../constants/common';
+import PageHeader from '../../components/common/PageHeader';
 
 export default function MakeupDashboard() {
   const { records, isLoading, fetchRecords } = useMakeupStore();
@@ -29,14 +30,7 @@ export default function MakeupDashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">보강관리 대시보드</h1>
-            <p className="page-description">결석 학생의 보강 수업 현황을 한눈에 확인합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="보강관리 대시보드" description="결석 학생의 보강 수업 현황을 한눈에 확인합니다" />
 
       {/* 통계 카드 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>

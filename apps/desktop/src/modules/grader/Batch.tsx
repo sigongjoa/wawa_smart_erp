@@ -3,6 +3,7 @@ import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { saveScore } from '../../services/notion';
 import type { DifficultyGrade } from '../../types';
+import PageHeader from '../../components/common/PageHeader';
 
 export default function Batch() {
   const { students } = useFilteredData();
@@ -101,14 +102,7 @@ export default function Batch() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">일괄 채점</h1>
-            <p className="page-description">여러 학생의 OMR 카드를 한 번에 채점합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="일괄 채점" description="여러 학생의 OMR 카드를 한 번에 채점합니다" />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         {/* Settings */}

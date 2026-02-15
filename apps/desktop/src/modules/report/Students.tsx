@@ -4,6 +4,7 @@ import { useToastStore } from '../../stores/toastStore';
 import { useAsync } from '../../hooks/useAsync';
 import { createStudent, updateStudent, deleteStudent } from '../../services/notion';
 import type { Student } from '../../types';
+import PageHeader from '../../components/common/PageHeader';
 
 export default function Students() {
   const { students } = useFilteredData();
@@ -60,19 +61,15 @@ export default function Students() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">학생 관리</h1>
-            <p className="page-description">학생 기본 정보 및 수강 과목을 관리합니다</p>
-          </div>
-          <div className="page-actions">
-            <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setIsModalOpen(true); }}>
-              <span className="material-symbols-outlined">add</span>학생 추가
-            </button>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="학생 관리"
+        description="학생 기본 정보 및 수강 과목을 관리합니다"
+        actions={
+          <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setIsModalOpen(true); }}>
+            <span className="material-symbols-outlined">add</span>학생 추가
+          </button>
+        }
+      />
 
       <div className="table-container card" style={{ padding: 0 }}>
         <table className="data-table">

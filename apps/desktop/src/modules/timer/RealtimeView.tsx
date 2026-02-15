@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import { Student, GradeType, DayType } from '../../types';
@@ -10,6 +10,59 @@ const gradeClassMap: Record<string, string> = {
   '고1': 'h1', '고2': 'h2', '고3': 'h3',
   '검정고시': 'etc',
 };
+
+const formatTime = (date: Date) => date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
+const formatTimer = (minutes: number) => {
+  const h = Math.floor(Math.abs(minutes) / 60);
+  const m = Math.abs(minutes) % 60;
+  return `${minutes < 0 ? '-' : ''}${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+const CurrentTimeClock = memo(function CurrentTimeClock() {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <>{formatTime(currentTime)}</>;
+});
+
+const ActiveSessionCard = memo(function ActiveSessionCard({ session, onCheckOut }: {
+  session: any;
+  onCheckOut: (studentId: string) => void;
+}) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const elapsed = Math.floor((now.getTime() - new Date(session.checkInTime).getTime()) / 1000 / 60);
+  const remaining = session.scheduledMinutes - elapsed;
+  const isWarning = remaining <= 10 && remaining > 0;
+  const isOvertime = remaining <= 0;
+
+  return (
+    <div className={`realtime-card ${gradeClassMap[session.student.grade]}`} style={{ cursor: 'default' }}>
+      <div className="realtime-card-header">
+        <span className="realtime-card-name">{session.student.name}</span>
+        <span className={`grade-badge ${gradeClassMap[session.student.grade]}`}>{session.student.grade}</span>
+      </div>
+      <div className={`realtime-timer ${isWarning ? 'warning' : ''} ${isOvertime ? 'overtime' : ''}`}>
+        {isOvertime ? `+${formatTimer(Math.abs(remaining))} 초과` : `${formatTimer(remaining)} 남음`}
+      </div>
+      <div className="realtime-card-actions">
+        <button className="btn btn-sm" style={{ background: 'var(--warning)', color: 'white' }}>
+          <span className="material-symbols-outlined">add</span>연장
+        </button>
+        <button className="btn btn-primary btn-sm" onClick={() => onCheckOut(session.studentId)}>
+          <span className="material-symbols-outlined">check</span>완료
+        </button>
+      </div>
+    </div>
+  );
+});
 
 const dayOptions: { key: DayType; label: string }[] = [
   { key: '월', label: '월' },
@@ -23,18 +76,12 @@ const dayOptions: { key: DayType; label: string }[] = [
 export default function RealtimeView() {
   const { students, enrollments, realtimeSessions, checkIn, checkOut } = useAppStore();
   const { currentUser } = useReportStore();
-  const [currentTime, setCurrentTime] = useState(new Date());
 
   // 오늘 요일
   const todayDay = getTodayDay();
   // 선택된 요일 (기본값: 오늘)
   const [selectedDay, setSelectedDay] = useState<DayType>(todayDay);
   const isToday = selectedDay === todayDay;
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // 선택된 요일의 수업 학생 목록
   const dayStudents = useMemo(() => {
@@ -76,18 +123,6 @@ export default function RealtimeView() {
   const activeStudents = realtimeSessions.filter((s) => s.status === 'active');
   const completedCount = realtimeSessions.filter((s) => s.status === 'completed').length;
 
-  const formatTime = (date: Date) => date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-
-  const getElapsedTime = (checkInTime: string, scheduledMinutes: number) => {
-    const elapsed = Math.floor((currentTime.getTime() - new Date(checkInTime).getTime()) / 1000 / 60);
-    return { elapsed, remaining: scheduledMinutes - elapsed };
-  };
-
-  const formatTimer = (minutes: number) => {
-    const h = Math.floor(Math.abs(minutes) / 60);
-    const m = Math.abs(minutes) % 60;
-    return `${minutes < 0 ? '-' : ''}${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div>
@@ -134,7 +169,7 @@ export default function RealtimeView() {
           </div>
           <div>
             <span className="stat-label">현재 시간</span>
-            <div className="stat-value" style={{ fontSize: '20px' }}>{formatTime(currentTime)}</div>
+            <div className="stat-value" style={{ fontSize: '20px' }}><CurrentTimeClock /></div>
           </div>
         </div>
         <div className="stat-card">
@@ -220,31 +255,9 @@ export default function RealtimeView() {
                 <div className="empty-state-title">수업 중인 학생이 없습니다</div>
               </div>
             ) : (
-              activeStudents.map((session) => {
-                const { remaining } = getElapsedTime(session.checkInTime, session.scheduledMinutes);
-                const isWarning = remaining <= 10 && remaining > 0;
-                const isOvertime = remaining <= 0;
-
-                return (
-                  <div key={session.studentId} className={`realtime-card ${gradeClassMap[session.student.grade]}`} style={{ cursor: 'default' }}>
-                    <div className="realtime-card-header">
-                      <span className="realtime-card-name">{session.student.name}</span>
-                      <span className={`grade-badge ${gradeClassMap[session.student.grade]}`}>{session.student.grade}</span>
-                    </div>
-                    <div className={`realtime-timer ${isWarning ? 'warning' : ''} ${isOvertime ? 'overtime' : ''}`}>
-                      {isOvertime ? `+${formatTimer(Math.abs(remaining))} 초과` : `${formatTimer(remaining)} 남음`}
-                    </div>
-                    <div className="realtime-card-actions">
-                      <button className="btn btn-sm" style={{ background: 'var(--warning)', color: 'white' }}>
-                        <span className="material-symbols-outlined">add</span>연장
-                      </button>
-                      <button className="btn btn-primary btn-sm" onClick={() => checkOut(session.studentId)}>
-                        <span className="material-symbols-outlined">check</span>완료
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
+              activeStudents.map((session) => (
+                <ActiveSessionCard key={session.studentId} session={session} onCheckOut={checkOut} />
+              ))
             )}
           </div>
         </div>

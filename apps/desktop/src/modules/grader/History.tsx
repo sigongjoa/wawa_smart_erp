@@ -1,14 +1,9 @@
+import PageHeader from '../../components/common/PageHeader';
+
 export default function History() {
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">채점 이력</h1>
-            <p className="page-description">과거 채점 기록을 확인합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="채점 이력" description="과거 채점 기록을 확인합니다" />
 
       <div className="table-container">
         <table className="data-table">

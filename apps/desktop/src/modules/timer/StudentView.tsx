@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import type { GradeType, DayType } from '../../types';
+import PageHeader from '../../components/common/PageHeader';
 
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
@@ -62,14 +63,7 @@ export default function StudentView() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">학생별 보기</h1>
-            <p className="page-description">학생별로 수업 일정을 확인합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="학생별 보기" description="학생별로 수업 일정을 확인합니다" />
 
       {groups.length === 0 ? (
         <div className="card">

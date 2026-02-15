@@ -3,6 +3,7 @@ import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { useAsync } from '../../hooks/useAsync';
 import { saveScore } from '../../services/notion';
+import PageHeader from '../../components/common/PageHeader';
 
 export default function Single() {
   const { students, exams } = useFilteredData();
@@ -134,14 +135,7 @@ export default function Single() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">단건 채점</h1>
-            <p className="page-description">OMR 카드와 정답지를 업로드하여 채점합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="단건 채점" description="OMR 카드와 정답지를 업로드하여 채점합니다" />
 
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
         <div className="card" style={{ padding: '0', height: 'fit-content' }}>

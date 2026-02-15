@@ -3,6 +3,7 @@ import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import type { Student, GradeType, DayType, Enrollment } from '../../types';
 import { getTodayDay } from '../../constants/common';
+import PageHeader from '../../components/common/PageHeader';
 
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
@@ -85,14 +86,7 @@ export default function TimeslotView() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">시간대별 보기</h1>
-            <p className="page-description">시간대별 수업 현황을 한눈에 확인합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="시간대별 보기" description="시간대별 수업 현황을 한눈에 확인합니다" />
 
       <div className="timeslot-container">
         {visibleDays.map((day) => {

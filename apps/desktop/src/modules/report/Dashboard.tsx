@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
+import PageHeader from '../../components/common/PageHeader';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -22,13 +23,11 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">리포트 대시보드</h1>
-            <p className="page-description">월말평가 리포트 시스템 현황을 확인합니다</p>
-          </div>
-          <div className="page-actions">
+      <PageHeader
+        title="리포트 대시보드"
+        description="월말평가 리포트 시스템 현황을 확인합니다"
+        actions={
+          <>
             <button className="btn btn-primary" onClick={() => navigate('/report/input')}>
               <span className="material-symbols-outlined">add</span>
               새 리포트 작성
@@ -37,9 +36,9 @@ export default function Dashboard() {
               <span className={`material-symbols-outlined ${isLoading ? 'spin' : ''}`}>refresh</span>
               새로고침
             </button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="stats-grid">
         <div className="stat-card">

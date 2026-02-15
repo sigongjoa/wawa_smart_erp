@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { sendReportAlimtalk } from '../../services/alimtalk';
+import PageHeader from '../../components/common/PageHeader';
 
 export default function Send() {
   const { reports, students } = useFilteredData();
@@ -52,24 +53,20 @@ export default function Send() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">리포트 전송</h1>
-            <p className="page-description">완료된 리포트를 학부모님께 알림톡으로 전송합니다</p>
-          </div>
-          <div className="page-actions">
-            <button
-              className="btn btn-primary"
-              onClick={handleBulkSend}
-              disabled={isSending || selectedIds.length === 0}
-            >
-              <span className="material-symbols-outlined">send</span>
-              {isSending ? '전송 중...' : `${selectedIds.length}건 일괄 전송`}
-            </button>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="리포트 전송"
+        description="완료된 리포트를 학부모님께 알림톡으로 전송합니다"
+        actions={
+          <button
+            className="btn btn-primary"
+            onClick={handleBulkSend}
+            disabled={isSending || selectedIds.length === 0}
+          >
+            <span className="material-symbols-outlined">send</span>
+            {isSending ? '전송 중...' : `${selectedIds.length}건 일괄 전송`}
+          </button>
+        }
+      />
 
       {/* 검색 필터 바 */}
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-surface)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '16px' }}>

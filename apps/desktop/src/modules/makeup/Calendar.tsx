@@ -3,6 +3,7 @@ import { useMakeupStore } from '../../stores/makeupStore';
 import { useReportStore } from '../../stores/reportStore';
 import { getTeacherName } from '../../constants/common';
 import type { MakeupRecord } from '../../types';
+import PageHeader from '../../components/common/PageHeader';
 
 export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -82,14 +83,7 @@ export default function MakeupCalendar() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">보강 캘린더</h1>
-            <p className="page-description">월별 보강 일정을 캘린더로 확인합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="보강 캘린더" description="월별 보강 일정을 캘린더로 확인합니다" />
 
       {/* 캘린더 네비게이션 */}
       <div className="card" style={{ marginBottom: '1rem' }}>

@@ -3,6 +3,8 @@ import { useMakeupStore } from '../../stores/makeupStore';
 import { useReportStore } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { useSearch } from '../../hooks/useSearch';
+import PageHeader from '../../components/common/PageHeader';
+import SearchInput from '../../components/common/SearchInput';
 import AddAbsenceModal from './components/AddAbsenceModal';
 import ScheduleMakeupModal from './components/ScheduleMakeupModal';
 import type { MakeupRecord } from '../../types';
@@ -48,30 +50,22 @@ export default function MakeupPending() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">대기 중인 보강</h1>
-            <p className="page-description">보강이 필요한 학생 목록입니다</p>
-          </div>
-          <div className="page-actions">
-            <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
-              <span className="material-symbols-outlined">add</span>
-              결석 기록 추가
-            </button>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="대기 중인 보강"
+        description="보강이 필요한 학생 목록입니다"
+        actions={
+          <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
+            <span className="material-symbols-outlined">add</span>
+            결석 기록 추가
+          </button>
+        }
+      />
 
-      <div className="search-bar" style={{ marginBottom: '1rem' }}>
-        <span className="material-symbols-outlined" style={{ color: 'var(--text-secondary)' }}>search</span>
-        <input
-          className="search-input"
-          placeholder="학생 이름 또는 과목 검색..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      <SearchInput
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="학생 이름 또는 과목 검색..."
+      />
 
       <div className="card">
         <table className="data-table">

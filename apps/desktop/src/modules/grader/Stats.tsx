@@ -1,14 +1,9 @@
+import PageHeader from '../../components/common/PageHeader';
+
 export default function Stats() {
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">채점 통계</h1>
-            <p className="page-description">채점 결과 통계를 분석합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="채점 통계" description="채점 결과 통계를 분석합니다" />
 
       <div className="stats-grid">
         <div className="stat-card">

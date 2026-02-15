@@ -3,6 +3,7 @@ import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import type { GradeType, DayType, Enrollment } from '../../types';
 import { getTodayDay } from '../../constants/common';
+import PageHeader from '../../components/common/PageHeader';
 
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
@@ -123,14 +124,7 @@ export default function DayView() {
   return (
     <div>
       {/* Page Header */}
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">요일별 시간표</h1>
-            <p className="page-description">학생들의 수업 일정을 요일별로 확인합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="요일별 시간표" description="학생들의 수업 일정을 요일별로 확인합니다" />
 
       {/* Stats and Consolidated Filters */}
       <div className="card" style={{ padding: '20px', marginBottom: '24px' }}>

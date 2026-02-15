@@ -23,7 +23,7 @@ export default function Header() {
   const filteredModules = modules.filter(module => {
     if (!currentUser) return false;
     // 관리자 전용 메뉴
-    if (['student'].includes(module.id)) {
+    if (['student', 'schedule'].includes(module.id)) {
       return currentUser.teacher.isAdmin;
     }
     return true;

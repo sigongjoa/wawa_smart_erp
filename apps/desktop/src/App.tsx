@@ -90,7 +90,7 @@ function App() {
           <Route path="makeup">
             <Route index element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupDashboard /></Suspense></ErrorBoundary>} />
             <Route path="pending" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupPending /></Suspense></ErrorBoundary>} />
-            <Route path="progress" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupPending /></Suspense></ErrorBoundary>} />
+            <Route path="progress" element={<Navigate to="/makeup/pending" replace />} />
             <Route path="completed" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCompleted /></Suspense></ErrorBoundary>} />
             <Route path="calendar" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCalendar /></Suspense></ErrorBoundary>} />
             <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />

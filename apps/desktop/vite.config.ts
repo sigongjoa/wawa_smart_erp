@@ -14,6 +14,15 @@ export default defineConfig({
   build: {
     outDir: 'dist/renderer',
     emptyOutDir: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-zustand': ['zustand'],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

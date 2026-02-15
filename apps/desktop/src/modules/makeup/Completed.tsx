@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useMakeupStore } from '../../stores/makeupStore';
 import { useReportStore } from '../../stores/reportStore';
 import { useSearch } from '../../hooks/useSearch';
+import PageHeader from '../../components/common/PageHeader';
+import SearchInput from '../../components/common/SearchInput';
 import { getTeacherName } from '../../constants/common';
 
 export default function MakeupCompleted() {
@@ -20,24 +22,13 @@ export default function MakeupCompleted() {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">완료된 보강</h1>
-            <p className="page-description">보강이 완료된 기록입니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="완료된 보강" description="보강이 완료된 기록입니다" />
 
-      <div className="search-bar" style={{ marginBottom: '1rem' }}>
-        <span className="material-symbols-outlined" style={{ color: 'var(--text-secondary)' }}>search</span>
-        <input
-          className="search-input"
-          placeholder="학생 이름 또는 과목 검색..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      <SearchInput
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="학생 이름 또는 과목 검색..."
+      />
 
       <div className="card">
         <table className="data-table">

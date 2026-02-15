@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
-import html2canvas from 'html2canvas';
+// html2canvas is dynamically imported in generateJPG()
 import { wawaLogoBase64 } from '../../assets/wawaLogo';
 import { getSubjectColor } from '../../constants/common';
 
@@ -95,7 +95,7 @@ export default function Preview() {
     try {
       const element = reportRef.current;
 
-      // html2canvas로 캡처
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
