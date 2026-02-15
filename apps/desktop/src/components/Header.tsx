@@ -14,7 +14,6 @@ const modules: ModuleTab[] = [
   { id: 'student', label: '학생관리', icon: 'person_search', path: '/student' },
   { id: 'report', label: '월말평가', icon: 'description', path: '/report' },
   { id: 'grader', label: '채점', icon: 'grading', path: '/grader' },
-  { id: 'schedule', label: '시험일정', icon: 'event', path: '/schedule' },
   { id: 'makeup', label: '보강관리', icon: 'event_repeat', path: '/makeup' },
 ];
 
@@ -24,7 +23,7 @@ export default function Header() {
   const filteredModules = modules.filter(module => {
     if (!currentUser) return false;
     // 관리자 전용 메뉴
-    if (['student', 'schedule'].includes(module.id)) {
+    if (['student'].includes(module.id)) {
       return currentUser.teacher.isAdmin;
     }
     return true;

@@ -1,5 +1,5 @@
 // 모듈 타입
-export type ModuleType = 'timer' | 'report' | 'grader' | 'schedule' | 'student' | 'makeup';
+export type ModuleType = 'timer' | 'report' | 'grader' | 'student' | 'makeup';
 
 // 학년 타입
 export type GradeType = '초1' | '초2' | '초3' | '초4' | '초5' | '초6' | '중1' | '중2' | '중3' | '고1' | '고2' | '고3' | '검정고시';
@@ -68,6 +68,14 @@ export interface ModuleConfig {
 // 시험 난이도 등급
 export type DifficultyGrade = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
+// 시험 상태
+export type ExamStatus =
+  | 'completed'       // 시험 완료 (completedAt 있음)
+  | 'today'           // 오늘 시험
+  | 'absent'          // 결시 (시험일 지났는데 미완료)
+  | 'upcoming'        // 예정
+  | 'unscheduled';    // 미지정
+
 // 시험지
 export interface Exam {
   id: string;
@@ -78,6 +86,19 @@ export interface Exam {
   scope?: string;
   uploadedBy: string;
   uploadedAt: string;
+
+  // 시험일정 관련 필드
+  examDate?: string;              // 시험일 (YYYY-MM-DD)
+  studentId?: string;             // 학생별 시험 (개별 시험일 지정용)
+  studentName?: string;           // 학생 이름 (비정규화)
+
+  // 시험 완료 추적
+  completedAt?: string;           // 시험 완료 시각
+  completedBy?: string;           // 완료 처리한 선생님 ID
+
+  // 메타데이터
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // 선생님
@@ -178,7 +199,6 @@ export interface AppSettings {
   cloudinaryApiKey?: string;
   cloudinaryApiSecret?: string;
   notionAbsenceHistoryDb?: string;
-  notionExamScheduleDb?: string;
   notionEnrollmentDb?: string;
   notionMakeupDb?: string;
   notionDmMessagesDb?: string;
@@ -197,21 +217,9 @@ export interface AbsenceHistory {
   studentName?: string;
   originalDate: string;
   absenceReason: string;
-  retestDate?: string;
-  retestCompleted: boolean;
   yearMonth: string;
   createdAt: string;
-}
-
-// 월별 시험 일정
-export interface ExamSchedule {
-  id: string;
-  studentId: string;
-  studentName?: string;
-  yearMonth: string;
-  examDate: string;
-  createdAt?: string;
-  updatedAt?: string;
+  // 재시험 관련 필드 제거 (retestDate, retestCompleted)
 }
 
 // 수강 일정 타입

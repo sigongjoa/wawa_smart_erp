@@ -3,7 +3,7 @@ import { useReportStore, useFilteredData } from '../../stores/reportStore';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { students, reports, examSchedules: schedules } = useFilteredData();
+  const { students, reports, exams } = useFilteredData();
   const { sendHistories, fetchAllData, isLoading, currentYearMonth } = useReportStore();
   // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
 
@@ -72,29 +72,38 @@ export default function Dashboard() {
                 <tr>
                   <th style={{ paddingLeft: '24px' }}>학생명</th>
                   <th>학년</th>
-                  <th>수강과목</th>
+                  <th>시험 일정</th>
                   <th>상태</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map(s => {
                   const report = reports.find(r => r.studentId === s.id);
+                  const studentExams = exams.filter(e => e.studentId === s.id);
+                  const latestExam = studentExams.length > 0
+                    ? studentExams.sort((a, b) => (b.examDate || '').localeCompare(a.examDate || ''))[0]
+                    : null;
+
                   const status = report
                     ? (report.scores.length >= s.subjects.length ? '완료' : '진행 중')
-                    : '미시작';
+                    : (latestExam?.completedAt ? '채점 대기' : '미시작');
+
                   return (
-                    <tr key={s.id}>
+                    <tr key={s.id} onClick={() => navigate('/report/input')} style={{ cursor: 'pointer' }}>
                       <td style={{ paddingLeft: '24px', fontWeight: 500 }}>{s.name}</td>
                       <td>{s.grade}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          {s.subjects.map(sub => (
-                            <span key={sub} className="subject-badge" style={{ fontSize: '11px' }}>{sub}</span>
-                          ))}
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          {latestExam?.examDate ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>event</span>
+                              {latestExam.examDate}
+                            </span>
+                          ) : '일정 미지합'}
                         </div>
                       </td>
                       <td>
-                        <span className={`badge ${status === '완료' ? 'badge-success' : status === '진행 중' ? 'badge-warning' : 'badge-neutral'}`}>
+                        <span className={`badge ${status === '완료' ? 'badge-success' : status === '채점 대기' ? 'badge-info' : status === '진행 중' ? 'badge-warning' : 'badge-neutral'}`}>
                           {status}
                         </span>
                       </td>

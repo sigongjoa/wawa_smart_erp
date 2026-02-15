@@ -23,7 +23,8 @@ export default function Setup() {
                     teachers: json.notionTeachersDb,
                     students: json.notionStudentsDb,
                     scores: json.notionScoresDb,
-                    exams: json.notionExamsDb
+                    exams: json.notionExamsDb,
+                    absenceHistory: json.notionAbsenceHistoryDb
                 });
 
                 if (!result.success) {
@@ -141,7 +142,8 @@ export default function Setup() {
                             notionScoresDb: "db_id",
                             notionExamsDb: "db_id",
                             notionAbsenceHistoryDb: "db_id",
-                            notionExamScheduleDb: "db_id"
+                            notionEnrollmentDb: "db_id",
+                            notionMakeupDb: "db_id"
                         };
                         const blob = new Blob([JSON.stringify(sample, null, 2)], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);

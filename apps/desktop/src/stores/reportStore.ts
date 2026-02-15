@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Teacher, Student, MonthlyReport, SendHistory, CurrentUser, Exam, AppSettings, AbsenceHistory, ExamSchedule } from '../types';
+import type { Teacher, Student, MonthlyReport, SendHistory, CurrentUser, Exam, AppSettings, AbsenceHistory } from '../types';
 
 interface ReportState {
     // 로그인
@@ -49,11 +49,6 @@ interface ReportState {
     addAbsenceHistory: (history: AbsenceHistory) => void;
     updateAbsenceHistory: (history: AbsenceHistory) => void;
 
-    // 월별 시험 일정
-    examSchedules: ExamSchedule[];
-    setExamSchedules: (schedules: ExamSchedule[]) => void;
-    upsertExamSchedule: (schedule: ExamSchedule) => void;
-
     // 초기화
     reset: () => void;
 
@@ -77,9 +72,6 @@ const defaultAppSettings: AppSettings = {
     notionScoresDb: '',
     notionExamsDb: '',
     notionAbsenceHistoryDb: '',
-    notionExamScheduleDb: '',
-    notionEnrollmentDb: '',
-    notionMakeupDb: '',
     notionDmMessagesDb: '',
     kakaoJsKey: '',
     academyName: '',
@@ -156,27 +148,6 @@ export const useReportStore = create<ReportState>()(
                 ),
             })),
 
-            // 월별 시험 일정
-            examSchedules: [],
-            setExamSchedules: (schedules) => set({ examSchedules: schedules }),
-            upsertExamSchedule: (schedule) => set((state) => {
-                const existing = state.examSchedules.find(
-                    s => s.studentId === schedule.studentId && s.yearMonth === schedule.yearMonth
-                );
-                if (existing) {
-                    return {
-                        examSchedules: state.examSchedules.map(s =>
-                            s.studentId === schedule.studentId && s.yearMonth === schedule.yearMonth
-                                ? schedule
-                                : s
-                        ),
-                    };
-                }
-                return {
-                    examSchedules: [...state.examSchedules, schedule],
-                };
-            }),
-
             // 초기화
             reset: () => set({
                 currentUser: null,
@@ -189,7 +160,6 @@ export const useReportStore = create<ReportState>()(
                 exams: [],
                 appSettings: defaultAppSettings,
                 absenceHistories: [],
-                examSchedules: [],
             }),
 
             // 로딩 상태
@@ -199,7 +169,7 @@ export const useReportStore = create<ReportState>()(
             // 비동기 액션 - 중복 호출 방지용 lock
             fetchAllData: async () => {
                 const state = useReportStore.getState();
-                const { setIsLoading, setTeachers, setStudents, setExams, setReports, setExamSchedules, currentYearMonth, appSettings, isLoading } = state;
+                const { setIsLoading, setTeachers, setStudents, setExams, setReports, currentYearMonth, appSettings, isLoading } = state;
 
                 // 이미 로딩 중이면 중복 호출 방지
                 if (isLoading) {
@@ -219,12 +189,11 @@ export const useReportStore = create<ReportState>()(
                     const notion = await import('../services/notion');
 
                     console.log('[fetchAllData] Fetching from Notion...');
-                    const [teachers, students, exams, reports, schedules] = await Promise.all([
+                    const [teachers, students, exams, reports] = await Promise.all([
                         notion.fetchTeachers(),
                         notion.fetchStudents(),
                         notion.fetchExams(currentYearMonth),
                         notion.fetchScores(currentYearMonth),
-                        notion.fetchExamSchedules(currentYearMonth),
                     ]);
 
                     console.log('[fetchAllData] Results:', {
@@ -232,7 +201,6 @@ export const useReportStore = create<ReportState>()(
                         students: students.length,
                         exams: exams.length,
                         reports: reports.length,
-                        schedules: schedules.length,
                     });
 
                     const reportsWithNames = reports.map(r => {
@@ -244,7 +212,6 @@ export const useReportStore = create<ReportState>()(
                     setStudents(students);
                     setExams(exams);
                     setReports(reportsWithNames);
-                    setExamSchedules(schedules);
                     console.log('✅ Data fetched and stored successfully');
                 } catch (error) {
                     console.error('❌ Failed to fetch data:', error);
@@ -265,7 +232,6 @@ export const useReportStore = create<ReportState>()(
                 exams: state.exams,
                 appSettings: state.appSettings,
                 absenceHistories: state.absenceHistories,
-                examSchedules: state.examSchedules,
             }),
         }
     )
@@ -273,11 +239,11 @@ export const useReportStore = create<ReportState>()(
 
 // 컴포넌트에서 사용하기 쉬운 필터링된 데이터 훅/셀렉터
 export const useFilteredData = () => {
-    const { students, reports, exams, examSchedules, currentUser } = useReportStore();
+    const { students, reports, exams, currentUser } = useReportStore();
 
     // 로그인하지 않았거나 관리자인 경우 전체 데이터 반환
     if (!currentUser || currentUser.teacher.isAdmin) {
-        return { students, reports, exams, examSchedules };
+        return { students, reports, exams };
     }
 
     // 일반 선생님인 경우 담당 과목 학생만 필터링
@@ -298,14 +264,9 @@ export const useFilteredData = () => {
         teacherSubjects.includes(exam.subject)
     );
 
-    const filteredSchedules = examSchedules.filter(schedule =>
-        filteredStudents.some(s => s.id === schedule.studentId)
-    );
-
     return {
         students: filteredStudents,
         reports: filteredReports,
-        exams: filteredExams,
-        examSchedules: filteredSchedules
+        exams: filteredExams
     };
 };

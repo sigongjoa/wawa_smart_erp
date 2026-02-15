@@ -1,6 +1,6 @@
-import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, ExamSchedule, Enrollment, DayType, MakeupRecord, MakeupStatus, DirectMessage, DMContact } from '../types';
+import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, Enrollment, DayType, MakeupRecord, MakeupStatus, DirectMessage, DMContact } from '../types';
 import { useReportStore } from '../stores/reportStore';
-import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_EXAM_SCHEDULE, NOTION_COLUMNS_ENROLLMENT, NOTION_STATUS_VALUES, NOTION_COLUMNS_MAKEUP, NOTION_COLUMNS_DM, NOTION_MAKEUP_STATUS } from '../constants/notion';
+import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_ENROLLMENT, NOTION_STATUS_VALUES, NOTION_COLUMNS_MAKEUP, NOTION_COLUMNS_DM, NOTION_MAKEUP_STATUS } from '../constants/notion';
 import { ApiResult } from '../types/api';
 
 const BATCH_CHUNK_SIZE = 10;
@@ -33,7 +33,7 @@ const getDbIds = () => {
     teachers: settings.notionTeachersDb || '',
     students: settings.notionStudentsDb || '',
     scores: settings.notionScoresDb || '',
-    exams: settings.notionExamsDb || '',
+    exams: settings.notionExamsDb || settings.notionScoresDb || '',
     absenceHistory: settings.notionAbsenceHistoryDb || '',
     examSchedule: settings.notionExamScheduleDb || '',
     enrollment: settings.notionEnrollmentDb || '',
@@ -445,6 +445,12 @@ export const fetchExams = async (yearMonth?: string): Promise<Exam[]> => {
       scope: page.properties[NOTION_COLUMNS_EXAM.SCOPE]?.rich_text?.[0]?.plain_text || '',
       uploadedBy: page.properties[NOTION_COLUMNS_EXAM.UPLOADER]?.rich_text?.[0]?.plain_text || '',
       uploadedAt: page.created_time,
+      // 🆕 시험관리 필드 추가
+      examDate: page.properties['examDate']?.date?.start || undefined,
+      studentId: page.properties['studentId']?.rich_text?.[0]?.plain_text || undefined,
+      studentName: page.properties['studentName']?.rich_text?.[0]?.plain_text || undefined,
+      completedAt: page.properties['completedAt']?.date?.start || undefined,
+      completedBy: page.properties['completedBy']?.relation?.[0]?.id || undefined,
     }));
   } catch (error) {
     console.error('[Notion] fetchExams failed:', error);
@@ -490,94 +496,6 @@ export const updateExamDifficulty = async (examId: string, difficulty: Difficult
   } catch (error) {
     console.error('❌ updateExamDifficulty failed:', error);
     return { success: false, error: { message: (error instanceof Error ? error.message : '') || "난이도 수정에 실패했습니다." } };
-  }
-};
-
-export const fetchExamSchedules = async (yearMonth: string): Promise<ExamSchedule[]> => {
-  const dbIds = getDbIds();
-  if (!dbIds.examSchedule) return [];
-  try {
-    // 년월 필터가 가끔 타입 문제(Text vs Date)를 일으키므로,
-    // 우선 전체 데이터를 가져온 후 JS에서 필터링하여 타입 불일치 오류를 방지합니다.
-    const data = await notionFetch(`/databases/${dbIds.examSchedule}/query`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-
-    return data.results
-      .map((page: any) => {
-        const props = page.properties;
-        const ymText = props[NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]?.rich_text?.[0]?.plain_text ||
-          props[NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]?.select?.name ||
-          props[NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]?.date?.start?.substring(0, 7) || '';
-
-        return {
-          id: page.id,
-          studentId: props[NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]?.relation?.[0]?.id ||
-            props[NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]?.rich_text?.[0]?.plain_text || '',
-          yearMonth: ymText,
-          examDate: props[NOTION_COLUMNS_EXAM_SCHEDULE.EXAM_DATE]?.date?.start || '',
-        };
-      })
-      .filter((s: any) => s.yearMonth === yearMonth);
-  } catch (error) {
-    console.error('❌ fetchExamSchedules failed:', error);
-    return [];
-  }
-};
-
-export const updateExamSchedulesBatch = async (
-  studentIds: string[],
-  yearMonth: string,
-  examDate: string
-): Promise<ApiResult<boolean>> => {
-  const dbIds = getDbIds();
-  if (!dbIds.examSchedule) return { success: false, error: { message: "시험표 데이터베이스 ID가 설정되지 않았습니다." } };
-
-  try {
-    // 년월을 date 형식으로 변환 (YYYY-MM → YYYY-MM-01)
-    const yearMonthDate = `${yearMonth}-01`;
-
-    const results = await Promise.all(studentIds.map(async (studentId) => {
-      // ExamSchedule DB: 학생=rich_text, 년월=date
-      const existing = await notionFetch(`/databases/${dbIds.examSchedule}/query`, {
-        method: 'POST',
-        body: JSON.stringify({
-          filter: {
-            and: [
-              { property: NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT, rich_text: { contains: studentId } },
-              { property: NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH, date: { equals: yearMonthDate } },
-            ],
-          },
-        }),
-      });
-
-      if (existing.results.length > 0) {
-        return notionFetch(`/pages/${existing.results[0].id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            properties: { [NOTION_COLUMNS_EXAM_SCHEDULE.EXAM_DATE]: { date: { start: examDate } } },
-          }),
-        });
-      } else {
-        return notionFetch('/pages', {
-          method: 'POST',
-          body: JSON.stringify({
-            parent: { database_id: dbIds.examSchedule },
-            properties: {
-              [NOTION_COLUMNS_EXAM_SCHEDULE.NAME]: { title: [{ text: { content: `${studentId}_${yearMonth}` } }] },
-              [NOTION_COLUMNS_EXAM_SCHEDULE.STUDENT]: { rich_text: [{ text: { content: studentId } }] },
-              [NOTION_COLUMNS_EXAM_SCHEDULE.YEAR_MONTH]: { date: { start: yearMonthDate } },
-              [NOTION_COLUMNS_EXAM_SCHEDULE.EXAM_DATE]: { date: { start: examDate } },
-            },
-          }),
-        });
-      }
-    }));
-    return { success: true, data: true };
-  } catch (error) {
-    console.error('❌ updateExamSchedulesBatch failed:', error);
-    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "일괄 날짜 지정에 실패했습니다." } };
   }
 };
 
@@ -931,6 +849,178 @@ export const fetchRecentDMForUser = async (userId: string): Promise<DirectMessag
   }
 };
 
+// ========== 시험관리 함수 (Phase 2) ==========
+
+/**
+ * 학생별 시험 정보 조회
+ */
+export const fetchStudentExams = async (
+  studentId: string,
+  yearMonth: string
+): Promise<Exam[]> => {
+  const dbIds = getDbIds();
+  if (!dbIds.exams) return [];
+  try {
+    const data = await notionFetch(`/databases/${dbIds.exams}/query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: {
+          and: [
+            { property: NOTION_COLUMNS_EXAM.YEAR_MONTH, rich_text: { equals: yearMonth } },
+            { property: 'studentId', rich_text: { equals: studentId } },
+          ],
+        },
+      }),
+    });
+    return data.results.map((page: any) => ({
+      id: page.id,
+      subject: page.properties[NOTION_COLUMNS_EXAM.SUBJECT]?.select?.name || '',
+      yearMonth: page.properties[NOTION_COLUMNS_EXAM.YEAR_MONTH]?.rich_text?.[0]?.plain_text || '',
+      difficulty: page.properties[NOTION_COLUMNS_EXAM.DIFFICULTY]?.select?.name as DifficultyGrade || 'C',
+      examFileUrl: page.properties[NOTION_COLUMNS_EXAM.EXAM_FILE]?.files?.[0]?.external?.url || page.properties[NOTION_COLUMNS_EXAM.EXAM_FILE]?.files?.[0]?.file?.url || '',
+      scope: page.properties[NOTION_COLUMNS_EXAM.SCOPE]?.rich_text?.[0]?.plain_text || '',
+      uploadedBy: page.properties[NOTION_COLUMNS_EXAM.UPLOADER]?.rich_text?.[0]?.plain_text || '',
+      uploadedAt: page.created_time,
+      examDate: page.properties['examDate']?.date?.start || undefined,
+      studentId: page.properties['studentId']?.rich_text?.[0]?.plain_text || undefined,
+      studentName: page.properties['studentName']?.rich_text?.[0]?.plain_text || undefined,
+      completedAt: page.properties['completedAt']?.date?.start || undefined,
+      completedBy: page.properties['completedBy']?.relation?.[0]?.id || undefined,
+    }));
+  } catch (error) {
+    console.error('[Notion] fetchStudentExams failed:', error);
+    return [];
+  }
+};
+
+/**
+ * 시험일 일괄 지정
+ */
+export const bulkSetExamDate = async (
+  studentIds: string[],
+  yearMonth: string,
+  examDate: string
+): Promise<ApiResult<boolean>> => {
+  const dbIds = getDbIds();
+  if (!dbIds.exams) return { success: false, error: { message: "시험 데이터베이스 ID가 설정되지 않았습니다." } };
+
+  try {
+    const chunks = chunkArray(studentIds, BATCH_CHUNK_SIZE);
+    for (const chunk of chunks) {
+      await Promise.all(chunk.map(async (studentId) => {
+        const existing = await notionFetch(`/databases/${dbIds.exams}/query`, {
+          method: 'POST',
+          body: JSON.stringify({
+            filter: {
+              and: [
+                { property: NOTION_COLUMNS_EXAM.YEAR_MONTH, rich_text: { equals: yearMonth } },
+                { property: 'studentId', rich_text: { equals: studentId } },
+              ],
+            },
+          }),
+        });
+
+        if (existing.results.length > 0) {
+          await notionFetch(`/pages/${existing.results[0].id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              properties: {
+                'examDate': { date: { start: examDate } },
+              },
+            }),
+          });
+        } else {
+          await notionFetch('/pages', {
+            method: 'POST',
+            body: JSON.stringify({
+              parent: { database_id: dbIds.exams },
+              properties: {
+                [NOTION_COLUMNS_EXAM.SUBJECT]: { select: { name: '공통' } },
+                [NOTION_COLUMNS_EXAM.YEAR_MONTH]: { rich_text: [{ text: { content: yearMonth } }] },
+                [NOTION_COLUMNS_EXAM.DIFFICULTY]: { select: { name: 'C' } },
+                'studentId': { rich_text: [{ text: { content: studentId } }] },
+                'examDate': { date: { start: examDate } },
+              },
+            }),
+          });
+        }
+      }));
+      await delay(BATCH_CHUNK_DELAY);
+    }
+    return { success: true, data: true };
+  } catch (error) {
+    console.error('❌ bulkSetExamDate failed:', error);
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "일괄 시험일 지정에 실패했습니다." } };
+  }
+};
+
+/**
+ * 시험 완료 처리
+ */
+export const markExamCompleted = async (
+  examId: string,
+  teacherId: string
+): Promise<ApiResult<boolean>> => {
+  try {
+    await notionFetch(`/pages/${examId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        properties: {
+          'completedAt': { date: { start: new Date().toISOString() } },
+          'completedBy': { relation: [{ id: teacherId }] },
+        },
+      }),
+    });
+    return { success: true, data: true };
+  } catch (error) {
+    console.error('❌ markExamCompleted failed:', error);
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "시험 완료 처리에 실패했습니다." } };
+  }
+};
+
+/**
+ * 결시 기록 생성 (간소화 - retestDate 제거)
+ */
+export const createAbsenceRecordSimplified = async (
+  studentId: string,
+  studentName: string,
+  originalDate: string,
+  absenceReason: string,
+  yearMonth: string
+): Promise<ApiResult<AbsenceHistory>> => {
+  const dbIds = getDbIds();
+  if (!dbIds.absenceHistory) return { success: false, error: { message: '결시이력 데이터베이스 ID가 설정되지 않았습니다.' } };
+  try {
+    const properties: Record<string, unknown> = {
+      [NOTION_COLUMNS_ABSENCE_HISTORY.NAME]: { title: [{ text: { content: `${studentName}_${originalDate}` } }] },
+      [NOTION_COLUMNS_ABSENCE_HISTORY.STUDENT]: { relation: [{ id: studentId }] },
+      [NOTION_COLUMNS_ABSENCE_HISTORY.ORIGINAL_DATE]: { date: { start: originalDate } },
+      [NOTION_COLUMNS_ABSENCE_HISTORY.ABSENCE_REASON]: { rich_text: [{ text: { content: absenceReason } }] },
+      [NOTION_COLUMNS_ABSENCE_HISTORY.YEAR_MONTH]: { rich_text: [{ text: { content: yearMonth } }] },
+    };
+
+    const data = await notionFetch('/pages', {
+      method: 'POST',
+      body: JSON.stringify({ parent: { database_id: dbIds.absenceHistory }, properties }),
+    });
+    return {
+      success: true,
+      data: {
+        id: data.id,
+        studentId,
+        studentName,
+        originalDate,
+        absenceReason,
+        yearMonth,
+        createdAt: data.created_time,
+      },
+    };
+  } catch (error) {
+    console.error('❌ createAbsenceRecordSimplified failed:', error);
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || '결시 기록 생성에 실패했습니다.' } };
+  }
+};
+
 const notionClient = {
   getStudents,
   fetchStudents,
@@ -943,8 +1033,6 @@ const notionClient = {
   fetchExams,
   createExamEntry,
   updateExamDifficulty,
-  fetchExamSchedules,
-  updateExamSchedulesBatch,
   fetchEnrollments,
   fetchEnrollmentsByStudent,
   updateStudentEnrollments,
@@ -956,6 +1044,11 @@ const notionClient = {
   fetchDMMessages,
   sendDMMessage,
   fetchRecentDMForUser,
+  // 시험관리 함수
+  fetchStudentExams,
+  bulkSetExamDate,
+  markExamCompleted,
+  createAbsenceRecordSimplified,
 };
 
 export default notionClient;

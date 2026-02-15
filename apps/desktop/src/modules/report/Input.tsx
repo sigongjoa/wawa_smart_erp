@@ -187,7 +187,15 @@ export default function Input() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>{selectedStudent.name} 학생</h2>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{selectedStudent.grade} · {selectedStudent.subjects.join(', ')}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '12px' }}>
+                      <span>{selectedStudent.grade} · {selectedStudent.subjects.join(', ')}</span>
+                      {selectedStudent.examDate && (
+                        <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>calendar_month</span>
+                          시험일: {selectedStudent.examDate}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button
                     className="btn btn-primary"

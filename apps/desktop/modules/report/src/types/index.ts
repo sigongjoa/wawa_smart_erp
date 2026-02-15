@@ -11,6 +11,19 @@ export interface Exam {
   scope?: string;           // 범위
   uploadedBy: string;
   uploadedAt: string;
+
+  // 시험일정 관련 필드
+  examDate?: string;              // 시험일 (YYYY-MM-DD)
+  studentId?: string;             // 학생별 시험 (개별 시험일 지정용)
+  studentName?: string;           // 학생 이름 (비정규화)
+
+  // 시험 완료 추적
+  completedAt?: string;           // 시험 완료 시각
+  completedBy?: string;           // 완료 처리한 선생님 ID
+
+  // 메타데이터
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // 선생님
@@ -163,18 +176,16 @@ export interface AbsenceHistory {
   studentName?: string;     // 조회 편의용
   originalDate: string;     // 원래 시험일 (YYYY-MM-DD)
   absenceReason: string;    // 결시 사유
-  retestDate?: string;      // 재시험일 (YYYY-MM-DD)
-  retestCompleted: boolean; // 재시험 완료 여부
   yearMonth: string;        // 시험 년월 (2026-02)
   createdAt: string;
+  // 재시험 관련 필드 제거 (retestDate, retestCompleted)
 }
 
 // 시험 상태 (화면 표시용)
 export type ExamStatus =
-  | 'completed'      // 시험 완료 (점수 입력됨)
+  | 'completed'      // 시험 완료 (completedAt 있음)
   | 'today'          // 오늘 시험 예정
-  | 'absent'         // 결시 (재시험 미지정)
-  | 'retest_pending' // 재시험 대기 중
+  | 'absent'         // 결시 (시험일 지났는데 미완료)
   | 'upcoming'       // 시험 예정
   | 'unscheduled';   // 미지정
 

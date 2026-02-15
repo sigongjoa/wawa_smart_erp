@@ -64,7 +64,7 @@ export default function Students() {
         <div className="page-header-row">
           <div>
             <h1 className="page-title">학생 관리</h1>
-            <p className="page-description">학생 정보를 관리하고 시험 일정을 확인합니다</p>
+            <p className="page-description">학생 기본 정보 및 수강 과목을 관리합니다</p>
           </div>
           <div className="page-actions">
             <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setIsModalOpen(true); }}>
@@ -74,7 +74,7 @@ export default function Students() {
         </div>
       </div>
 
-      <div className="table-container">
+      <div className="table-container card" style={{ padding: 0 }}>
         <table className="data-table">
           <thead>
             <tr>
@@ -84,11 +84,11 @@ export default function Students() {
               <th>학부모</th>
               <th>연락처</th>
               <th>상태</th>
-              <th>액션</th>
+              <th style={{ textAlign: 'center' }}>액션</th>
             </tr>
           </thead>
           <tbody>
-            {students.map(student => (
+            {students.map((student: Student) => (
               <tr key={student.id}>
                 <td><span className={`grade-badge ${student.grade.toLowerCase()}`}>{student.grade}</span></td>
                 <td style={{ fontWeight: 600 }}>{student.name}</td>
@@ -97,19 +97,19 @@ export default function Students() {
                     {student.subjects.map(sub => <span key={sub} className="subject-badge">{sub}</span>)}
                   </div>
                 </td>
-                <td>{student.parentName}</td>
-                <td>{student.parentPhone}</td>
+                <td>{student.parentName || '-'}</td>
+                <td>{student.parentPhone || '-'}</td>
                 <td>
                   <span className={`status-badge ${student.status === 'active' ? 'success' : 'danger'}`}>
                     <span className="dot"></span>{student.status === 'active' ? '활성' : '비활성'}
                   </span>
                 </td>
                 <td>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-icon" onClick={() => { setEditingStudent(student); setIsModalOpen(true); }}>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button className="btn-icon" onClick={() => { setEditingStudent(student); setIsModalOpen(true); }} title="수정">
                       <span className="material-symbols-outlined">edit</span>
                     </button>
-                    <button className="btn-icon" onClick={() => handleDelete(student.id)}>
+                    <button className="btn-icon" onClick={() => handleDelete(student.id)} title="삭제">
                       <span className="material-symbols-outlined">delete</span>
                     </button>
                   </div>
@@ -118,8 +118,13 @@ export default function Students() {
             ))}
           </tbody>
         </table>
-        {isLoading && <div style={{ padding: '20px', textAlign: 'center' }}>로딩 중...</div>}
-        {!isLoading && students.length === 0 && <div className="empty-state">학생이 없습니다.</div>}
+        {isLoading && <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>로딩 중...</div>}
+        {!isLoading && students.length === 0 && (
+          <div className="empty-state" style={{ padding: '60px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '48px' }}>group_off</span>
+            <div className="empty-state-title">등록된 학생이 없습니다.</div>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
@@ -169,12 +174,12 @@ function StudentModal({ student, onClose, onSubmit }: { student: any; onClose: (
         <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>{student ? '학생 정보 수정' : '새 학생 추가'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label className="filter-group-label" style={{ display: 'block', marginBottom: '8px' }}>학생 이름</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>학생 이름</label>
             <input className="search-input" style={{ width: '100%' }} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="이름을 입력하세요" required />
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label className="filter-group-label" style={{ display: 'block', marginBottom: '8px' }}>학년</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>학년</label>
             <select className="search-input" style={{ width: '100%' }} value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })}>
               <option>중1</option><option>중2</option><option>중3</option>
               <option>고1</option><option>고2</option><option>고3</option>
@@ -183,7 +188,7 @@ function StudentModal({ student, onClose, onSubmit }: { student: any; onClose: (
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label className="filter-group-label" style={{ display: 'block', marginBottom: '8px' }}>수강 과목</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>수강 과목</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {availableSubjects.map(sub => (
                 <button
@@ -200,17 +205,17 @@ function StudentModal({ student, onClose, onSubmit }: { student: any; onClose: (
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div className="form-group">
-              <label className="filter-group-label" style={{ display: 'block', marginBottom: '8px' }}>학부모 성함</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>학부모 성함</label>
               <input className="search-input" style={{ width: '100%' }} value={formData.parentName} onChange={e => setFormData({ ...formData, parentName: e.target.value })} placeholder="성함" />
             </div>
             <div className="form-group">
-              <label className="filter-group-label" style={{ display: 'block', marginBottom: '8px' }}>학부모 연락처</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>학부모 연락처</label>
               <input className="search-input" style={{ width: '100%' }} value={formData.parentPhone} onChange={e => setFormData({ ...formData, parentPhone: e.target.value })} placeholder="010-0000-0000" />
             </div>
           </div>
 
           <div className="form-group" style={{ marginBottom: '24px' }}>
-            <label className="filter-group-label" style={{ display: 'block', marginBottom: '8px' }}>상태</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>상태</label>
             <div style={{ display: 'flex', gap: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
                 <input type="radio" checked={formData.status === 'active'} onChange={() => setFormData({ ...formData, status: 'active' })} /> 활성

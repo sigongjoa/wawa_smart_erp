@@ -28,13 +28,6 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'stats', label: '통계', icon: 'analytics', path: '/grader/stats' },
     { id: 'settings', label: '설정', icon: 'settings', path: '/grader/settings' },
   ],
-  schedule: [
-    { id: 'today', label: '오늘 시험', icon: 'today', path: '/schedule' },
-    { id: 'pending', label: '미지정 학생', icon: 'pending_actions', path: '/schedule/pending' },
-    { id: 'upcoming', label: '예정된 시험', icon: 'event_upcoming', path: '/schedule/upcoming' },
-    { id: 'history', label: '시험 이력', icon: 'history', path: '/schedule/history' },
-    { id: 'settings', label: '설정', icon: 'settings', path: '/schedule/settings' },
-  ],
   student: [
     { id: 'list', label: '전체 학생', icon: 'groups', path: '/student' },
     { id: 'inactive', label: '비활성 학생', icon: 'person_off', path: '/student?status=inactive' },
@@ -72,7 +65,6 @@ export default function Sidebar() {
     timer: '시간표 관리',
     report: '리포트 시스템',
     grader: '채점 시스템',
-    schedule: '시험 일정',
     student: '학생 관리',
     makeup: '보강관리',
   };

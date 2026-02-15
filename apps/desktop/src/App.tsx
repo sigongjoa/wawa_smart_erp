@@ -26,12 +26,6 @@ const GraderHistory = lazy(() => import('./modules/grader/History'));
 const GraderStats = lazy(() => import('./modules/grader/Stats'));
 const GraderSettings = lazy(() => import('./modules/grader/Settings'));
 
-const ScheduleToday = lazy(() => import('./modules/schedule/Today'));
-const SchedulePending = lazy(() => import('./modules/schedule/Pending'));
-const ScheduleUpcoming = lazy(() => import('./modules/schedule/Upcoming'));
-const ScheduleHistory = lazy(() => import('./modules/schedule/History'));
-const ScheduleSettings = lazy(() => import('./modules/schedule/Settings'));
-
 const StudentList = lazy(() => import('./modules/student/List'));
 
 const MakeupDashboard = lazy(() => import('./modules/makeup/Dashboard'));
@@ -102,14 +96,6 @@ function App() {
             <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 
-          {/* Schedule 모듈 (ADMIN ONLY) */}
-          <Route path="schedule" element={<ProtectedRoute adminOnly />}>
-            <Route index element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ScheduleToday /></Suspense></ErrorBoundary>} />
-            <Route path="pending" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><SchedulePending /></Suspense></ErrorBoundary>} />
-            <Route path="upcoming" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ScheduleUpcoming /></Suspense></ErrorBoundary>} />
-            <Route path="history" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ScheduleHistory /></Suspense></ErrorBoundary>} />
-            <Route path="settings" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ScheduleSettings /></Suspense></ErrorBoundary>} />
-          </Route>
         </Route>
       </Routes>
       <ToastContainer />
