@@ -202,6 +202,8 @@ export interface AppSettings {
   notionEnrollmentDb?: string;
   notionMakeupDb?: string;
   notionDmMessagesDb?: string;
+  notionExamScheduleDb?: string;  // 추가 (Lint 에러 수정)
+  notionNotificationsDb?: string; // 추가 (Lint 에러 수정)
 }
 
 // 현재 로그인한 선생님
@@ -269,6 +271,7 @@ export interface DirectMessage {
   receiverName?: string;
   content: string;
   createdAt: string;
+  readAt?: string;             // 읽은 시각 (추가)
 }
 
 // DM 대화 상대
@@ -278,6 +281,24 @@ export interface DMContact {
   lastMessage?: string;
   lastMessageAt?: string;
   unreadCount: number;
+}
+
+// ========== 시스템 알림 관련 타입 ==========
+
+export type NotificationType = '보강' | '성적' | '시험' | '시스템';
+export type NotificationStatus = 'unread' | 'read' | 'dismissed';
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  content: string;
+  type: NotificationType;
+  status: NotificationStatus;
+  targetTeacherId: string;
+  priority: 'high' | 'normal';
+  path?: string;             // 클릭 시 이동할 경로
+  createdAt: string;
+  readAt?: string;
 }
 
 // ========== AI 종합평가 관련 타입 ==========

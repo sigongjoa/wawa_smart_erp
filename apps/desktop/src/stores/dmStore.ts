@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { DirectMessage, DMContact, Teacher } from '../types';
-import { fetchDMMessages, sendDMMessage, fetchRecentDMForUser } from '../services/notion';
+import { fetchDMMessages, sendDMMessage, fetchRecentDMForUser, markDMAsRead } from '../services/notion';
 
 interface DMState {
   isOpen: boolean;
@@ -68,6 +68,15 @@ export const useDMStore = create<DMState>((set, get) => ({
     try {
       const messages = await fetchDMMessages(userId, partnerId);
       set({ messages, isLoading: false });
+
+      // Mark as read messages received by me
+      const unreadFromPartner = messages
+        .filter(m => m.receiverId === userId && !m.readAt)
+        .map(m => m.id);
+
+      if (unreadFromPartner.length > 0) {
+        await markDMAsRead(unreadFromPartner);
+      }
     } catch (error) {
       console.error('[DMStore] fetchMessages failed:', error);
       set({ isLoading: false });
@@ -97,8 +106,8 @@ export const useDMStore = create<DMState>((set, get) => ({
           contact.lastMessage = msg.content;
           contact.lastMessageAt = msg.createdAt;
         }
-        // Count unread (messages where I'm receiver)
-        if (msg.receiverId === userId && contact) {
+        // Count unread (messages where I'm receiver and not read yet)
+        if (msg.receiverId === userId && !msg.readAt && contact) {
           contact.unreadCount++;
         }
       }

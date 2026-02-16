@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useReportStore } from '../stores/reportStore';
 import type { ModuleType } from '../types';
+import NotificationCenter from './NotificationCenter';
 
 interface ModuleTab {
   id: ModuleType;
@@ -74,10 +75,7 @@ export default function Header() {
             </button>
           </>
         )}
-        <button className="header-icon-btn" title="알림">
-          <span className="material-symbols-outlined">notifications</span>
-          <span className="notification-dot"></span>
-        </button>
+        <NotificationCenter />
       </div>
     </header>
   );

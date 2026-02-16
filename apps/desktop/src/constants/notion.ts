@@ -88,6 +88,19 @@ export const NOTION_COLUMNS_DM = {
     RECEIVER_ID: 'ReceiverID',
     CONTENT: 'Content',
     CREATED_TIME: 'CreatedTime',
+    READ_AT: 'ReadAt', // 추가됨
+} as const;
+
+export const NOTION_COLUMNS_NOTIFICATION = {
+    TITLE: 'Name',
+    TYPE: 'Type',
+    STATUS: 'Status',
+    TARGET_TEACHER: 'TargetTeacher',
+    CONTENT: 'Content',
+    PRIORITY: 'Priority',
+    PATH: 'Path',
+    CREATED_AT: 'CreatedAt',
+    READ_AT: 'ReadAt',
 } as const;
 
 export const NOTION_MAKEUP_STATUS = {

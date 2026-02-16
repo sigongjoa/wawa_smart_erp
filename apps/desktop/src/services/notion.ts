@@ -1,6 +1,6 @@
-import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, Enrollment, DayType, MakeupRecord, MakeupStatus, DirectMessage, DMContact } from '../types';
+import type { Teacher, Student, Score, MonthlyReport, SubjectScore, Exam, DifficultyGrade, AbsenceHistory, Enrollment, DayType, MakeupRecord, MakeupStatus, DirectMessage, DMContact, AppNotification, NotificationType, NotificationStatus } from '../types';
 import { useReportStore } from '../stores/reportStore';
-import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_ENROLLMENT, NOTION_STATUS_VALUES, NOTION_COLUMNS_MAKEUP, NOTION_COLUMNS_DM, NOTION_MAKEUP_STATUS } from '../constants/notion';
+import { NOTION_COLUMNS_STUDENT, NOTION_COLUMNS_SCORE, NOTION_COLUMNS_EXAM, NOTION_COLUMNS_ABSENCE_HISTORY, NOTION_COLUMNS_ENROLLMENT, NOTION_STATUS_VALUES, NOTION_COLUMNS_MAKEUP, NOTION_COLUMNS_DM, NOTION_MAKEUP_STATUS, NOTION_COLUMNS_NOTIFICATION } from '../constants/notion';
 import { ApiResult } from '../types/api';
 
 const BATCH_CHUNK_SIZE = 10;
@@ -39,6 +39,7 @@ const getDbIds = () => {
     enrollment: settings.notionEnrollmentDb || '',
     makeup: settings.notionMakeupDb || '',
     dmMessages: settings.notionDmMessagesDb || '',
+    notifications: settings.notionNotificationsDb || '', // 알림 DB 추가
   };
 };
 
@@ -149,6 +150,7 @@ export const testNotionConnection = async (
   details.enrollment = await testDb('수강일정', dbIds.enrollment);
   details.makeup = await testDb('보강관리', dbIds.makeup);
   details.dmMessages = await testDb('쪽지(DM)', dbIds.dmMessages);
+  details.notifications = await testDb('알림', dbIds.notifications);
 
   const connectedCount = Object.values(details).filter(Boolean).length;
 
@@ -842,10 +844,140 @@ export const fetchRecentDMForUser = async (userId: string): Promise<DirectMessag
       receiverId: page.properties[NOTION_COLUMNS_DM.RECEIVER_ID]?.rich_text?.[0]?.plain_text || '',
       content: page.properties[NOTION_COLUMNS_DM.CONTENT]?.rich_text?.[0]?.plain_text || '',
       createdAt: page.created_time,
+      readAt: page.properties[NOTION_COLUMNS_DM.READ_AT]?.date?.start || undefined,
     }));
   } catch (error) {
     console.error('[Notion] fetchRecentDMForUser failed:', error);
     return [];
+  }
+};
+
+export const markDMAsRead = async (messageIds: string[]): Promise<ApiResult<boolean>> => {
+  try {
+    const now = new Date().toISOString();
+    const chunks = chunkArray(messageIds, BATCH_CHUNK_SIZE);
+    for (const chunk of chunks) {
+      await Promise.all(chunk.map(id =>
+        notionFetch(`/pages/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            properties: {
+              [NOTION_COLUMNS_DM.READ_AT]: { date: { start: now } },
+            },
+          }),
+        })
+      ));
+      await delay(BATCH_CHUNK_DELAY);
+    }
+    return { success: true, data: true };
+  } catch (error) {
+    console.error('[Notion] markDMAsRead failed:', error);
+    return { success: false, error: { message: '읽음 처리 실패' } };
+  }
+};
+
+// ========== 시스템 알림 함수 ==========
+
+export const fetchNotifications = async (teacherId: string): Promise<AppNotification[]> => {
+  const dbIds = getDbIds();
+  if (!dbIds.notifications) return [];
+  try {
+    // 1. Fetch existing notifications
+    const data = await notionFetch(`/databases/${dbIds.notifications}/query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: {
+          and: [
+            { property: NOTION_COLUMNS_NOTIFICATION.TARGET_TEACHER, relation: { contains: teacherId } },
+            { property: NOTION_COLUMNS_NOTIFICATION.STATUS, select: { does_not_equal: 'dismissed' } },
+          ],
+        },
+        sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+      }),
+    });
+    const existing = data.results.map((page: any) => ({
+      id: page.id,
+      title: page.properties[NOTION_COLUMNS_NOTIFICATION.TITLE]?.title?.[0]?.plain_text || '',
+      content: page.properties[NOTION_COLUMNS_NOTIFICATION.CONTENT]?.rich_text?.[0]?.plain_text || '',
+      type: page.properties[NOTION_COLUMNS_NOTIFICATION.TYPE]?.select?.name as NotificationType || '시스템',
+      status: page.properties[NOTION_COLUMNS_NOTIFICATION.STATUS]?.select?.name as NotificationStatus || 'unread',
+      targetTeacherId: page.properties[NOTION_COLUMNS_NOTIFICATION.TARGET_TEACHER]?.relation?.[0]?.id || '',
+      priority: page.properties[NOTION_COLUMNS_NOTIFICATION.PRIORITY]?.select?.name as 'high' | 'normal' || 'normal',
+      path: page.properties[NOTION_COLUMNS_NOTIFICATION.PATH]?.url || undefined,
+      createdAt: page.created_time,
+      readAt: page.properties[NOTION_COLUMNS_NOTIFICATION.READ_AT]?.date?.start || undefined,
+    }));
+
+    // 2. Auto-Generation Logic (Background/On-demand)
+    // To avoid overloading, we only check for new things periodically or when specific conditions are met.
+    // Here we'll implement a simple version triggered when fetching.
+
+    // Check for pending makeups for this teacher
+    if (dbIds.makeup) {
+      const makeups = await fetchMakeupRecords('시작 전');
+      const myPendingMakeups = makeups.filter(m => m.teacherId === teacherId);
+
+      for (const m of myPendingMakeups) {
+        const alreadyNotified = existing.some(n => n.title.includes(m.studentName || '') && n.content.includes(m.absentDate));
+        if (!alreadyNotified) {
+          await createNotification({
+            title: `[보강 알림] ${m.studentName} 학생`,
+            content: `${m.absentDate} 결석분에 대한 보강 일정이 있습니다.`,
+            type: '보강',
+            targetTeacherId: teacherId,
+            priority: 'normal',
+            path: `#/makeup/calendar`,
+          });
+        }
+      }
+    }
+
+    return existing;
+  } catch (error) {
+    console.error('[Notion] fetchNotifications failed:', error);
+    return [];
+  }
+};
+
+export const updateNotificationStatus = async (id: string, status: NotificationStatus): Promise<ApiResult<boolean>> => {
+  try {
+    const properties: Record<string, any> = {
+      [NOTION_COLUMNS_NOTIFICATION.STATUS]: { select: { name: status } },
+    };
+    if (status === 'read') {
+      properties[NOTION_COLUMNS_NOTIFICATION.READ_AT] = { date: { start: new Date().toISOString() } };
+    }
+    await notionFetch(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ properties }) });
+    return { success: true, data: true };
+  } catch (error) {
+    console.error('[Notion] updateNotificationStatus failed:', error);
+    return { success: false, error: { message: '알림 상태 업데이트 실패' } };
+  }
+};
+
+export const createNotification = async (notif: Omit<AppNotification, 'id' | 'createdAt' | 'status'>): Promise<ApiResult<boolean>> => {
+  const dbIds = getDbIds();
+  if (!dbIds.notifications) return { success: false, error: { message: '알림 DB 미설정' } };
+  try {
+    await notionFetch('/pages', {
+      method: 'POST',
+      body: JSON.stringify({
+        parent: { database_id: dbIds.notifications },
+        properties: {
+          [NOTION_COLUMNS_NOTIFICATION.TITLE]: { title: [{ text: { content: notif.title } }] },
+          [NOTION_COLUMNS_NOTIFICATION.CONTENT]: { rich_text: [{ text: { content: notif.content } }] },
+          [NOTION_COLUMNS_NOTIFICATION.TYPE]: { select: { name: notif.type } },
+          [NOTION_COLUMNS_NOTIFICATION.STATUS]: { select: { name: 'unread' } },
+          [NOTION_COLUMNS_NOTIFICATION.TARGET_TEACHER]: { relation: [{ id: notif.targetTeacherId }] },
+          [NOTION_COLUMNS_NOTIFICATION.PRIORITY]: { select: { name: notif.priority } },
+          [NOTION_COLUMNS_NOTIFICATION.PATH]: { url: notif.path || null },
+        },
+      }),
+    });
+    return { success: true, data: true };
+  } catch (error) {
+    console.error('[Notion] createNotification failed:', error);
+    return { success: false, error: { message: '알림 생성 실패' } };
   }
 };
 
@@ -1049,6 +1181,10 @@ const notionClient = {
   bulkSetExamDate,
   markExamCompleted,
   createAbsenceRecordSimplified,
+  markDMAsRead,
+  fetchNotifications,
+  updateNotificationStatus,
+  createNotification,
 };
 
 export default notionClient;
