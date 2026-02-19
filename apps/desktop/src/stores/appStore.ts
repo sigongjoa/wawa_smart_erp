@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Student, FilterState, RealtimeSession, DayType, GradeType, Enrollment } from '../types';
 import notionClient from '../services/notion';
+import { includesHangul } from '../utils/hangulUtils';
 import { getTodayDay } from '../constants/common';
 
 interface AppState {
@@ -229,7 +230,7 @@ export const useAppStore = create<AppState>()(
       return students.filter((student) => {
         if (timerFilters.days.length > 0 && !timerFilters.days.includes(student.day as DayType)) return false;
         if (timerFilters.grades.length > 0 && !timerFilters.grades.includes(student.grade as GradeType)) return false;
-        if (timerFilters.search && !student.name.includes(timerFilters.search)) return false;
+        if (timerFilters.search && !includesHangul(student.name, timerFilters.search)) return false;
         return true;
       });
     },

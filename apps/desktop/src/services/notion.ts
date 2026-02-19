@@ -33,7 +33,7 @@ const getDbIds = () => {
     teachers: settings.notionTeachersDb || '',
     students: settings.notionStudentsDb || '',
     scores: settings.notionScoresDb || '',
-    exams: settings.notionExamsDb || settings.notionScoresDb || '',
+    exams: settings.notionExamsDb || '',
     absenceHistory: settings.notionAbsenceHistoryDb || '',
     examSchedule: settings.notionExamScheduleDb || '',
     enrollment: settings.notionEnrollmentDb || '',

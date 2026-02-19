@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useReportStore } from '../stores/reportStore';
 import type { ModuleType } from '../types';
 import NotificationCenter from './NotificationCenter';
+import { useNavigate } from 'react-router-dom';
 
 interface ModuleTab {
   id: ModuleType;
@@ -20,6 +21,7 @@ const modules: ModuleTab[] = [
 
 export default function Header() {
   const { currentUser, logout } = useReportStore();
+  const navigate = useNavigate();
 
   const filteredModules = modules.filter(module => {
     if (!currentUser) return false;
@@ -70,6 +72,11 @@ export default function Header() {
               </div>
             </div>
             <div className="header-divider"></div>
+            {currentUser.teacher.isAdmin && (
+              <button className="header-icon-btn" title="설정" onClick={() => navigate('/settings')}>
+                <span className="material-symbols-outlined">settings</span>
+              </button>
+            )}
             <button className="header-icon-btn" title="로그아웃" onClick={logout}>
               <span className="material-symbols-outlined">logout</span>
             </button>

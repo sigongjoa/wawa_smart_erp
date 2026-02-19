@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppShell from './components/AppShell';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastContainer from './components/common/ToastContainer';
+import { initializeSkills } from './skills/initSkills';
 
 // Lazy-loaded module pages
 const TimerDayView = lazy(() => import('./modules/timer/DayView'));
@@ -32,7 +33,10 @@ const MakeupDashboard = lazy(() => import('./modules/makeup/Dashboard'));
 const MakeupPending = lazy(() => import('./modules/makeup/Pending'));
 const MakeupCompleted = lazy(() => import('./modules/makeup/Completed'));
 const MakeupCalendar = lazy(() => import('./modules/makeup/Calendar'));
+const MakeupShare = lazy(() => import('./modules/makeup/Share'));
 const MakeupSettings = lazy(() => import('./modules/makeup/Settings'));
+
+const GlobalSettings = lazy(() => import('./modules/settings/GlobalSettings'));
 
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -45,6 +49,10 @@ function PageLoader() {
 }
 
 function App() {
+  useEffect(() => {
+    initializeSkills();
+  }, []);
+
   return (
     <HashRouter>
       <Routes>
@@ -86,6 +94,9 @@ function App() {
             <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><GraderSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 
+          {/* 전역 설정 */}
+          <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><GlobalSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
+
           {/* Makeup 모듈 */}
           <Route path="makeup">
             <Route index element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupDashboard /></Suspense></ErrorBoundary>} />
@@ -93,6 +104,7 @@ function App() {
             <Route path="progress" element={<Navigate to="/makeup/pending" replace />} />
             <Route path="completed" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCompleted /></Suspense></ErrorBoundary>} />
             <Route path="calendar" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupCalendar /></Suspense></ErrorBoundary>} />
+            <Route path="share" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupShare /></Suspense></ErrorBoundary>} />
             <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><MakeupSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 

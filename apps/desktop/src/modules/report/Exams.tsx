@@ -288,11 +288,17 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
           onClose={() => setIsAbsenceModalOpen(false)}
           onSubmit={async (reason: string) => {
             if (!selectedStudentForAbsence) return;
-            const result = await createAbsenceAsync.execute(selectedStudentForAbsence.id, selectedStudentForAbsence.name, selectedStudentForAbsence.examDate || '', reason, currentYearMonth);
+            if (!selectedStudentForAbsence.examDate) {
+              addToast('시험일이 지정되지 않아 결시 처리할 수 없습니다.', 'error');
+              return;
+            }
+            const result = await createAbsenceAsync.execute(selectedStudentForAbsence.id, selectedStudentForAbsence.name, selectedStudentForAbsence.examDate, reason, currentYearMonth);
             if (result.success) {
               addToast('결시 처리되었습니다.', 'success');
               setIsAbsenceModalOpen(false);
               await fetchAllData();
+            } else {
+              addToast(result.error?.message || '결시 처리에 실패했습니다.', 'error');
             }
           }}
         />

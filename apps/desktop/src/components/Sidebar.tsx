@@ -9,7 +9,6 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'realtime', label: '실시간 관리', icon: 'timer', path: '/timer/realtime' },
     { id: 'student', label: '학생별 보기', icon: 'person', path: '/timer/student' },
     { id: 'timeslot', label: '시간대별 보기', icon: 'schedule', path: '/timer/timeslot' },
-    { id: 'settings', label: '설정', icon: 'settings', path: '/timer/settings' },
   ],
   report: [
     { id: 'dashboard', label: '대시보드', icon: 'dashboard', path: '/report' },
@@ -18,15 +17,12 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'input', label: '성적 입력', icon: 'edit_note', path: '/report/input' },
     { id: 'preview', label: '리포트 미리보기', icon: 'preview', path: '/report/preview' },
     { id: 'send', label: '리포트 전송', icon: 'send', path: '/report/send' },
-    { id: 'ai-settings', label: 'AI 설정', icon: 'smart_toy', path: '/report/ai-settings' },
-    { id: 'settings', label: '설정', icon: 'settings', path: '/report/settings' },
   ],
   grader: [
     { id: 'single', label: '단건 채점', icon: 'document_scanner', path: '/grader' },
     { id: 'batch', label: '일괄 채점', icon: 'library_books', path: '/grader/batch' },
     { id: 'history', label: '채점 이력', icon: 'history', path: '/grader/history' },
     { id: 'stats', label: '통계', icon: 'analytics', path: '/grader/stats' },
-    { id: 'settings', label: '설정', icon: 'settings', path: '/grader/settings' },
   ],
   student: [
     { id: 'list', label: '전체 학생', icon: 'groups', path: '/student' },
@@ -38,7 +34,7 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'progress', label: '진행 중', icon: 'autorenew', path: '/makeup/progress' },
     { id: 'completed', label: '완료', icon: 'task_alt', path: '/makeup/completed' },
     { id: 'calendar', label: '캘린더', icon: 'calendar_month', path: '/makeup/calendar' },
-    { id: 'settings', label: '설정', icon: 'settings', path: '/makeup/settings' },
+    { id: 'share', label: '카톡 공유', icon: 'share', path: '/makeup/share' },
   ],
 };
 
@@ -52,13 +48,7 @@ export default function Sidebar() {
 
   const rawMenuItems = moduleMenus[currentModule] || moduleMenus.timer;
 
-  // 관리자 여부에 따른 메뉴 필터링
-  const menuItems = rawMenuItems.filter(item => {
-    if (item.id === 'settings') {
-      return currentUser?.teacher.isAdmin;
-    }
-    return true;
-  });
+  const menuItems = rawMenuItems;
 
   // 모듈 타이틀
   const moduleTitles: Record<ModuleType, string> = {

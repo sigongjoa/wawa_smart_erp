@@ -3,6 +3,7 @@ import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import type { Student, GradeType, DayType, Enrollment } from '../../types';
 import { getTodayDay } from '../../constants/common';
+import { includesHangul } from '../../utils/hangulUtils';
 import PageHeader from '../../components/common/PageHeader';
 
 const gradeClassMap: Record<string, string> = {
@@ -75,7 +76,7 @@ export default function TimeslotView() {
         const student = students.find(s => s.id === e.studentId);
         if (timerFilters.grades.length > 0 && student && !timerFilters.grades.includes(student.grade as GradeType)) return false;
         // 검색 필터
-        if (timerFilters.search && student && !student.name.includes(timerFilters.search)) return false;
+        if (timerFilters.search && student && !includesHangul(student.name, timerFilters.search)) return false;
         return true;
       })
       .map(e => ({
