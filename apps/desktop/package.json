@@ -1,6 +1,6 @@
 {
   "name": "wawa-smart-erp",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "WAWA Smart ERP - 통합 학원 관리 시스템",
   "private": true,
   "main": "dist/main/index.js",
@@ -12,7 +12,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json && vite build",
     "preview": "vite preview",
-    "dist": "electron-builder",
+    "dist": "electron-builder --win",
     "package": "npm run build && npm run dist",
     "test": "vitest run",
     "test:watch": "vitest",

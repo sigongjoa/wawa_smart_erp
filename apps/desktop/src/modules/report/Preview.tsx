@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
+import { includesHangul } from '../../utils/hangulUtils';
 // html2canvas is dynamically imported in generateJPG()
 import { wawaLogoBase64 } from '../../assets/wawaLogo';
 import { getSubjectColor } from '../../constants/common';
@@ -45,7 +46,7 @@ export default function Preview() {
   }, [students, reports, currentYearMonth, appSettings, currentUser, isLoading]);
 
   const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    includesHangul(s.name, searchQuery) ||
     s.grade.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -366,7 +367,6 @@ export default function Preview() {
                               {s.subject}
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span className={`badge badge-${(s.difficulty || 'C').toLowerCase()}`}>{s.difficulty || 'C'}</span>
                               <span style={{ fontWeight: 700, color: getSubjectColor(s.subject) }}>{s.score}점</span>
                             </div>
                           </div>

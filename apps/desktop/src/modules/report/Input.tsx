@@ -3,6 +3,7 @@ import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { useAIStore, AI_MODELS } from '../../stores/aiStore';
 import { useAsync } from '../../hooks/useAsync';
+import { includesHangul } from '../../utils/hangulUtils';
 import { saveScore } from '../../services/notion';
 import type { AIProvider } from '../../types';
 import { getSubjectColor } from '../../constants/common';
@@ -30,7 +31,7 @@ export default function Input() {
 
   // 검색 필터링
   const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    includesHangul(s.name, searchQuery) ||
     s.grade.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
