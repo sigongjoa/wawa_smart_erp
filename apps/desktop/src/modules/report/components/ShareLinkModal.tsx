@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { MonthlyReport, Student } from '../../../types';
 import { uploadToCloudinary } from '../../../services/cloudinary';
+import { markReportSent } from '../../../services/notion';
 import { useToastStore } from '../../../stores/toastStore';
 import { useReportStore } from '../../../stores/reportStore';
 import ReportCard from './ReportCard';
@@ -79,6 +80,8 @@ export default function ShareLinkModal({ report, student, onClose }: ShareLinkMo
     try {
       await navigator.clipboard.writeText(template);
       setCopied(true);
+      // 전송완료 처리
+      await markReportSent(student.id, report.yearMonth);
       addToast('복사 완료! 카카오톡에 붙여넣기 하세요.', 'success');
       setTimeout(() => setCopied(false), 2500);
     } catch {

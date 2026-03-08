@@ -32,6 +32,7 @@ export const NOTION_COLUMNS_SCORE = {
     DIFFICULTY: '난이도',
     STUDENT: '학생',
     TEACHER: '선생님',
+    IS_SENT: 'isSend',
 } as const;
 
 export const NOTION_COLUMNS_EXAM = {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { sendReportAlimtalk } from '../../services/alimtalk';
+import { markReportSent } from '../../services/notion';
 import PageHeader from '../../components/common/PageHeader';
 import ShareLinkModal from './components/ShareLinkModal';
 import type { MonthlyReport, Student } from '../../types';
@@ -45,6 +46,8 @@ export default function Send() {
             status: 'success',
             pdfUrl: report.pdfUrl,
           });
+          // Notion 성적 레코드에 전송완료 표시
+          await markReportSent(student.id, currentYearMonth);
         }
       }
     }

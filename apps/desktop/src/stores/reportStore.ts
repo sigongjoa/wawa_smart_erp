@@ -57,6 +57,9 @@ interface ReportState {
     isLoading: boolean;
     setIsLoading: (isLoading: boolean) => void;
 
+    // 미전송 알림 (이전 달 미전송 리포트 존재 시)
+    unsentAlert: { yearMonth: string; count: number } | null;
+
     // 비동기 액션
     fetchAllData: () => Promise<void>;
 }
@@ -64,6 +67,12 @@ interface ReportState {
 const getCurrentYearMonth = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const getPrevYearMonth = (yearMonth: string) => {
+    const [y, m] = yearMonth.split('-').map(Number);
+    const d = new Date(y, m - 2); // month - 1 for 0-index, then -1 for prev
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
 const defaultAppSettings: AppSettings = {
@@ -167,6 +176,9 @@ export const useReportStore = create<ReportState>()(
             isLoading: false,
             setIsLoading: (isLoading) => set({ isLoading }),
 
+            // 미전송 알림
+            unsentAlert: null,
+
             // 비동기 액션 - 중복 호출 방지용 lock
             fetchAllData: async () => {
                 const state = useReportStore.getState();
@@ -189,22 +201,35 @@ export const useReportStore = create<ReportState>()(
                 try {
                     const notion = await import('../services/notion');
 
+                    // 현재 달과 이전 달을 함께 조회해서 미전송 여부 확인
+                    const calendarMonth = getCurrentYearMonth();
+                    const prevMonth = getPrevYearMonth(calendarMonth);
+
                     console.log('[fetchAllData] Fetching from Notion...');
-                    const [teachers, students, exams, reports] = await Promise.all([
+                    const [teachers, students, prevReports, currentReports] = await Promise.all([
                         notion.fetchTeachers(),
                         notion.fetchStudents(),
-                        notion.fetchExams(currentYearMonth),
-                        notion.fetchScores(currentYearMonth),
+                        notion.fetchScores(prevMonth),
+                        notion.fetchScores(calendarMonth),
                     ]);
+
+                    // 이전 달에 미전송 리포트가 있으면 이전 달을 활성 월로 설정
+                    const unsentPrev = prevReports.filter(r => r.status !== 'sent');
+                    const activeMonth = unsentPrev.length > 0 ? prevMonth : calendarMonth;
+                    const activeReports = unsentPrev.length > 0 ? prevReports : currentReports;
+
+                    const exams = await notion.fetchExams(activeMonth);
 
                     console.log('[fetchAllData] Results:', {
                         teachers: teachers.length,
                         students: students.length,
                         exams: exams.length,
-                        reports: reports.length,
+                        reports: activeReports.length,
+                        activeMonth,
+                        unsentPrevCount: unsentPrev.length,
                     });
 
-                    const reportsWithNames = reports.map(r => {
+                    const reportsWithNames = activeReports.map(r => {
                         const student = students.find(s => s.id === r.studentId);
                         return { ...r, studentName: student?.name || '알 수 없음' };
                     });
@@ -213,6 +238,12 @@ export const useReportStore = create<ReportState>()(
                     setStudents(students);
                     setExams(exams);
                     setReports(reportsWithNames);
+                    set({
+                        currentYearMonth: activeMonth,
+                        unsentAlert: unsentPrev.length > 0
+                            ? { yearMonth: prevMonth, count: unsentPrev.length }
+                            : null,
+                    });
                     console.log('✅ Data fetched and stored successfully');
                 } catch (error) {
                     console.error('❌ Failed to fetch data:', error);

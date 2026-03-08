@@ -393,6 +393,8 @@ export const fetchScores = async (yearMonth: string): Promise<MonthlyReport[]> =
         continue;
       }
 
+      const isSent = page.properties[NOTION_COLUMNS_SCORE.IS_SENT]?.checkbox === true;
+
       if (!reportMap.has(studentId)) {
         reportMap.set(studentId, {
           id: `${studentId}-${yearMonth}`,
@@ -400,10 +402,12 @@ export const fetchScores = async (yearMonth: string): Promise<MonthlyReport[]> =
           studentName: '', // Join later
           yearMonth,
           scores: [],
-          status: 'draft',
+          status: isSent ? 'sent' : 'draft',
           createdAt: page.created_time,
           updatedAt: page.last_edited_time,
         });
+      } else if (isSent && reportMap.get(studentId)!.status !== 'sent') {
+        reportMap.get(studentId)!.status = 'sent';
       }
 
       const report = reportMap.get(studentId)!;
@@ -1153,6 +1157,45 @@ export const createAbsenceRecordSimplified = async (
   }
 };
 
+/**
+ * 특정 학생/월 리포트의 전송완료 상태를 Notion에 업데이트
+ */
+export const markReportSent = async (studentId: string, yearMonth: string): Promise<ApiResult<boolean>> => {
+  const dbIds = getDbIds();
+  if (!dbIds.scores) return { success: false, error: { message: '성적 DB ID가 설정되지 않았습니다.' } };
+  try {
+    // 해당 학생/월의 모든 성적 레코드 조회
+    const data = await notionFetch(`/databases/${dbIds.scores}/query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: {
+          and: [
+            { property: NOTION_COLUMNS_SCORE.STUDENT, relation: { contains: studentId } },
+            { property: NOTION_COLUMNS_SCORE.YEAR_MONTH, rich_text: { equals: yearMonth } },
+          ],
+        },
+      }),
+    });
+    // 모든 레코드에 전송완료 체크박스 업데이트
+    await Promise.all(
+      data.results.map((page: any) =>
+        notionFetch(`/pages/${page.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            properties: {
+              [NOTION_COLUMNS_SCORE.IS_SENT]: { checkbox: true },
+            },
+          }),
+        })
+      )
+    );
+    return { success: true, data: true };
+  } catch (error) {
+    console.error('❌ markReportSent failed:', error);
+    return { success: false, error: { message: (error instanceof Error ? error.message : '') || '전송완료 업데이트에 실패했습니다.' } };
+  }
+};
+
 const notionClient = {
   getStudents,
   fetchStudents,
@@ -1185,6 +1228,7 @@ const notionClient = {
   fetchNotifications,
   updateNotificationStatus,
   createNotification,
+  markReportSent,
 };
 
 export default notionClient;
