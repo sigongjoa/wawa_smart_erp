@@ -1,7 +1,73 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import * as http from 'http';
 import * as path from 'path';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
+
+const KAKAO_REDIRECT_URI = 'http://localhost:19876/kakao-callback';
+
+ipcMain.handle('kakao:login', async (_, authUrl: string) => {
+  console.log('[Kakao] IPC kakao:login called');
+
+  return new Promise<{ code: string } | { error: string }>((resolve) => {
+    let resolved = false;
+    let authWindow: BrowserWindow | null = null;
+
+    const safeResolve = (value: { code: string } | { error: string }) => {
+      if (resolved) return;
+      resolved = true;
+      console.log('[Kakao] Resolved:', JSON.stringify(value).substring(0, 80));
+      if (authWindow && !authWindow.isDestroyed()) authWindow.destroy();
+      if (server.listening) server.close();
+      resolve(value);
+    };
+
+    // ── 실제 HTTP 서버로 콜백 수신 ──
+    const server = http.createServer((req, res) => {
+      const reqUrl = new URL(req.url || '/', `http://localhost:19876`);
+      console.log('[Kakao] HTTP callback:', reqUrl.pathname, reqUrl.search.substring(0, 60));
+
+      const code = reqUrl.searchParams.get('code');
+      const error = reqUrl.searchParams.get('error');
+
+      // 성공 응답 후 창 닫기
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
+        <h2 style="font-family:sans-serif;text-align:center;margin-top:80px">
+          ✅ 로그인 완료! 이 창은 자동으로 닫힙니다.
+        </h2>
+        <script>setTimeout(()=>window.close(),1500)</script>
+      </body></html>`);
+
+      safeResolve(code ? { code } : { error: error || 'unknown' });
+    });
+
+    server.on('error', (err: any) => {
+      console.error('[Kakao] HTTP server error:', err.message);
+      // 포트 이미 사용 중이면 다른 방법으로 fallback
+      safeResolve({ error: `server_error: ${err.message}` });
+    });
+
+    server.listen(19876, '127.0.0.1', () => {
+      console.log('[Kakao] HTTP server listening on localhost:19876');
+
+      authWindow = new BrowserWindow({
+        width: 500,
+        height: 650,
+        webPreferences: { nodeIntegration: false, contextIsolation: true },
+        title: '카카오 로그인',
+        autoHideMenuBar: true,
+      });
+
+      authWindow.loadURL(authUrl);
+
+      authWindow.on('closed', () => {
+        console.log('[Kakao] Window closed by user');
+        safeResolve({ error: 'cancelled' });
+      });
+    });
+  });
+});
 
 // Windows에서 한글 렌더링을 위한 폰트 설정
 app.commandLine.appendSwitch('lang', 'ko');
@@ -430,8 +496,6 @@ ipcMain.handle('typst:compile', async (_, { source, outputPath }: { source: stri
 });
 
 app.whenReady().then(() => {
-  // Python 백엔드는 Grader 모듈 전용 - 필요 시 수동 실행
-  // startPythonBackend();
   createWindow();
 });
 

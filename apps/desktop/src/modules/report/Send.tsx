@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { sendReportAlimtalk } from '../../services/alimtalk';
 import PageHeader from '../../components/common/PageHeader';
+import ShareLinkModal from './components/ShareLinkModal';
+import type { MonthlyReport, Student } from '../../types';
 
 export default function Send() {
   const { reports, students } = useFilteredData();
@@ -9,6 +11,7 @@ export default function Send() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [shareTarget, setShareTarget] = useState<{ report: MonthlyReport; student: Student } | null>(null);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -135,10 +138,19 @@ export default function Send() {
                       <a href={report.pdfUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>보기</a>
                     ) : '-'}
                   </td>
-                  <td>
+                  <td style={{ display: 'flex', gap: '6px' }}>
                     <button className="btn btn-secondary btn-sm" onClick={() => toggleSelect(report.id)}>
                       {selectedIds.includes(report.id) ? '해제' : '선택'}
                     </button>
+                    {student && (
+                      <button
+                        className="btn btn-sm"
+                        style={{ background: '#FEE500', color: '#3C1E1E', fontWeight: 600 }}
+                        onClick={() => setShareTarget({ report, student })}
+                      >
+                        📎 링크 복사
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -147,6 +159,14 @@ export default function Send() {
         </table>
         {reports.length === 0 && <div className="empty-state">전송할 리포트가 없습니다.</div>}
       </div>
+
+      {shareTarget && (
+        <ShareLinkModal
+          report={shareTarget.report}
+          student={shareTarget.student}
+          onClose={() => setShareTarget(null)}
+        />
+      )}
     </div>
   );
 }

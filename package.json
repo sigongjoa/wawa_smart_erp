@@ -20,5 +20,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "electron-winstaller", "esbuild"]
   }
 }

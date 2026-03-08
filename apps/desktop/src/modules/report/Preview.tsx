@@ -5,6 +5,8 @@ import { includesHangul } from '../../utils/hangulUtils';
 // html2canvas is dynamically imported in generateJPG()
 import { wawaLogoBase64 } from '../../assets/wawaLogo';
 import { getSubjectColor } from '../../constants/common';
+import ShareLinkModal from './components/ShareLinkModal';
+
 
 // 최근 6개월 라벨 생성
 const generateMonthLabels = (currentYearMonth: string): string[] => {
@@ -29,6 +31,7 @@ export default function Preview() {
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
@@ -125,6 +128,7 @@ export default function Preview() {
     }
   };
 
+
   // 고유 과목 목록
   const subjects = useMemo(
     () => Array.from(new Set(selectedReport?.scores.map(s => s.subject) || [])),
@@ -132,6 +136,7 @@ export default function Preview() {
   );
 
   return (
+    <>
     <div>
       <div className="page-header">
         <div className="page-header-row">
@@ -230,6 +235,14 @@ export default function Preview() {
                   <button className="btn btn-primary" onClick={generateJPG} disabled={isGenerating}>
                     <span className="material-symbols-outlined">{isGenerating ? 'hourglass_top' : 'image'}</span>
                     {isGenerating ? '생성 중...' : 'JPG 다운로드'}
+                  </button>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: '#FEE500', color: '#3C1E1E', fontWeight: 700 }}
+                    onClick={() => setShowShare(true)}
+                    disabled={isGenerating}
+                  >
+                    📎 링크 공유
                   </button>
                 </div>
               </div>
@@ -445,5 +458,13 @@ export default function Preview() {
         .spin { animation: spin 1s linear infinite; }
       `}</style>
     </div>
+    {showShare && selectedReport && selectedStudent && (
+      <ShareLinkModal
+        report={selectedReport}
+        student={selectedStudent}
+        onClose={() => setShowShare(false)}
+      />
+    )}
+    </>
   );
 }

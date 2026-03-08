@@ -1,11 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useReportStore } from '../../stores/reportStore';
 import { testNotionConnection } from '../../services/notion';
+import { isLoggedIn, kakaoLogin, kakaoLogout, loadToken } from '../../services/kakao';
 
 export default function Settings() {
   const { appSettings, setAppSettings } = useReportStore();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [kakaoLoggedIn, setKakaoLoggedIn] = useState(isLoggedIn());
+  const [kakaoLoading, setKakaoLoading] = useState(false);
+
+  useEffect(() => {
+    setKakaoLoggedIn(isLoggedIn());
+  }, []);
+
+  const handleKakaoLogin = async () => {
+    setKakaoLoading(true);
+    const ok = await kakaoLogin();
+    setKakaoLoading(false);
+    setKakaoLoggedIn(ok);
+    if (!ok) alert('카카오 로그인에 실패했습니다. Redirect URI 설정을 확인해주세요.');
+  };
+
+  const handleKakaoLogout = () => {
+    kakaoLogout();
+    setKakaoLoggedIn(false);
+  };
 
   const [formData, setFormData] = useState({
     academyName: appSettings.academyName || '',
@@ -178,18 +198,54 @@ export default function Settings() {
         </div>
 
         <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>카카오 알림톡 설정</h2>
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label className="form-label">채널 ID</label>
-            <input name="kakaoBizChannelId" value={formData.kakaoBizChannelId} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>카카오톡 연동</h2>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+            월말평가 결과를 카카오톡 친구에게 직접 전송합니다
+          </p>
+
+          {/* 로그인 상태 */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '12px',
+            padding: '16px', borderRadius: '10px',
+            background: kakaoLoggedIn ? '#f0fdf4' : '#fafafa',
+            border: `1px solid ${kakaoLoggedIn ? '#86efac' : 'var(--border-color)'}`,
+            marginBottom: '20px',
+          }}>
+            <span style={{ fontSize: '28px' }}>{kakaoLoggedIn ? '✅' : '💬'}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                {kakaoLoggedIn ? '카카오 로그인됨' : '카카오 로그아웃 상태'}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {kakaoLoggedIn
+                  ? '리포트 전송 페이지에서 친구에게 메시지를 보낼 수 있습니다'
+                  : '로그인하면 친구에게 월말평가 결과를 카카오톡으로 전송할 수 있습니다'}
+              </div>
+            </div>
+            {kakaoLoggedIn ? (
+              <button className="btn btn-secondary btn-sm" onClick={handleKakaoLogout}>
+                로그아웃
+              </button>
+            ) : (
+              <button
+                className="btn btn-sm"
+                style={{ background: '#FEE500', color: '#3C1E1E', fontWeight: 700, whiteSpace: 'nowrap' }}
+                onClick={handleKakaoLogin}
+                disabled={kakaoLoading}
+              >
+                {kakaoLoading ? '로그인 중...' : '카카오 로그인'}
+              </button>
+            )}
           </div>
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label className="form-label">발신 프로필 키</label>
-            <input name="kakaoBizSenderKey" value={formData.kakaoBizSenderKey} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">템플릿 ID</label>
-            <input name="kakaoBizTemplateId" value={formData.kakaoBizTemplateId} onChange={handleChange} className="search-input" style={{ width: '100%' }} />
+
+          {/* 설정 안내 */}
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', background: '#f8fafc', borderRadius: '8px', padding: '12px 14px' }}>
+            <div style={{ fontWeight: 600, marginBottom: '6px' }}>⚙️ 카카오 개발자 콘솔 설정 필요</div>
+            <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: '1.8' }}>
+              <li>플랫폼 키 → JavaScript SDK 도메인: <code>http://localhost:5173</code></li>
+              <li>카카오 로그인 → Redirect URI: <code>http://localhost:5173/kakao-callback.html</code></li>
+              <li>동의항목 → talk_message, friends 선택 동의</li>
+            </ul>
           </div>
         </div>
       </div>

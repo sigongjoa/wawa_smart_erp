@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld('wawaAPI', {
   // AI 종합평가 생성
   aiGenerate: (request: any) =>
     ipcRenderer.invoke('ai:generate', request),
+
+  // 카카오 로그인 (Electron BrowserWindow)
+  kakaoLogin: (authUrl: string) => ipcRenderer.invoke('kakao:login', authUrl),
 });
 
 // TypeScript 타입 선언
@@ -44,6 +47,7 @@ declare global {
       notionFetch: (endpoint: string, options: any) => Promise<{ success: boolean; data?: any; message?: string; error?: any }>;
       typstCompile: (data: { source: string; outputPath: string }) => Promise<{ success: boolean; outputPath?: string; message?: string }>;
       aiGenerate: (request: any) => Promise<{ success: boolean; versions?: string[]; usage?: { inputTokens: number; outputTokens: number; model: string; provider: string }; error?: string }>;
+      kakaoLogin: (authUrl: string) => Promise<{ code: string } | { error: string }>;
     };
   }
 }

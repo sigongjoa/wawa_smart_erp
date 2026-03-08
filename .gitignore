@@ -79,6 +79,12 @@ apps/desktop/e2e-report/
 apps/desktop/e2e-screenshots/
 apps/desktop/test-results/
 
+# Kakao API keys (never commit)
+apps/desktop/.env
+apps/desktop/.env.*
+# Electron build output (binary)
+apps/desktop/release/
+
 # Utility scripts (may contain personal data)
 scripts/
 
