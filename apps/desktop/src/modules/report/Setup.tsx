@@ -143,7 +143,9 @@ export default function Setup() {
                             notionExamsDb: "db_id",
                             notionAbsenceHistoryDb: "db_id",
                             notionEnrollmentDb: "db_id",
-                            notionMakeupDb: "db_id"
+                            notionMakeupDb: "db_id",
+                            cloudinaryCloudName: "your_cloud_name",
+                            cloudinaryUploadPreset: "your_upload_preset"
                         };
                         const blob = new Blob([JSON.stringify(sample, null, 2)], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);

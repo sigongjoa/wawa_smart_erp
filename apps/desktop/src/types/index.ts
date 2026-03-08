@@ -196,6 +196,7 @@ export interface AppSettings {
   kakaoBizSenderKey?: string;
   kakaoBizTemplateId?: string;
   cloudinaryCloudName?: string;
+  cloudinaryUploadPreset?: string;
   cloudinaryApiKey?: string;
   cloudinaryApiSecret?: string;
   notionAbsenceHistoryDb?: string;
