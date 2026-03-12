@@ -21,7 +21,7 @@ export default function Batch() {
   const answerInputRef = useRef<HTMLInputElement>(null);
   const omrInputRef = useRef<HTMLInputElement>(null);
 
-  const availableSubjects = ['국어', '영어', '수학', '사회', '과학'];
+  const availableSubjects = ['국어', '영어', '수학', '사회', '과학', '화학', '생물'];
 
   const handleGrading = async () => {
     if (!answerFile || !omrFile) {

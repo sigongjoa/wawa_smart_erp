@@ -184,6 +184,8 @@ export default function StudentList() {
                     <option value="영어">영어</option>
                     <option value="수학">수학</option>
                     <option value="과학">과학</option>
+                    <option value="화학">화학</option>
+                    <option value="생물">생물</option>
                     <option value="사회">사회</option>
                 </select>
 
@@ -376,7 +378,7 @@ function StudentModal({ student, teachers, onClose, onSubmit }: { student: Stude
         }
     }, [student, teachers]);
 
-    const availableSubjects = ['국어', '영어', '수학', '사회', '과학', '기타'];
+    const availableSubjects = ['국어', '영어', '수학', '사회', '과학', '화학', '생물', '기타'];
 
     const toggleSubject = (sub: string) => {
         setFormData(prev => {

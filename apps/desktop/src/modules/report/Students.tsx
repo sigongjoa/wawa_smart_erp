@@ -145,7 +145,7 @@ function StudentModal({ student, onClose, onSubmit }: { student: any; onClose: (
     status: student?.status || 'active',
   });
 
-  const availableSubjects = ['국어', '영어', '수학', '사회', '과학', '기타'];
+  const availableSubjects = ['국어', '영어', '수학', '사회', '과학', '화학', '생물', '기타'];
 
   const toggleSubject = (sub: string) => {
     setFormData(prev => ({

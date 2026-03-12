@@ -441,7 +441,7 @@ function ExamTemplateModal({ onClose, onSubmit }: { onClose: () => void; onSubmi
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>과목</label>
             <select className="search-input" style={{ width: '100%' }} value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })}>
-              {['국어', '영어', '수학', '사회', '과학', '기타'].map(s => <option key={s}>{s}</option>)}
+              {['국어', '영어', '수학', '사회', '과학', '화학', '생물', '기타'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: '16px' }}>
