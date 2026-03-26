@@ -126,6 +126,7 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
   const [bulkExamDate, setBulkExamDate] = useState('');
   const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
   const [selectedStudentForAbsence, setSelectedStudentForAbsence] = useState<Student | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | ExamStatus>('all');
 
   const bulkSetAsync = useAsync(bulkSetExamDate);
   const markCompletedAsync = useAsync(markExamCompleted);
@@ -155,20 +156,32 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
   };
 
   const stats = useMemo(() => {
-    const results = { today: 0, completed: 0, pending: 0, absent: 0 };
+    const results = { today: 0, completed: 0, upcoming: 0, unscheduled: 0, absent: 0 };
     students.forEach((s: Student) => {
       const { status } = getStudentExamStatus(s);
       if (status === 'today') results.today++;
       else if (status === 'completed') results.completed++;
       else if (status === 'absent') results.absent++;
-      else if (status === 'upcoming') results.pending++;
-      else if (status === 'unscheduled') results.pending++;
+      else if (status === 'upcoming') results.upcoming++;
+      else if (status === 'unscheduled') results.unscheduled++;
     });
     return results;
   }, [students, studentExamMap]);
 
+  const filteredStudents = useMemo(() => {
+    if (statusFilter === 'all') return students;
+    return students.filter((s: Student) => getStudentExamStatus(s).status === statusFilter);
+  }, [students, studentExamMap, statusFilter]);
+
+  const handleSelectUnscheduled = () => {
+    const unscheduledIds = students
+      .filter((s: Student) => getStudentExamStatus(s).status === 'unscheduled')
+      .map((s: Student) => s.id);
+    setSelectedStudents(new Set(unscheduledIds));
+  };
+
   const handleSelectAll = (checked: boolean) => {
-    if (checked) setSelectedStudents(new Set(students.map((s: any) => s.id)));
+    if (checked) setSelectedStudents(new Set(filteredStudents.map((s: any) => s.id)));
     else setSelectedStudents(new Set());
   };
 
@@ -211,20 +224,37 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <StatCard icon="event" iconColor="blue" label="오늘 시험" value={stats.today} />
-        <StatCard icon="check_circle" iconColor="green" label="완료" value={stats.completed} />
-        <StatCard icon="pending" iconColor="amber" label="진행/대기" value={stats.pending} />
-        <StatCard icon="cancel" iconColor="rose" label="결시" value={stats.absent} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px' }}>
+        <StatCard icon="event" iconColor="blue" label="오늘 시험" value={stats.today} active={statusFilter === 'today'} onClick={() => setStatusFilter(prev => prev === 'today' ? 'all' : 'today')} />
+        <StatCard icon="check_circle" iconColor="green" label="완료" value={stats.completed} active={statusFilter === 'completed'} onClick={() => setStatusFilter(prev => prev === 'completed' ? 'all' : 'completed')} />
+        <StatCard icon="calendar_month" iconColor="purple" label="예정" value={stats.upcoming} active={statusFilter === 'upcoming'} onClick={() => setStatusFilter(prev => prev === 'upcoming' ? 'all' : 'upcoming')} />
+        <StatCard icon="event_busy" iconColor="amber" label="미지정" value={stats.unscheduled} active={statusFilter === 'unscheduled'} onClick={() => setStatusFilter(prev => prev === 'unscheduled' ? 'all' : 'unscheduled')} highlight={stats.unscheduled > 0} />
+        <StatCard icon="cancel" iconColor="rose" label="결시" value={stats.absent} active={statusFilter === 'absent'} onClick={() => setStatusFilter(prev => prev === 'absent' ? 'all' : 'absent')} />
       </div>
 
-      <div className="card" style={{ padding: '16px', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--primary-light)', border: '1px solid var(--primary-border)' }}>
+      {stats.unscheduled > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', marginBottom: '16px', borderRadius: '10px', background: '#fff7ed', border: '1px solid #fed7aa' }}>
+          <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px' }}>warning</span>
+          <span style={{ flex: 1, fontSize: '14px', color: '#92400e', fontWeight: 500 }}>
+            시험일이 지정되지 않은 학생이 <strong>{stats.unscheduled}명</strong> 있습니다.
+          </span>
+          <button className="btn btn-sm" style={{ background: '#f59e0b', color: 'white', border: 'none' }}
+            onClick={() => { handleSelectUnscheduled(); setStatusFilter('unscheduled'); }}>
+            미지정 학생 선택
+          </button>
+        </div>
+      )}
+
+      <div className="card" style={{ padding: '16px', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: 'var(--primary-light)', border: '1px solid var(--primary-border)' }}>
         <span style={{ fontWeight: 600, color: 'var(--primary-dark)' }}>
           선택된 학생: {selectedStudents.size}명
         </span>
         <input type="date" className="search-input" style={{ width: '160px' }} value={bulkExamDate} onChange={(e) => setBulkExamDate(e.target.value)} />
         <button className="btn btn-primary btn-sm" onClick={handleBulkSetExamDate} disabled={bulkSetAsync.isLoading || selectedStudents.size === 0}>
           <span className="material-symbols-outlined">event</span>일괄 시험일 지정
+        </button>
+        <button className="btn btn-sm" style={{ background: '#f59e0b', color: 'white', border: 'none', marginLeft: 'auto' }} onClick={handleSelectUnscheduled} disabled={stats.unscheduled === 0}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>select_all</span>미지정 전체 선택
         </button>
       </div>
 
@@ -233,7 +263,7 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
           <thead>
             <tr>
               <th style={{ width: '48px', textAlign: 'center' }}>
-                <input type="checkbox" checked={selectedStudents.size === students.length && students.length > 0} onChange={(e) => handleSelectAll(e.target.checked)} />
+                <input type="checkbox" checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0} onChange={(e) => handleSelectAll(e.target.checked)} />
               </th>
               <th>이름</th>
               <th>학년</th>
@@ -243,7 +273,7 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
             </tr>
           </thead>
           <tbody>
-            {students.map((student: Student) => {
+            {filteredStudents.map((student: Student) => {
               const { status, examDate } = getStudentExamStatus(student);
               return (
                 <tr key={student.id}>
@@ -373,16 +403,27 @@ function TemplatesTab({ exams }: { exams: Exam[] }) {
 
 // ==================== 서브 컴포넌트들 ====================
 
-function StatCard({ icon, iconColor, label, value }: any) {
-  const colorMap: Record<string, string> = { blue: '#3b82f6', green: '#10b981', rose: '#f43f5e', amber: '#f59e0b' };
+function StatCard({ icon, iconColor, label, value, active, onClick, highlight }: any) {
+  const colorMap: Record<string, string> = { blue: '#3b82f6', green: '#10b981', rose: '#f43f5e', amber: '#f59e0b', purple: '#8b5cf6' };
+  const color = colorMap[iconColor];
   return (
-    <div className="card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${colorMap[iconColor]}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colorMap[iconColor] }}>
+    <div
+      className="card"
+      onClick={onClick}
+      style={{
+        padding: '20px', display: 'flex', alignItems: 'center', gap: '16px',
+        cursor: onClick ? 'pointer' : 'default',
+        border: active ? `2px solid ${color}` : highlight ? '2px solid #f59e0b' : undefined,
+        background: active ? `${color}08` : undefined,
+        transition: 'all 0.15s',
+      }}
+    >
+      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
         <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>{icon}</span>
       </div>
       <div>
         <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>{label}</div>
-        <div style={{ fontSize: '24px', fontWeight: 700 }}>{value}</div>
+        <div style={{ fontSize: '24px', fontWeight: 700, color: highlight && value > 0 ? '#f59e0b' : undefined }}>{value}</div>
       </div>
     </div>
   );

@@ -4,6 +4,66 @@ import { useReportStore } from '../../stores/reportStore';
 import { Student, GradeType, DayType } from '../../types';
 import { getTodayDay } from '../../constants/common';
 
+const GRADE_OPTIONS: string[] = ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3','검정고시'];
+const SUBJECT_OPTIONS: string[] = ['국어','영어','수학','사회','과학','화학','생물','기타'];
+
+function TempStudentModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: { name: string; grade: string; startTime: string; endTime: string; subject?: string }) => void }) {
+  const [name, setName] = useState('');
+  const [grade, setGrade] = useState('고1');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [subject, setSubject] = useState('수학');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !startTime || !endTime) return;
+    onAdd({ name: name.trim(), grade, startTime, endTime, subject });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
+      <div className="card" style={{ width: '360px', padding: '28px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ color: '#f59e0b' }}>person_add</span>임시 학생 추가
+        </h2>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>이름 <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input className="search-input" style={{ width: '100%' }} value={name} onChange={e => setName(e.target.value)} placeholder="학생 이름" autoFocus />
+          </div>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>학년</label>
+            <select className="search-input" style={{ width: '100%' }} value={grade} onChange={e => setGrade(e.target.value)}>
+              {GRADE_OPTIONS.map(g => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>시작 시간 <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <input type="time" className="search-input" style={{ width: '100%' }} value={startTime} onChange={e => setStartTime(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>종료 시간 <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <input type="time" className="search-input" style={{ width: '100%' }} value={endTime} onChange={e => setEndTime(e.target.value)} />
+            </div>
+          </div>
+          <div style={{ marginBottom: '22px' }}>
+            <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>과목</label>
+            <select className="search-input" style={{ width: '100%' }} value={subject} onChange={e => setSubject(e.target.value)}>
+              {SUBJECT_OPTIONS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>취소</button>
+            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !startTime || !endTime}>추가하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
   '중1': 'm1', '중2': 'm2', '중3': 'm3',
@@ -74,8 +134,9 @@ const dayOptions: { key: DayType; label: string }[] = [
 ];
 
 export default function RealtimeView() {
-  const { students, enrollments, realtimeSessions, checkIn, checkOut } = useAppStore();
+  const { students, enrollments, realtimeSessions, checkIn, checkOut, tempStudents, addTempStudent } = useAppStore();
   const { currentUser } = useReportStore();
+  const [isTempModalOpen, setIsTempModalOpen] = useState(false);
 
   // 오늘 요일
   const todayDay = getTodayDay();
@@ -89,7 +150,7 @@ export default function RealtimeView() {
     const teacherSubjects = currentUser?.teacher.subjects || [];
     const hasTeacher = !!teacherId;
 
-    return students
+    const dbStudents = students
       .filter(student => {
         if (hasTeacher && !student.teacherIds?.includes(teacherId)) return false;
         return true;
@@ -115,7 +176,12 @@ export default function RealtimeView() {
         return null;
       })
       .filter((s): s is NonNullable<typeof s> => s !== null);
-  }, [students, enrollments, currentUser, selectedDay]);
+
+    // 임시 학생은 요일 필터 없이 항상 포함 (오늘 뷰에서만 의미 있음)
+    const tempList = tempStudents.map(s => ({ ...s, day: selectedDay, todayEnrollments: [] }));
+
+    return [...dbStudents, ...tempList];
+  }, [students, enrollments, currentUser, selectedDay, tempStudents]);
 
   const waitingStudents = dayStudents.filter(
     (s) => !realtimeSessions.some((sess) => sess.studentId === s.id)
@@ -203,9 +269,20 @@ export default function RealtimeView() {
 
       <div className="realtime-container">
         <div className="realtime-panel">
-          <div className="realtime-panel-header waiting">
+          <div className="realtime-panel-header waiting" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{isToday ? '대기 중인 학생' : `${selectedDay}요일 수업 학생`}</span>
-            <span>{waitingStudents.length}명</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{waitingStudents.length}명</span>
+              {isToday && (
+                <button
+                  onClick={() => setIsTempModalOpen(true)}
+                  title="임시 학생 추가"
+                  style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', padding: '2px 8px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>person_add</span>임시
+                </button>
+              )}
+            </div>
           </div>
           <div className="realtime-panel-body">
             {waitingStudents.length === 0 ? (
@@ -221,11 +298,16 @@ export default function RealtimeView() {
                   key={student.id}
                   className={`realtime-card ${gradeClassMap[student.grade]}`}
                   onClick={isToday ? () => checkIn(student.id, { startTime: student.startTime || '', endTime: student.endTime || '', subject: student.subject }) : undefined}
-                  style={!isToday ? { cursor: 'default', opacity: 0.85 } : undefined}
+                  style={!isToday ? { cursor: 'default', opacity: 0.85 } : student.isTemp ? { borderLeft: '3px solid #f59e0b' } : undefined}
                 >
                   <div className="realtime-card-header">
                     <span className="realtime-card-name">{student.name}</span>
-                    <span className={`grade-badge ${gradeClassMap[student.grade]}`}>{student.grade}</span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      {student.isTemp && (
+                        <span style={{ background: '#f59e0b', color: 'white', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>임시</span>
+                      )}
+                      <span className={`grade-badge ${gradeClassMap[student.grade]}`}>{student.grade}</span>
+                    </div>
                   </div>
                   <div className="realtime-card-time">
                     <span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle' }}>schedule</span>
@@ -262,6 +344,13 @@ export default function RealtimeView() {
           </div>
         </div>
       </div>
+
+      {isTempModalOpen && (
+        <TempStudentModal
+          onClose={() => setIsTempModalOpen(false)}
+          onAdd={(data) => addTempStudent(data)}
+        />
+      )}
     </div>
   );
 }

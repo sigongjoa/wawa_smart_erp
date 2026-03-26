@@ -28,6 +28,7 @@ export interface Student {
   driveLinks?: string[];
   createdAt: string;
   updatedAt: string;
+  isTemp?: boolean;      // true = 세션 전용 임시 학생 (DB 저장 안 함)
 }
 
 // 실시간 세션

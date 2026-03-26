@@ -10,6 +10,7 @@ interface AppState {
   enrollments: Enrollment[];
   realtimeSessions: RealtimeSession[];
   timerFilters: FilterState;
+  tempStudents: Student[];  // 세션 전용 임시 학생 (DB 저장 안 함)
 
   // Timer 액션
   fetchStudents: () => Promise<void>;
@@ -27,6 +28,9 @@ interface AppState {
   checkIn: (studentId: string, enrollment?: { startTime: string; endTime: string; subject?: string }) => void;
   checkOut: (studentId: string) => void;
   clearSessions: () => void;
+  addTempStudent: (data: { name: string; grade: string; startTime: string; endTime: string; subject?: string }) => void;
+  removeTempStudent: (id: string) => void;
+  clearTempStudents: () => void;
 
   // 유틸리티
   getFilteredStudents: () => Student[];
@@ -43,6 +47,7 @@ export const useAppStore = create<AppState>()(
       grades: [],
       search: '',
     },
+    tempStudents: [],
 
     enrollments: [],
     setEnrollments: (enrollments) => set({ enrollments }),
@@ -172,7 +177,7 @@ export const useAppStore = create<AppState>()(
 
     // 체크인
     checkIn: (studentId, enrollment) => {
-      const student = get().students.find((s) => s.id === studentId);
+      const student = [...get().students, ...get().tempStudents].find((s) => s.id === studentId);
       if (!student) return;
 
       // enrollment 파라미터가 있으면 사용, 없으면 enrollments에서 오늘 수업 검색
@@ -222,6 +227,40 @@ export const useAppStore = create<AppState>()(
     // 세션 초기화
     clearSessions: () => {
       set({ realtimeSessions: [] });
+    },
+
+    // 임시 학생 추가 (DB 저장 안 함, 세션 전용)
+    addTempStudent: (data) => {
+      const now = new Date().toISOString();
+      const tempStudent: Student = {
+        id: `temp_${Date.now()}`,
+        name: data.name,
+        grade: data.grade,
+        subjects: data.subject ? [data.subject] : [],
+        subject: data.subject,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        isTemp: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      set((state) => ({ tempStudents: [...state.tempStudents, tempStudent] }));
+    },
+
+    // 임시 학생 제거
+    removeTempStudent: (id) => {
+      set((state) => ({
+        tempStudents: state.tempStudents.filter((s) => s.id !== id),
+        realtimeSessions: state.realtimeSessions.filter((sess) => sess.studentId !== id),
+      }));
+    },
+
+    // 임시 학생 전체 초기화
+    clearTempStudents: () => {
+      set((state) => ({
+        tempStudents: [],
+        realtimeSessions: state.realtimeSessions.filter((sess) => !sess.student.isTemp),
+      }));
     },
 
     // 필터된 학생 목록
