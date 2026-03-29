@@ -11,9 +11,6 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'timeslot', label: '시간대별 보기', icon: 'schedule', path: '/timer/timeslot' },
   ],
   report: [
-    { id: 'dashboard', label: '대시보드', icon: 'dashboard', path: '/report' },
-    { id: 'students', label: '학생 관리', icon: 'groups', path: '/report/students' },
-    { id: 'exams', label: '시험 관리', icon: 'quiz', path: '/report/exams' },
     { id: 'input', label: '성적 입력', icon: 'edit_note', path: '/report/input' },
     { id: 'preview', label: '리포트 미리보기', icon: 'preview', path: '/report/preview' },
     { id: 'send', label: '리포트 전송', icon: 'send', path: '/report/send' },
@@ -38,6 +35,9 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
   ],
 };
 
+// 워크플로우 스텝 표시가 있는 모듈
+const workflowModules = new Set<ModuleType>(['report']);
+
 export default function Sidebar() {
   const location = useLocation();
   const { currentUser } = useReportStore();
@@ -46,14 +46,13 @@ export default function Sidebar() {
   const pathParts = location.pathname.split('/');
   const currentModule = (pathParts[1] || 'timer') as ModuleType;
 
-  const rawMenuItems = moduleMenus[currentModule] || moduleMenus.timer;
-
-  const menuItems = rawMenuItems;
+  const menuItems = moduleMenus[currentModule] || moduleMenus.timer;
+  const isWorkflow = workflowModules.has(currentModule);
 
   // 모듈 타이틀
   const moduleTitles: Record<ModuleType, string> = {
     timer: '시간표 관리',
-    report: '리포트 시스템',
+    report: '월말평가',
     grader: '채점 시스템',
     student: '학생 관리',
     makeup: '보강관리',
@@ -63,18 +62,31 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <h2 className="sidebar-title">{moduleTitles[currentModule]}</h2>
+        {isWorkflow && (
+          <p className="sidebar-subtitle">성적 입력부터 전송까지</p>
+        )}
       </div>
 
       <nav className="sidebar-nav">
-        {menuItems.map((item) => (
+        {menuItems.map((item, index) => (
           <NavLink
             key={item.id}
             to={item.path}
             end={item.path === `/${currentModule}`}
             className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
           >
-            <span className="material-symbols-outlined sidebar-item-icon">{item.icon}</span>
-            <span className="sidebar-item-label">{item.label}</span>
+            {isWorkflow && (
+              <span className="sidebar-step-num">{index + 1}</span>
+            )}
+            {!isWorkflow && (
+              <span className="material-symbols-outlined sidebar-item-icon">{item.icon}</span>
+            )}
+            <div className="sidebar-item-content">
+              <span className="sidebar-item-label">{item.label}</span>
+              {isWorkflow && (
+                <span className="material-symbols-outlined sidebar-item-arrow">chevron_right</span>
+              )}
+            </div>
             {item.badge !== undefined && item.badge > 0 && (
               <span className="sidebar-item-badge">{item.badge}</span>
             )}

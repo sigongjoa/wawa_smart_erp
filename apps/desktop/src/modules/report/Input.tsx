@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { useAIStore, AI_MODELS } from '../../stores/aiStore';
@@ -30,10 +30,33 @@ export default function Input() {
   const currentReport = reports.find(r => r.studentId === selectedStudentId);
 
   // 검색 필터링
-  const filteredStudents = students.filter(s =>
-    includesHangul(s.name, searchQuery) ||
-    s.grade.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredStudents = useMemo(() =>
+    students.filter(s =>
+      includesHangul(s.name, searchQuery) ||
+      s.grade.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [students, searchQuery]
   );
+
+  // 학생 상태 미리 계산 (렌더 루프 최적화)
+  const studentStatusMap = useMemo(() => {
+    const map = new Map<string, { status: string; count: number; total: number }>();
+    students.forEach(student => {
+      const report = reports.find(r => r.studentId === student.id);
+      if (!report) {
+        map.set(student.id, { status: 'none', count: 0, total: student.subjects.length });
+      } else {
+        const count = report.scores.length;
+        const total = student.subjects.length;
+        map.set(student.id, {
+          status: count >= total ? 'complete' : count > 0 ? 'partial' : 'none',
+          count,
+          total,
+        });
+      }
+    });
+    return map;
+  }, [students, reports]);
 
   // 학생 선택 시 폼 초기화
   useEffect(() => {
@@ -86,17 +109,6 @@ export default function Input() {
     }
   };
 
-  // 입력 완료 상태 계산
-  const getStudentStatus = (studentId: string) => {
-    const student = students.find(s => s.id === studentId);
-    const report = reports.find(r => r.studentId === studentId);
-    if (!student || !report) return { status: 'none', count: 0, total: student?.subjects.length || 0 };
-    const count = report.scores.length;
-    const total = student.subjects.length;
-    if (count >= total) return { status: 'complete', count, total };
-    if (count > 0) return { status: 'partial', count, total };
-    return { status: 'none', count, total };
-  };
 
   return (
     <div>
@@ -120,6 +132,7 @@ export default function Input() {
               className="search-input"
               style={{ width: '100%' }}
               placeholder="학생 검색..."
+              aria-label="학생 이름 또는 학년 검색"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
@@ -150,12 +163,17 @@ export default function Input() {
                 검색 결과가 없습니다
               </div>
             ) : filteredStudents.map(s => {
-              const { status, count, total } = getStudentStatus(s.id);
+              const { status, count, total } = studentStatusMap.get(s.id) ?? { status: 'none', count: 0, total: s.subjects.length };
               const isSelected = selectedStudentId === s.id;
               return (
                 <div
                   key={s.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  aria-label={`${s.name} (${s.grade}) — ${status === 'complete' ? '입력 완료' : status === 'partial' ? '입력 중' : '미입력'} ${count}/${total} 과목`}
                   onClick={() => setSelectedStudentId(s.id)}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedStudentId(s.id)}
                   style={{
                     padding: '14px 16px',
                     cursor: 'pointer',
@@ -220,7 +238,7 @@ export default function Input() {
                       marginBottom: '16px',
                       background: 'white',
                       borderRadius: '12px',
-                      border: `1px solid ${isSaved ? '#10B981' : '#e2e8f0'}`,
+                      border: `1px solid ${isSaved ? 'var(--success)' : 'var(--border)'}`,
                       borderLeft: `4px solid ${getSubjectColor(sub)}`,
                       opacity: isEditable ? 1 : 0.8
                     }}>
@@ -237,12 +255,12 @@ export default function Input() {
                             {sub}
                           </span>
                           {!isEditable && (
-                            <span style={{ color: '#64748B', fontSize: '11px', background: '#F1F5F9', padding: '2px 8px', borderRadius: '4px' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '11px', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
                               읽기 전용 (담당 과목 아님)
                             </span>
                           )}
                           {isSaved && (
-                            <span style={{ color: '#10B981', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: 'var(--success)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
                               저장됨
                             </span>
@@ -250,9 +268,10 @@ export default function Input() {
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-                        <label style={{ fontWeight: 500, color: '#64748B' }}>점수</label>
+                        <label htmlFor={`score-${sub}`} style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>점수</label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <input
+                            id={`score-${sub}`}
                             type="number"
                             min="0"
                             max="100"
@@ -261,19 +280,22 @@ export default function Input() {
                             value={formData[sub]?.score ?? ''}
                             onChange={e => setFormData({ ...formData, [sub]: { ...formData[sub], score: parseInt(e.target.value) || 0 } })}
                             disabled={!isEditable}
+                            aria-label={`${sub} 점수 (0-100)`}
                           />
-                          <span style={{ color: '#64748B' }}>/ 100점</span>
+                          <span style={{ color: 'var(--text-secondary)' }}>/ 100점</span>
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '12px' }}>
-                        <label style={{ fontWeight: 500, color: '#64748B', paddingTop: '10px' }}>코멘트</label>
+                        <label htmlFor={`comment-${sub}`} style={{ fontWeight: 500, color: 'var(--text-secondary)', paddingTop: '10px' }}>코멘트</label>
                         <textarea
+                          id={`comment-${sub}`}
                           className="search-input"
                           style={{ width: '100%', minHeight: '80px', padding: '12px', resize: 'vertical' }}
                           placeholder={isEditable ? "학생에 대한 코멘트를 입력하세요..." : "담당 과목이 아닙니다."}
                           value={formData[sub]?.comment ?? ''}
                           onChange={e => setFormData({ ...formData, [sub]: { ...formData[sub], comment: e.target.value } })}
                           disabled={!isEditable}
+                          aria-label={`${sub} 코멘트`}
                         />
                       </div>
                       {isEditable && (
@@ -460,15 +482,15 @@ function AITotalComment({
   return (
     <div style={{
       padding: '20px',
-      background: '#FFF7ED',
+      background: 'var(--warning-light)',
       borderRadius: '12px',
-      border: '1px solid #FDBA74',
+      border: '1px solid var(--warning)',
     }}>
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ color: '#FF6B00', fontSize: '20px' }}>edit_note</span>
-          <span style={{ fontWeight: 700, color: '#9A3412' }}>종합 평가</span>
+          <span className="material-symbols-outlined" aria-hidden="true" style={{ color: 'var(--grade-h3)', fontSize: '20px' }}>edit_note</span>
+          <span style={{ fontWeight: 700, color: 'var(--warning-text)' }}>종합 평가</span>
         </div>
 
         {/* AI 생성 컨트롤 - 관리자 전용 */}
@@ -520,7 +542,7 @@ function AITotalComment({
       {isAdmin && !hasApiKey && (
         <div style={{
           padding: '10px 14px', marginBottom: '12px', borderRadius: '8px',
-          background: '#FEF2F2', border: '1px solid #FECACA', fontSize: '13px', color: '#991B1B',
+          background: 'var(--danger-light)', border: `1px solid var(--danger-border)`, fontSize: '13px', color: 'var(--danger-text)',
           display: 'flex', alignItems: 'center', gap: '8px',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>warning</span>
@@ -593,8 +615,10 @@ function AITotalComment({
 
       {/* 종합평가 텍스트 입력 */}
       <textarea
+        id="total-comment"
+        aria-label="종합 평가 내용"
         className="search-input"
-        style={{ width: '100%', minHeight: '120px', padding: '12px', resize: 'vertical', background: 'white' }}
+        style={{ width: '100%', minHeight: '120px', padding: '12px', resize: 'vertical', background: 'var(--surface)' }}
         placeholder="학생의 전반적인 학습 태도와 향후 계획을 입력해주세요... (AI 생성 버튼으로 자동 작성 가능)"
         value={formData['__TOTAL_COMMENT__']?.comment ?? ''}
         onChange={(e) => setFormData({ ...formData, '__TOTAL_COMMENT__': { score: 0, comment: e.target.value } })}

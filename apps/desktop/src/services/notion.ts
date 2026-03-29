@@ -174,7 +174,7 @@ export const fetchTeachers = async (): Promise<Teacher[]> => {
       name: page.properties['선생님']?.title?.[0]?.plain_text || '',
       subjects: page.properties['과목']?.multi_select?.map((s: any) => s.name) || [],
       pin: String(page.properties['PIN']?.number || '0000'),
-      isAdmin: page.properties['isAdmin']?.select?.name === 'True',
+      isAdmin: page.properties['isAdmin']?.checkbox === true || page.properties['isAdmin']?.select?.name === 'True',
     }));
   } catch (error) {
     console.error('[Notion] fetchTeachers failed:', error);

@@ -15,8 +15,6 @@ const modules: ModuleTab[] = [
   { id: 'timer', label: '시간표', icon: 'schedule', path: '/timer' },
   { id: 'student', label: '학생관리', icon: 'person_search', path: '/student' },
   { id: 'report', label: '월말평가', icon: 'description', path: '/report' },
-  { id: 'grader', label: '채점', icon: 'grading', path: '/grader' },
-  { id: 'makeup', label: '보강관리', icon: 'event_repeat', path: '/makeup' },
 ];
 
 export default function Header() {
@@ -73,12 +71,12 @@ export default function Header() {
             </div>
             <div className="header-divider"></div>
             {currentUser.teacher.isAdmin && (
-              <button className="header-icon-btn" title="설정" onClick={() => navigate('/settings')}>
-                <span className="material-symbols-outlined">settings</span>
+              <button className="header-icon-btn" aria-label="설정" onClick={() => navigate('/settings')}>
+                <span className="material-symbols-outlined" aria-hidden="true">settings</span>
               </button>
             )}
-            <button className="header-icon-btn" title="로그아웃" onClick={logout}>
-              <span className="material-symbols-outlined">logout</span>
+            <button className="header-icon-btn" aria-label="로그아웃" onClick={logout}>
+              <span className="material-symbols-outlined" aria-hidden="true">logout</span>
             </button>
           </>
         )}

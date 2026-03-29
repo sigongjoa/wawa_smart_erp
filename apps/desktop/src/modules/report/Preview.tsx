@@ -58,27 +58,37 @@ export default function Preview() {
 
   const monthLabels = generateMonthLabels(currentYearMonth);
 
-  // 과목별 6개월 점수 데이터
-  const getHistoricalScores = (subject: string): number[] => {
-    if (!selectedStudentId) return [0, 0, 0, 0, 0, 0];
-    const studentReports = reports.filter(r => r.studentId === selectedStudentId);
-    const scores: number[] = [];
+  // 고유 과목 목록
+  const subjects = useMemo(
+    () => Array.from(new Set(selectedReport?.scores.map(s => s.subject) || [])),
+    [selectedReport?.scores]
+  );
 
+  // 과목별 6개월 점수 데이터 (메모이제이션)
+  const historicalScoresMap = useMemo(() => {
+    const map = new Map<string, number[]>();
+    if (!selectedStudentId) return map;
+    const studentReports = reports.filter(r => r.studentId === selectedStudentId);
     const [year, month] = currentYearMonth.split('-').map(Number);
-    for (let i = 5; i >= 0; i--) {
-      let m = month - i;
-      let y = year;
-      if (m <= 0) {
-        m += 12;
-        y -= 1;
+
+    subjects.forEach(subject => {
+      const scores: number[] = [];
+      for (let i = 5; i >= 0; i--) {
+        let m = month - i;
+        let y = year;
+        if (m <= 0) { m += 12; y -= 1; }
+        const ym = `${y}-${String(m).padStart(2, '0')}`;
+        const report = studentReports.find(r => r.yearMonth === ym);
+        const score = report?.scores.find(s => s.subject === subject)?.score;
+        scores.push(score ?? 0);
       }
-      const ym = `${y}-${String(m).padStart(2, '0')}`;
-      const report = studentReports.find(r => r.yearMonth === ym);
-      const score = report?.scores.find(s => s.subject === subject)?.score;
-      scores.push(score ?? 0);
-    }
-    return scores;
-  };
+      map.set(subject, scores);
+    });
+    return map;
+  }, [selectedStudentId, reports, currentYearMonth, subjects]);
+
+  const getHistoricalScores = (subject: string): number[] =>
+    historicalScoresMap.get(subject) ?? [0, 0, 0, 0, 0, 0];
 
   // SVG 라인 차트 포인트 생성
   const generateChartPoints = (scores: number[]): string => {
@@ -129,12 +139,6 @@ export default function Preview() {
   };
 
 
-  // 고유 과목 목록
-  const subjects = useMemo(
-    () => Array.from(new Set(selectedReport?.scores.map(s => s.subject) || [])),
-    [selectedReport?.scores]
-  );
-
   return (
     <>
     <div>
@@ -159,6 +163,7 @@ export default function Preview() {
               className="search-input"
               style={{ width: '100%' }}
               placeholder="학생 검색..."
+              aria-label="학생 이름 또는 학년 검색"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
@@ -196,7 +201,12 @@ export default function Preview() {
             return (
               <div
                 key={s.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                aria-label={`${s.name} (${s.grade}) — ${isComplete ? '리포트 완료' : isPartial ? '입력 중' : '미입력'}`}
                 onClick={() => setSelectedStudentId(s.id)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedStudentId(s.id)}
                 style={{
                   padding: '16px',
                   cursor: 'pointer',
@@ -238,7 +248,8 @@ export default function Preview() {
                   </button>
                   <button
                     className="btn btn-sm"
-                    style={{ background: '#FEE500', color: '#3C1E1E', fontWeight: 700 }}
+                    aria-label="카카오톡 링크 공유"
+                    style={{ background: 'var(--kakao-yellow)', color: 'var(--kakao-brown)', fontWeight: 700 }}
                     onClick={() => setShowShare(true)}
                     disabled={isGenerating}
                   >
@@ -258,18 +269,19 @@ export default function Preview() {
                   borderRadius: '12px'
                 }}>
                   {/* 헤더 */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', paddingBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', paddingBottom: '20px', borderBottom: '2px solid var(--border)' }}>
                     <div>
-                      <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
+                      <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
                         {selectedStudent.name} 학생 월별 평가서
                       </h1>
-                      <div style={{ fontSize: '14px', color: '#64748B' }}>
+                      <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                         리포트 기간: {currentYearMonth.replace('-', '년 ')}월
                       </div>
                     </div>
                     <img
                       src={wawaLogoBase64}
                       alt="WAWA 와와학습코칭센터"
+                      loading="lazy"
                       style={{
                         height: '56px',
                         width: 'auto',
@@ -285,13 +297,13 @@ export default function Preview() {
                         <span style={{ color: '#FF6B00' }}>📈</span>
                         전 과목 성적 변화 추이 (최근 6개월)
                       </h3>
-                      <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
+                      <div style={{ background: 'var(--background)', padding: '20px', borderRadius: '12px' }}>
                         {/* 범례 */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '16px', marginBottom: '16px' }}>
                           {subjects.map((subject) => (
                             <div key={subject} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: getSubjectColor(subject) }} />
-                              <span style={{ fontSize: '12px', color: '#64748B' }}>{subject}</span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{subject}</span>
                             </div>
                           ))}
                         </div>
@@ -331,14 +343,14 @@ export default function Preview() {
                       <span style={{ color: '#FF6B00' }}>📊</span>
                       {monthLabels[5]} 주요 과목 학업 성취도
                     </h3>
-                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ background: 'var(--background)', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       {selectedReport.scores.map((score, idx) => (
                         <div key={`${score.subject}-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                             <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{score.subject}</span>
                             <span style={{ fontSize: '13px', fontWeight: 700, color: getSubjectColor(score.subject) }}>{score.score}점</span>
                           </div>
-                          <div style={{ width: '100%', backgroundColor: '#E2E8F0', height: '12px', borderRadius: '9999px', overflow: 'hidden' }}>
+                          <div style={{ width: '100%', backgroundColor: 'var(--border)', height: '12px', borderRadius: '9999px', overflow: 'hidden' }}>
                             <div style={{
                               backgroundColor: getSubjectColor(score.subject),
                               height: '100%',
@@ -363,7 +375,7 @@ export default function Preview() {
                         <div key={`${s.subject}-${idx}`} style={{
 
                           background: '#ffffff',
-                          border: '1px solid #e2e8f0',
+                          border: '1px solid var(--border)',
                           borderLeft: `4px solid ${getSubjectColor(s.subject)}`,
                           borderRadius: '8px',
                           padding: '16px'
@@ -402,7 +414,7 @@ export default function Preview() {
                       <span style={{ color: '#FF6B00' }}>📝</span>
                       종합 평가 및 향후 계획
                     </h3>
-                    <div style={{ background: '#FFF7ED', border: '1px solid #FDBA74', borderRadius: '12px', padding: '20px', lineHeight: '1.8' }}>
+                    <div style={{ background: 'var(--warning-light)', border: '1px solid var(--warning)', borderRadius: '12px', padding: '20px', lineHeight: '1.8' }}>
                       {selectedReport.totalComment || (
                         <span style={{ color: '#9CA3AF', fontStyle: 'italic' }}>
                           종합 평가가 아직 입력되지 않았습니다. 성적 입력 페이지에서 종합 평가를 작성해주세요.
@@ -412,8 +424,8 @@ export default function Preview() {
                   </div>
 
                   {/* 푸터 */}
-                  <div style={{ marginTop: '40px', textAlign: 'center', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>
+                  <div style={{ marginTop: '40px', textAlign: 'center', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                       와와학습코칭학원 | 상담문의: 053-214-2705
                     </div>
                   </div>

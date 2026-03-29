@@ -4,24 +4,35 @@ export default function ToastContainer() {
     const { toasts, removeToast } = useToastStore();
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: '24px',
-            right: '24px',
-            zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            pointerEvents: 'none'
-        }}>
+        <div
+            role="region"
+            aria-label="알림"
+            aria-live="polite"
+            aria-atomic="false"
+            style={{
+                position: 'fixed',
+                top: '24px',
+                right: '24px',
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                pointerEvents: 'none'
+            }}
+        >
             {toasts.map((toast) => (
                 <div
                     key={toast.id}
+                    role={toast.type === 'error' ? 'alert' : 'status'}
+                    aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
                     onClick={() => removeToast(toast.id)}
+                    onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? removeToast(toast.id) : undefined}
+                    tabIndex={0}
+                    aria-label={`${toast.type === 'error' ? '오류' : toast.type === 'success' ? '성공' : '알림'}: ${toast.message}. 클릭하여 닫기`}
                     style={{
                         padding: '16px 24px',
                         borderRadius: '12px',
-                        background: toast.type === 'error' ? '#ef4444' : toast.type === 'success' ? '#10b981' : '#3b82f6',
+                        background: toast.type === 'error' ? 'var(--danger)' : toast.type === 'success' ? 'var(--success)' : 'var(--primary)',
                         color: 'white',
                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                         display: 'flex',
@@ -33,7 +44,7 @@ export default function ToastContainer() {
                         minWidth: '300px'
                     }}
                 >
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                    <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: '20px' }}>
                         {toast.type === 'error' ? 'error' : toast.type === 'success' ? 'check_circle' : 'info'}
                     </span>
                     <div style={{ fontSize: '14px', fontWeight: 500 }}>{toast.message}</div>

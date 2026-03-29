@@ -75,7 +75,7 @@ function App() {
 
           {/* Report 모듈 */}
           <Route path="report">
-            <Route index element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportDashboard /></Suspense></ErrorBoundary>} />
+            <Route index element={<Navigate to="/report/input" replace />} />
             <Route path="students" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportStudents /></Suspense></ErrorBoundary>} />
             <Route path="exams" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportExams /></Suspense></ErrorBoundary>} />
             <Route path="input" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><ReportInput /></Suspense></ErrorBoundary>} />

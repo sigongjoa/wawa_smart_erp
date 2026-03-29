@@ -52,14 +52,14 @@ export default function AppShell() {
     <div className="app-shell">
       <Header />
       {isAdmin && unsentAlert && showAlert && (
-        <div style={{
+        <div role="alert" aria-live="polite" style={{
           position: 'fixed',
           top: 'var(--header-height)',
           left: 0,
           right: 0,
           zIndex: 100,
-          background: '#f59e0b',
-          color: '#1c1917',
+          background: 'var(--warning)',
+          color: 'var(--text-primary)',
           padding: '8px 20px',
           display: 'flex',
           alignItems: 'center',
