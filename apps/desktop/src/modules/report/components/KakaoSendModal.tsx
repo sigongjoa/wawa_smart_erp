@@ -174,7 +174,7 @@ export default function KakaoSendModal({ report, student, onClose, onSent }: Kak
                   <span style={{ fontSize: '12px' }}>앱 테스터로 등록된 카카오 계정이 필요합니다.</span>
                 </p>
               ) : (
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
                   {friends.map(f => (
                     <li
                       key={f.uuid}

@@ -61,11 +61,13 @@ export default function MakeupPending() {
         }
       />
 
-      <SearchInput
-        value={searchTerm}
-        onChange={setSearchTerm}
-        placeholder="학생 이름 또는 과목 검색..."
-      />
+      <div style={{ marginBottom: '1rem' }}>
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="학생 이름 또는 과목 검색..."
+        />
+      </div>
 
       <div className="card">
         <table className="data-table">
@@ -139,7 +141,7 @@ export default function MakeupPending() {
                             </button>
                           </>
                         ) : (
-                          <span style={{ fontSize: '11px', color: '#94a3b8', padding: '4px' }}>권한 없음</span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '4px' }}>권한 없음</span>
                         )}
                       </div>
                     </td>

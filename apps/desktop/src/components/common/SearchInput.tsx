@@ -6,8 +6,8 @@ interface SearchInputProps {
 
 export default function SearchInput({ value, onChange, placeholder = '검색...' }: SearchInputProps) {
   return (
-    <div className="search-bar" style={{ marginBottom: '1rem' }}>
-      <span className="material-symbols-outlined" style={{ color: 'var(--text-secondary)' }}>search</span>
+    <div className="search-bar">
+      <span className="material-symbols-outlined">search</span>
       <input
         className="search-input"
         placeholder={placeholder}

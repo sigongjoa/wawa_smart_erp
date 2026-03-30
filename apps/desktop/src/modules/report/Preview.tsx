@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { includesHangul } from '../../utils/hangulUtils';
@@ -35,19 +35,6 @@ export default function Preview() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
-  // 디버깅 로그
-  useEffect(() => {
-    console.log('[Preview] State:', {
-      studentsCount: students.length,
-      reportsCount: reports.length,
-      currentYearMonth,
-      hasApiKey: !!appSettings.notionApiKey,
-      hasScoresDb: !!appSettings.notionScoresDb,
-      isLoggedIn: !!currentUser,
-      isLoading,
-    });
-  }, [students, reports, currentYearMonth, appSettings, currentUser, isLoading]);
-
   const filteredStudents = students.filter(s =>
     includesHangul(s.name, searchQuery) ||
     s.grade.toLowerCase().includes(searchQuery.toLowerCase())
@@ -157,7 +144,7 @@ export default function Preview() {
 
       <div className="grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
         <div className="card" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: '0' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-light)', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--background)', position: 'sticky', top: 0, zIndex: 10 }}>
             <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>학생 목록 ({students.length}명)</h3>
             <input
               className="search-input"

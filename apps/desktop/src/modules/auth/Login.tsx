@@ -52,7 +52,7 @@ export default function Login() {
             alignItems: 'center',
             justifyContent: 'center',
             minHeight: '100vh',
-            background: 'var(--bg-light)'
+            background: 'var(--background)'
         }}>
             <div className="card login-card" style={{
                 width: '100%',

@@ -94,7 +94,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-primary);
@@ -742,12 +742,14 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
+  min-width: 0;
 }
 
 .search-bar .material-symbols-outlined {
   position: absolute;
   left: 12px;
   font-size: 18px;
+  color: var(--text-muted);
   z-index: 1;
   pointer-events: none;
 }
@@ -771,6 +773,24 @@ body {
 }
 
 .search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-select {
+  padding: 8px 14px;
+  height: 38px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.form-select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-light);
@@ -891,6 +911,14 @@ body {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* 채점 등급 뱃지 (A–F) */
+.badge-a { background: var(--success-light); color: var(--success-text); }
+.badge-b { background: var(--primary-light); color: var(--primary-dark); }
+.badge-c { background: var(--warning-light); color: var(--warning-text); }
+.badge-d { background: #ffedd5; color: #9a3412; }
+.badge-e { background: var(--purple-light); color: var(--purple); }
+.badge-f { background: var(--danger-light); color: var(--danger-text); }
 
 .status-badge {
   display: inline-flex;

@@ -153,7 +153,7 @@ export default function ShareLinkModal({ report, student, onClose }: ShareLinkMo
                   <img
                     src={imageUrl}
                     alt="리포트"
-                    style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                    style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid var(--border)' }}
                   />
                 </div>
 
@@ -188,9 +188,9 @@ export default function ShareLinkModal({ report, student, onClose }: ShareLinkMo
                       flex: 1,
                       fontSize: '12px',
                       padding: '6px 10px',
-                      border: '1px solid var(--border-color)',
+                      border: '1px solid var(--border)',
                       borderRadius: '6px',
-                      background: 'var(--bg-subtle)',
+                      background: 'var(--surface-raised)',
                       color: 'var(--text-secondary)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',

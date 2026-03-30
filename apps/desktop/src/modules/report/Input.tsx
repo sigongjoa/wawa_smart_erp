@@ -16,16 +16,6 @@ export default function Input() {
   const [formData, setFormData] = useState<Record<string, { score: number; comment: string }>>({});
 
   // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
-  // 디버깅 로그
-  useEffect(() => {
-    console.log('[Input] State:', {
-      studentsCount: students.length,
-      reportsCount: reports.length,
-      hasApiKey: !!appSettings.notionApiKey,
-      hasScoresDb: !!appSettings.notionScoresDb,
-    });
-  }, [students, reports, appSettings]);
-
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const currentReport = reports.find(r => r.studentId === selectedStudentId);
 
@@ -127,7 +117,7 @@ export default function Input() {
 
       <div className="grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
         <div className="card" style={{ padding: '0', overflow: 'hidden', maxHeight: 'calc(100vh - 180px)' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-light)', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--background)', position: 'sticky', top: 0, zIndex: 10 }}>
             <input
               className="search-input"
               style={{ width: '100%' }}

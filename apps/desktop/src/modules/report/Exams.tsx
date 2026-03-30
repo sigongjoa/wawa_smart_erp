@@ -233,12 +233,12 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
       </div>
 
       {stats.unscheduled > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', marginBottom: '16px', borderRadius: '10px', background: '#fff7ed', border: '1px solid #fed7aa' }}>
-          <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px' }}>warning</span>
-          <span style={{ flex: 1, fontSize: '14px', color: '#92400e', fontWeight: 500 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', marginBottom: '16px', borderRadius: '10px', background: 'var(--warning-light)', border: '1px solid var(--border)' }}>
+          <span className="material-symbols-outlined" style={{ color: 'var(--warning)', fontSize: '20px' }}>warning</span>
+          <span style={{ flex: 1, fontSize: '14px', color: 'var(--warning-text)', fontWeight: 500 }}>
             시험일이 지정되지 않은 학생이 <strong>{stats.unscheduled}명</strong> 있습니다.
           </span>
-          <button className="btn btn-sm" style={{ background: '#f59e0b', color: 'white', border: 'none' }}
+          <button className="btn btn-sm" style={{ background: 'var(--warning)', color: 'white', border: 'none' }}
             onClick={() => { handleSelectUnscheduled(); setStatusFilter('unscheduled'); }}>
             미지정 학생 선택
           </button>
@@ -253,7 +253,7 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
         <button className="btn btn-primary btn-sm" onClick={handleBulkSetExamDate} disabled={bulkSetAsync.isLoading || selectedStudents.size === 0}>
           <span className="material-symbols-outlined">event</span>일괄 시험일 지정
         </button>
-        <button className="btn btn-sm" style={{ background: '#f59e0b', color: 'white', border: 'none', marginLeft: 'auto' }} onClick={handleSelectUnscheduled} disabled={stats.unscheduled === 0}>
+        <button className="btn btn-sm" style={{ background: 'var(--warning)', color: 'white', border: 'none', marginLeft: 'auto' }} onClick={handleSelectUnscheduled} disabled={stats.unscheduled === 0}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>select_all</span>미지정 전체 선택
         </button>
       </div>
@@ -263,7 +263,7 @@ function SchedulesTab({ students, exams, currentYearMonth, currentUser, fetchAll
           <thead>
             <tr>
               <th style={{ width: '48px', textAlign: 'center' }}>
-                <input type="checkbox" checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0} onChange={(e) => handleSelectAll(e.target.checked)} />
+                <input type="checkbox" aria-label="전체 선택" checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0} onChange={(e) => handleSelectAll(e.target.checked)} />
               </th>
               <th>이름</th>
               <th>학년</th>

@@ -7,6 +7,14 @@ import { useToastStore } from '../../stores/toastStore';
 import { useSearch } from '../../hooks/useSearch';
 import { createStudent, updateStudent, deleteStudent, fetchEnrollmentsByStudent, updateStudentEnrollments } from '../../services/notion';
 import type { Student, GradeType, Teacher } from '../../types';
+import PageHeader from '../../components/common/PageHeader';
+
+const gradeClassMap: Record<string, string> = {
+    '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
+    '중1': 'm1', '중2': 'm2', '중3': 'm3',
+    '고1': 'h1', '고2': 'h2', '고3': 'h3',
+    '검정고시': 'etc',
+};
 
 export default function StudentList() {
     const { students, fetchStudents } = useAppStore();
@@ -116,40 +124,34 @@ export default function StudentList() {
 
     return (
         <div>
-            {/* Header */}
-            <div className="page-header">
-                <div className="page-header-row">
-                    <div>
-                        <h1 className="page-title">학생 관리</h1>
-                        <p className="page-description">학생 정보를 관리하고 수강 일정을 확인합니다</p>
-                    </div>
-                    <div className="page-actions">
-                        <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setIsModalOpen(true); }}>
-                            <span className="material-symbols-outlined">add</span>
-                            학생 추가
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <PageHeader
+                title="학생 관리"
+                description="학생 정보를 관리하고 수강 일정을 확인합니다"
+                actions={
+                    <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setIsModalOpen(true); }}>
+                        <span className="material-symbols-outlined">add</span>
+                        학생 추가
+                    </button>
+                }
+            />
 
             {/* Filter Bar */}
-            <div className="filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-surface)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                <div className="search-box" style={{ flex: 1, maxWidth: '300px', position: 'relative' }}>
-                    <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '20px' }}>search</span>
+            <div className="filter-bar" style={{ gap: '12px', padding: '12px 16px', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>
+                <div className="search-bar" style={{ flex: 1, maxWidth: '300px' }}>
+                    <span className="material-symbols-outlined">search</span>
                     <input
                         type="text"
                         placeholder="이름 검색 (초성 검색 가능)"
                         className="search-input"
-                        style={{ width: '100%', paddingLeft: '36px' }}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
+                <div style={{ width: '1px', height: '24px', background: 'var(--border)', margin: '0 8px' }}></div>
 
                 <select
-                    className="search-input"
+                    className="form-select"
                     value={filters.grade}
                     onChange={(e) => setFilters(prev => ({ ...prev, grade: e.target.value }))}
                     style={{ width: '120px' }}
@@ -163,7 +165,7 @@ export default function StudentList() {
                 </select>
 
                 <select
-                    className="search-input"
+                    className="form-select"
                     value={filters.status}
                     onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                     style={{ width: '120px' }}
@@ -174,7 +176,7 @@ export default function StudentList() {
                 </select>
 
                 <select
-                    className="search-input"
+                    className="form-select"
                     value={filters.subject}
                     onChange={(e) => setFilters(prev => ({ ...prev, subject: e.target.value }))}
                     style={{ width: '120px' }}
@@ -225,7 +227,7 @@ export default function StudentList() {
                         ) : (
                             filteredStudents.map(student => (
                                 <tr key={student.id}>
-                                    <td><span className={`grade-badge ${student.grade || 'etc'}`}>{student.grade}</span></td>
+                                    <td><span className={`grade-badge ${gradeClassMap[student.grade] || 'etc'}`}>{student.grade}</span></td>
                                     <td style={{ fontWeight: 600 }}>{student.name}</td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>

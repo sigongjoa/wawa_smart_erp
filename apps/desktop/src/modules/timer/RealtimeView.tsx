@@ -25,7 +25,7 @@ function TempStudentModal({ onClose, onAdd }: { onClose: () => void; onAdd: (dat
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
       <div className="card" style={{ width: '360px', padding: '28px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ color: '#f59e0b' }}>person_add</span>임시 학생 추가
+          <span className="material-symbols-outlined" style={{ color: 'var(--warning)' }}>person_add</span>임시 학생 추가
         </h2>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '14px' }}>
@@ -277,7 +277,7 @@ export default function RealtimeView() {
                 <button
                   onClick={() => setIsTempModalOpen(true)}
                   title="임시 학생 추가"
-                  style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', padding: '2px 8px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  style={{ background: 'var(--warning)', color: 'white', border: 'none', borderRadius: '6px', padding: '2px 8px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>person_add</span>임시
                 </button>
@@ -298,13 +298,13 @@ export default function RealtimeView() {
                   key={student.id}
                   className={`realtime-card ${gradeClassMap[student.grade]}`}
                   onClick={isToday ? () => checkIn(student.id, { startTime: student.startTime || '', endTime: student.endTime || '', subject: student.subject }) : undefined}
-                  style={!isToday ? { cursor: 'default', opacity: 0.85 } : student.isTemp ? { borderLeft: '3px solid #f59e0b' } : undefined}
+                  style={!isToday ? { cursor: 'default', opacity: 0.85 } : student.isTemp ? { borderLeft: '3px solid var(--warning)' } : undefined}
                 >
                   <div className="realtime-card-header">
                     <span className="realtime-card-name">{student.name}</span>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                       {student.isTemp && (
-                        <span style={{ background: '#f59e0b', color: 'white', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>임시</span>
+                        <span style={{ background: 'var(--warning)', color: 'white', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>임시</span>
                       )}
                       <span className={`grade-badge ${gradeClassMap[student.grade]}`}>{student.grade}</span>
                     </div>

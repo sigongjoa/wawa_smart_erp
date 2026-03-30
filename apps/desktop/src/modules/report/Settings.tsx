@@ -207,8 +207,8 @@ export default function Settings() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: '12px',
             padding: '16px', borderRadius: '10px',
-            background: kakaoLoggedIn ? '#f0fdf4' : '#fafafa',
-            border: `1px solid ${kakaoLoggedIn ? '#86efac' : 'var(--border-color)'}`,
+            background: kakaoLoggedIn ? 'var(--success-light)' : 'var(--surface-raised)',
+            border: `1px solid ${kakaoLoggedIn ? 'var(--success-border)' : 'var(--border)'}`,
             marginBottom: '20px',
           }}>
             <span style={{ fontSize: '28px' }}>{kakaoLoggedIn ? '✅' : '💬'}</span>
@@ -229,7 +229,7 @@ export default function Settings() {
             ) : (
               <button
                 className="btn btn-sm"
-                style={{ background: '#FEE500', color: '#3C1E1E', fontWeight: 700, whiteSpace: 'nowrap' }}
+                style={{ background: 'var(--kakao-yellow)', color: 'var(--kakao-brown)', fontWeight: 700, whiteSpace: 'nowrap' }}
                 onClick={handleKakaoLogin}
                 disabled={kakaoLoading}
               >
@@ -239,7 +239,7 @@ export default function Settings() {
           </div>
 
           {/* 설정 안내 */}
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)', background: '#f8fafc', borderRadius: '8px', padding: '12px 14px' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', background: 'var(--background)', borderRadius: '8px', padding: '12px 14px' }}>
             <div style={{ fontWeight: 600, marginBottom: '6px' }}>⚙️ 카카오 개발자 콘솔 설정 필요</div>
             <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: '1.8' }}>
               <li>플랫폼 키 → JavaScript SDK 도메인: <code>http://localhost:5173</code></li>

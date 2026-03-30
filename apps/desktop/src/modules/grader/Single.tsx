@@ -139,7 +139,7 @@ export default function Single() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
         <div className="card" style={{ padding: '0', height: 'fit-content' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-light)' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--background)' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 600 }}>학생 선택</h3>
           </div>
           <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
@@ -280,7 +280,7 @@ export default function Single() {
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div style={{ background: 'var(--bg-light)', padding: '16px', borderRadius: '8px' }}>
+                <div style={{ background: 'var(--background)', padding: '16px', borderRadius: '8px' }}>
                   <div style={{ fontWeight: 600, marginBottom: '12px' }}>오답 문항</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
                     {gradingResult.wrongAnswers.map((num: number) => (
@@ -318,12 +318,6 @@ export default function Single() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .badge-a { background: #dcfce7; color: #166534; }
-        .badge-b { background: #dbeafe; color: #1e40af; }
-        .badge-c { background: #fef9c3; color: #854d0e; }
-        .badge-d { background: #ffedd5; color: #9a3412; }
-        .badge-e { background: #fce7f3; color: #9d174d; }
-        .badge-f { background: #fee2e2; color: #991b1b; }
       `}</style>
     </div>
   );

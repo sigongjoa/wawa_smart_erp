@@ -107,7 +107,6 @@ export default function DayView() {
   // 컴포넌트 마운트 시 데이터가 없으면 불러오기
   useEffect(() => {
     if (isConfigured && students.length === 0) {
-      console.log('[DayView] Initial students fetch...');
       useAppStore.getState().fetchStudents();
     }
   }, [isConfigured]);
@@ -132,7 +131,7 @@ export default function DayView() {
 
           {/* Left: Filter Results Stat */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="stat-icon blue" style={{ width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifySelf: 'center' }}>
+            <div className="stat-icon blue" style={{ width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>groups</span>
             </div>
             <div>
@@ -146,10 +145,11 @@ export default function DayView() {
 
             {/* Day Dropdown */}
             <div style={{ width: '120px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>요일</label>
+              <label htmlFor="filter-day" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>요일</label>
               <select
-                className="search-input"
-                style={{ width: '100%', height: '38px', padding: '0 12px' }}
+                id="filter-day"
+                className="form-select"
+                style={{ width: '100%', height: '38px' }}
                 value={timerFilters.days[0] || ''}
                 onChange={(e) => setTimerDayFilterAll(e.target.value ? [e.target.value as DayType] : [])}
               >
@@ -160,10 +160,11 @@ export default function DayView() {
 
             {/* Grade Dropdown */}
             <div style={{ width: '120px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>학년</label>
+              <label htmlFor="filter-grade" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>학년</label>
               <select
-                className="search-input"
-                style={{ width: '100%', height: '38px', padding: '0 12px' }}
+                id="filter-grade"
+                className="form-select"
+                style={{ width: '100%', height: '38px' }}
                 value={timerFilters.grades[0] || ''}
                 onChange={(e) => setTimerGradeFilterAll(e.target.value ? [e.target.value as GradeType] : [])}
               >
@@ -174,16 +175,18 @@ export default function DayView() {
 
             {/* Search Input */}
             <div style={{ flex: 1, minWidth: '200px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>학생 검색</label>
-              <div style={{ position: 'relative' }}>
-                <span className="material-symbols-outlined" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: 'var(--text-muted)' }}>search</span>
+              <label htmlFor="filter-search" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>학생 검색</label>
+              <div className="search-bar" style={{ width: '100%' }}>
+                <span className="material-symbols-outlined">search</span>
                 <input
+                  id="filter-search"
                   type="text"
                   className="search-input"
+                  aria-label="학생 이름으로 검색"
                   placeholder="학생 이름으로 검색..."
                   value={timerFilters.search}
                   onChange={(e) => setTimerSearchFilter(e.target.value)}
-                  style={{ width: '100%', height: '38px', paddingLeft: '38px' }}
+                  style={{ height: '38px' }}
                 />
               </div>
             </div>

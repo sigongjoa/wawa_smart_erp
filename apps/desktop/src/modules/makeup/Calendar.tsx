@@ -39,9 +39,9 @@ export function getMonthDays(year: number, month: number) {
 }
 
 export const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  '시작 전': { bg: '#fef3c7', text: '#92400e', dot: '#f59e0b' },
-  '진행 중': { bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6' },
-  '완료': { bg: '#d1fae5', text: '#065f46', dot: '#10b981' },
+  '시작 전': { bg: 'var(--warning-light)', text: 'var(--warning-text)', dot: 'var(--warning)' },
+  '진행 중': { bg: 'var(--primary-light)', text: 'var(--primary-dark)', dot: 'var(--primary)' },
+  '완료': { bg: 'var(--success-light)', text: 'var(--success-text)', dot: 'var(--success)' },
 };
 
 export default function MakeupCalendar() {
@@ -124,7 +124,7 @@ export default function MakeupCalendar() {
                 textAlign: 'center',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: i === 0 ? 'var(--danger)' : i === 6 ? '#3b82f6' : 'var(--text-secondary)',
+                color: i === 0 ? 'var(--danger)' : i === 6 ? 'var(--primary)' : 'var(--text-secondary)',
               }}>
                 {day}
               </div>
@@ -148,7 +148,7 @@ export default function MakeupCalendar() {
                     padding: '4px 6px',
                     borderBottom: idx < 35 ? '1px solid var(--border)' : 'none',
                     borderRight: dayOfWeek < 6 ? '1px solid var(--border)' : 'none',
-                    backgroundColor: isSelected ? 'var(--primary-light, #eef2ff)' : day.month !== 'current' ? '#fafafa' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--primary-light)' : day.month !== 'current' ? 'var(--surface-raised)' : 'transparent',
                     cursor: 'pointer',
                     transition: 'background-color 0.15s',
                   }}
@@ -156,7 +156,7 @@ export default function MakeupCalendar() {
                   <div style={{
                     fontSize: '0.8rem',
                     fontWeight: isToday ? 700 : 400,
-                    color: day.month !== 'current' ? '#cbd5e1' : dayOfWeek === 0 ? 'var(--danger)' : dayOfWeek === 6 ? '#3b82f6' : 'var(--text-primary)',
+                    color: day.month !== 'current' ? 'var(--text-muted)' : dayOfWeek === 0 ? 'var(--danger)' : dayOfWeek === 6 ? 'var(--primary)' : 'var(--text-primary)',
                     marginBottom: '2px',
                   }}>
                     {isToday ? (
@@ -263,7 +263,7 @@ export default function MakeupCalendar() {
                           {canEdit ? (
                             <span style={{ color: 'var(--success)' }}>편집 가능</span>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>읽기 전용</span>
+                            <span style={{ color: 'var(--text-muted)' }}>읽기 전용</span>
                           )}
                         </td>
                       </tr>

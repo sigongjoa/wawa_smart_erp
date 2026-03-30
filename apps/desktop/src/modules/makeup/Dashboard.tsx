@@ -19,10 +19,10 @@ export default function MakeupDashboard() {
   const completed = records.filter((r) => r.status === '완료');
 
   const stats = [
-    { label: '대기 중', value: pending.length, icon: 'pending_actions', color: 'var(--warning)', path: '/makeup/pending' },
-    { label: '진행 중', value: inProgress.length, icon: 'autorenew', color: 'var(--primary)', path: '/makeup/progress' },
-    { label: '완료', value: completed.length, icon: 'task_alt', color: 'var(--success)', path: '/makeup/completed' },
-    { label: '전체', value: records.length, icon: 'list_alt', color: '#6b7280', path: '/makeup/pending' },
+    { label: '대기 중', value: pending.length, icon: 'pending_actions', colorClass: 'amber', path: '/makeup/pending' },
+    { label: '진행 중', value: inProgress.length, icon: 'autorenew', colorClass: 'blue', path: '/makeup/progress' },
+    { label: '완료', value: completed.length, icon: 'task_alt', colorClass: 'green', path: '/makeup/completed' },
+    { label: '전체', value: records.length, icon: 'list_alt', colorClass: 'purple', path: '/makeup/pending' },
   ];
 
   // 최근 등록된 보강 (최근 5개)
@@ -33,25 +33,20 @@ export default function MakeupDashboard() {
       <PageHeader title="보강관리 대시보드" description="결석 학생의 보강 수업 현황을 한눈에 확인합니다" />
 
       {/* 통계 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="stats-grid" style={{ marginBottom: '24px' }}>
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="card"
+            className="stat-card"
             style={{ cursor: 'pointer' }}
             onClick={() => navigate(stat.path)}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 'var(--radius-md)',
-                background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span className="material-symbols-outlined" style={{ color: stat.color, fontSize: 24 }}>{stat.icon}</span>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{stat.label}</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{isLoading ? '-' : stat.value}</div>
-              </div>
+            <div className={`stat-icon ${stat.colorClass}`}>
+              <span className="material-symbols-outlined">{stat.icon}</span>
+            </div>
+            <div>
+              <div className="stat-label">{stat.label}</div>
+              <div className="stat-value">{isLoading ? '-' : stat.value}</div>
             </div>
           </div>
         ))}

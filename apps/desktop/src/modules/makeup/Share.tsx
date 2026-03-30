@@ -119,7 +119,7 @@ export default function MakeupShare() {
                 textAlign: 'center',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: i === 0 ? 'var(--danger)' : i === 6 ? '#3b82f6' : 'var(--text-secondary)',
+                color: i === 0 ? 'var(--danger)' : i === 6 ? 'var(--primary)' : 'var(--text-secondary)',
               }}>
                 {day}
               </div>
@@ -143,7 +143,7 @@ export default function MakeupShare() {
                     padding: '8px',
                     borderBottom: idx < 7 ? '1px solid var(--border)' : 'none',
                     borderRight: day.weekdayIndex < 6 ? '1px solid var(--border)' : 'none',
-                    backgroundColor: isSelected ? 'var(--primary-light, #eef2ff)' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
                     cursor: 'pointer',
                     transition: 'background-color 0.15s',
                     display: 'flex',
@@ -156,7 +156,7 @@ export default function MakeupShare() {
                   <div style={{
                     fontSize: '0.875rem',
                     fontWeight: day.isToday ? 700 : 400,
-                    color: isSunday ? 'var(--danger)' : isWeekend ? '#3b82f6' : 'var(--text-primary)',
+                    color: isSunday ? 'var(--danger)' : isWeekend ? 'var(--primary)' : 'var(--text-primary)',
                   }}>
                     {day.isToday ? (
                       <span style={{
@@ -175,7 +175,7 @@ export default function MakeupShare() {
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '0.7rem', fontWeight: 600,
                       padding: '2px 6px', borderRadius: '10px',
-                      backgroundColor: '#fef3c7', color: '#92400e',
+                      backgroundColor: 'var(--warning-light)', color: 'var(--warning-text)',
                     }}>
                       {dayRecords.length}건
                     </span>

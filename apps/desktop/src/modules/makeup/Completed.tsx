@@ -24,11 +24,13 @@ export default function MakeupCompleted() {
     <div>
       <PageHeader title="완료된 보강" description="보강이 완료된 기록입니다" />
 
-      <SearchInput
-        value={searchTerm}
-        onChange={setSearchTerm}
-        placeholder="학생 이름 또는 과목 검색..."
-      />
+      <div style={{ marginBottom: '1rem' }}>
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="학생 이름 또는 과목 검색..."
+        />
+      </div>
 
       <div className="card">
         <table className="data-table">
