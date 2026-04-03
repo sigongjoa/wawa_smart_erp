@@ -31,15 +31,50 @@ export interface Student {
   isTemp?: boolean;      // true = 세션 전용 임시 학생 (DB 저장 안 함)
 }
 
+// 세션 상태 타입
+export type SessionStatus = 'waiting' | 'active' | 'paused' | 'completed' | 'overtime';
+
+// 일시정지 기록
+export interface PauseRecord {
+  pausedAt: string;    // ISO datetime
+  resumedAt?: string;  // ISO datetime (일시정지 중이면 undefined)
+  reason?: string;     // 사유: '외출', '휴식', '화장실' 등
+}
+
 // 실시간 세션
 export interface RealtimeSession {
+  id?: string;
   studentId: string;
   student: Student;
   checkInTime: string;
   checkOutTime?: string;
-  status: 'waiting' | 'active' | 'completed' | 'overtime';
+  status: SessionStatus;
   elapsedMinutes: number;
   scheduledMinutes: number;
+  pauseHistory: PauseRecord[];
+  date?: string;        // YYYY-MM-DD
+}
+
+// 출석 기록 (영구 저장)
+export interface AttendanceRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  grade: string;
+  subject?: string;
+  date: string;                  // YYYY-MM-DD
+  checkInTime: string;           // ISO datetime
+  checkOutTime: string;          // ISO datetime
+  scheduledStartTime?: string;   // HH:mm
+  scheduledEndTime?: string;     // HH:mm
+  scheduledMinutes: number;
+  netMinutes: number;            // 순수 수업시간 (일시정지 제외)
+  totalPausedMinutes: number;
+  pauseCount: number;
+  pauseHistory: PauseRecord[];
+  wasLate: boolean;
+  wasOvertime: boolean;
+  note?: string;
 }
 
 // 필터 상태 (다중 선택 지원)

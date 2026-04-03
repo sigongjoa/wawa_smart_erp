@@ -1,14 +1,35 @@
 import { create } from 'zustand';
-import type { Student, FilterState, RealtimeSession, DayType, GradeType, Enrollment } from '../types';
+import { persist } from 'zustand/middleware';
+import type { Student, FilterState, RealtimeSession, AttendanceRecord, PauseRecord, DayType, GradeType, Enrollment } from '../types';
 import notionClient from '../services/notion';
 import { includesHangul } from '../utils/hangulUtils';
 import { getTodayDay } from '../constants/common';
+
+// 일시정지 총 시간 계산 (분)
+export function calculatePausedMinutes(pauseHistory: PauseRecord[], now: Date): number {
+  let total = 0;
+  for (const pause of pauseHistory) {
+    const start = new Date(pause.pausedAt);
+    const end = pause.resumedAt ? new Date(pause.resumedAt) : now;
+    total += (end.getTime() - start.getTime()) / 1000 / 60;
+  }
+  return Math.floor(total);
+}
+
+// 순수 수업시간 계산 (분)
+export function calculateNetMinutes(checkInTime: string, pauseHistory: PauseRecord[], now: Date): number {
+  const checkIn = new Date(checkInTime);
+  const totalElapsed = (now.getTime() - checkIn.getTime()) / 1000 / 60;
+  const totalPaused = calculatePausedMinutes(pauseHistory, now);
+  return Math.floor(totalElapsed - totalPaused);
+}
 
 interface AppState {
   // Timer 모듈 데이터
   students: Student[];
   enrollments: Enrollment[];
   realtimeSessions: RealtimeSession[];
+  attendanceRecords: AttendanceRecord[];
   timerFilters: FilterState;
   tempStudents: Student[];  // 세션 전용 임시 학생 (DB 저장 안 함)
 
@@ -26,11 +47,16 @@ interface AppState {
   setTimerSearchFilter: (search: string) => void;
   clearFilters: () => void;
   checkIn: (studentId: string, enrollment?: { startTime: string; endTime: string; subject?: string }) => void;
-  checkOut: (studentId: string) => void;
+  checkOut: (studentId: string, note?: string) => void;
+  pauseSession: (studentId: string, reason?: string) => void;
+  resumeSession: (studentId: string) => void;
   clearSessions: () => void;
   addTempStudent: (data: { name: string; grade: string; startTime: string; endTime: string; subject?: string }) => void;
   removeTempStudent: (id: string) => void;
   clearTempStudents: () => void;
+
+  // 출석 기록 액션
+  getAttendanceByDate: (date: string) => AttendanceRecord[];
 
   // 유틸리티
   getFilteredStudents: () => Student[];
@@ -42,6 +68,7 @@ export const useAppStore = create<AppState>()(
     // 초기 상태
     students: [],
     realtimeSessions: [],
+    attendanceRecords: JSON.parse(localStorage.getItem('wawa-attendance-records') || '[]'),
     timerFilters: {
       days: [],
       grades: [],
@@ -199,13 +226,17 @@ export const useAppStore = create<AppState>()(
       const [endH, endM] = (endTime || '00:00').split(':').map(Number);
       const scheduledMinutes = (endH * 60 + endM) - (startH * 60 + startM);
 
+      const now = new Date();
       const session: RealtimeSession = {
+        id: `sess_${Date.now()}`,
         studentId,
         student,
-        checkInTime: new Date().toISOString(),
+        checkInTime: now.toISOString(),
         status: 'active',
         elapsedMinutes: 0,
         scheduledMinutes: Math.max(scheduledMinutes, 0),
+        pauseHistory: [],
+        date: now.toISOString().split('T')[0],
       };
 
       set((state) => ({
@@ -213,14 +244,92 @@ export const useAppStore = create<AppState>()(
       }));
     },
 
-    // 체크아웃
-    checkOut: (studentId) => {
+    // 일시정지
+    pauseSession: (studentId, reason) => {
+      set((state) => ({
+        realtimeSessions: state.realtimeSessions.map((s) =>
+          s.studentId === studentId && s.status === 'active'
+            ? {
+                ...s,
+                status: 'paused' as const,
+                pauseHistory: [
+                  ...s.pauseHistory,
+                  { pausedAt: new Date().toISOString(), reason },
+                ],
+              }
+            : s
+        ),
+      }));
+    },
+
+    // 재개
+    resumeSession: (studentId) => {
+      set((state) => ({
+        realtimeSessions: state.realtimeSessions.map((s) =>
+          s.studentId === studentId && s.status === 'paused'
+            ? {
+                ...s,
+                status: 'active' as const,
+                pauseHistory: s.pauseHistory.map((p, i) =>
+                  i === s.pauseHistory.length - 1 && !p.resumedAt
+                    ? { ...p, resumedAt: new Date().toISOString() }
+                    : p
+                ),
+              }
+            : s
+        ),
+      }));
+    },
+
+    // 체크아웃 → 출석기록 자동 생성
+    checkOut: (studentId, note) => {
+      const state = get();
+      const session = state.realtimeSessions.find((s) => s.studentId === studentId);
+      if (!session) return;
+
+      const now = new Date();
+
+      // 일시정지 중이었다면 마지막 pause 종료
+      const finalPauseHistory = session.pauseHistory.map((p, i) =>
+        i === session.pauseHistory.length - 1 && !p.resumedAt
+          ? { ...p, resumedAt: now.toISOString() }
+          : p
+      );
+
+      const totalPausedMins = calculatePausedMinutes(finalPauseHistory, now);
+      const netMins = calculateNetMinutes(session.checkInTime, finalPauseHistory, now);
+
+      const record: AttendanceRecord = {
+        id: `att_${Date.now()}`,
+        studentId: session.studentId,
+        studentName: session.student.name,
+        grade: session.student.grade,
+        subject: session.student.subject,
+        date: session.date || now.toISOString().split('T')[0],
+        checkInTime: session.checkInTime,
+        checkOutTime: now.toISOString(),
+        scheduledStartTime: session.student.startTime,
+        scheduledEndTime: session.student.endTime,
+        scheduledMinutes: session.scheduledMinutes,
+        netMinutes: netMins,
+        totalPausedMinutes: totalPausedMins,
+        pauseCount: finalPauseHistory.length,
+        pauseHistory: finalPauseHistory,
+        wasLate: false,
+        wasOvertime: netMins > session.scheduledMinutes,
+        note,
+      };
+
+      const newRecords = [...state.attendanceRecords, record];
+      localStorage.setItem('wawa-attendance-records', JSON.stringify(newRecords));
+
       set((state) => ({
         realtimeSessions: state.realtimeSessions.map((s) =>
           s.studentId === studentId
-            ? { ...s, checkOutTime: new Date().toISOString(), status: 'completed' as const }
+            ? { ...s, checkOutTime: now.toISOString(), status: 'completed' as const, pauseHistory: finalPauseHistory }
             : s
         ),
+        attendanceRecords: newRecords,
       }));
     },
 
@@ -261,6 +370,11 @@ export const useAppStore = create<AppState>()(
         tempStudents: [],
         realtimeSessions: state.realtimeSessions.filter((sess) => !sess.student.isTemp),
       }));
+    },
+
+    // 출석 기록 조회
+    getAttendanceByDate: (date) => {
+      return get().attendanceRecords.filter((r) => r.date === date);
     },
 
     // 필터된 학생 목록
