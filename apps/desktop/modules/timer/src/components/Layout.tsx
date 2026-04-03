@@ -8,6 +8,7 @@ const viewModes: { key: ViewMode; label: string; path: string }[] = [
   { key: 'day', label: '요일별', path: '/day' },
   { key: 'student', label: '학생별', path: '/student' },
   { key: 'timeslot', label: '시간대별', path: '/timeslot' },
+  { key: 'attendance', label: '출석기록', path: '/attendance' },
 ];
 
 const days = [

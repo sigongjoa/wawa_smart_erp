@@ -4,6 +4,7 @@ import DayView from './pages/DayView';
 import RealtimeView from './pages/RealtimeView';
 import StudentView from './pages/StudentView';
 import TimeslotView from './pages/TimeslotView';
+import AttendanceView from './pages/AttendanceView';
 import SettingsPage from './pages/SettingsPage';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="realtime" element={<RealtimeView />} />
           <Route path="student" element={<StudentView />} />
           <Route path="timeslot" element={<TimeslotView />} />
+          <Route path="attendance" element={<AttendanceView />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

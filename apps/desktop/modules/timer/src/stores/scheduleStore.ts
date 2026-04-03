@@ -1,12 +1,32 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Student, FilterState, ViewMode, NotionSettings, RealtimeSession, DayType, GradeType } from '../types';
+import type { Student, FilterState, ViewMode, NotionSettings, RealtimeSession, AttendanceRecord, PauseRecord, DayType, GradeType } from '../types';
 import { fetchSchedules, testConnection } from '../services/notion';
+
+// 일시정지 총 시간 계산 (분)
+export function calculatePausedMinutes(pauseHistory: PauseRecord[], now: Date): number {
+  let total = 0;
+  for (const pause of pauseHistory) {
+    const start = new Date(pause.pausedAt);
+    const end = pause.resumedAt ? new Date(pause.resumedAt) : now;
+    total += (end.getTime() - start.getTime()) / 1000 / 60;
+  }
+  return Math.floor(total);
+}
+
+// 순수 수업시간 계산 (분)
+export function calculateNetMinutes(checkInTime: string, pauseHistory: PauseRecord[], now: Date): number {
+  const checkIn = new Date(checkInTime);
+  const totalElapsed = (now.getTime() - checkIn.getTime()) / 1000 / 60;
+  const totalPaused = calculatePausedMinutes(pauseHistory, now);
+  return Math.floor(totalElapsed - totalPaused);
+}
 
 interface ScheduleState {
   // 데이터
   students: Student[];
   realtimeSessions: RealtimeSession[];
+  attendanceRecords: AttendanceRecord[];
 
   // UI 상태
   viewMode: ViewMode;
@@ -31,8 +51,14 @@ interface ScheduleState {
 
   // 실시간 세션 액션
   checkIn: (studentId: string) => void;
-  checkOut: (studentId: string) => void;
+  checkOut: (studentId: string, note?: string) => void;
+  pauseSession: (studentId: string, reason?: string) => void;
+  resumeSession: (studentId: string) => void;
   clearSessions: () => void;
+
+  // 출석 기록 액션
+  getAttendanceByDate: (date: string) => AttendanceRecord[];
+  getAttendanceByStudent: (studentId: string) => AttendanceRecord[];
 
   // 설정 액션
   setNotionSettings: (settings: NotionSettings) => void;
@@ -46,7 +72,7 @@ interface ScheduleState {
   getTodayStudents: () => Student[];
 }
 
-const generateId = () => Math.random().toString(36).substring(2, 15);
+const generateId = () => Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
 export const useScheduleStore = create<ScheduleState>()(
   persist(
@@ -54,6 +80,7 @@ export const useScheduleStore = create<ScheduleState>()(
       // 초기 상태
       students: [],
       realtimeSessions: [],
+      attendanceRecords: [],
       viewMode: 'day',
       filters: {
         day: 'all',
@@ -137,14 +164,18 @@ export const useScheduleStore = create<ScheduleState>()(
         const [startH, startM] = student.startTime.split(':').map(Number);
         const [endH, endM] = student.endTime.split(':').map(Number);
         const scheduledMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        const now = new Date();
 
         const session: RealtimeSession = {
+          id: generateId(),
           studentId,
           student,
-          checkInTime: new Date().toISOString(),
+          checkInTime: now.toISOString(),
           status: 'active',
           elapsedMinutes: 0,
           scheduledMinutes,
+          pauseHistory: [],
+          date: now.toISOString().split('T')[0],
         };
 
         set((state) => ({
@@ -152,20 +183,116 @@ export const useScheduleStore = create<ScheduleState>()(
         }));
       },
 
-      // 체크아웃
-      checkOut: (studentId) => {
+      // 일시정지
+      pauseSession: (studentId, reason) => {
+        set((state) => ({
+          realtimeSessions: state.realtimeSessions.map((s) =>
+            s.studentId === studentId && s.status === 'active'
+              ? {
+                  ...s,
+                  status: 'paused' as const,
+                  pauseHistory: [
+                    ...s.pauseHistory,
+                    { pausedAt: new Date().toISOString(), reason },
+                  ],
+                }
+              : s
+          ),
+        }));
+      },
+
+      // 재개
+      resumeSession: (studentId) => {
+        set((state) => ({
+          realtimeSessions: state.realtimeSessions.map((s) =>
+            s.studentId === studentId && s.status === 'paused'
+              ? {
+                  ...s,
+                  status: 'active' as const,
+                  pauseHistory: s.pauseHistory.map((p, i) =>
+                    i === s.pauseHistory.length - 1 && !p.resumedAt
+                      ? { ...p, resumedAt: new Date().toISOString() }
+                      : p
+                  ),
+                }
+              : s
+          ),
+        }));
+      },
+
+      // 체크아웃 → 출석기록 자동 생성
+      checkOut: (studentId, note) => {
+        const state = get();
+        const session = state.realtimeSessions.find((s) => s.studentId === studentId);
+        if (!session) return;
+
+        const now = new Date();
+
+        // 일시정지 중이었다면 마지막 pause 종료
+        const finalPauseHistory = session.pauseHistory.map((p, i) =>
+          i === session.pauseHistory.length - 1 && !p.resumedAt
+            ? { ...p, resumedAt: now.toISOString() }
+            : p
+        );
+
+        const totalPausedMinutes = calculatePausedMinutes(finalPauseHistory, now);
+        const netMinutes = calculateNetMinutes(session.checkInTime, finalPauseHistory, now);
+
+        // 지각 판정: 예정 시작시간 + 5분 이후 체크인
+        const [schH, schM] = session.student.startTime.split(':').map(Number);
+        const checkInDate = new Date(session.checkInTime);
+        const scheduledStart = new Date(checkInDate);
+        scheduledStart.setHours(schH, schM + 5, 0, 0);
+        const wasLate = checkInDate > scheduledStart;
+
+        const record: AttendanceRecord = {
+          id: generateId(),
+          studentId: session.studentId,
+          studentName: session.student.name,
+          grade: session.student.grade,
+          subject: session.student.subject,
+          date: session.date,
+          checkInTime: session.checkInTime,
+          checkOutTime: now.toISOString(),
+          scheduledStartTime: session.student.startTime,
+          scheduledEndTime: session.student.endTime,
+          scheduledMinutes: session.scheduledMinutes,
+          netMinutes,
+          totalPausedMinutes,
+          pauseCount: finalPauseHistory.length,
+          pauseHistory: finalPauseHistory,
+          wasLate,
+          wasOvertime: netMinutes > session.scheduledMinutes,
+          note,
+        };
+
         set((state) => ({
           realtimeSessions: state.realtimeSessions.map((s) =>
             s.studentId === studentId
-              ? { ...s, checkOutTime: new Date().toISOString(), status: 'completed' as const }
+              ? {
+                  ...s,
+                  checkOutTime: now.toISOString(),
+                  status: 'completed' as const,
+                  pauseHistory: finalPauseHistory,
+                }
               : s
           ),
+          attendanceRecords: [...state.attendanceRecords, record],
         }));
       },
 
       // 세션 초기화
       clearSessions: () => {
         set({ realtimeSessions: [] });
+      },
+
+      // 출석 기록 조회
+      getAttendanceByDate: (date) => {
+        return get().attendanceRecords.filter((r) => r.date === date);
+      },
+
+      getAttendanceByStudent: (studentId) => {
+        return get().attendanceRecords.filter((r) => r.studentId === studentId);
       },
 
       // Notion 설정
@@ -229,6 +356,7 @@ export const useScheduleStore = create<ScheduleState>()(
       partialize: (state) => ({
         students: state.students,
         notionSettings: state.notionSettings,
+        attendanceRecords: state.attendanceRecords,
       }),
     }
   )
