@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>실시간 타이머 와이어프레임 — 일시정지/수업추가/출석 관리</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: #f1f5f9; color: #1e293b; padding: 32px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 32px; }
+
+  /* ---- 시나리오 섹션 ---- */
+  .scenario { margin-bottom: 48px; }
+  .scenario-title {
+    font-size: 15px; font-weight: 700; color: #2563eb;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    padding-bottom: 8px; border-bottom: 2px solid #2563eb;
+  }
+  .scenario-title .num {
+    background: #2563eb; color: white; width: 28px; height: 28px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+  }
+  .desc {
+    font-size: 13px; color: #64748b; margin-bottom: 16px;
+    padding: 10px 14px; background: #e0f2fe; border-radius: 8px;
+    border-left: 3px solid #2563eb;
+  }
+
+  /* ---- 카드 프레임 ---- */
+  .frame {
+    background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+    overflow: hidden; max-width: 420px;
+  }
+  .frame-header {
+    padding: 12px 16px; font-size: 13px; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+  }
+
+  /* ---- 타이머 카드 공통 ---- */
+  .card {
+    padding: 16px; border-left: 4px solid #ccc;
+    margin: 12px; border-radius: 10px; background: #f8fafc;
+  }
+  .card-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .student-name { font-size: 16px; font-weight: 700; }
+  .grade-badge {
+    font-size: 11px; font-weight: 700; color: white;
+    padding: 2px 10px; border-radius: 4px;
+  }
+  .badge-h2 { background: #10b981; }
+  .badge-m3 { background: #ef4444; }
+
+  /* 시간 정보 행 */
+  .time-row {
+    display: flex; gap: 16px; margin-bottom: 8px;
+    font-size: 12px; color: #64748b;
+  }
+  .time-row .label { color: #94a3b8; min-width: 50px; }
+  .time-row .value { font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums; }
+  .time-row .value.late { color: #ef4444; }
+  .time-row .value.adjusted { color: #f59e0b; }
+
+  /* 타이머 디스플레이 */
+  .timer-display {
+    display: flex; align-items: baseline; justify-content: center;
+    gap: 6px; padding: 12px; margin: 10px 0;
+    border-radius: 8px; background: #f1f5f9;
+  }
+  .timer-value {
+    font-size: 32px; font-weight: 800;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
+  }
+  .timer-label { font-size: 13px; color: #94a3b8; font-weight: 500; }
+  .timer-display.warning { background: #fffbeb; }
+  .timer-display.warning .timer-value { color: #92400e; }
+  .timer-display.overtime { background: #fef2f2; }
+  .timer-display.overtime .timer-value { color: #991b1b; }
+  .timer-display.paused { background: #fffbeb; border: 1px dashed #f59e0b; }
+  .timer-display.paused .timer-value { color: #92400e; }
+
+  /* 진행률 */
+  .progress-track { height: 4px; background: #e2e8f0; border-radius: 2px; margin-bottom: 10px; }
+  .progress-fill { height: 100%; border-radius: 2px; }
+  .progress-fill.green { background: #10b981; }
+  .progress-fill.amber { background: #f59e0b; }
+  .progress-fill.red { background: #ef4444; }
+
+  /* 메타 정보 */
+  .meta {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; font-size: 12px; color: #94a3b8; margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta .paused-info { color: #f59e0b; font-weight: 600; }
+  .meta .divider { color: #e2e8f0; }
+
+  /* 버튼 */
+  .actions { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; padding: 8px; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-pause { background: #fffbeb; color: #92400e; }
+  .btn-resume { background: #10b981; color: white; }
+  .btn-done { background: #2563eb; color: white; }
+  .btn-icon { font-size: 16px; }
+
+  /* 정지 상태 카드 */
+  .card.paused {
+    background: #fffbeb; border-left-color: #f59e0b;
+    background-image: repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(245,158,11,0.05) 8px, rgba(245,158,11,0.05) 16px);
+  }
+  .status-tag {
+    font-size: 11px; font-weight: 700; padding: 2px 10px;
+    border-radius: 999px; display: inline-flex; align-items: center; gap: 3px;
+  }
+  .tag-paused { background: #f59e0b; color: white; }
+  .tag-overtime { background: #ef4444; color: white; }
+
+  .pause-reason-tag {
+    font-size: 12px; font-weight: 500; color: #f59e0b;
+    background: rgba(245,158,11,0.15); padding: 2px 8px; border-radius: 4px;
+  }
+
+  /* 사유 시트 */
+  .reason-sheet {
+    background: white; border-radius: 16px 16px 0 0;
+    padding: 20px; max-width: 380px; margin: 16px auto 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+  }
+  .reason-sheet-title { font-size: 15px; font-weight: 700; text-align: center; margin-bottom: 14px; }
+  .reason-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .reason-btn {
+    padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px;
+    background: #f8fafc; font-size: 14px; font-weight: 600;
+    cursor: pointer; text-align: center;
+  }
+  .reason-skip {
+    display: block; width: 100%; padding: 10px; border: none;
+    background: transparent; font-size: 13px; color: #94a3b8;
+    cursor: pointer; text-align: center;
+  }
+
+  /* 흐름도 */
+  .flow {
+    display: flex; align-items: center; gap: 12px;
+    margin: 16px 0 24px; flex-wrap: wrap;
+  }
+  .flow-step {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    border: 1px solid #e2e8f0; background: white;
+  }
+  .flow-step.active { background: #10b981; color: white; border-color: #10b981; }
+  .flow-step.paused { background: #f59e0b; color: white; border-color: #f59e0b; }
+  .flow-step.done { background: #2563eb; color: white; border-color: #2563eb; }
+  .flow-arrow { color: #cbd5e1; font-size: 18px; }
+
+  /* 2-up layout */
+  .two-up { display: flex; gap: 24px; flex-wrap: wrap; }
+  .two-up > * { flex: 1; min-width: 340px; }
+
+  /* 타임라인 */
+  .timeline { margin: 12px 0 0 12px; padding-left: 16px; border-left: 2px solid #e2e8f0; }
+  .timeline-item {
+    position: relative; padding: 0 0 12px 0; font-size: 12px; color: #64748b;
+  }
+  .timeline-item::before {
+    content: ''; position: absolute; left: -21px; top: 4px;
+    width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1;
+  }
+  .timeline-item.active::before { background: #10b981; }
+  .timeline-item.pause::before { background: #f59e0b; }
+  .timeline-item.end::before { background: #2563eb; }
+  .timeline-time { font-weight: 700; color: #1e293b; font-variant-numeric: tabular-nums; }
+
+  /* 수업 추가 관련 */
+  .btn-add { background: #fef2f2; color: #dc2626; }
+  .btn-add:hover { background: #fee2e2; }
+
+  .add-sheet {
+    background: white; border-radius: 16px 16px 0 0;
+    padding: 20px; max-width: 380px; margin: 16px auto 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+  }
+  .add-sheet-title { font-size: 15px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+  .add-sheet-subtitle { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 14px; }
+  .add-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .add-btn {
+    padding: 14px 8px; border: 2px solid #fecaca; border-radius: 10px;
+    background: #fff5f5; font-size: 15px; font-weight: 700; color: #dc2626;
+    cursor: pointer; text-align: center; transition: all 0.15s;
+  }
+  .add-btn:hover { background: #fecaca; border-color: #dc2626; }
+  .add-custom {
+    display: block; width: 100%; padding: 10px; border: 1px solid #e2e8f0;
+    border-radius: 8px; background: #f8fafc; font-size: 13px; color: #64748b;
+    cursor: pointer; text-align: center; margin-bottom: 8px;
+  }
+  .add-cancel {
+    display: block; width: 100%; padding: 10px; border: none;
+    background: transparent; font-size: 13px; color: #94a3b8;
+    cursor: pointer; text-align: center;
+  }
+
+  .penalty-tag {
+    font-size: 11px; font-weight: 700; padding: 2px 10px;
+    border-radius: 999px; background: #dc2626; color: white;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .penalty-info { color: #dc2626; font-weight: 600; }
+
+  .timeline-item.penalty::before { background: #dc2626; }
+
+  /* 수업 추가 기록 태그 */
+  .penalty-reason-tag {
+    font-size: 12px; font-weight: 500; color: #dc2626;
+    background: rgba(220,38,38,0.1); padding: 2px 8px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>실시간 타이머 와이어프레임</h1>
+<p class="subtitle">수업 시작/종료 시각 표시, 일시정지 시 시간 흐름, 수업 추가(벌칙), 완료 후 출석기록 — 각 상태별 카드 UI</p>
+
+<!-- ============================================ -->
+<!-- 상태 흐름도 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">0</span> 세션 상태 흐름</div>
+  <div class="flow">
+    <div class="flow-step">대기 (waiting)</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step active">수업 중 (active)</div>
+    <span class="flow-arrow">&harr;</span>
+    <div class="flow-step paused">일시정지 (paused)</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step done">완료 (completed)</div>
+  </div>
+  <div class="desc">
+    <strong>핵심 원칙:</strong> 타이머의 "남은시간"은 <u>순수 수업시간</u> 기준입니다.<br>
+    일시정지 동안에는 타이머가 멈추고, 재개하면 정지 전 시점부터 이어서 카운트합니다.<br>
+    예정 종료시각은 정지한 만큼 자동으로 뒤로 밀립니다.<br><br>
+    <strong>수업 추가(벌칙):</strong> 학생이 말 안 들을 때 수업 시간을 연장합니다.<br>
+    추가된 시간만큼 <u>예정 수업시간이 늘어나고</u>, 종료시각이 뒤로 밀립니다.<br>
+    여러 번 추가 가능하며, 일시정지와 독립적으로 동작합니다.
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 1: 수업 중 (정상) -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">1</span> 수업 중 — 정상 진행</div>
+  <div class="desc">
+    14:00 예정인 학생이 14:02에 체크인. 현재 14:40. 아직 일시정지 없음.
+  </div>
+
+  <div class="frame">
+    <div class="frame-header">
+      <span>수업 진행</span>
+      <span style="color:#10b981; font-weight:700">1명</span>
+    </div>
+    <div class="card" style="border-left-color:#10b981;">
+      <div class="card-top">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="student-name">김민준</span>
+          <span class="grade-badge badge-h2">고2</span>
+        </div>
+      </div>
+
+      <!-- 시간 정보 (핵심!) -->
+      <div class="time-row">
+        <span class="label">시작</span>
+        <span class="value">14:02</span>
+        <span class="label" style="margin-left:auto">예정종료</span>
+        <span class="value">16:00</span>
+      </div>
+
+      <div class="timer-display">
+        <span class="timer-value">01:20</span>
+        <span class="timer-label">남음</span>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill green" style="width:33%"></div>
+      </div>
+
+      <div class="meta">
+        <span>순수 38분</span>
+        <span class="divider">/</span>
+        <span>예정 120분</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-pause"><span class="btn-icon">⏸</span> 정지</button>
+        <button class="btn btn-add"><span class="btn-icon">+</span> 수업추가</button>
+        <button class="btn btn-done"><span class="btn-icon">✓</span> 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 2: 일시정지 중 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">2</span> 일시정지 중 — 학생 외출</div>
+  <div class="desc">
+    14:02 시작, 14:50에 "외출"로 일시정지. 현재 14:55. 타이머는 48분에서 멈춰있음.<br>
+    <strong>예정 종료시각이 16:00 → 16:05로 5분 밀림</strong> (정지한 만큼 자동 연장)
+  </div>
+
+  <div class="frame">
+    <div class="frame-header">
+      <span>수업 진행</span>
+      <span style="color:#f59e0b; font-weight:700">1명 (정지)</span>
+    </div>
+    <div class="card paused" style="border-left-color:#f59e0b;">
+      <div class="card-top">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="student-name">김민준</span>
+          <span class="grade-badge badge-h2">고2</span>
+        </div>
+        <span class="status-tag tag-paused">⏸ 정지</span>
+      </div>
+
+      <!-- 시간 정보 — 예정종료가 밀림! -->
+      <div class="time-row">
+        <span class="label">시작</span>
+        <span class="value">14:02</span>
+        <span class="label" style="margin-left:auto">예정종료</span>
+        <span class="value adjusted">16:05 <small style="font-weight:400;color:#f59e0b">(+5분)</small></span>
+      </div>
+
+      <!-- 정지 중 디스플레이 -->
+      <div class="timer-display paused">
+        <span class="timer-value" style="color:#92400e;">05:23</span>
+        <span class="timer-label">정지 경과</span>
+      </div>
+
+      <div style="text-align:center;margin-bottom:10px">
+        <span class="pause-reason-tag">외출</span>
+      </div>
+
+      <div class="meta">
+        <span>순수 48분</span>
+        <span class="divider">/</span>
+        <span>예정 120분</span>
+        <span class="divider">|</span>
+        <span class="paused-info">정지 5분 (1회)</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-resume"><span class="btn-icon">▶</span> 재개</button>
+        <button class="btn btn-done"><span class="btn-icon">✓</span> 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 3: 재개 후 계속 수업 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">3</span> 재개 후 — 정지 이력 표시</div>
+  <div class="desc">
+    14:55에 재개, 현재 15:30. 순수 수업 83분 (48 + 35). 총 정지 5분.<br>
+    <strong>예정 종료시각 16:05 유지</strong> (정지 5분만큼 밀린 상태)
+  </div>
+
+  <div class="frame">
+    <div class="frame-header">
+      <span>수업 진행</span>
+      <span style="color:#10b981; font-weight:700">1명</span>
+    </div>
+    <div class="card" style="border-left-color:#10b981;">
+      <div class="card-top">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="student-name">김민준</span>
+          <span class="grade-badge badge-h2">고2</span>
+        </div>
+      </div>
+
+      <div class="time-row">
+        <span class="label">시작</span>
+        <span class="value">14:02</span>
+        <span class="label" style="margin-left:auto">예정종료</span>
+        <span class="value adjusted">16:05 <small style="font-weight:400;color:#f59e0b">(+5분)</small></span>
+      </div>
+
+      <div class="timer-display">
+        <span class="timer-value">00:35</span>
+        <span class="timer-label">남음</span>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill green" style="width:69%"></div>
+      </div>
+
+      <div class="meta">
+        <span>순수 83분</span>
+        <span class="divider">/</span>
+        <span>예정 120분</span>
+        <span class="divider">|</span>
+        <span class="paused-info">정지 5분 (1회)</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-pause"><span class="btn-icon">⏸</span> 정지</button>
+        <button class="btn btn-add"><span class="btn-icon">+</span> 수업추가</button>
+        <button class="btn btn-done"><span class="btn-icon">✓</span> 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 4: 사유 선택 시트 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">4</span> 일시정지 사유 선택</div>
+  <div class="desc">[정지] 버튼 클릭 시 하단에서 올라오는 사유 선택 시트</div>
+
+  <div class="reason-sheet">
+    <div class="reason-sheet-title">일시정지 사유</div>
+    <div class="reason-grid">
+      <div class="reason-btn">🚶 외출</div>
+      <div class="reason-btn">☕ 휴식</div>
+      <div class="reason-btn">🚻 화장실</div>
+      <div class="reason-btn">📱 기타</div>
+    </div>
+    <button class="reason-skip">사유 없이 정지</button>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 5: 초과 수업 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">5</span> 초과 수업 — 예정시간 지남</div>
+  <div class="desc">
+    예정 종료 16:05를 넘겨서 현재 16:20. 순수 수업 135분 (예정 120분 초과).
+  </div>
+
+  <div class="frame">
+    <div class="frame-header">
+      <span>수업 진행</span>
+      <span style="color:#ef4444; font-weight:700">1명 (초과)</span>
+    </div>
+    <div class="card" style="border-left-color:#ef4444; background:#fef2f2;">
+      <div class="card-top">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="student-name">김민준</span>
+          <span class="grade-badge badge-h2">고2</span>
+        </div>
+        <span class="status-tag tag-overtime">초과</span>
+      </div>
+
+      <div class="time-row">
+        <span class="label">시작</span>
+        <span class="value">14:02</span>
+        <span class="label" style="margin-left:auto">예정종료</span>
+        <span class="value late" style="text-decoration:line-through">16:05</span>
+      </div>
+
+      <div class="timer-display overtime">
+        <span class="timer-value">+00:15</span>
+        <span class="timer-label">초과</span>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill red" style="width:100%"></div>
+      </div>
+
+      <div class="meta">
+        <span>순수 135분</span>
+        <span class="divider">/</span>
+        <span>예정 120분</span>
+        <span class="divider">|</span>
+        <span class="paused-info">정지 5분 (1회)</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-pause"><span class="btn-icon">⏸</span> 정지</button>
+        <button class="btn btn-add"><span class="btn-icon">+</span> 수업추가</button>
+        <button class="btn btn-done"><span class="btn-icon">✓</span> 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 6: 타임라인 전체 흐름 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">6</span> 세션 타임라인 (출석기록에 저장되는 데이터)</div>
+  <div class="desc">
+    완료 후 자동 생성되는 출석기록. 아래는 김민준 학생의 오늘 세션 전체 흐름.
+  </div>
+
+  <div class="frame" style="max-width:480px">
+    <div class="frame-header">
+      <span>김민준 — 2026.04.03 (목) 출석기록</span>
+    </div>
+    <div style="padding:16px">
+      <div class="time-row" style="margin-bottom:12px">
+        <span class="label">예정</span>
+        <span class="value">14:00 — 16:00 (120분)</span>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item active">
+          <span class="timeline-time">14:02</span> — 등원 (수업 시작)
+          <span style="color:#f59e0b; font-size:11px; margin-left:4px">+2분 지각</span>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-time">14:02 ~ 14:50</span> — 수업 (48분)
+        </div>
+        <div class="timeline-item pause">
+          <span class="timeline-time">14:50 ~ 14:55</span> — 일시정지 (5분) <span class="pause-reason-tag" style="font-size:11px">외출</span>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-time">14:55 ~ 16:20</span> — 수업 (85분)
+        </div>
+        <div class="timeline-item end">
+          <span class="timeline-time">16:20</span> — 하원 (수업 완료)
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding:12px; background:#f1f5f9; border-radius:8px; font-size:13px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:#64748b">순수 수업시간</span>
+          <span style="font-weight:700">133분</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:#64748b">총 정지시간</span>
+          <span style="font-weight:600; color:#f59e0b">5분 (1회)</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:#64748b">예정 대비</span>
+          <span style="font-weight:600; color:#ef4444">+13분 초과</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#64748b">지각</span>
+          <span style="font-weight:600; color:#ef4444">+2분</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 7: 두 번째 정지 예시 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">7</span> 여러 번 일시정지한 경우</div>
+  <div class="desc">
+    다른 학생 예시: 2번 정지 (화장실 3분 + 외출 8분 = 총 11분 정지). 예정 종료 16:11로 밀림.
+  </div>
+
+  <div class="frame">
+    <div class="frame-header">
+      <span>수업 진행</span>
+      <span style="color:#10b981; font-weight:700">1명</span>
+    </div>
+    <div class="card" style="border-left-color:#ef4444;">
+      <div class="card-top">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="student-name">이서연</span>
+          <span class="grade-badge badge-m3">중3</span>
+        </div>
+      </div>
+
+      <div class="time-row">
+        <span class="label">시작</span>
+        <span class="value">14:00</span>
+        <span class="label" style="margin-left:auto">예정종료</span>
+        <span class="value adjusted">16:11 <small style="font-weight:400;color:#f59e0b">(+11분)</small></span>
+      </div>
+
+      <div class="timer-display warning">
+        <span class="timer-value">00:08</span>
+        <span class="timer-label">남음</span>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill amber" style="width:93%"></div>
+      </div>
+
+      <div class="meta">
+        <span>순수 112분</span>
+        <span class="divider">/</span>
+        <span>예정 120분</span>
+        <span class="divider">|</span>
+        <span class="paused-info">정지 11분 (2회)</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-pause"><span class="btn-icon">⏸</span> 정지</button>
+        <button class="btn btn-add"><span class="btn-icon">+</span> 수업추가</button>
+        <button class="btn btn-done"><span class="btn-icon">✓</span> 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 8: 수업 추가 선택 시트 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">8</span> 수업 추가 — 시간 선택 시트</div>
+  <div class="desc">
+    [수업추가] 버튼 클릭 시 하단에서 올라오는 추가 시간 선택 시트.<br>
+    학생이 수업 태도가 좋지 않을 때 벌칙으로 수업 시간을 연장합니다.
+  </div>
+
+  <div class="add-sheet">
+    <div class="add-sheet-title">수업 추가</div>
+    <div class="add-sheet-subtitle">벌칙/보충으로 수업 시간을 연장합니다</div>
+    <div class="add-grid">
+      <div class="add-btn">+10분</div>
+      <div class="add-btn">+20분</div>
+      <div class="add-btn">+30분</div>
+    </div>
+    <button class="add-custom">직접 입력...</button>
+    <button class="add-cancel">취소</button>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 9: 수업 추가 후 카드 상태 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">9</span> 수업 추가 후 — 예정시간 연장 반영</div>
+  <div class="desc">
+    김민준 학생에게 수업 태도 벌칙으로 +30분 추가. 예정 120분 → 150분.<br>
+    <strong>예정 종료시각 16:00 → 16:30으로 30분 연장.</strong> 기존 정지 없음.
+  </div>
+
+  <div class="frame">
+    <div class="frame-header">
+      <span>수업 진행</span>
+      <span style="color:#10b981; font-weight:700">1명</span>
+    </div>
+    <div class="card" style="border-left-color:#10b981;">
+      <div class="card-top">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="student-name">김민준</span>
+          <span class="grade-badge badge-h2">고2</span>
+        </div>
+        <span class="penalty-tag">+30분 추가</span>
+      </div>
+
+      <div class="time-row">
+        <span class="label">시작</span>
+        <span class="value">14:02</span>
+        <span class="label" style="margin-left:auto">예정종료</span>
+        <span class="value" style="color:#dc2626;">16:32 <small style="font-weight:400;color:#dc2626">(+30분)</small></span>
+      </div>
+
+      <div class="timer-display">
+        <span class="timer-value">01:52</span>
+        <span class="timer-label">남음</span>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill green" style="width:26%"></div>
+      </div>
+
+      <div class="meta">
+        <span>순수 38분</span>
+        <span class="divider">/</span>
+        <span>예정 <s style="color:#94a3b8">120</s> <span class="penalty-info">150분</span></span>
+        <span class="divider">|</span>
+        <span class="penalty-info">벌칙 +30분</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-pause"><span class="btn-icon">⏸</span> 정지</button>
+        <button class="btn btn-add"><span class="btn-icon">+</span> 수업추가</button>
+        <button class="btn btn-done"><span class="btn-icon">✓</span> 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 10: 정지 + 수업 추가 복합 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">10</span> 복합 — 일시정지 + 수업 추가 동시 적용</div>
+  <div class="desc">
+    이서연 학생: 수업 중 외출 8분 정지 + 벌칙 20분 추가.<br>
+    예정 120분 → 140분(+20추가), 예정종료 16:00 → 16:28 (+8정지 +20추가).<br>
+    <strong>두 가지가 모두 반영되어 종료시각이 밀립니다.</strong>
+  </div>
+
+  <div class="frame">
+    <div class="frame-header">
+      <span>수업 진행</span>
+      <span style="color:#10b981; font-weight:700">1명</span>
+    </div>
+    <div class="card" style="border-left-color:#10b981;">
+      <div class="card-top">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="student-name">이서연</span>
+          <span class="grade-badge badge-m3">중3</span>
+        </div>
+        <span class="penalty-tag">+20분 추가</span>
+      </div>
+
+      <div class="time-row">
+        <span class="label">시작</span>
+        <span class="value">14:00</span>
+        <span class="label" style="margin-left:auto">예정종료</span>
+        <span class="value" style="color:#dc2626;">16:28 <small style="font-weight:400;color:#94a3b8">(+8정지</small> <small style="font-weight:400;color:#dc2626">+20추가)</small></span>
+      </div>
+
+      <div class="timer-display">
+        <span class="timer-value">00:42</span>
+        <span class="timer-label">남음</span>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill green" style="width:70%"></div>
+      </div>
+
+      <div class="meta">
+        <span>순수 98분</span>
+        <span class="divider">/</span>
+        <span>예정 <s style="color:#94a3b8">120</s> <span class="penalty-info">140분</span></span>
+        <span class="divider">|</span>
+        <span class="paused-info">정지 8분 (1회)</span>
+        <span class="divider">|</span>
+        <span class="penalty-info">벌칙 +20분</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-pause"><span class="btn-icon">⏸</span> 정지</button>
+        <button class="btn btn-add"><span class="btn-icon">+</span> 수업추가</button>
+        <button class="btn btn-done"><span class="btn-icon">✓</span> 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 시나리오 11: 수업 추가 포함 타임라인 -->
+<!-- ============================================ -->
+<div class="scenario">
+  <div class="scenario-title"><span class="num">11</span> 수업 추가 포함 — 전체 타임라인 (출석기록)</div>
+  <div class="desc">
+    이서연 학생 세션: 정지 1회(8분) + 벌칙 추가 20분. 수업 완료 후 출석기록.
+  </div>
+
+  <div class="frame" style="max-width:480px">
+    <div class="frame-header">
+      <span>이서연 — 2026.04.03 (목) 출석기록</span>
+    </div>
+    <div style="padding:16px">
+      <div class="time-row" style="margin-bottom:12px">
+        <span class="label">예정</span>
+        <span class="value">14:00 — 16:00 (120분)</span>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item active">
+          <span class="timeline-time">14:00</span> — 등원 (수업 시작)
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-time">14:00 ~ 14:45</span> — 수업 (45분)
+        </div>
+        <div class="timeline-item pause">
+          <span class="timeline-time">14:45 ~ 14:53</span> — 일시정지 (8분) <span class="pause-reason-tag" style="font-size:11px">외출</span>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-time">14:53 ~ 15:20</span> — 수업 (27분)
+        </div>
+        <div class="timeline-item penalty">
+          <span class="timeline-time">15:20</span> — 수업 추가 <span class="penalty-reason-tag" style="font-size:11px">+20분 벌칙</span>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-time">15:20 ~ 16:28</span> — 수업 (68분)
+        </div>
+        <div class="timeline-item end">
+          <span class="timeline-time">16:28</span> — 하원 (수업 완료)
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding:12px; background:#f1f5f9; border-radius:8px; font-size:13px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:#64748b">순수 수업시간</span>
+          <span style="font-weight:700">140분</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:#64748b">기본 예정</span>
+          <span style="font-weight:600">120분</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:#dc2626">수업 추가 (벌칙)</span>
+          <span style="font-weight:700; color:#dc2626">+20분</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:#64748b">총 정지시간</span>
+          <span style="font-weight:600; color:#f59e0b">8분 (1회)</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#64748b">예정 대비</span>
+          <span style="font-weight:600; color:#10b981">정상 완료</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

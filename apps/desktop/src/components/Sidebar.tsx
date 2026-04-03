@@ -9,6 +9,7 @@ const moduleMenus: Record<ModuleType, SidebarItem[]> = {
     { id: 'realtime', label: '실시간 관리', icon: 'timer', path: '/timer/realtime' },
     { id: 'student', label: '학생별 보기', icon: 'person', path: '/timer/student' },
     { id: 'timeslot', label: '시간대별 보기', icon: 'schedule', path: '/timer/timeslot' },
+    { id: 'attendance', label: '출석 기록', icon: 'fact_check', path: '/timer/attendance' },
   ],
   report: [
     { id: 'input', label: '성적 입력', icon: 'edit_note', path: '/report/input' },

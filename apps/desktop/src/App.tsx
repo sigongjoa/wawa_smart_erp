@@ -10,6 +10,7 @@ const TimerDayView = lazy(() => import('./modules/timer/DayView'));
 const TimerRealtimeView = lazy(() => import('./modules/timer/RealtimeView'));
 const TimerStudentView = lazy(() => import('./modules/timer/StudentView'));
 const TimerTimeslotView = lazy(() => import('./modules/timer/TimeslotView'));
+const TimerAttendanceView = lazy(() => import('./modules/timer/AttendanceView'));
 const TimerSettings = lazy(() => import('./modules/timer/Settings'));
 
 const ReportDashboard = lazy(() => import('./modules/report/Dashboard'));
@@ -70,6 +71,7 @@ function App() {
             <Route path="realtime" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerRealtimeView /></Suspense></ErrorBoundary>} />
             <Route path="student" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerStudentView /></Suspense></ErrorBoundary>} />
             <Route path="timeslot" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerTimeslotView /></Suspense></ErrorBoundary>} />
+            <Route path="attendance" element={<ErrorBoundary><Suspense fallback={<PageLoader />}><TimerAttendanceView /></Suspense></ErrorBoundary>} />
             <Route path="settings" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><TimerSettings /></Suspense></ErrorBoundary></ProtectedRoute>} />
           </Route>
 

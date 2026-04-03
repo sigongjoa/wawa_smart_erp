@@ -1135,6 +1135,112 @@ body {
 }
 
 /* ========================================
+ * ATTENDANCE VIEW (출석 기록)
+ * ======================================== */
+.att-container { padding: 0; }
+
+.att-date-nav {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.att-date-btn {
+  background: var(--bg-secondary, #f1f5f9); border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center;
+  font-size: 13px; font-weight: 600; color: var(--text-primary, #1e293b);
+}
+.att-date-btn:hover { background: var(--bg-hover, #e2e8f0); }
+.att-date-today { padding: 6px 14px; }
+.att-date-input {
+  border: 1px solid var(--border, #e2e8f0); border-radius: 8px;
+  padding: 6px 10px; font-size: 13px; font-family: inherit;
+}
+.att-date-display {
+  font-size: 15px; font-weight: 700; color: var(--text-primary, #1e293b);
+}
+
+.att-stats {
+  display: flex; gap: 12px; margin-bottom: 20px;
+}
+.att-stat {
+  background: var(--bg-secondary, #f8fafc); border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px; padding: 12px 20px; text-align: center; min-width: 90px;
+}
+.att-stat-value { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.att-stat-label { font-size: 12px; color: var(--text-tertiary, #94a3b8); }
+
+.att-empty {
+  text-align: center; padding: 48px 16px; color: var(--text-secondary, #64748b);
+}
+.att-empty p { margin-top: 8px; font-size: 14px; }
+
+.att-records { display: flex; flex-direction: column; gap: 10px; }
+
+.att-record-card {
+  background: var(--bg-primary, white); border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px; overflow: hidden;
+}
+.att-record-header {
+  padding: 14px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+  transition: background 0.15s;
+}
+.att-record-header:hover { background: var(--bg-secondary, #f8fafc); }
+.att-record-top { display: flex; align-items: center; gap: 8px; min-width: 140px; }
+.att-record-name { font-size: 15px; font-weight: 700; }
+.att-record-grade {
+  font-size: 11px; font-weight: 700; color: white; background: var(--primary, #2563eb);
+  padding: 1px 8px; border-radius: 4px;
+}
+.att-record-subject {
+  font-size: 11px; color: var(--text-tertiary, #94a3b8);
+  background: var(--bg-secondary, #f1f5f9); padding: 1px 8px; border-radius: 4px;
+}
+.att-record-summary {
+  flex: 1; display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: var(--text-secondary, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+.att-record-net { font-weight: 600; color: var(--text-primary, #1e293b); }
+.att-record-paused { color: var(--warning, #f59e0b); font-weight: 600; }
+.att-record-overtime {
+  font-size: 11px; font-weight: 700; color: white; background: var(--danger, #ef4444);
+  padding: 1px 8px; border-radius: 999px;
+}
+.att-record-chevron { margin-left: auto; color: var(--text-tertiary, #94a3b8); font-size: 20px; }
+
+.att-record-detail {
+  padding: 0 16px 16px; border-top: 1px solid var(--border, #e2e8f0);
+}
+
+/* Timeline */
+.att-timeline {
+  margin: 16px 0 16px 12px; padding-left: 16px;
+  border-left: 2px solid var(--border, #e2e8f0);
+}
+.att-timeline-item {
+  position: relative; padding: 0 0 10px; font-size: 12px;
+  color: var(--text-secondary, #64748b); display: flex; gap: 8px;
+}
+.att-timeline-item::before {
+  content: ''; position: absolute; left: -21px; top: 4px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--border, #cbd5e1);
+}
+.att-timeline-active::before { background: var(--success, #10b981); }
+.att-timeline-pause::before { background: var(--warning, #f59e0b); }
+.att-timeline-end::before { background: var(--primary, #2563eb); }
+.att-timeline-time {
+  font-weight: 700; color: var(--text-primary, #1e293b);
+  font-variant-numeric: tabular-nums; min-width: 100px;
+}
+
+.att-summary-grid {
+  background: var(--bg-secondary, #f1f5f9); border-radius: 8px; padding: 12px;
+}
+.att-summary-row {
+  display: flex; justify-content: space-between; font-size: 13px;
+  padding: 4px 0; color: var(--text-secondary, #64748b);
+}
+
+/* ========================================
  * REALTIME VIEW (v2 — 일시정지/출석 지원)
  * ======================================== */
 
