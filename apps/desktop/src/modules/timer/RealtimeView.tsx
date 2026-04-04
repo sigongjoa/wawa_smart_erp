@@ -95,10 +95,11 @@ const formatSeconds = (ms: number) => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-const ActiveSessionCard = memo(function ActiveSessionCard({ session, onCheckOut, onPause }: {
+const ActiveSessionCard = memo(function ActiveSessionCard({ session, onCheckOut, onPause, onExtend }: {
   session: RealtimeSession;
   onCheckOut: (studentId: string) => void;
   onPause: (studentId: string) => void;
+  onExtend: (studentId: string) => void;
 }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -114,6 +115,19 @@ const ActiveSessionCard = memo(function ActiveSessionCard({ session, onCheckOut,
   const isWarning = remaining <= 10 && remaining > 0;
   const isOvertime = remaining <= 0;
   const progress = session.scheduledMinutes > 0 ? Math.min(netMins / session.scheduledMinutes, 1) : 0;
+  const addedMins = session.addedMinutes || 0;
+
+  // 실제 체크인 시각 HH:mm
+  const checkInHHmm = `${checkIn.getHours().toString().padStart(2, '0')}:${checkIn.getMinutes().toString().padStart(2, '0')}`;
+
+  // 예정 종료 시각 = 체크인 + scheduledMinutes (정지/추가 모두 반영됨)
+  const expectedEnd = new Date(checkIn.getTime() + session.scheduledMinutes * 60 * 1000);
+  const expectedEndHHmm = `${expectedEnd.getHours().toString().padStart(2, '0')}:${expectedEnd.getMinutes().toString().padStart(2, '0')}`;
+  const originalEndMin = session.scheduledEndTime
+    ? session.scheduledEndTime.split(':').reduce((h, m, i) => i === 0 ? Number(m) * 60 : h + Number(m), 0)
+    : null;
+  const currentEndMin = expectedEnd.getHours() * 60 + expectedEnd.getMinutes();
+  const endShift = originalEndMin !== null ? currentEndMin - originalEndMin : 0;
 
   return (
     <div className={`rt-session-card rt-grade-${gradeClassMap[session.student.grade]} ${isOvertime ? 'rt-session-card--overtime' : ''}`}>
@@ -125,7 +139,24 @@ const ActiveSessionCard = memo(function ActiveSessionCard({ session, onCheckOut,
             <span style={{ background: 'var(--warning)', color: 'white', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>임시</span>
           )}
         </div>
-        {isOvertime && <span className="rt-status-tag overtime">초과</span>}
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {addedMins > 0 && (
+            <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: '#dc2626', color: 'white' }}>
+              +{addedMins}분 추가
+            </span>
+          )}
+          {isOvertime && <span className="rt-status-tag overtime">초과</span>}
+        </div>
+      </div>
+
+      {/* 시작 / 예정종료 시각 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+        <span>시작 <strong style={{ color: 'var(--text-primary)' }}>{checkInHHmm}</strong></span>
+        <span>예정종료 <strong style={{ color: endShift > 0 ? '#f59e0b' : isOvertime ? '#ef4444' : 'var(--text-primary)', textDecoration: isOvertime ? 'line-through' : 'none' }}>
+          {expectedEndHHmm}
+        </strong>
+        {endShift > 0 && <span style={{ color: '#f59e0b', marginLeft: '4px', fontWeight: 400 }}>(+{endShift}분)</span>}
+        </span>
       </div>
 
       <div className={`rt-timer-display ${isWarning ? 'warning' : ''} ${isOvertime ? 'overtime' : ''}`}>
@@ -145,11 +176,20 @@ const ActiveSessionCard = memo(function ActiveSessionCard({ session, onCheckOut,
       <div className="rt-session-meta">
         <span>순수 {netMins}분</span>
         <span className="rt-meta-divider">/</span>
-        <span>예정 {session.scheduledMinutes}분</span>
+        <span>예정 {addedMins > 0
+          ? <><s style={{ color: 'var(--text-muted)' }}>{session.scheduledMinutes - addedMins}</s> <span style={{ color: '#dc2626', fontWeight: 700 }}>{session.scheduledMinutes}분</span></>
+          : <>{session.scheduledMinutes}분</>
+        }</span>
         {pausedMins > 0 && (
           <>
             <span className="rt-meta-divider">|</span>
             <span className="rt-meta-paused">정지 {pausedMins}분</span>
+          </>
+        )}
+        {addedMins > 0 && (
+          <>
+            <span className="rt-meta-divider">|</span>
+            <span style={{ color: '#dc2626', fontWeight: 600 }}>벌칙 +{addedMins}분</span>
           </>
         )}
       </div>
@@ -157,6 +197,10 @@ const ActiveSessionCard = memo(function ActiveSessionCard({ session, onCheckOut,
       <div className="rt-session-actions">
         <button className="rt-action-btn rt-action-btn--pause" onClick={() => onPause(session.studentId)} type="button">
           <span className="material-symbols-outlined">pause</span>정지
+        </button>
+        <button className="rt-action-btn" onClick={() => onExtend(session.studentId)} type="button"
+          style={{ background: '#fef2f2', color: '#dc2626', flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <span className="material-symbols-outlined">add</span>수업추가
         </button>
         <button className="rt-action-btn rt-action-btn--done" onClick={() => onCheckOut(session.studentId)} type="button">
           <span className="material-symbols-outlined">check</span>완료
@@ -232,11 +276,51 @@ const dayOptions: { key: DayType; label: string }[] = [
   { key: '토', label: '토' },
 ];
 
+const EXTEND_OPTIONS = [10, 20, 30];
+
+function ExtendSheet({ onExtend, onClose }: { onExtend: (min: number) => void; onClose: () => void }) {
+  const [custom, setCustom] = useState('');
+  return (
+    <div className="rt-pause-overlay" onClick={onClose}>
+      <div className="rt-pause-sheet" onClick={e => e.stopPropagation()}>
+        <div className="rt-pause-sheet-title">수업 추가</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '12px' }}>
+          벌칙/보충으로 수업 시간을 연장합니다
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+          {EXTEND_OPTIONS.map(m => (
+            <button key={m} type="button"
+              style={{ padding: '14px 8px', border: '2px solid #fecaca', borderRadius: '10px', background: '#fff5f5', fontSize: '15px', fontWeight: 700, color: '#dc2626', cursor: 'pointer' }}
+              onClick={() => onExtend(m)}>
+              +{m}분
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <input
+            type="number" min={1} max={180} placeholder="직접 입력 (분)"
+            value={custom}
+            onChange={e => setCustom(e.target.value)}
+            style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px' }}
+          />
+          <button type="button" disabled={!custom || Number(custom) < 1}
+            style={{ padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+            onClick={() => onExtend(Number(custom))}>
+            추가
+          </button>
+        </div>
+        <button className="rt-pause-skip" onClick={onClose} type="button">취소</button>
+      </div>
+    </div>
+  );
+}
+
 export default function RealtimeView() {
-  const { students, enrollments, realtimeSessions, checkIn, checkOut, pauseSession, resumeSession, tempStudents, addTempStudent } = useAppStore();
+  const { students, enrollments, realtimeSessions, checkIn, checkOut, pauseSession, resumeSession, extendSession, tempStudents, addTempStudent } = useAppStore();
   const { currentUser } = useReportStore();
   const [isTempModalOpen, setIsTempModalOpen] = useState(false);
   const [pauseTargetId, setPauseTargetId] = useState<string | null>(null);
+  const [extendTargetId, setExtendTargetId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -296,6 +380,13 @@ export default function RealtimeView() {
     if (pauseTargetId) {
       pauseSession(pauseTargetId, reason);
       setPauseTargetId(null);
+    }
+  };
+  const handleExtendClick = (studentId: string) => setExtendTargetId(studentId);
+  const handleExtend = (minutes: number) => {
+    if (extendTargetId) {
+      extendSession(extendTargetId, minutes);
+      setExtendTargetId(null);
     }
   };
 
@@ -431,6 +522,7 @@ export default function RealtimeView() {
                     session={session}
                     onCheckOut={checkOut}
                     onPause={handlePauseClick}
+                    onExtend={handleExtendClick}
                   />
                 ))}
               </>
@@ -457,6 +549,13 @@ export default function RealtimeView() {
             </button>
           </div>
         </div>
+      )}
+
+      {extendTargetId && (
+        <ExtendSheet
+          onExtend={handleExtend}
+          onClose={() => setExtendTargetId(null)}
+        />
       )}
 
       {isTempModalOpen && (

@@ -50,6 +50,7 @@ interface AppState {
   checkOut: (studentId: string, note?: string) => void;
   pauseSession: (studentId: string, reason?: string) => void;
   resumeSession: (studentId: string) => void;
+  extendSession: (studentId: string, minutes: number) => void;
   clearSessions: () => void;
   addTempStudent: (data: { name: string; grade: string; startTime: string; endTime: string; subject?: string }) => void;
   removeTempStudent: (id: string) => void;
@@ -235,6 +236,9 @@ export const useAppStore = create<AppState>()(
         status: 'active',
         elapsedMinutes: 0,
         scheduledMinutes: Math.max(scheduledMinutes, 0),
+        addedMinutes: 0,
+        scheduledStartTime: startTime,
+        scheduledEndTime: endTime,
         pauseHistory: [],
         date: now.toISOString().split('T')[0],
       };
@@ -275,6 +279,21 @@ export const useAppStore = create<AppState>()(
                     ? { ...p, resumedAt: new Date().toISOString() }
                     : p
                 ),
+              }
+            : s
+        ),
+      }));
+    },
+
+    // 수업 추가 (벌칙)
+    extendSession: (studentId, minutes) => {
+      set((state) => ({
+        realtimeSessions: state.realtimeSessions.map((s) =>
+          s.studentId === studentId
+            ? {
+                ...s,
+                scheduledMinutes: s.scheduledMinutes + minutes,
+                addedMinutes: (s.addedMinutes || 0) + minutes,
               }
             : s
         ),
