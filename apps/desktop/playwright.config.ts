@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
@@ -10,22 +10,6 @@ export default defineConfig({
     ['html', { outputFolder: 'e2e-report' }],
     ['list'],
   ],
-  use: {
-    baseURL: 'http://127.0.0.1:5173',
-    trace: 'on-first-retry',
-    screenshot: 'on',
-    video: 'on',
-  },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 120000,
-  },
+  // Electron 테스트는 각 spec 파일에서 _electron.launch()로 앱을 직접 실행합니다.
+  // baseURL / webServer 불필요
 });
