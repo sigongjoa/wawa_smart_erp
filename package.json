@@ -6,10 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @wawa/desktop dev",
     "build": "pnpm --filter @wawa/desktop build",
-    "start": "pnpm --filter @wawa/desktop start",
-    "dev:timer": "pnpm --filter @wawa/desktop dev:timer",
-    "dev:grader": "pnpm --filter @wawa/desktop dev:grader",
-    "dev:report": "pnpm --filter @wawa/desktop dev:report"
+    "start": "pnpm --filter @wawa/desktop start"
   },
   "keywords": ["electron", "education", "erp", "grading", "schedule"],
   "author": "sigongjoa",

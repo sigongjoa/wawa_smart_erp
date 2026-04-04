@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WAWA Smart ERP - 정기고사 리뷰 와이어프레임</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <style>
+    /* ========== Design Tokens (from existing system) ========== */
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #10b981;
+      --success-light: #ecfdf5;
+      --warning: #f59e0b;
+      --warning-light: #fffbeb;
+      --danger: #ef4444;
+      --danger-light: #fef2f2;
+
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --border-light: #f1f5f9;
+
+      --header-height: 64px;
+      --sidebar-width: 260px;
+
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
+
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+      /* Subject Colors */
+      --color-korean: #FF6B00;
+      --color-english: #3B82F6;
+      --color-math: #10B981;
+      --color-science: #8B5CF6;
+      --color-social: #EC4899;
+      --color-history: #F59E0B;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    /* ========== App Shell ========== */
+    .app-header {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--header-height);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 24px;
+      z-index: 100;
+    }
+    .app-header-logo {
+      font-size: 18px; font-weight: 700; color: var(--primary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .app-header-right {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    .sidebar {
+      position: fixed; top: var(--header-height); left: 0; bottom: 0;
+      width: var(--sidebar-width);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 16px 12px;
+      overflow-y: auto;
+      z-index: 90;
+    }
+    .sidebar-section-label {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 8px 12px 4px;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      font-size: 14px; color: var(--text-secondary);
+      text-decoration: none;
+    }
+    .sidebar-item:hover { background: var(--border-light); color: var(--text-primary); }
+    .sidebar-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      border-left: 3px solid var(--primary);
+    }
+    .sidebar-item .material-symbols-outlined { font-size: 20px; }
+    .sidebar-step {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text-muted);
+      font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar-item.active .sidebar-step {
+      background: var(--primary); color: white;
+    }
+    .sidebar-item.completed .sidebar-step {
+      background: var(--success); color: white;
+    }
+
+    .main-content {
+      margin-left: var(--sidebar-width);
+      margin-top: var(--header-height);
+      padding: 32px;
+      min-height: calc(100vh - var(--header-height));
+    }
+
+    /* ========== Page Navigation (Tabs) ========== */
+    .page-tabs {
+      display: flex; gap: 0; margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+    }
+    .page-tab {
+      padding: 12px 20px;
+      font-size: 14px; font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all var(--transition-fast);
+    }
+    .page-tab:hover { color: var(--text-primary); }
+    .page-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* ========== Page Header ========== */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-header h1 {
+      font-size: 22px; font-weight: 700;
+    }
+    .page-header p {
+      font-size: 14px; color: var(--text-secondary); margin-top: 4px;
+    }
+    .page-header-actions { display: flex; gap: 8px; }
+
+    /* ========== Buttons ========== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; border: none;
+      transition: all var(--transition-fast);
+    }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: var(--surface); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border-light); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-ghost { background: transparent; color: var(--text-secondary); }
+    .btn-ghost:hover { background: var(--border-light); color: var(--text-primary); }
+    .btn-lg { padding: 12px 24px; font-size: 15px; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+    /* ========== Cards ========== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-header h3 { font-size: 15px; font-weight: 600; }
+    .card-body { padding: 20px; }
+
+    /* ========== Stats ========== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .stat-icon {
+      width: 48px; height: 48px;
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stat-icon.blue { background: var(--primary-light); color: var(--primary); }
+    .stat-icon.green { background: var(--success-light); color: var(--success); }
+    .stat-icon.orange { background: var(--warning-light); color: var(--warning); }
+    .stat-icon.red { background: var(--danger-light); color: var(--danger); }
+    .stat-value { font-size: 24px; font-weight: 700; }
+    .stat-label { font-size: 13px; color: var(--text-secondary); }
+
+    /* ========== Forms ========== */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 14px; font-family: inherit;
+      transition: all var(--transition-fast);
+      background: var(--surface);
+      color: var(--text-primary);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .form-textarea { resize: vertical; min-height: 100px; }
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    /* ========== Tables ========== */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--border-light);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:hover td { background: #fafbff; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ========== Badges ========== */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 12px; font-weight: 600;
+    }
+    .badge-blue { background: var(--primary-light); color: var(--primary); }
+    .badge-green { background: var(--success-light); color: var(--success); }
+    .badge-orange { background: var(--warning-light); color: var(--warning); }
+    .badge-red { background: var(--danger-light); color: var(--danger); }
+    .badge-gray { background: var(--border-light); color: var(--text-secondary); }
+
+    /* ========== Score Input ========== */
+    .score-input-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .score-input-row:last-child { border-bottom: none; }
+    .score-subject {
+      width: 80px;
+      font-weight: 600; font-size: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .score-subject-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .score-input-field {
+      width: 80px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 16px; font-weight: 600;
+      text-align: center;
+    }
+    .score-input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .score-bar {
+      flex: 1; height: 8px;
+      background: var(--border-light);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.3s ease;
+    }
+
+    /* ========== Student Selector ========== */
+    .student-list {
+      display: flex; flex-direction: column; gap: 4px;
+      max-height: 400px; overflow-y: auto;
+    }
+    .student-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .student-item:hover { background: var(--border-light); }
+    .student-item.selected { background: var(--primary-light); border: 1px solid var(--primary); }
+    .student-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+    }
+    .student-info { flex: 1; }
+    .student-name { font-size: 14px; font-weight: 600; }
+    .student-grade { font-size: 12px; color: var(--text-muted); }
+    .student-status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    /* ========== Report Preview ========== */
+    .report-preview {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      max-width: 600px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .report-header-band {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 32px 28px;
+    }
+    .report-header-band h2 { font-size: 20px; font-weight: 700; }
+    .report-header-band p { opacity: 0.85; font-size: 14px; margin-top: 4px; }
+    .report-header-meta {
+      display: flex; gap: 24px; margin-top: 16px;
+      font-size: 13px; opacity: 0.9;
+    }
+    .report-section { padding: 24px 28px; border-bottom: 1px solid var(--border-light); }
+    .report-section:last-child { border-bottom: none; }
+    .report-section h4 {
+      font-size: 14px; font-weight: 700; color: var(--text-primary);
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .report-score-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 0;
+    }
+    .report-score-subject {
+      width: 60px; font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    }
+    .report-score-bar {
+      flex: 1; height: 24px;
+      background: var(--border-light);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      position: relative;
+    }
+    .report-score-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center;
+      padding-left: 8px;
+      font-size: 12px; font-weight: 700; color: white;
+    }
+    .report-score-value {
+      width: 45px; text-align: right;
+      font-size: 16px; font-weight: 700;
+    }
+    .report-comment {
+      background: var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      border-left: 3px solid var(--primary);
+    }
+    .report-footer {
+      background: var(--border-light);
+      padding: 16px 28px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ========== Specific Layouts ========== */
+    .two-col-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+    .three-col-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+      gap: 24px;
+    }
+
+    /* ========== Empty State ========== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .empty-state .material-symbols-outlined {
+      font-size: 64px; color: var(--text-muted);
+    }
+    .empty-state h3 {
+      font-size: 16px; font-weight: 600;
+      color: var(--text-primary); margin-top: 16px;
+    }
+    .empty-state p {
+      font-size: 14px; color: var(--text-secondary); margin-top: 8px;
+    }
+
+    /* ========== Page-specific ========== */
+    .review-textarea {
+      min-height: 150px;
+      line-height: 1.8;
+    }
+    .send-status-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .send-status-row:last-child { border-bottom: none; }
+
+    .preview-actions {
+      display: flex; gap: 8px;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* ========== View Switcher ========== */
+    .view-container { display: none; }
+    .view-container.active { display: block; }
+
+    /* ========== Toast (preview) ========== */
+    .toast-preview {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--text-primary);
+      color: white;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      display: none;
+      align-items: center; gap: 8px;
+      box-shadow: var(--shadow-lg);
+      z-index: 200;
+    }
+    .toast-preview.show { display: flex; }
+
+    /* ========== Alimtalk Preview ========== */
+    .alimtalk-preview {
+      background: #FEE500;
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+    .alimtalk-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .alimtalk-icon {
+      width: 40px; height: 40px;
+      background: #3C1E1E;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 18px; font-weight: 700;
+    }
+    .alimtalk-body {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .alimtalk-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: var(--radius-md);
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primary);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <header class="app-header">
+    <div class="app-header-logo">
+      <span class="material-symbols-outlined">school</span>
+      WAWA Smart ERP
+    </div>
+    <div class="app-header-right">
+      <button class="btn btn-ghost btn-sm">
+        <span class="material-symbols-outlined">notifications</span>
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">김</div>
+        <span style="font-size:14px;font-weight:500;">김선생님</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== Sidebar ========== -->
+  <nav class="sidebar">
+    <div class="sidebar-section-label">메뉴</div>
+    <a class="sidebar-item" href="#" onclick="return false;">
+      <span class="material-symbols-outlined">timer</span>
+      출결 타이머
+    </a>
+    <a class="sidebar-item" href="#" onclick="return false;">
+      <span class="material-symbols-outlined">assessment</span>
+      월간 성적표
+    </a>
+    <a class="sidebar-item" href="#" onclick="return false;">
+      <span class="material-symbols-outlined">grading</span>
+      AI 채점기
+    </a>
+    <a class="sidebar-item" href="#" onclick="return false;">
+      <span class="material-symbols-outlined">people</span>
+      학생 관리
+    </a>
+    <a class="sidebar-item" href="#" onclick="return false;">
+      <span class="material-symbols-outlined">event_repeat</span>
+      보강 관리
+    </a>
+
+    <div style="height:1px;background:var(--border);margin:12px 0;"></div>
+
+    <div class="sidebar-section-label">정기고사 리뷰</div>
+    <a class="sidebar-item active" href="#" onclick="switchView('dashboard'); return false;">
+      <span class="sidebar-step">1</span>
+      대시보드
+    </a>
+    <a class="sidebar-item" href="#" id="nav-input" onclick="switchView('input'); return false;">
+      <span class="sidebar-step">2</span>
+      리뷰 작성
+    </a>
+    <a class="sidebar-item" href="#" id="nav-preview" onclick="switchView('preview'); return false;">
+      <span class="sidebar-step">3</span>
+      리포트 미리보기
+    </a>
+    <a class="sidebar-item" href="#" id="nav-send" onclick="switchView('send'); return false;">
+      <span class="sidebar-step">4</span>
+      학부모 발송
+    </a>
+  </nav>
+
+  <!-- ========== Main Content ========== -->
+  <main class="main-content">
+
+    <!-- ==================== VIEW 1: Dashboard ==================== -->
+    <div class="view-container active" id="view-dashboard">
+      <div class="page-header">
+        <div>
+          <h1>정기고사 리뷰</h1>
+          <p>중간·기말고사 시험 리뷰 및 학부모 리포트를 관리합니다</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary">
+            <span class="material-symbols-outlined">filter_list</span>
+            필터
+          </button>
+          <button class="btn btn-primary" onclick="switchView('input')">
+            <span class="material-symbols-outlined">add</span>
+            새 리뷰 작성
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <span class="material-symbols-outlined">rate_review</span>
+          </div>
+          <div>
+            <div class="stat-value">12</div>
+            <div class="stat-label">전체 리뷰</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">
+            <span class="material-symbols-outlined">edit_note</span>
+          </div>
+          <div>
+            <div class="stat-value">5</div>
+            <div class="stat-label">작성 중</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <span class="material-symbols-outlined">check_circle</span>
+          </div>
+          <div>
+            <div class="stat-value">4</div>
+            <div class="stat-label">발송 완료</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">
+            <span class="material-symbols-outlined">schedule_send</span>
+          </div>
+          <div>
+            <div class="stat-value">3</div>
+            <div class="stat-label">발송 대기</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3>리뷰 목록</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select class="form-select" style="width:140px;padding:6px 10px;font-size:13px;">
+              <option>2026년 1학기</option>
+              <option>2025년 2학기</option>
+            </select>
+            <select class="form-select" style="width:120px;padding:6px 10px;font-size:13px;">
+              <option>전체 시험</option>
+              <option>중간고사</option>
+              <option>기말고사</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container" style="border:none;border-radius:0;">
+          <table>
+            <thead>
+              <tr>
+                <th>학생</th>
+                <th>학년</th>
+                <th>시험</th>
+                <th>과목</th>
+                <th>점수</th>
+                <th>코멘트</th>
+                <th>상태</th>
+                <th>작업</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>이지우</strong></td>
+                <td>고1</td>
+                <td>2026 1학기 중간고사</td>
+                <td>
+                  <span class="badge badge-green" style="margin-right:4px;">수학</span>
+                  <span class="badge badge-blue">영어</span>
+                </td>
+                <td><strong>수학 82</strong> / <strong>영어 91</strong></td>
+                <td><span style="color:var(--success);">작성완료</span></td>
+                <td><span class="badge badge-green">발송완료</span></td>
+                <td>
+                  <button class="btn btn-ghost btn-sm">
+                    <span class="material-symbols-outlined">visibility</span>
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>박서준</strong></td>
+                <td>중3</td>
+                <td>2026 1학기 중간고사</td>
+                <td>
+                  <span class="badge badge-green" style="margin-right:4px;">수학</span>
+                </td>
+                <td><strong>수학 67</strong></td>
+                <td><span style="color:var(--success);">작성완료</span></td>
+                <td><span class="badge badge-orange">발송대기</span></td>
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="switchView('preview')">
+                    <span class="material-symbols-outlined">send</span>
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>김하은</strong></td>
+                <td>고2</td>
+                <td>2026 1학기 중간고사</td>
+                <td>
+                  <span class="badge badge-green" style="margin-right:4px;">수학</span>
+                  <span class="badge badge-blue" style="margin-right:4px;">영어</span>
+                  <span class="badge" style="background:#f3e8ff;color:#8B5CF6;">과학</span>
+                </td>
+                <td><strong>수학 95</strong> / <strong>영어 88</strong> / <strong>과학 76</strong></td>
+                <td><span style="color:var(--warning);">작성중</span></td>
+                <td><span class="badge badge-gray">작성중</span></td>
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="switchView('input')">
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>최민호</strong></td>
+                <td>중2</td>
+                <td>2026 1학기 중간고사</td>
+                <td>
+                  <span class="badge badge-green">수학</span>
+                </td>
+                <td>—</td>
+                <td><span style="color:var(--text-muted);">미작성</span></td>
+                <td><span class="badge badge-gray">미작성</span></td>
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="switchView('input')">
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 2: Review Input ==================== -->
+    <div class="view-container" id="view-input">
+      <div class="page-header">
+        <div>
+          <h1>리뷰 작성</h1>
+          <p>학생을 선택하고 시험 점수와 코멘트를 작성합니다</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="switchView('dashboard')">
+            <span class="material-symbols-outlined">arrow_back</span>
+            목록으로
+          </button>
+          <button class="btn btn-secondary">
+            <span class="material-symbols-outlined">save</span>
+            임시저장
+          </button>
+          <button class="btn btn-primary" onclick="switchView('preview')">
+            <span class="material-symbols-outlined">preview</span>
+            미리보기
+          </button>
+        </div>
+      </div>
+
+      <div class="three-col-layout">
+        <!-- Left: Student Select -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <h3>학생 선택</h3>
+            </div>
+            <div class="card-body" style="padding:12px;">
+              <input class="form-input" placeholder="학생 검색..." style="margin-bottom:8px;">
+              <div class="student-list">
+                <div class="student-item selected">
+                  <div class="student-avatar">김</div>
+                  <div class="student-info">
+                    <div class="student-name">김하은</div>
+                    <div class="student-grade">고2 · 수학, 영어, 과학</div>
+                  </div>
+                  <div class="student-status-dot" style="background:var(--warning);" title="작성중"></div>
+                </div>
+                <div class="student-item">
+                  <div class="student-avatar">최</div>
+                  <div class="student-info">
+                    <div class="student-name">최민호</div>
+                    <div class="student-grade">중2 · 수학</div>
+                  </div>
+                  <div class="student-status-dot" style="background:var(--text-muted);" title="미작성"></div>
+                </div>
+                <div class="student-item">
+                  <div class="student-avatar">이</div>
+                  <div class="student-info">
+                    <div class="student-name">이지우</div>
+                    <div class="student-grade">고1 · 수학, 영어</div>
+                  </div>
+                  <div class="student-status-dot" style="background:var(--success);" title="발송완료"></div>
+                </div>
+                <div class="student-item">
+                  <div class="student-avatar">박</div>
+                  <div class="student-info">
+                    <div class="student-name">박서준</div>
+                    <div class="student-grade">중3 · 수학</div>
+                  </div>
+                  <div class="student-status-dot" style="background:var(--success);" title="작성완료"></div>
+                </div>
+                <div class="student-item">
+                  <div class="student-avatar">정</div>
+                  <div class="student-info">
+                    <div class="student-name">정수빈</div>
+                    <div class="student-grade">고1 · 수학, 영어</div>
+                  </div>
+                  <div class="student-status-dot" style="background:var(--text-muted);" title="미작성"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Score + Comment Input -->
+        <div>
+          <!-- Exam Info -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <h3>시험 정보</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">시험 유형</label>
+                  <select class="form-select">
+                    <option>중간고사</option>
+                    <option>기말고사</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">학기</label>
+                  <select class="form-select">
+                    <option>2026년 1학기</option>
+                    <option>2025년 2학기</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">시험 일자</label>
+                  <input type="date" class="form-input" value="2026-04-15">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Score Input -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <h3>과목별 점수</h3>
+              <span style="font-size:13px;color:var(--text-muted);">학생 수강 과목 기준</span>
+            </div>
+            <div class="card-body" style="padding:8px 16px;">
+              <div class="score-input-row">
+                <div class="score-subject">
+                  <span class="score-subject-dot" style="background:var(--color-math);"></span>
+                  수학
+                </div>
+                <input class="score-input-field" type="number" value="95" min="0" max="100">
+                <span style="font-size:13px;color:var(--text-muted);">/ 100</span>
+                <div class="score-bar">
+                  <div class="score-bar-fill" style="width:95%;background:var(--color-math);"></div>
+                </div>
+              </div>
+              <div class="score-input-row">
+                <div class="score-subject">
+                  <span class="score-subject-dot" style="background:var(--color-english);"></span>
+                  영어
+                </div>
+                <input class="score-input-field" type="number" value="88" min="0" max="100">
+                <span style="font-size:13px;color:var(--text-muted);">/ 100</span>
+                <div class="score-bar">
+                  <div class="score-bar-fill" style="width:88%;background:var(--color-english);"></div>
+                </div>
+              </div>
+              <div class="score-input-row">
+                <div class="score-subject">
+                  <span class="score-subject-dot" style="background:var(--color-science);"></span>
+                  과학
+                </div>
+                <input class="score-input-field" type="number" value="76" min="0" max="100">
+                <span style="font-size:13px;color:var(--text-muted);">/ 100</span>
+                <div class="score-bar">
+                  <div class="score-bar-fill" style="width:76%;background:var(--color-science);"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Teacher Comment -->
+          <div class="card">
+            <div class="card-header">
+              <h3>선생님 코멘트</h3>
+              <button class="btn btn-sm btn-secondary">
+                <span class="material-symbols-outlined" style="font-size:16px;">auto_awesome</span>
+                AI 초안 생성
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="form-group" style="margin-bottom:12px;">
+                <label class="form-label">총평</label>
+                <textarea class="form-textarea review-textarea" placeholder="학생의 전반적인 시험 성과에 대해 자유롭게 작성해주세요...">하은이는 이번 중간고사에서 수학 95점으로 매우 우수한 성적을 거뒀습니다. 특히 함수 단원에서 높은 이해도를 보여주었고, 영어도 88점으로 고르게 잘 했습니다.
+
+과학은 76점으로 다소 아쉬운 결과인데, 화학 반응식 파트에서 실수가 있었습니다. 다음 시험까지 해당 부분을 집중 보완할 예정입니다.
+
+전체적으로 학습 태도가 성실하고, 꾸준히 노력하는 모습이 인상적입니다. 기말고사에서는 과학도 80점 이상 목표로 함께 준비하겠습니다.</textarea>
+                <div class="form-hint">자유 형식으로 작성합니다. AI 초안 생성 버튼으로 초안을 먼저 받을 수도 있습니다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Quick Preview -->
+        <div>
+          <div class="card" style="position:sticky;top:96px;">
+            <div class="card-header">
+              <h3>실시간 미리보기</h3>
+            </div>
+            <div class="card-body" style="padding:12px;">
+              <div style="background:var(--primary);color:white;padding:16px;border-radius:var(--radius-md);margin-bottom:12px;">
+                <div style="font-size:13px;opacity:0.85;">2026 1학기 중간고사</div>
+                <div style="font-size:16px;font-weight:700;margin-top:4px;">김하은 · 고2</div>
+              </div>
+
+              <div style="margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">점수 요약</div>
+                <div style="display:flex;justify-content:space-around;text-align:center;">
+                  <div>
+                    <div style="font-size:24px;font-weight:700;color:var(--color-math);">95</div>
+                    <div style="font-size:12px;color:var(--text-muted);">수학</div>
+                  </div>
+                  <div>
+                    <div style="font-size:24px;font-weight:700;color:var(--color-english);">88</div>
+                    <div style="font-size:12px;color:var(--text-muted);">영어</div>
+                  </div>
+                  <div>
+                    <div style="font-size:24px;font-weight:700;color:var(--color-science);">76</div>
+                    <div style="font-size:12px;color:var(--text-muted);">과학</div>
+                  </div>
+                </div>
+                <div style="text-align:center;margin-top:8px;">
+                  <span style="font-size:12px;color:var(--text-muted);">평균</span>
+                  <span style="font-size:18px;font-weight:700;margin-left:4px;">86.3</span>
+                </div>
+              </div>
+
+              <div style="margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">코멘트 미리보기</div>
+                <div style="font-size:13px;line-height:1.6;color:var(--text-secondary);background:var(--border-light);padding:12px;border-radius:var(--radius-md);max-height:180px;overflow-y:auto;">
+                  하은이는 이번 중간고사에서 수학 95점으로 매우 우수한 성적을 거뒀습니다. 특히 함수 단원에서 높은 이해도를...
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-lg" style="width:100%;" onclick="switchView('preview')">
+                <span class="material-symbols-outlined">preview</span>
+                전체 미리보기
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 3: Report Preview ==================== -->
+    <div class="view-container" id="view-preview">
+      <div class="page-header">
+        <div>
+          <h1>리포트 미리보기</h1>
+          <p>학부모에게 발송될 PDF 리포트를 미리 확인합니다</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="switchView('input')">
+            <span class="material-symbols-outlined">arrow_back</span>
+            수정하기
+          </button>
+          <button class="btn btn-secondary">
+            <span class="material-symbols-outlined">download</span>
+            PDF 다운로드
+          </button>
+          <button class="btn btn-success btn-lg" onclick="switchView('send')">
+            <span class="material-symbols-outlined">send</span>
+            발송하기
+          </button>
+        </div>
+      </div>
+
+      <div class="two-col-layout" style="grid-template-columns:1fr 360px;">
+        <!-- PDF Preview -->
+        <div>
+          <div class="report-preview">
+            <div class="report-header-band">
+              <div style="font-size:12px;opacity:0.8;margin-bottom:4px;">WAWA 학원</div>
+              <h2>2026 1학기 중간고사 리뷰</h2>
+              <p>정기고사 성적 분석 및 학습 코멘트</p>
+              <div class="report-header-meta">
+                <span>👤 김하은 · 고2</span>
+                <span>📅 2026년 4월 15일</span>
+                <span>👩‍🏫 담당: 김선생님</span>
+              </div>
+            </div>
+
+            <div class="report-section">
+              <h4>
+                <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary);">analytics</span>
+                과목별 성적
+              </h4>
+              <div class="report-score-row">
+                <div class="report-score-subject">수학</div>
+                <div class="report-score-bar">
+                  <div class="report-score-bar-fill" style="width:95%;background:var(--color-math);">95</div>
+                </div>
+                <div class="report-score-value" style="color:var(--color-math);">95</div>
+              </div>
+              <div class="report-score-row">
+                <div class="report-score-subject">영어</div>
+                <div class="report-score-bar">
+                  <div class="report-score-bar-fill" style="width:88%;background:var(--color-english);">88</div>
+                </div>
+                <div class="report-score-value" style="color:var(--color-english);">88</div>
+              </div>
+              <div class="report-score-row">
+                <div class="report-score-subject">과학</div>
+                <div class="report-score-bar">
+                  <div class="report-score-bar-fill" style="width:76%;background:var(--color-science);">76</div>
+                </div>
+                <div class="report-score-value" style="color:var(--color-science);">76</div>
+              </div>
+              <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border-light);">
+                <span style="font-size:14px;color:var(--text-secondary);">전체 평균</span>
+                <span style="font-size:28px;font-weight:700;margin-left:8px;">86.3</span>
+                <span style="font-size:14px;color:var(--text-muted);">점</span>
+              </div>
+            </div>
+
+            <div class="report-section">
+              <h4>
+                <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary);">chat</span>
+                선생님 코멘트
+              </h4>
+              <div class="report-comment">
+                하은이는 이번 중간고사에서 수학 95점으로 매우 우수한 성적을 거뒀습니다. 특히 함수 단원에서 높은 이해도를 보여주었고, 영어도 88점으로 고르게 잘 했습니다.<br><br>
+                과학은 76점으로 다소 아쉬운 결과인데, 화학 반응식 파트에서 실수가 있었습니다. 다음 시험까지 해당 부분을 집중 보완할 예정입니다.<br><br>
+                전체적으로 학습 태도가 성실하고, 꾸준히 노력하는 모습이 인상적입니다. 기말고사에서는 과학도 80점 이상 목표로 함께 준비하겠습니다.
+              </div>
+            </div>
+
+            <div class="report-footer">
+              WAWA 학원 · 본 리포트는 담당 선생님이 직접 작성한 개별 학습 분석입니다
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Alimtalk Preview + Actions -->
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <h3>알림톡 미리보기</h3>
+            </div>
+            <div class="card-body">
+              <div class="alimtalk-preview">
+                <div class="alimtalk-header">
+                  <div class="alimtalk-icon">W</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:700;">WAWA 학원</div>
+                    <div style="font-size:11px;color:#666;">알림톡</div>
+                  </div>
+                </div>
+                <div class="alimtalk-body">
+                  <div style="font-weight:600;margin-bottom:8px;">📋 정기고사 리뷰 안내</div>
+                  안녕하세요, 학부모님.<br>
+                  <strong>김하은</strong> 학생의 <strong>2026 1학기 중간고사</strong> 리뷰가 준비되었습니다.<br><br>
+                  <div style="background:var(--border-light);padding:8px 12px;border-radius:6px;font-size:13px;">
+                    수학 <strong>95</strong>점 · 영어 <strong>88</strong>점 · 과학 <strong>76</strong>점<br>
+                    평균 <strong>86.3</strong>점
+                  </div>
+                  <br>
+                  아래 버튼을 눌러 담당 선생님의 상세 코멘트가 포함된 리포트를 확인해주세요.
+                  <div class="alimtalk-btn">📄 리포트 확인하기</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>발송 정보</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">수신자</label>
+                <div style="font-size:14px;font-weight:500;">김하은 학부모님</div>
+                <div style="font-size:13px;color:var(--text-muted);">010-****-5678</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">발송 방법</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:14px;">카카오 알림톡</span>
+                  <span class="badge badge-green">연동됨</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">PDF 링크</label>
+                <div style="font-size:13px;color:var(--primary);word-break:break-all;">
+                  https://res.cloudinary.com/wawa/report_김하은_2026...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 4: Send ==================== -->
+    <div class="view-container" id="view-send">
+      <div class="page-header">
+        <div>
+          <h1>학부모 발송</h1>
+          <p>작성 완료된 리뷰를 학부모에게 일괄 또는 개별 발송합니다</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="switchView('dashboard')">
+            <span class="material-symbols-outlined">arrow_back</span>
+            대시보드
+          </button>
+          <button class="btn btn-success btn-lg" onclick="showToast()">
+            <span class="material-symbols-outlined">send</span>
+            선택 학생 발송 (3명)
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <span class="material-symbols-outlined">check_circle</span>
+          </div>
+          <div>
+            <div class="stat-value">4</div>
+            <div class="stat-label">발송 완료</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">
+            <span class="material-symbols-outlined">hourglass_top</span>
+          </div>
+          <div>
+            <div class="stat-value">3</div>
+            <div class="stat-label">발송 대기</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">
+            <span class="material-symbols-outlined">error</span>
+          </div>
+          <div>
+            <div class="stat-value">0</div>
+            <div class="stat-label">발송 실패</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>발송 목록</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-sm btn-secondary">
+              <span class="material-symbols-outlined" style="font-size:16px;">select_all</span>
+              전체 선택
+            </button>
+          </div>
+        </div>
+        <div style="padding:0;">
+          <!-- Sent -->
+          <div class="send-status-row" style="background:var(--success-light);">
+            <input type="checkbox" disabled checked>
+            <div class="student-avatar" style="width:32px;height:32px;font-size:12px;">이</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;">이지우 <span style="font-weight:400;color:var(--text-muted);">고1</span></div>
+              <div style="font-size:12px;color:var(--text-muted);">수학 82 · 영어 91</div>
+            </div>
+            <span class="badge badge-green">발송완료</span>
+            <span style="font-size:12px;color:var(--text-muted);">4/1 14:30</span>
+          </div>
+
+          <!-- Pending (checkable) -->
+          <div class="send-status-row">
+            <input type="checkbox" checked>
+            <div class="student-avatar" style="width:32px;height:32px;font-size:12px;">박</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;">박서준 <span style="font-weight:400;color:var(--text-muted);">중3</span></div>
+              <div style="font-size:12px;color:var(--text-muted);">수학 67</div>
+            </div>
+            <span class="badge badge-orange">발송대기</span>
+            <button class="btn btn-sm btn-ghost" onclick="switchView('preview')">미리보기</button>
+          </div>
+
+          <div class="send-status-row">
+            <input type="checkbox" checked>
+            <div class="student-avatar" style="width:32px;height:32px;font-size:12px;">김</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;">김하은 <span style="font-weight:400;color:var(--text-muted);">고2</span></div>
+              <div style="font-size:12px;color:var(--text-muted);">수학 95 · 영어 88 · 과학 76</div>
+            </div>
+            <span class="badge badge-orange">발송대기</span>
+            <button class="btn btn-sm btn-ghost" onclick="switchView('preview')">미리보기</button>
+          </div>
+
+          <div class="send-status-row">
+            <input type="checkbox" checked>
+            <div class="student-avatar" style="width:32px;height:32px;font-size:12px;">정</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;">정수빈 <span style="font-weight:400;color:var(--text-muted);">고1</span></div>
+              <div style="font-size:12px;color:var(--text-muted);">수학 73 · 영어 85</div>
+            </div>
+            <span class="badge badge-orange">발송대기</span>
+            <button class="btn btn-sm btn-ghost" onclick="switchView('preview')">미리보기</button>
+          </div>
+
+          <!-- Not ready -->
+          <div class="send-status-row" style="opacity:0.5;">
+            <input type="checkbox" disabled>
+            <div class="student-avatar" style="width:32px;height:32px;font-size:12px;">최</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;">최민호 <span style="font-weight:400;color:var(--text-muted);">중2</span></div>
+              <div style="font-size:12px;color:var(--text-muted);">미작성</div>
+            </div>
+            <span class="badge badge-gray">미작성</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-preview" id="toast">
+    <span class="material-symbols-outlined" style="color:var(--success);">check_circle</span>
+    3명의 학부모에게 알림톡이 발송되었습니다
+  </div>
+
+  <script>
+    function switchView(viewId) {
+      // Hide all views
+      document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+      // Show target view
+      document.getElementById('view-' + viewId).classList.add('active');
+
+      // Update sidebar
+      document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+      const viewMap = {
+        'dashboard': 0,
+        'input': 1,
+        'preview': 2,
+        'send': 3
+      };
+      const sidebarItems = document.querySelectorAll('.sidebar-section-label:last-of-type ~ .sidebar-item');
+      if (sidebarItems[viewMap[viewId]]) {
+        sidebarItems[viewMap[viewId]].classList.add('active');
+      }
+
+      window.scrollTo(0, 0);
+    }
+
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+</html>

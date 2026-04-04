@@ -51,6 +51,9 @@ export interface RealtimeSession {
   status: SessionStatus;
   elapsedMinutes: number;
   scheduledMinutes: number;
+  addedMinutes: number;     // 수업추가(벌칙)로 연장된 총 시간
+  scheduledStartTime?: string; // HH:mm (원래 예정 시작)
+  scheduledEndTime?: string;   // HH:mm (원래 예정 종료)
   pauseHistory: PauseRecord[];
   date?: string;        // YYYY-MM-DD
 }
