@@ -356,10 +356,12 @@ export const saveScore = async (
     const properties: Record<string, unknown> = {
       [NOTION_COLUMNS_SCORE.NAME]: { title: [{ text: { content: `${studentName}_${subject}_${yearMonth}` } }] },
       [NOTION_COLUMNS_SCORE.YEAR_MONTH]: { rich_text: [{ text: { content: yearMonth } }] },
-      [NOTION_COLUMNS_SCORE.SUBJECT]: { select: { name: subject } },
-      [NOTION_COLUMNS_SCORE.SCORE]: { number: score },
       [NOTION_COLUMNS_SCORE.COMMENT]: { rich_text: [{ text: { content: comment || '' } }] },
     };
+    if (!isTotalComment) {
+      properties[NOTION_COLUMNS_SCORE.SUBJECT] = { select: { name: subject } };
+      properties[NOTION_COLUMNS_SCORE.SCORE] = { number: score };
+    }
     if (difficulty) properties[NOTION_COLUMNS_SCORE.DIFFICULTY] = { select: { name: difficulty } };
 
     if (existing.results.length > 0) {
