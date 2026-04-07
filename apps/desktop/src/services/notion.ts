@@ -330,16 +330,26 @@ export const saveScore = async (
   const dbIds = getDbIds();
   if (!dbIds.scores) return { success: false, error: { message: "성적 데이터베이스 ID가 설정되지 않았습니다." } };
   try {
+    const isTotalComment = subject === '__TOTAL_COMMENT__';
+
     const existing = await notionFetch(`/databases/${dbIds.scores}/query`, {
       method: 'POST',
       body: JSON.stringify({
-        filter: {
-          and: [
-            { property: '학생', relation: { contains: studentId } },
-            { property: '시험년월', rich_text: { equals: yearMonth } },
-            { property: '과목', select: { equals: subject } },
-          ],
-        },
+        filter: isTotalComment
+          ? {
+              and: [
+                { property: '학생', relation: { contains: studentId } },
+                { property: '시험년월', rich_text: { equals: yearMonth } },
+                { property: NOTION_COLUMNS_SCORE.NAME, title: { equals: `${studentName}_${subject}_${yearMonth}` } },
+              ],
+            }
+          : {
+              and: [
+                { property: '학생', relation: { contains: studentId } },
+                { property: '시험년월', rich_text: { equals: yearMonth } },
+                { property: '과목', select: { equals: subject } },
+              ],
+            },
       }),
     });
 

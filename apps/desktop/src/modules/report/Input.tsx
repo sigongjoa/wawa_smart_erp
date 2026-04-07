@@ -76,7 +76,9 @@ export default function Input() {
     const teacherId = currentUser?.teacher?.id || '';
     const data = formData[subject];
 
-    if (!data || data.score === undefined || isNaN(data.score)) {
+    const isTotalComment = subject === '__TOTAL_COMMENT__';
+
+    if (!isTotalComment && (!data || data.score === undefined || isNaN(data.score))) {
       addToast('올바른 점수를 입력해주세요.', 'warning');
       return;
     }
@@ -86,13 +88,13 @@ export default function Input() {
       selectedStudent.name,
       currentYearMonth,
       subject,
-      data.score,
+      isTotalComment ? 0 : data.score,
       teacherId,
-      data.comment
+      data?.comment
     );
 
     if (result.success) {
-      addToast(`${subject} 점수가 저장되었습니다.`, 'success');
+      addToast(isTotalComment ? '총평이 저장되었습니다.' : `${subject} 점수가 저장되었습니다.`, 'success');
       await fetchAllData();
     } else {
       addToast(result.error?.message || '저장에 실패했습니다.', 'error');
