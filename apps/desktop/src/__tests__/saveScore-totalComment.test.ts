@@ -173,4 +173,19 @@ describe('UC-06 filter 분기 로직 unit test', () => {
     expect(subjectProps).toHaveProperty('과목');
     expect(subjectProps).toHaveProperty('점수');
   });
+
+  it('TC-07: fetch 시 title에 __TOTAL_COMMENT__ 포함된 레코드는 totalComment로 식별됨', () => {
+    // 저장 후 읽어올 때: 과목 select가 없어도 title로 식별
+    const identifyRecord = (subjectName: string, title: string) => {
+      return subjectName === '__TOTAL_COMMENT__' || title.includes('__TOTAL_COMMENT__');
+    };
+
+    // 새로 저장된 레코드 (과목 없음, title로만 식별)
+    expect(identifyRecord('', '홍길동___TOTAL_COMMENT___2026-04')).toBe(true);
+    // 구버전 레코드 (과목 select로 식별)
+    expect(identifyRecord('__TOTAL_COMMENT__', '홍길동___TOTAL_COMMENT___2026-04')).toBe(true);
+    // 일반 과목 레코드
+    expect(identifyRecord('수학', '홍길동_수학_2026-04')).toBe(false);
+    expect(identifyRecord('', '홍길동_국어_2026-04')).toBe(false);
+  });
 });

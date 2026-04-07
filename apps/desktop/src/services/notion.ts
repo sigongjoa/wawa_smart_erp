@@ -424,10 +424,13 @@ export const fetchScores = async (yearMonth: string): Promise<MonthlyReport[]> =
 
       const report = reportMap.get(studentId)!;
       const subject = page.properties[NOTION_COLUMNS_SCORE.SUBJECT]?.select?.name || '';
+      const recordTitle = page.properties[NOTION_COLUMNS_SCORE.NAME]?.title?.[0]?.plain_text || '';
       const comment = page.properties[NOTION_COLUMNS_SCORE.COMMENT]?.rich_text?.[0]?.plain_text || '';
 
-      if (subject === '__TOTAL_COMMENT__') {
-        // Special subject for total comment
+      const isTotalComment = subject === '__TOTAL_COMMENT__' || recordTitle.includes('__TOTAL_COMMENT__');
+
+      if (isTotalComment) {
+        // Special record for total comment (과목 필드 없이 title로 식별)
         reportMap.get(studentId)!.totalComment = comment;
       } else {
         report.scores.push({
