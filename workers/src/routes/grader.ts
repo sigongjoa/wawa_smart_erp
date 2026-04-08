@@ -1,0 +1,181 @@
+import { Router } from 'itty-router';
+import { RequestContext, Exam, Grade } from '@/types';
+import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/utils/db';
+import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
+import { requireAuth, requireRole } from '@/middleware/auth';
+
+export const graderRouter = Router<any>();
+
+// 시험 목록 조회
+graderRouter.get('/exams', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const exams = await executeQuery<Exam>(
+      context.env.DB,
+      'SELECT * FROM exams WHERE academy_id = ? ORDER BY date DESC',
+      [context.auth!.academyId]
+    );
+
+    return successResponse(exams);
+  } catch (error) {
+    console.error('Get exams error:', error);
+    return errorResponse('Failed to get exams', 500);
+  }
+});
+
+// 시험 생성
+graderRouter.post('/exams', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+      return unauthorizedResponse();
+    }
+
+    const { classId, name, date, totalScore } = await context.request.json() as any;
+
+    if (!classId || !name || !date) {
+      return errorResponse('Required fields are missing', 400);
+    }
+
+    const id = crypto.randomUUID();
+    const result = await executeInsert(
+      context.env.DB,
+      `INSERT INTO exams (id, academy_id, class_id, name, date, total_score, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+      [id, context.auth!.academyId, classId, name, date, totalScore]
+    );
+
+    if (!result.success) {
+      return errorResponse('Failed to create exam', 500);
+    }
+
+    const exam = await executeFirst<Exam>(
+      context.env.DB,
+      'SELECT * FROM exams WHERE id = ?',
+      [id]
+    );
+
+    return successResponse(exam, 201);
+  } catch (error) {
+    console.error('Create exam error:', error);
+    return errorResponse('Failed to create exam', 500);
+  }
+});
+
+// 성적 입력
+graderRouter.post('/grades', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+      return unauthorizedResponse();
+    }
+
+    const { studentId, examId, score, comments } = await context.request.json() as any;
+
+    if (!studentId || !examId) {
+      return errorResponse('Required fields are missing', 400);
+    }
+
+    const id = crypto.randomUUID();
+    const result = await executeInsert(
+      context.env.DB,
+      `INSERT INTO grades (id, student_id, exam_id, score, comments, graded_at, graded_by, created_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'), ?, datetime('now'))`,
+      [id, studentId, examId, score, comments, context.auth!.userId]
+    );
+
+    if (!result.success) {
+      return errorResponse('Failed to record grade', 500);
+    }
+
+    const grade = await executeFirst<Grade>(
+      context.env.DB,
+      'SELECT * FROM grades WHERE id = ?',
+      [id]
+    );
+
+    return successResponse(grade, 201);
+  } catch (error) {
+    console.error('Record grade error:', error);
+    return errorResponse('Failed to record grade', 500);
+  }
+});
+
+// 학생 성적 조회
+graderRouter.get('/grades/:studentId', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const { studentId } = context.params;
+
+    const grades = await executeQuery<Grade>(
+      context.env.DB,
+      `SELECT g.*, e.name as exam_name, e.date as exam_date, e.total_score
+       FROM grades g
+       JOIN exams e ON g.exam_id = e.id
+       WHERE g.student_id = ?
+       ORDER BY e.date DESC`,
+      [studentId]
+    );
+
+    return successResponse(grades);
+  } catch (error) {
+    console.error('Get grades error:', error);
+    return errorResponse('Failed to get grades', 500);
+  }
+});
+
+// 성적 수정
+graderRouter.patch('/grades/:id', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+      return unauthorizedResponse();
+    }
+
+    const { id } = context.params;
+    const { score, comments } = await context.request.json() as any;
+
+    const grade = await executeFirst(
+      context.env.DB,
+      'SELECT * FROM grades WHERE id = ?',
+      [id]
+    );
+
+    if (!grade) return notFoundResponse();
+
+    const updates = [];
+    const values = [];
+
+    if (score !== undefined) {
+      updates.push('score = ?');
+      values.push(score);
+    }
+    if (comments !== undefined) {
+      updates.push('comments = ?');
+      values.push(comments);
+    }
+
+    updates.push('graded_at = datetime("now")');
+    values.push(id);
+
+    const result = await executeUpdate(
+      context.env.DB,
+      `UPDATE grades SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    if (!result) {
+      return errorResponse('Failed to update grade', 500);
+    }
+
+    const updated = await executeFirst<Grade>(
+      context.env.DB,
+      'SELECT * FROM grades WHERE id = ?',
+      [id]
+    );
+
+    return successResponse(updated);
+  } catch (error) {
+    console.error('Update grade error:', error);
+    return errorResponse('Failed to update grade', 500);
+  }
+});

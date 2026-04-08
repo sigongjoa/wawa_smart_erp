@@ -1,0 +1,54 @@
+name = "wawa-smart-erp-api"
+main = "src/index.ts"
+compatibility_date = "2025-04-08"
+compatibility_flags = ["nodejs_compat"]
+
+# 개발 환경
+[env.development]
+name = "wawa-smart-erp-api-dev"
+routes = [
+  { pattern = "http://localhost:8787/*", zone_name = "localhost" }
+]
+
+# 프로덕션 환경 (배포 후 설정)
+[env.production]
+routes = [
+  { pattern = "api.wawa.app/*", zone_name = "wawa.app" }
+]
+
+# D1 데이터베이스
+[[d1_databases]]
+binding = "DB"
+database_name = "wawa-smart-erp"
+database_id = "9e485667-419d-4fb8-ae28-c3a2a69bd8a1"
+
+# KV 스토어 (세션, 캐시)
+[[kv_namespaces]]
+binding = "KV"
+id = "858af78c9d0b4a0ab94f786a5ddf79e8"
+preview_id = "d8cbd478e5eb4e6aa164f9e012a3687c"
+
+# R2 버킷 (파일 저장소)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "wawa-smart-erp"
+jurisdiction = "eu"
+
+# 환경 변수 (Secrets는 wrangler secret로 설정)
+[env.development.vars]
+API_URL = "http://localhost:8787"
+FRONTEND_URL = "http://localhost:5173"
+JWT_EXPIRES_IN = "3600"
+REFRESH_TOKEN_EXPIRES_IN = "2592000"
+LOG_LEVEL = "debug"
+
+[env.production.vars]
+API_URL = "https://api.wawa.app"
+FRONTEND_URL = "https://wawa.app"
+JWT_EXPIRES_IN = "3600"
+REFRESH_TOKEN_EXPIRES_IN = "2592000"
+LOG_LEVEL = "info"
+
+# 마이그레이션 설정
+[[migrations]]
+tag = "v1"

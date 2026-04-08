@@ -1,0 +1,11 @@
+
+> wawa-smart-erp-api@1.0.0 test:e2e
+> playwright test
+
+Error: Cannot find package '@playwright/test' imported from /mnt/g/progress/wawa/wawa_smart_erp/workers/e2e/auth.spec.ts
+Error: Cannot find package '@playwright/test' imported from /mnt/g/progress/wawa/wawa_smart_erp/workers/e2e/file.spec.ts
+Error: Cannot find package '@playwright/test' imported from /mnt/g/progress/wawa/wawa_smart_erp/workers/e2e/health.spec.ts
+Error: Cannot find package '@playwright/test' imported from /mnt/g/progress/wawa/wawa_smart_erp/workers/e2e/message.spec.ts
+Error: Cannot find package '@playwright/test' imported from /mnt/g/progress/wawa/wawa_smart_erp/workers/e2e/timer.spec.ts
+Error: No tests found
+

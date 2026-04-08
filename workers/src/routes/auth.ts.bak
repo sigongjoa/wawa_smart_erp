@@ -1,0 +1,186 @@
+import { Router } from 'itty-router';
+import { RequestContext, Env } from '@/types';
+import { generateTokens, verifyRefreshToken } from '@/utils/jwt';
+import { executeFirst, executeUpdate } from '@/utils/db';
+import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
+import { createTokenExpiry } from '@/utils/jwt';
+import { LoginSchema, RefreshTokenSchema, parseAndValidate } from '@/schemas/validation';
+import { logger } from '@/utils/logger';
+import { createSecretsManager } from '@/utils/secrets';
+
+export const authRouter = Router<RequestContext>();
+
+// 로그인
+authRouter.post('/login', async (context: RequestContext) => {
+  const ipAddress = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  try {
+    // 입력 검증
+    const { email, password } = await parseAndValidate(
+      context.request,
+      LoginSchema
+    );
+
+    logger.logRequest('POST', '/api/auth/login', undefined, ipAddress);
+
+    // 사용자 조회
+    const user = await executeFirst<any>(
+      context.env.DB,
+      'SELECT id, email, name, role, academy_id FROM users WHERE email = ? LIMIT 1',
+      [email]
+    );
+
+    if (!user) {
+      return unauthorizedResponse();
+    }
+
+    // 실제 프로덕션에서는 bcrypt로 비교
+    // const passwordValid = await bcrypt.compare(password, user.password_hash);
+    // if (!passwordValid) return unauthorizedResponse();
+
+    // 토큰 생성
+    const { accessToken, refreshToken, refreshTokenId } = await generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.academy_id,
+      context.env
+    );
+
+    // 리프레시 토큰 DB에 저장
+    const expiresAt = createTokenExpiry(parseInt(context.env.REFRESH_TOKEN_EXPIRES_IN) || 2592000);
+    await executeUpdate(
+      context.env.DB,
+      `INSERT INTO sessions (id, user_id, refresh_token, expires_at, created_at)
+       VALUES (?, ?, ?, ?, datetime('now'))`,
+      [refreshTokenId, user.id, refreshToken, expiresAt.toISOString()]
+    );
+
+    return successResponse(
+      {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      },
+      200
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // 검증 오류인 경우 400 반환
+    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
+      logger.warn('로그인 검증 오류', { error: errorMessage, ipAddress });
+      return errorResponse(errorMessage, 400);
+    }
+
+    logger.error('로그인 처리 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
+    return errorResponse('로그인 실패', 500);
+  }
+});
+
+// 토큰 갱신
+authRouter.post('/refresh', async (context: RequestContext) => {
+  const ipAddress = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  try {
+    // 입력 검증
+    const { refreshToken } = await parseAndValidate(
+      context.request,
+      RefreshTokenSchema
+    );
+
+    logger.logRequest('POST', '/api/auth/refresh', undefined, ipAddress);
+
+    // 토큰 검증
+    const payload = await verifyRefreshToken(refreshToken, context.env);
+    if (!payload) {
+      return unauthorizedResponse();
+    }
+
+    // DB에서 세션 확인
+    const session = await executeFirst<any>(
+      context.env.DB,
+      'SELECT user_id FROM sessions WHERE id = ? AND expires_at > datetime("now")',
+      [payload.tokenId]
+    );
+
+    if (!session) {
+      return unauthorizedResponse();
+    }
+
+    // 사용자 정보 조회
+    const user = await executeFirst<any>(
+      context.env.DB,
+      'SELECT id, email, name, role, academy_id FROM users WHERE id = ?',
+      [(session as any).user_id]
+    );
+
+    if (!user) {
+      return unauthorizedResponse();
+    }
+
+    // 새로운 토큰 생성
+    const { accessToken, refreshToken: newRefreshToken, refreshTokenId } = await generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.academy_id,
+      context.env
+    );
+
+    // 새 세션 저장
+    const expiresAt = createTokenExpiry(parseInt(context.env.REFRESH_TOKEN_EXPIRES_IN) || 2592000);
+    await executeUpdate(
+      context.env.DB,
+      `INSERT INTO sessions (id, user_id, refresh_token, expires_at, created_at)
+       VALUES (?, ?, ?, ?, datetime('now'))`,
+      [refreshTokenId, user.id, newRefreshToken, expiresAt.toISOString()]
+    );
+
+    return successResponse({ accessToken, refreshToken: newRefreshToken });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // 검증 오류인 경우 400 반환
+    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
+      logger.warn('토큰 갱신 검증 오류', { error: errorMessage, ipAddress });
+      return errorResponse(errorMessage, 400);
+    }
+
+    logger.error('토큰 갱신 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
+    return unauthorizedResponse();
+  }
+});
+
+// 로그아웃
+authRouter.post('/logout', async (context: RequestContext) => {
+  try {
+    if (!context.auth) {
+      return unauthorizedResponse();
+    }
+
+    const { refreshToken } = await context.request.json() as any;
+
+    if (refreshToken) {
+      const payload = await verifyRefreshToken(refreshToken, context.env);
+      if (payload) {
+        // 세션 삭제
+        await executeUpdate(
+          context.env.DB,
+          'DELETE FROM sessions WHERE id = ?',
+          [payload.tokenId]
+        );
+      }
+    }
+
+    return successResponse({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return errorResponse('Logout failed', 500);
+  }
+});

@@ -1,0 +1,172 @@
+/**
+ * R2 파일 업로드/다운로드 API
+ */
+
+import { Router } from 'itty-router';
+import { RequestContext } from '@/types';
+import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
+import { requireAuth } from '@/middleware/auth';
+import { logger } from '@/utils/logger';
+
+export const fileRouter = Router<any>();
+
+// 파일 업로드
+fileRouter.post('/upload', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const userId = context.auth!.userId;
+    const ipAddress = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+
+    // FormData 파싱
+    const formData = await context.request.formData();
+    const file = formData.get('file') as File;
+    const folder = (formData.get('folder') as string) || 'uploads';
+
+    if (!file) {
+      return errorResponse('파일이 필요합니다', 400);
+    }
+
+    // 파일 크기 제한 (10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return errorResponse('파일 크기가 10MB를 초과합니다', 413);
+    }
+
+    // 안전한 파일 이름 생성
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const extension = file.name.split('.').pop() || 'bin';
+    const key = `${folder}/${timestamp}-${randomId}-${userId}.${extension}`;
+
+    // R2에 업로드
+    const buffer = await file.arrayBuffer();
+    await context.env.BUCKET.put(key, buffer, {
+      httpMetadata: {
+        contentType: file.type || 'application/octet-stream',
+      },
+    });
+
+    logger.logAudit('FILE_UPLOAD', 'File', key, userId, { fileSize: file.size, fileName: file.name }, ipAddress);
+
+    // 공개 URL 생성 (R2 공개 설정 필요)
+    const publicUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
+
+    return successResponse(
+      {
+        key,
+        fileName: file.name,
+        fileSize: file.size,
+        contentType: file.type,
+        uploadedAt: new Date().toISOString(),
+        publicUrl,
+      },
+      201
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // 검증 오류인 경우 400 반환
+    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
+      logger.warn('파일 업로드 검증 오류', { error: errorMessage });
+      return errorResponse(errorMessage, 400);
+    }
+
+    logger.error('파일 업로드 중 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('파일 업로드 실패', 500);
+  }
+});
+
+// 파일 다운로드
+fileRouter.get('/download/:key', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const { key } = context.params as any;
+    const userId = context.auth!.userId;
+
+    if (!key) {
+      return errorResponse('파일 키가 필요합니다', 400);
+    }
+
+    // R2에서 파일 조회
+    const object = await context.env.BUCKET.get(key);
+
+    if (!object) {
+      return notFoundResponse();
+    }
+
+    logger.logAudit('FILE_DOWNLOAD', 'File', key, userId);
+
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${key.split('/').pop()}"`,
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  } catch (error) {
+    logger.error('파일 다운로드 중 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('파일 다운로드 실패', 500);
+  }
+});
+
+// 파일 삭제
+fileRouter.delete('/:key', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const { key } = context.params as any;
+    const userId = context.auth!.userId;
+
+    if (!key) {
+      return errorResponse('파일 키가 필요합니다', 400);
+    }
+
+    // 권한 확인 (파일 소유자만 삭제 가능)
+    if (!key.includes(userId)) {
+      return errorResponse('권한이 없습니다', 403);
+    }
+
+    await context.env.BUCKET.delete(key);
+
+    logger.logAudit('FILE_DELETE', 'File', key, userId);
+
+    return successResponse({ message: '파일이 삭제되었습니다' });
+  } catch (error) {
+    logger.error('파일 삭제 중 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('파일 삭제 실패', 500);
+  }
+});
+
+// 파일 목록 조회 (사용자 폴더)
+fileRouter.get('/list/:folder', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const { folder } = context.params as any;
+    const userId = context.auth!.userId;
+
+    if (!folder) {
+      return errorResponse('폴더가 필요합니다', 400);
+    }
+
+    // R2 list API (제한적 지원)
+    // 실제로는 D1에서 파일 메타데이터를 관리하는 것이 더 좋음
+    const prefix = `${folder}/${userId}`;
+
+    // TODO: R2 list API를 사용하거나 D1에서 파일 메타데이터 조회
+    const files = [
+      {
+        key: `${prefix}/example-1234567890-${userId}.pdf`,
+        fileName: 'example.pdf',
+        uploadedAt: new Date().toISOString(),
+      },
+    ];
+
+    return successResponse(files);
+  } catch (error) {
+    logger.error('파일 목록 조회 중 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('파일 목록 조회 실패', 500);
+  }
+});

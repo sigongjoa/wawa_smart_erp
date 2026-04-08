@@ -1,0 +1,241 @@
+import { Router } from 'itty-router';
+import { RequestContext, Class, Attendance } from '@/types';
+import { executeQuery, executeFirst, executeInsert, executeUpdate, executeDelete } from '@/utils/db';
+import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
+import { requireAuth, requireRole, requireAcademy } from '@/middleware/auth';
+import { CreateClassSchema, UpdateClassSchema, RecordAttendanceSchema, parseAndValidate } from '@/schemas/validation';
+import { logger } from '@/utils/logger';
+
+export const timerRouter = Router<any>();
+
+// 학급 목록 조회
+timerRouter.get('/classes', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const classes = await executeQuery<Class>(
+      context.env.DB,
+      'SELECT * FROM classes WHERE academy_id = ? ORDER BY name',
+      [context.auth!.academyId]
+    );
+
+    return successResponse(classes);
+  } catch (error) {
+    console.error('Get classes error:', error);
+    return errorResponse('Failed to get classes', 500);
+  }
+});
+
+// 학급 상세 조회
+timerRouter.get('/classes/:id', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const { id } = context.params!;
+    const classData = await executeFirst<Class>(
+      context.env.DB,
+      'SELECT * FROM classes WHERE id = ? AND academy_id = ?',
+      [id, context.auth!.academyId]
+    );
+
+    if (!classData) return notFoundResponse();
+
+    return successResponse(classData);
+  } catch (error) {
+    console.error('Get class error:', error);
+    return errorResponse('Failed to get class', 500);
+  }
+});
+
+// 학급 생성 (강사/관리자만)
+timerRouter.post('/classes', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+      return unauthorizedResponse();
+    }
+
+    // 입력 검증
+    const { name, grade, dayOfWeek, startTime, endTime, capacity } = await parseAndValidate(
+      context.request,
+      CreateClassSchema
+    );
+
+    logger.logRequest('POST', '/api/timer/classes', context.auth?.userId, context.request.headers.get('CF-Connecting-IP') || undefined);
+
+    const id = crypto.randomUUID();
+    const result = await executeInsert(
+      context.env.DB,
+      `INSERT INTO classes (id, academy_id, name, grade, day_of_week, start_time, end_time, capacity, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [id, context.auth!.academyId, name, grade, dayOfWeek, startTime, endTime, capacity]
+    );
+
+    if (!result.success) {
+      return errorResponse('Failed to create class', 500);
+    }
+
+    const newClass = await executeFirst<Class>(
+      context.env.DB,
+      'SELECT * FROM classes WHERE id = ?',
+      [id]
+    );
+
+    return successResponse(newClass, 201);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // 검증 오류인 경우 400 반환
+    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
+      logger.warn('학급 생성 검증 오류', { error: errorMessage });
+      return errorResponse(errorMessage, 400);
+    }
+
+    logger.error('학급 생성 중 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('학급 생성 실패', 500);
+  }
+});
+
+// 학급 수정
+timerRouter.patch('/classes/:id', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+      return unauthorizedResponse();
+    }
+
+    const { id } = context.params!;
+    const { name, grade, dayOfWeek, startTime, endTime, capacity } = await context.request.json() as any;
+
+    // 학급 소유권 확인
+    const classData = await executeFirst(
+      context.env.DB,
+      'SELECT * FROM classes WHERE id = ? AND academy_id = ?',
+      [id, context.auth!.academyId]
+    );
+
+    if (!classData) return notFoundResponse();
+
+    const updates = [];
+    const values = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    if (grade !== undefined) {
+      updates.push('grade = ?');
+      values.push(grade);
+    }
+    if (dayOfWeek !== undefined) {
+      updates.push('day_of_week = ?');
+      values.push(dayOfWeek);
+    }
+    if (startTime !== undefined) {
+      updates.push('start_time = ?');
+      values.push(startTime);
+    }
+    if (endTime !== undefined) {
+      updates.push('end_time = ?');
+      values.push(endTime);
+    }
+    if (capacity !== undefined) {
+      updates.push('capacity = ?');
+      values.push(capacity);
+    }
+
+    if (updates.length === 0) {
+      return errorResponse('No fields to update', 400);
+    }
+
+    updates.push('updated_at = datetime("now")');
+    values.push(id);
+
+    const result = await executeUpdate(
+      context.env.DB,
+      `UPDATE classes SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    if (!result) {
+      return errorResponse('Failed to update class', 500);
+    }
+
+    const updated = await executeFirst<Class>(
+      context.env.DB,
+      'SELECT * FROM classes WHERE id = ?',
+      [id]
+    );
+
+    return successResponse(updated);
+  } catch (error) {
+    console.error('Update class error:', error);
+    return errorResponse('Failed to update class', 500);
+  }
+});
+
+// 출석 기록
+timerRouter.post('/attendance', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+      return unauthorizedResponse();
+    }
+
+    // 입력 검증
+    const { studentId, classId, date, status, notes } = await parseAndValidate(
+      context.request,
+      RecordAttendanceSchema
+    );
+
+    logger.logRequest('POST', '/api/timer/attendance', context.auth?.userId, context.request.headers.get('CF-Connecting-IP') || undefined);
+
+    const id = crypto.randomUUID();
+    const result = await executeInsert(
+      context.env.DB,
+      `INSERT INTO attendance (id, student_id, class_id, date, status, notes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+      [id, studentId, classId, date, status || 'present', notes]
+    );
+
+    if (!result.success) {
+      return errorResponse('Failed to record attendance', 500);
+    }
+
+    const record = await executeFirst<Attendance>(
+      context.env.DB,
+      'SELECT * FROM attendance WHERE id = ?',
+      [id]
+    );
+
+    return successResponse(record, 201);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // 검증 오류인 경우 400 반환
+    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
+      logger.warn('출석 기록 검증 오류', { error: errorMessage });
+      return errorResponse(errorMessage, 400);
+    }
+
+    logger.error('출석 기록 중 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('출석 기록 실패', 500);
+  }
+});
+
+// 출석 조회
+timerRouter.get('/attendance/:classId/:date', async (request: Request, env: any) => { const context = env as RequestContext;
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const { classId, date } = context.params;
+
+    const attendance = await executeQuery<Attendance>(
+      context.env.DB,
+      'SELECT * FROM attendance WHERE class_id = ? AND date = ?',
+      [classId, date]
+    );
+
+    return successResponse(attendance);
+  } catch (error) {
+    console.error('Get attendance error:', error);
+    return errorResponse('Failed to get attendance', 500);
+  }
+});
