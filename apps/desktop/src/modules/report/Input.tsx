@@ -141,7 +141,12 @@ export default function Input() {
               className="search-input"
               style={{ width: '150px', height: '40px', padding: '8px 12px' }}
               value={selectedYearMonth}
-              onChange={(e) => setSelectedYearMonth(e.target.value)}
+              onChange={(e) => {
+                const newMonth = e.target.value;
+                setSelectedYearMonth(newMonth);
+                // 년월 변경 시 해당 달의 데이터 조회
+                fetchAllData(newMonth);
+              }}
             >
               {generateMonthOptions(currentYearMonth).map(option => (
                 <option key={option.value} value={option.value}>

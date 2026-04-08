@@ -180,7 +180,7 @@ export const useReportStore = create<ReportState>()(
             unsentAlert: null,
 
             // 비동기 액션 - 중복 호출 방지용 lock
-            fetchAllData: async () => {
+            fetchAllData: async (yearMonth?: string) => {
                 const state = useReportStore.getState();
                 const { setIsLoading, setTeachers, setStudents, setExams, setReports, currentYearMonth, appSettings, isLoading } = state;
 
@@ -190,7 +190,10 @@ export const useReportStore = create<ReportState>()(
                     return;
                 }
 
-                console.log('[fetchAllData] Starting...', { currentYearMonth, hasApiKey: !!appSettings.notionApiKey });
+                // yearMonth 파라미터가 없으면 currentYearMonth 사용
+                const targetMonth = yearMonth || currentYearMonth;
+
+                console.log('[fetchAllData] Starting...', { targetMonth, hasApiKey: !!appSettings.notionApiKey });
 
                 if (!appSettings.notionApiKey) {
                     console.warn('[fetchAllData] No API key configured, skipping fetch');
@@ -201,15 +204,12 @@ export const useReportStore = create<ReportState>()(
                 try {
                     const notion = await import('../services/notion');
 
-                    // 현재 달 데이터만 조회 (사용자가 선택할 것)
-                    const calendarMonth = getCurrentYearMonth();
-
                     console.log('[fetchAllData] Fetching from Notion...');
                     const [teachers, students, exams, reports] = await Promise.all([
                         notion.fetchTeachers(),
                         notion.fetchStudents(),
-                        notion.fetchExams(calendarMonth),
-                        notion.fetchScores(calendarMonth),
+                        notion.fetchExams(targetMonth),
+                        notion.fetchScores(targetMonth),
                     ]);
 
                     console.log('[fetchAllData] Results:', {
@@ -217,7 +217,7 @@ export const useReportStore = create<ReportState>()(
                         students: students.length,
                         exams: exams.length,
                         reports: reports.length,
-                        calendarMonth,
+                        targetMonth,
                     });
 
                     const reportsWithNames = reports.map(r => {
@@ -230,10 +230,10 @@ export const useReportStore = create<ReportState>()(
                     setExams(exams);
                     setReports(reportsWithNames);
                     set({
-                        currentYearMonth: calendarMonth,
+                        currentYearMonth: targetMonth,
                         unsentAlert: null,
                     });
-                    console.log(`✅ Data fetched and stored successfully`);
+                    console.log(`✅ Data fetched and stored successfully (${targetMonth})`);
                 } catch (error) {
                     console.error('❌ Failed to fetch data:', error);
                 } finally {

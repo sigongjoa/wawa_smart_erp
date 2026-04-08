@@ -24,12 +24,31 @@ const generateMonthLabels = (currentYearMonth: string): string[] => {
   return labels;
 };
 
+// 최근 6개월 년월 선택지 생성
+const generateMonthOptions = (currentYearMonth: string): { label: string; value: string }[] => {
+  const [year, month] = currentYearMonth.split('-').map(Number);
+  const options: { label: string; value: string }[] = [];
+  for (let i = 0; i < 6; i++) {
+    let m = month - i;
+    let y = year;
+    if (m <= 0) {
+      m += 12;
+      y -= 1;
+    }
+    const ym = `${y}-${String(m).padStart(2, '0')}`;
+    const label = `${y}년 ${m}월`;
+    options.push({ label, value: ym });
+  }
+  return options;
+};
+
 export default function Preview() {
   const { students, reports } = useFilteredData();
   const { currentYearMonth, fetchAllData, isLoading, appSettings, currentUser } = useReportStore();
   const { addToast } = useToastStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedYearMonth, setSelectedYearMonth] = useState(currentYearMonth);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -133,12 +152,30 @@ export default function Preview() {
         <div className="page-header-row">
           <div>
             <h1 className="page-title">리포트 미리보기</h1>
-            <p className="page-description">생성된 리포트를 검토하고 JPG로 내보냅니다 ({currentYearMonth})</p>
+            <p className="page-description">생성된 리포트를 검토하고 JPG로 내보냅니다 ({selectedYearMonth})</p>
           </div>
-          <button className="btn btn-secondary" onClick={() => fetchAllData()} disabled={isLoading}>
-            <span className={`material-symbols-outlined ${isLoading ? 'spin' : ''}`}>refresh</span>
-            새로고침
-          </button>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <select
+              className="search-input"
+              style={{ width: '150px', height: '40px', padding: '8px 12px' }}
+              value={selectedYearMonth}
+              onChange={(e) => {
+                const newMonth = e.target.value;
+                setSelectedYearMonth(newMonth);
+                fetchAllData(newMonth);
+              }}
+            >
+              {generateMonthOptions(currentYearMonth).map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-secondary" onClick={() => fetchAllData(selectedYearMonth)} disabled={isLoading}>
+              <span className={`material-symbols-outlined ${isLoading ? 'spin' : ''}`}>refresh</span>
+              새로고침
+            </button>
+          </div>
         </div>
       </div>
 

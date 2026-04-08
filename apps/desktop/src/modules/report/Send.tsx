@@ -6,11 +6,30 @@ import PageHeader from '../../components/common/PageHeader';
 import ShareLinkModal from './components/ShareLinkModal';
 import type { MonthlyReport, Student } from '../../types';
 
+// 최근 6개월 년월 선택지 생성
+const generateMonthOptions = (currentYearMonth: string): { label: string; value: string }[] => {
+  const [year, month] = currentYearMonth.split('-').map(Number);
+  const options: { label: string; value: string }[] = [];
+  for (let i = 0; i < 6; i++) {
+    let m = month - i;
+    let y = year;
+    if (m <= 0) {
+      m += 12;
+      y -= 1;
+    }
+    const ym = `${y}-${String(m).padStart(2, '0')}`;
+    const label = `${y}년 ${m}월`;
+    options.push({ label, value: ym });
+  }
+  return options;
+};
+
 export default function Send() {
   const { reports, students } = useFilteredData();
-  const { addSendHistory, currentYearMonth } = useReportStore();
+  const { addSendHistory, currentYearMonth, fetchAllData, isLoading } = useReportStore();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedYearMonth, setSelectedYearMonth] = useState(currentYearMonth);
   const [isSending, setIsSending] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ report: MonthlyReport; student: Student } | null>(null);
 
@@ -30,7 +49,7 @@ export default function Send() {
         const result = await sendReportAlimtalk(
           student.parentPhone,
           student.name,
-          currentYearMonth,
+          selectedYearMonth,
           report.pdfUrl || 'https://example.com/report.pdf'
         );
 
@@ -47,7 +66,7 @@ export default function Send() {
             pdfUrl: report.pdfUrl,
           });
           // Notion 성적 레코드에 전송완료 표시
-          await markReportSent(student.id, currentYearMonth);
+          await markReportSent(student.id, selectedYearMonth);
         }
       }
     }
@@ -61,16 +80,38 @@ export default function Send() {
     <div>
       <PageHeader
         title="리포트 전송"
-        description="완료된 리포트를 학부모님께 알림톡으로 전송합니다"
+        description={`${selectedYearMonth} 완료된 리포트를 학부모님께 알림톡으로 전송합니다`}
         actions={
-          <button
-            className="btn btn-primary"
-            onClick={handleBulkSend}
-            disabled={isSending || selectedIds.length === 0}
-          >
-            <span className="material-symbols-outlined">send</span>
-            {isSending ? '전송 중...' : `${selectedIds.length}건 일괄 전송`}
-          </button>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <select
+              className="search-input"
+              style={{ width: '150px', height: '40px', padding: '8px 12px' }}
+              value={selectedYearMonth}
+              onChange={(e) => {
+                const newMonth = e.target.value;
+                setSelectedYearMonth(newMonth);
+                fetchAllData(newMonth);
+              }}
+            >
+              {generateMonthOptions(currentYearMonth).map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-secondary" onClick={() => fetchAllData(selectedYearMonth)} disabled={isLoading}>
+              <span className={`material-symbols-outlined ${isLoading ? 'spin' : ''}`}>refresh</span>
+              새로고침
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleBulkSend}
+              disabled={isSending || selectedIds.length === 0}
+            >
+              <span className="material-symbols-outlined">send</span>
+              {isSending ? '전송 중...' : `${selectedIds.length}건 일괄 전송`}
+            </button>
+          </div>
         }
       />
 
