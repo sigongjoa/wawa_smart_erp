@@ -73,6 +73,10 @@ export default function Input() {
   const handleSave = async (subject: string) => {
     if (!selectedStudent) return;
 
+    // 저장 전 최신 currentYearMonth 다시 읽기 (3월 미전송 있을 경우 3월로 자동 업데이트됨)
+    const latestState = useReportStore.getState();
+    const actualYearMonth = latestState.currentYearMonth;
+
     const teacherId = currentUser?.teacher?.id || '';
     const data = formData[subject];
 
@@ -86,7 +90,7 @@ export default function Input() {
     const result = await saveAsync.execute(
       selectedStudent.id,
       selectedStudent.name,
-      currentYearMonth,
+      actualYearMonth,  // ← 최신값 사용
       subject,
       isTotalComment ? 0 : data.score,
       teacherId,
