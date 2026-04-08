@@ -8,7 +8,7 @@ import { z } from 'zod';
 // ==================== 인증 ====================
 export const LoginSchema = z.object({
   email: z.string().email('유효한 이메일을 입력하세요'),
-  password: z.string().min(6, '비밀번호는 최소 6자 이상이어야 합니다'),
+  password: z.string().min(4, '비밀번호는 최소 4자 이상이어야 합니다'),
 });
 
 export const RefreshTokenSchema = z.object({

@@ -28,11 +28,23 @@ export async function handleAuth(
 
       const user = await executeFirst<any>(
         context.env.DB,
-        'SELECT id, email, name, role, academy_id FROM users WHERE email = ? LIMIT 1',
+        'SELECT id, email, name, role, academy_id, password_hash FROM users WHERE email = ? LIMIT 1',
         [email]
       );
 
       if (!user) {
+        return unauthorizedResponse();
+      }
+
+      // 비밀번호 검증 (SHA256 - Web Crypto API)
+      const encoder = new TextEncoder();
+      const passwordBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+      const passwordHash = Array.from(new Uint8Array(passwordBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      if (passwordHash !== user.password_hash) {
+        logger.warn('비밀번호 불일치', { email });
         return unauthorizedResponse();
       }
 

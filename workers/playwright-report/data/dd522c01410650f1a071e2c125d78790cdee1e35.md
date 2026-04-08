@@ -6,15 +6,15 @@
 
 # Test info
 
-- Name: message.spec.ts >> Message API E2E Tests >> should return 400 when sending message without content
-- Location: e2e/message.spec.ts:17:3
+- Name: message.spec.ts >> Message API E2E Tests >> should return 401 when sending message without authentication
+- Location: e2e/message.spec.ts:4:3
 
 # Error details
 
 ```
 Error: expect(received).toBe(expected) // Object.is equality
 
-Expected: 400
+Expected: 401
 Received: 429
 ```
 
@@ -32,7 +32,8 @@ Received: 429
   9  |       },
   10 |     });
   11 | 
-  12 |     expect(response.status()).toBe(401);
+> 12 |     expect(response.status()).toBe(401);
+     |                               ^ Error: expect(received).toBe(expected) // Object.is equality
   13 |     const data = await response.json();
   14 |     expect(data.success).toBe(false);
   15 |   });
@@ -47,8 +48,7 @@ Received: 429
   24 |       },
   25 |     });
   26 | 
-> 27 |     expect(response.status()).toBe(400);
-     |                               ^ Error: expect(received).toBe(expected) // Object.is equality
+  27 |     expect(response.status()).toBe(400);
   28 |     const data = await response.json();
   29 |     expect(data.success).toBe(false);
   30 |   });

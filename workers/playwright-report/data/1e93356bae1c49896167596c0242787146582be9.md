@@ -12,13 +12,10 @@
 # Error details
 
 ```
-Error: expect(received).toHaveProperty(path, value)
+Error: expect(received).toBe(expected) // Object.is equality
 
-Expected path: "status"
-Received path: []
-
-Expected value: "ok"
-Received value: {"data": {"status": "ok", "timestamp": "2026-04-08T10:20:08.958Z"}, "success": true, "timestamp": "2026-04-08T10:20:08.958Z"}
+Expected: 200
+Received: 429
 ```
 
 # Test source
@@ -29,11 +26,11 @@ Received value: {"data": {"status": "ok", "timestamp": "2026-04-08T10:20:08.958Z
   3  | test.describe('Health Check E2E Tests', () => {
   4  |   test('should return 200 with ok status', async ({ request }) => {
   5  |     const response = await request.get('/health');
-  6  |     expect(response.status()).toBe(200);
+> 6  |     expect(response.status()).toBe(200);
+     |                               ^ Error: expect(received).toBe(expected) // Object.is equality
   7  | 
   8  |     const data = await response.json();
-> 9  |     expect(data).toHaveProperty('status', 'ok');
-     |                  ^ Error: expect(received).toHaveProperty(path, value)
+  9  |     expect(data).toHaveProperty('status', 'ok');
   10 |     expect(data).toHaveProperty('timestamp');
   11 |   });
   12 | 

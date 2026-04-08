@@ -66,14 +66,14 @@ export async function handleTimer(
 
     // POST /api/timer/classes
     if (method === 'POST' && pathname === '/api/timer/classes') {
-      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
-        return unauthorizedResponse();
-      }
-
       const { name, grade, dayOfWeek, startTime, endTime, capacity } = await parseAndValidate(
         request,
         CreateClassSchema
       );
+
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
 
       logger.logRequest('POST', '/api/timer/classes', context.auth?.userId, request.headers.get('CF-Connecting-IP') || undefined);
 
@@ -171,14 +171,14 @@ export async function handleTimer(
 
     // POST /api/timer/attendance
     if (method === 'POST' && pathname === '/api/timer/attendance') {
-      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
-        return unauthorizedResponse();
-      }
-
       const { studentId, classId, date, status, notes } = await parseAndValidate(
         request,
         RecordAttendanceSchema
       );
+
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
 
       logger.logRequest('POST', '/api/timer/attendance', context.auth?.userId, request.headers.get('CF-Connecting-IP') || undefined);
 

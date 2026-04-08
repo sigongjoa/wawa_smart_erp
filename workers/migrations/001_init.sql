@@ -165,3 +165,8 @@ CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_id ON messages(recipient_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+
+-- 기본 Academy 데이터
+INSERT INTO academies (id, name, created_at, updated_at)
+VALUES ('acad-1', 'Test Academy', datetime('now'), datetime('now'))
+ON CONFLICT(id) DO NOTHING;

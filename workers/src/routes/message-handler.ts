@@ -29,9 +29,9 @@ export async function handleMessage(
   try {
     // POST /api/message/
     if (method === 'POST' && pathname === '/api/message/') {
-      if (!requireAuth(context)) return unauthorizedResponse();
-
       const { recipientId, content } = await parseAndValidate(request, SendMessageSchema);
+
+      if (!requireAuth(context)) return unauthorizedResponse();
 
       const userId = context.auth!.userId;
       const ipAddress = request.headers.get('CF-Connecting-IP') || 'unknown';

@@ -6,16 +6,16 @@
 
 # Test info
 
-- Name: file.spec.ts >> File API E2E Tests >> should return 403 when deleting file without ownership
-- Location: e2e/file.spec.ts:84:3
+- Name: file.spec.ts >> File API E2E Tests >> should return 401 when listing files without authentication
+- Location: e2e/file.spec.ts:96:3
 
 # Error details
 
 ```
 Error: expect(received).toBe(expected) // Object.is equality
 
-Expected: 403
-Received: 401
+Expected: 401
+Received: 429
 ```
 
 # Test source
@@ -111,8 +111,7 @@ Received: 401
   88  |       },
   89  |     });
   90  | 
-> 91  |     expect(response.status()).toBe(403);
-      |                               ^ Error: expect(received).toBe(expected) // Object.is equality
+  91  |     expect(response.status()).toBe(403);
   92  |     const data = await response.json();
   93  |     expect(data.error).toContain('권한');
   94  |   });
@@ -120,7 +119,8 @@ Received: 401
   96  |   test('should return 401 when listing files without authentication', async ({ request }) => {
   97  |     const response = await request.get('/api/file/list/documents');
   98  | 
-  99  |     expect(response.status()).toBe(401);
+> 99  |     expect(response.status()).toBe(401);
+      |                               ^ Error: expect(received).toBe(expected) // Object.is equality
   100 |     const data = await response.json();
   101 |     expect(data.success).toBe(false);
   102 |   });

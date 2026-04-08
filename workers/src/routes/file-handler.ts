@@ -17,18 +17,19 @@ export async function handleFile(
   try {
     // POST /api/file/upload
     if (method === 'POST' && pathname === '/api/file/upload') {
+      const formData = await request.formData();
+      const file = formData.get('file') as File;
+
+      if (!file) {
+        return errorResponse('파일이 필요합니다', 400);
+      }
+
       if (!requireAuth(context)) return unauthorizedResponse();
 
       const userId = context.auth!.userId;
       const ipAddress = request.headers.get('CF-Connecting-IP') || 'unknown';
 
-      const formData = await request.formData();
-      const file = formData.get('file') as File;
       const folder = (formData.get('folder') as string) || 'uploads';
-
-      if (!file) {
-        return errorResponse('파일이 필요합니다', 400);
-      }
 
       const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
@@ -66,14 +67,15 @@ export async function handleFile(
 
     // GET /api/file/download/:key
     if (method === 'GET' && pathname.startsWith('/api/file/download/')) {
-      if (!requireAuth(context)) return unauthorizedResponse();
-
       const key = pathname.replace('/api/file/download/', '');
-      const userId = context.auth!.userId;
 
       if (!key) {
         return errorResponse('파일 키가 필요합니다', 400);
       }
+
+      if (!requireAuth(context)) return unauthorizedResponse();
+
+      const userId = context.auth!.userId;
 
       const object = await context.env.BUCKET.get(key);
 
@@ -94,14 +96,15 @@ export async function handleFile(
 
     // DELETE /api/file/:key
     if (method === 'DELETE' && pathname.startsWith('/api/file/') && !pathname.includes('/download') && !pathname.includes('/list')) {
-      if (!requireAuth(context)) return unauthorizedResponse();
-
       const key = pathname.replace('/api/file/', '');
-      const userId = context.auth!.userId;
 
       if (!key) {
         return errorResponse('파일 키가 필요합니다', 400);
       }
+
+      if (!requireAuth(context)) return unauthorizedResponse();
+
+      const userId = context.auth!.userId;
 
       if (!key.includes(userId)) {
         return errorResponse('권한이 없습니다', 403);
@@ -116,14 +119,15 @@ export async function handleFile(
 
     // GET /api/file/list/:folder
     if (method === 'GET' && pathname.startsWith('/api/file/list/')) {
-      if (!requireAuth(context)) return unauthorizedResponse();
-
       const folder = pathname.replace('/api/file/list/', '');
-      const userId = context.auth!.userId;
 
       if (!folder) {
         return errorResponse('폴더가 필요합니다', 400);
       }
+
+      if (!requireAuth(context)) return unauthorizedResponse();
+
+      const userId = context.auth!.userId;
 
       const prefix = `${folder}/${userId}`;
 

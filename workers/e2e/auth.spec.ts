@@ -6,6 +6,12 @@ const TEST_USER = {
   password: 'Test@1234567890',
 };
 
+// Notion 마이그레이션된 선생님 자격증명 (teacher4 = 남현욱, PIN: 1312)
+const NOTION_TEACHER = {
+  email: 'teacher4@academy.local',
+  password: '1312', // SHA256으로 해시됨
+};
+
 test.describe('Authentication E2E Tests', () => {
   let accessToken: string;
 
@@ -66,6 +72,22 @@ test.describe('Authentication E2E Tests', () => {
     expect(response.status()).toBe(401);
     const data = await response.json();
     expect(data.success).toBe(false);
+  });
+
+  test('should successfully login with valid teacher credentials', async ({ request }) => {
+    const response = await request.post('/api/auth/login', {
+      data: {
+        email: NOTION_TEACHER.email,
+        password: NOTION_TEACHER.password,
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    expect(data.success).toBe(true);
+    expect(data.data.accessToken).toBeTruthy();
+    expect(data.data.refreshToken).toBeTruthy();
+    expect(data.data.user.email).toBe(NOTION_TEACHER.email);
   });
 });
 
