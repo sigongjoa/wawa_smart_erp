@@ -4,21 +4,19 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import DMWidget from './dm/DMWidget';
 import { useReportStore } from '../stores/reportStore';
-import Setup from '../modules/report/Setup';
-import Login from '../modules/auth/Login';
+import CloudflareLogin from '../modules/auth/CloudflareLogin';
 
 export default function AppShell() {
-  const { appSettings, currentUser, fetchAllData, unsentAlert } = useReportStore();
+  const { currentUser, fetchAllData, unsentAlert } = useReportStore();
   const isAdmin = currentUser?.teacher?.isAdmin;
   const [showAlert, setShowAlert] = useState(true);
-  const isConfigured = !!appSettings.notionApiKey;
 
   useEffect(() => {
-    if (isConfigured) {
+    if (currentUser) {
       fetchAllData();
       // appStore는 Timer 모듈에서 필요할 때 직접 fetch하므로 여기서는 호출하지 않음
     }
-  }, [isConfigured]);
+  }, [currentUser]);
 
   useEffect(() => {
     if (unsentAlert) {
@@ -28,23 +26,9 @@ export default function AppShell() {
     }
   }, [unsentAlert]);
 
-  // 1. 초기 설정이 안 된 경우 (API Key 없음)
-  if (!isConfigured) {
-    return (
-      <div className="app-shell">
-        <Header />
-        <div className="app-body" style={{ paddingTop: 'var(--header-height)' }}>
-          <main className="app-content" style={{ marginLeft: 0, maxWidth: '100%' }}>
-            <Setup />
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // 2. 로그인이 안 된 경우
+  // 1. 로그인이 안 된 경우
   if (!currentUser) {
-    return <Login />;
+    return <CloudflareLogin />;
   }
 
   // 3. 정상 사이클

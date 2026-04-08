@@ -13,8 +13,8 @@ export default function CloudflareLogin() {
   const { addToast } = useToastStore();
   const { setCurrentUser } = useReportStore();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [apiHealth, setApiHealth] = useState<boolean | null>(null);
 
@@ -41,8 +41,13 @@ export default function CloudflareLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      addToast('이메일과 비밀번호를 입력해주세요', 'warning');
+    if (!name || !pin) {
+      addToast('선생님 이름과 PIN을 입력해주세요', 'warning');
+      return;
+    }
+
+    if (pin.length < 4) {
+      addToast('PIN은 최소 4자 이상이어야 합니다', 'warning');
       return;
     }
 
@@ -50,7 +55,7 @@ export default function CloudflareLogin() {
 
     try {
       // API 로그인
-      const user = await apiClient.login(email, password);
+      const user = await apiClient.login(name, pin);
 
       // 사용자 정보 저장
       setCurrentUser({
@@ -138,13 +143,13 @@ export default function CloudflareLogin() {
         {/* 로그인 폼 */}
         <form onSubmit={handleLogin}>
           <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* 이메일 입력 */}
+            {/* 이름 입력 */}
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: 600 }}>
-                이메일
+                선생님 이름
               </label>
               <input
-                type="email"
+                type="text"
                 className="search-input"
                 style={{
                   width: '100%',
@@ -153,18 +158,18 @@ export default function CloudflareLogin() {
                   padding: '12px',
                   borderRadius: '8px',
                 }}
-                placeholder="example@academy.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="예: 김상현"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 disabled={isLoading}
                 autoFocus
               />
             </div>
 
-            {/* 비밀번호 입력 */}
+            {/* PIN 입력 */}
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: 600 }}>
-                비밀번호
+                PIN (4자 이상)
               </label>
               <input
                 type="password"
@@ -176,9 +181,9 @@ export default function CloudflareLogin() {
                   padding: '12px',
                   borderRadius: '8px',
                 }}
-                placeholder="비밀번호를 입력하세요"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="PIN을 입력하세요"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
                 disabled={isLoading}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
               />
@@ -216,7 +221,7 @@ export default function CloudflareLogin() {
           </div>
         </form>
 
-        {/* 기본 계정 정보 (개발용) */}
+        {/* 테스트 계정 정보 (개발용) */}
         {process.env.NODE_ENV === 'development' && (
           <div
             style={{
@@ -229,9 +234,9 @@ export default function CloudflareLogin() {
               textAlign: 'left',
             }}
           >
-            <p style={{ margin: '0 0 8px 0', fontWeight: 600 }}>개발 계정:</p>
-            <p style={{ margin: 0 }}>이메일: test@example.com</p>
-            <p style={{ margin: 0 }}>비밀번호: test123</p>
+            <p style={{ margin: '0 0 8px 0', fontWeight: 600 }}>테스트 계정:</p>
+            <p style={{ margin: 0 }}>이름: 김상현 | PIN: 1234</p>
+            <p style={{ margin: 0 }}>이름: 남현욱 | PIN: 1312</p>
           </div>
         )}
       </div>

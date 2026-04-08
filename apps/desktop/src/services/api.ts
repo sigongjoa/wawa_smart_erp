@@ -163,11 +163,11 @@ class ApiClient {
   }
 
   // ==================== Auth API ====================
-  async login(email: string, password: string) {
+  async login(name: string, pin: string) {
     const response = await fetch(`${this.baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name, pin }),
     });
 
     const data: ApiResponse = await response.json();
