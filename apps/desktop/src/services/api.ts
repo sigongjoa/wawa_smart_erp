@@ -4,7 +4,10 @@
  */
 
 // 환경에 따른 API URL 설정
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8787';
+const API_BASE_URL = process.env.REACT_APP_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:8787'
+    : 'https://wawa-smart-erp-api.zeskywa499.workers.dev');
 
 // API 응답 타입
 interface ApiResponse<T = any> {
