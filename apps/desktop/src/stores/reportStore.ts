@@ -204,6 +204,7 @@ export const useReportStore = create<ReportState>()(
                     // 현재 달과 이전 달을 함께 조회해서 미전송 여부 확인
                     const calendarMonth = getCurrentYearMonth();
                     const prevMonth = getPrevYearMonth(calendarMonth);
+                    const currentActiveMonth = state.currentYearMonth; // 현재 선택된 월 유지
 
                     console.log('[fetchAllData] Fetching from Notion...');
                     const [teachers, students, prevReports, currentReports] = await Promise.all([
@@ -213,10 +214,14 @@ export const useReportStore = create<ReportState>()(
                         notion.fetchScores(calendarMonth),
                     ]);
 
-                    // 이전 달에 미전송 리포트가 있으면 이전 달을 활성 월로 설정
+                    // 🔧 수정: 현재 달짜(4월)를 기본으로 유지
+                    // 3월 미전송 데이터가 있어도 현재 달(4월)에서 작업하도록
+                    // 3월 미전송 데이터는 "알림"으로만 표시
+                    const activeMonth = calendarMonth; // 항상 현재 달짜
+                    const activeReports = currentReports; // 현재 달 데이터만 표시
+
+                    // 3월 미전송 데이터 (알림 용도)
                     const unsentPrev = prevReports.filter(r => r.status !== 'sent');
-                    const activeMonth = unsentPrev.length > 0 ? prevMonth : calendarMonth;
-                    const activeReports = unsentPrev.length > 0 ? prevReports : currentReports;
 
                     const exams = await notion.fetchExams(activeMonth);
 
