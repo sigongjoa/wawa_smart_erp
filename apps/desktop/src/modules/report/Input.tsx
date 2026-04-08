@@ -8,12 +8,36 @@ import { saveScore } from '../../services/notion';
 import type { AIProvider } from '../../types';
 import { getSubjectColor } from '../../constants/common';
 
+// 최근 6개월 년월 선택지 생성
+const generateMonthOptions = (currentYearMonth: string): { label: string; value: string }[] => {
+  const [year, month] = currentYearMonth.split('-').map(Number);
+  const options: { label: string; value: string }[] = [];
+  for (let i = 0; i < 6; i++) {
+    let m = month - i;
+    let y = year;
+    if (m <= 0) {
+      m += 12;
+      y -= 1;
+    }
+    const ym = `${y}-${String(m).padStart(2, '0')}`;
+    const label = `${m}월`;
+    options.push({ label, value: ym });
+  }
+  return options;
+};
+
 export default function Input() {
   const { students, reports } = useFilteredData();
   const { currentYearMonth, currentUser, fetchAllData, isLoading, appSettings } = useReportStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedYearMonth, setSelectedYearMonth] = useState(currentYearMonth);
   const [formData, setFormData] = useState<Record<string, { score: number; comment: string }>>({});
+
+  // 년월이 변경되면 폼 데이터 초기화
+  useEffect(() => {
+    setFormData({});
+  }, [selectedYearMonth]);
 
   // AppShell에서 이미 fetchAllData 호출하므로 여기서는 중복 호출하지 않음
   const selectedStudent = students.find(s => s.id === selectedStudentId);
@@ -83,14 +107,12 @@ export default function Input() {
       return;
     }
 
-    // 저장할 년월: currentYearMonth 사용
-    // (이미 스토어에서 미전송 여부를 확인해서 3월 또는 4월로 설정됨)
-    console.log(`[handleSave] 저장 년월: ${currentYearMonth} (미전송 데이터 존재 시 자동으로 3월으로 강제)`);
+    console.log(`[handleSave] 저장 년월: ${selectedYearMonth} (사용자 선택)`);
 
     const result = await saveAsync.execute(
       selectedStudent.id,
       selectedStudent.name,
-      currentYearMonth,  // ← 현재 활성 년월 (3월 미전송 있으면 3월, 없으면 4월)
+      selectedYearMonth,  // ← 사용자가 선택한 년월
       subject,
       isTotalComment ? 0 : data.score,
       teacherId,
@@ -112,12 +134,26 @@ export default function Input() {
         <div className="page-header-row">
           <div>
             <h1 className="page-title">성적 입력</h1>
-            <p className="page-description">{currentYearMonth} 월말평가 성적을 입력합니다</p>
+            <p className="page-description">{selectedYearMonth} 월말평가 성적을 입력합니다</p>
           </div>
-          <button className="btn btn-secondary" onClick={() => fetchAllData()} disabled={isLoading}>
-            <span className={`material-symbols-outlined ${isLoading ? 'spin' : ''}`}>refresh</span>
-            새로고침
-          </button>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <select
+              className="search-input"
+              style={{ width: '150px', height: '40px', padding: '8px 12px' }}
+              value={selectedYearMonth}
+              onChange={(e) => setSelectedYearMonth(e.target.value)}
+            >
+              {generateMonthOptions(currentYearMonth).map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.value.split('-')[0]}년 {option.label}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-secondary" onClick={() => fetchAllData()} disabled={isLoading}>
+              <span className={`material-symbols-outlined ${isLoading ? 'spin' : ''}`}>refresh</span>
+              새로고침
+            </button>
+          </div>
         </div>
       </div>
 

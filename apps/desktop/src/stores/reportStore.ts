@@ -201,54 +201,39 @@ export const useReportStore = create<ReportState>()(
                 try {
                     const notion = await import('../services/notion');
 
-                    // 현재 달과 이전 달 데이터를 함께 조회해서 미전송 여부 확인
+                    // 현재 달 데이터만 조회 (사용자가 선택할 것)
                     const calendarMonth = getCurrentYearMonth();
-                    const prevMonth = getPrevYearMonth(calendarMonth);
 
                     console.log('[fetchAllData] Fetching from Notion...');
-                    const [teachers, students, exams, prevReports, currentReports] = await Promise.all([
+                    const [teachers, students, exams, reports] = await Promise.all([
                         notion.fetchTeachers(),
                         notion.fetchStudents(),
                         notion.fetchExams(calendarMonth),
-                        notion.fetchScores(prevMonth),
                         notion.fetchScores(calendarMonth),
                     ]);
-
-                    // 이전 달 미전송 데이터 확인 (isSend=false인 것)
-                    const unsentPrev = prevReports.filter(r => r.isSent === false || r.status !== 'sent');
-                    console.log('[fetchAllData] 이전 달 미전송 데이터:', unsentPrev.length, '개');
-
-                    // 미전송이 하나라도 있으면 이전 달로 강제, 없으면 현재 달
-                    const activeMonth = unsentPrev.length > 0 ? prevMonth : calendarMonth;
-                    const activeReports = unsentPrev.length > 0 ? prevReports : currentReports;
-
-                    const examsForMonth = await notion.fetchExams(activeMonth);
 
                     console.log('[fetchAllData] Results:', {
                         teachers: teachers.length,
                         students: students.length,
-                        exams: examsForMonth.length,
-                        reports: activeReports.length,
-                        activeMonth,
-                        unsentPrevCount: unsentPrev.length,
+                        exams: exams.length,
+                        reports: reports.length,
+                        calendarMonth,
                     });
 
-                    const reportsWithNames = activeReports.map(r => {
+                    const reportsWithNames = reports.map(r => {
                         const student = students.find(s => s.id === r.studentId);
                         return { ...r, studentName: student?.name || '알 수 없음' };
                     });
 
                     setTeachers(teachers);
                     setStudents(students);
-                    setExams(examsForMonth);
+                    setExams(exams);
                     setReports(reportsWithNames);
                     set({
-                        currentYearMonth: activeMonth,
-                        unsentAlert: unsentPrev.length > 0
-                            ? { yearMonth: prevMonth, count: unsentPrev.length }
-                            : null,
+                        currentYearMonth: calendarMonth,
+                        unsentAlert: null,
                     });
-                    console.log(`✅ Data fetched and stored successfully (${activeMonth})`);
+                    console.log(`✅ Data fetched and stored successfully`);
                 } catch (error) {
                     console.error('❌ Failed to fetch data:', error);
                 } finally {
