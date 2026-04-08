@@ -330,6 +330,8 @@ export const saveScore = async (
   const dbIds = getDbIds();
   if (!dbIds.scores) return { success: false, error: { message: "성적 데이터베이스 ID가 설정되지 않았습니다." } };
   try {
+    console.log('[saveScore] 저장 시작:', { studentId, studentName, yearMonth, subject, score, teacherId });
+
     const isTotalComment = subject === '__TOTAL_COMMENT__';
 
     const existing = await notionFetch(`/databases/${dbIds.scores}/query`, {
@@ -353,6 +355,8 @@ export const saveScore = async (
       }),
     });
 
+    console.log('[saveScore] 기존 레코드 조회 결과:', existing.results.length, '개');
+
     const properties: Record<string, unknown> = {
       [NOTION_COLUMNS_SCORE.NAME]: { title: [{ text: { content: `${studentName}_${subject}_${yearMonth}` } }] },
       [NOTION_COLUMNS_SCORE.YEAR_MONTH]: { rich_text: [{ text: { content: yearMonth } }] },
@@ -365,23 +369,30 @@ export const saveScore = async (
     if (difficulty) properties[NOTION_COLUMNS_SCORE.DIFFICULTY] = { select: { name: difficulty } };
 
     if (existing.results.length > 0) {
-      await notionFetch(`/pages/${existing.results[0].id}`, {
+      console.log('[saveScore] PATCH 요청 시작');
+      const patchResponse = await notionFetch(`/pages/${existing.results[0].id}`, {
         method: 'PATCH',
         body: JSON.stringify({ properties: { ...properties, [NOTION_COLUMNS_SCORE.TEACHER]: teacherId ? { relation: [{ id: teacherId }] } : undefined } }),
       });
+      console.log('[saveScore] PATCH 응답:', patchResponse);
     } else {
-      await notionFetch('/pages', {
+      console.log('[saveScore] POST 요청 시작');
+      const postResponse = await notionFetch('/pages', {
         method: 'POST',
         body: JSON.stringify({
           parent: { database_id: dbIds.scores },
           properties: { ...properties, [NOTION_COLUMNS_SCORE.STUDENT]: { relation: [{ id: studentId }] }, [NOTION_COLUMNS_SCORE.TEACHER]: teacherId ? { relation: [{ id: teacherId }] } : undefined },
         }),
       });
+      console.log('[saveScore] POST 응답:', postResponse);
     }
+    console.log('✅ saveScore 성공');
     return { success: true, data: true };
   } catch (error) {
-    console.error('❌ saveScore failed:', error);
-    return { success: false, error: { message: (error instanceof Error ? error.message : '') || "성적 정보를 저장하는 데 실패했습니다." } };
+    console.error('❌ saveScore 실패:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('❌ saveScore 에러 상세:', errorMsg);
+    return { success: false, error: { message: errorMsg || "성적 정보를 저장하는 데 실패했습니다." } };
   }
 };
 

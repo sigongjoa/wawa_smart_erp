@@ -73,10 +73,6 @@ export default function Input() {
   const handleSave = async (subject: string) => {
     if (!selectedStudent) return;
 
-    // 저장 전 최신 currentYearMonth 다시 읽기 (3월 미전송 있을 경우 3월로 자동 업데이트됨)
-    const latestState = useReportStore.getState();
-    const actualYearMonth = latestState.currentYearMonth;
-
     const teacherId = currentUser?.teacher?.id || '';
     const data = formData[subject];
 
@@ -87,10 +83,14 @@ export default function Input() {
       return;
     }
 
+    // 저장할 년월: currentYearMonth 사용
+    // (이미 스토어에서 미전송 여부를 확인해서 3월 또는 4월로 설정됨)
+    console.log(`[handleSave] 저장 년월: ${currentYearMonth} (미전송 데이터 존재 시 자동으로 3월으로 강제)`);
+
     const result = await saveAsync.execute(
       selectedStudent.id,
       selectedStudent.name,
-      actualYearMonth,  // ← 최신값 사용
+      currentYearMonth,  // ← 현재 활성 년월 (3월 미전송 있으면 3월, 없으면 4월)
       subject,
       isTotalComment ? 0 : data.score,
       teacherId,

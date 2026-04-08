@@ -201,33 +201,33 @@ export const useReportStore = create<ReportState>()(
                 try {
                     const notion = await import('../services/notion');
 
-                    // 현재 달과 이전 달을 함께 조회해서 미전송 여부 확인
+                    // 현재 달과 이전 달 데이터를 함께 조회해서 미전송 여부 확인
                     const calendarMonth = getCurrentYearMonth();
                     const prevMonth = getPrevYearMonth(calendarMonth);
-                    const currentActiveMonth = state.currentYearMonth; // 현재 선택된 월 유지
 
                     console.log('[fetchAllData] Fetching from Notion...');
-                    const [teachers, students, prevReports, currentReports] = await Promise.all([
+                    const [teachers, students, exams, prevReports, currentReports] = await Promise.all([
                         notion.fetchTeachers(),
                         notion.fetchStudents(),
+                        notion.fetchExams(calendarMonth),
                         notion.fetchScores(prevMonth),
                         notion.fetchScores(calendarMonth),
                     ]);
 
-                    // 3월 미전송 데이터 확인
-                    const unsentPrev = prevReports.filter(r => r.status !== 'sent');
+                    // 이전 달 미전송 데이터 확인 (isSend=false인 것)
+                    const unsentPrev = prevReports.filter(r => r.isSent === false || r.status !== 'sent');
+                    console.log('[fetchAllData] 이전 달 미전송 데이터:', unsentPrev.length, '개');
 
-                    // 올바른 로직: 3월 미전송이 있으면 현재 달(4월) 데이터 입력 차단
-                    // 3월 데이터가 모두 전송 완료(isSent=true)되어야 4월 데이터 입력 가능
+                    // 미전송이 하나라도 있으면 이전 달로 강제, 없으면 현재 달
                     const activeMonth = unsentPrev.length > 0 ? prevMonth : calendarMonth;
                     const activeReports = unsentPrev.length > 0 ? prevReports : currentReports;
 
-                    const exams = await notion.fetchExams(activeMonth);
+                    const examsForMonth = await notion.fetchExams(activeMonth);
 
                     console.log('[fetchAllData] Results:', {
                         teachers: teachers.length,
                         students: students.length,
-                        exams: exams.length,
+                        exams: examsForMonth.length,
                         reports: activeReports.length,
                         activeMonth,
                         unsentPrevCount: unsentPrev.length,
@@ -240,7 +240,7 @@ export const useReportStore = create<ReportState>()(
 
                     setTeachers(teachers);
                     setStudents(students);
-                    setExams(exams);
+                    setExams(examsForMonth);
                     setReports(reportsWithNames);
                     set({
                         currentYearMonth: activeMonth,
@@ -248,7 +248,7 @@ export const useReportStore = create<ReportState>()(
                             ? { yearMonth: prevMonth, count: unsentPrev.length }
                             : null,
                     });
-                    console.log('✅ Data fetched and stored successfully');
+                    console.log(`✅ Data fetched and stored successfully (${activeMonth})`);
                 } catch (error) {
                     console.error('❌ Failed to fetch data:', error);
                 } finally {
