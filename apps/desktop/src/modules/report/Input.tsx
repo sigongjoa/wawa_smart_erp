@@ -121,7 +121,7 @@ export default function Input() {
 
     if (result.success) {
       addToast(isTotalComment ? '총평이 저장되었습니다.' : `${subject} 점수가 저장되었습니다.`, 'success');
-      await fetchAllData();
+      // 저장 후 페이지 새로고침하지 않음 - 사용자가 새로고침 버튼을 클릭할 때 데이터 로드
     } else {
       addToast(result.error?.message || '저장에 실패했습니다.', 'error');
     }
