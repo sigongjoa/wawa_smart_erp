@@ -214,14 +214,13 @@ export const useReportStore = create<ReportState>()(
                         notion.fetchScores(calendarMonth),
                     ]);
 
-                    // 🔧 수정: 현재 달짜(4월)를 기본으로 유지
-                    // 3월 미전송 데이터가 있어도 현재 달(4월)에서 작업하도록
-                    // 3월 미전송 데이터는 "알림"으로만 표시
-                    const activeMonth = calendarMonth; // 항상 현재 달짜
-                    const activeReports = currentReports; // 현재 달 데이터만 표시
-
-                    // 3월 미전송 데이터 (알림 용도)
+                    // 3월 미전송 데이터 확인
                     const unsentPrev = prevReports.filter(r => r.status !== 'sent');
+
+                    // 올바른 로직: 3월 미전송이 있으면 현재 달(4월) 데이터 입력 차단
+                    // 3월 데이터가 모두 전송 완료(isSent=true)되어야 4월 데이터 입력 가능
+                    const activeMonth = unsentPrev.length > 0 ? prevMonth : calendarMonth;
+                    const activeReports = unsentPrev.length > 0 ? prevReports : currentReports;
 
                     const exams = await notion.fetchExams(activeMonth);
 
