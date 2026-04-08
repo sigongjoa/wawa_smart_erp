@@ -8,7 +8,7 @@
 import { test, expect } from '@playwright/test';
 import { launchApp, injectConfigAndLogin, screenshot } from './helpers';
 
-const TARGET_STUDENT = '김도윤';
+const TARGET_STUDENT = 'test';
 const AI_GENERATED_TEXT = `[e2e-ai] ${new Date().toISOString()} 이번 달 학습태도가 매우 좋았습니다. 특히 영어와 국어 모두 성실하게 수업에 참여했으며, 과제도 정성스럽게 제출했습니다. 앞으로도 이러한 태도를 유지하여 더욱 높은 성과를 이루길 기대합니다.`;
 
 test.describe('UC-07: 월말평가 완전 플로우', () => {

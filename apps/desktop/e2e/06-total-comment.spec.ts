@@ -15,7 +15,7 @@ const SCREENSHOTS = path.join(ROOT, 'e2e-screenshots-all');
 const CONFIG_PATH = path.resolve(ROOT, '../../notion_config.json');
 
 // 실제 Notion DB에 존재하는 학생 (미입력 상태)
-const TARGET_STUDENT = '김도윤';
+const TARGET_STUDENT = 'test';
 const TOTAL_COMMENT_TEXT = `[e2e] ${new Date().toISOString()} 이번 달 영어·국어 모두 성실하게 임했습니다.`;
 
 async function launch() {
