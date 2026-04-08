@@ -22,7 +22,7 @@ export async function launchApp(): Promise<{ app: ElectronApplication; window: P
 }
 
 const MOCK_ADMIN_TEACHER = {
-  id: 'test-teacher-01',
+  id: '2f973635-f415-8005-8252-d04c24c1c929', // Notion DB의 실제 선생님 UUID
   name: '테스트선생님',
   subjects: ['수학', '영어'],
   pin: '0000',
