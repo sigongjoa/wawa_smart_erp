@@ -245,7 +245,6 @@ export const useReportStore = create<ReportState>()(
             name: 'wawa-report-storage',
             partialize: (state) => ({
                 currentUser: state.currentUser,
-                currentYearMonth: state.currentYearMonth,
                 appSettings: state.appSettings,
             }),
         }
