@@ -77,7 +77,10 @@ apps/desktop/e2e/test-config.json
 # E2E test artifacts
 apps/desktop/e2e-report/
 apps/desktop/e2e-screenshots/
+apps/desktop/e2e-usecase-screenshots/
 apps/desktop/test-results/
+apps/desktop/.playwright/
+workers/test-results/
 
 # Kakao API keys (never commit)
 apps/desktop/.env

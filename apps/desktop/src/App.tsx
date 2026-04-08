@@ -30,6 +30,8 @@ const GraderSettings = lazy(() => import('./modules/grader/Settings'));
 
 const StudentList = lazy(() => import('./modules/student/List'));
 
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+
 const MakeupDashboard = lazy(() => import('./modules/makeup/Dashboard'));
 const MakeupPending = lazy(() => import('./modules/makeup/Pending'));
 const MakeupCompleted = lazy(() => import('./modules/makeup/Completed'));
@@ -61,7 +63,10 @@ function App() {
           {/* 기본 리다이렉트 */}
           <Route index element={<Navigate to="/timer/day" replace />} />
 
-          {/* Student 모듈 (ADMIN ONLY) */}
+          {/* Admin Dashboard (ADMIN ONLY) */}
+          <Route path="admin" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></ErrorBoundary></ProtectedRoute>} />
+
+          {/* Student 모듈 (ADMIN ONLY - Legacy) */}
           <Route path="student" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><StudentList /></Suspense></ErrorBoundary></ProtectedRoute>} />
 
           {/* Timer 모듈 */}

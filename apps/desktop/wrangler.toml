@@ -1,0 +1,21 @@
+name = "wawa-smart-erp"
+type = "javascript"
+account_id = ""
+workers_dev = true
+route = ""
+zone_id = ""
+pages_build_output_dir = "dist/renderer"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "wawa-smart-erp"
+routes = [
+  { pattern = "wawa.pages.dev", zone_name = "wawa.pages.dev" }
+]
+
+[env.development]
+vars = { GEMINI_API_KEY = "AIzaSyA5_m8ypVk0cgWlhN3ZBwmBnn-rmrMaiJY" }
+
+[[analytics]]
+enabled = true
