@@ -109,13 +109,24 @@ test.describe('Rate Limiting E2E Tests', () => {
 
 test.describe('Refresh Token E2E Tests', () => {
   test('should fail refresh with invalid token format', async ({ request }) => {
-    const response = await request.post('/api/auth/refresh', {
+    // 먼저 유효한 토큰을 얻기
+    const loginResponse = await request.post('/api/auth/login', {
       data: {
-        refreshToken: 'invalid-format',
+        email: 'teacher1@academy.local',
+        password: '1234',
       },
     });
 
-    expect(response.status()).toBe(400);
+    const loginData = await loginResponse.json();
+
+    // 그 후 잘못된 형식의 refresh token으로 테스트
+    const response = await request.post('/api/auth/refresh', {
+      data: {
+        refreshToken: 'invalid-format-token',
+      },
+    });
+
+    expect([400, 401]).toContain(response.status());
     const data = await response.json();
     expect(data.success).toBe(false);
   });

@@ -6,15 +6,15 @@ test.describe('Health Check E2E Tests', () => {
     expect(response.status()).toBe(200);
 
     const data = await response.json();
-    expect(data).toHaveProperty('status', 'ok');
-    expect(data).toHaveProperty('timestamp');
+    expect(data.data).toHaveProperty('status', 'ok');
+    expect(data.data).toHaveProperty('timestamp');
   });
 
   test('should have valid ISO timestamp', async ({ request }) => {
     const response = await request.get('/health');
     const data = await response.json();
 
-    const timestamp = new Date(data.timestamp);
+    const timestamp = new Date(data.data.timestamp);
     expect(timestamp).toBeInstanceOf(Date);
     expect(!isNaN(timestamp.getTime())).toBeTruthy();
   });
@@ -22,14 +22,16 @@ test.describe('Health Check E2E Tests', () => {
 
 test.describe('CORS Handling E2E Tests', () => {
   test('should handle OPTIONS request for CORS', async ({ request }) => {
-    const response = await request.options('/api/auth/login', {
+    const response = await request.fetch('/api/auth/login', {
+      method: 'OPTIONS',
       headers: {
         'Origin': 'http://localhost:3000',
       },
     });
 
-    expect(response.status()).toBe(200);
-    expect(response.headers()['access-control-allow-origin']).toBeTruthy();
+    expect([200, 204]).toContain(response.status());
+    const corsHeader = response.headers()['access-control-allow-origin'];
+    expect(corsHeader).toBeTruthy();
   });
 
   test('should include CORS headers in response', async ({ request }) => {

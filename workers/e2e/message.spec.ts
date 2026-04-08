@@ -1,6 +1,26 @@
 import { test, expect } from '@playwright/test';
 
+const TEACHER = {
+  email: 'teacher1@academy.local',
+  password: '1234',
+};
+
 test.describe('Message API E2E Tests', () => {
+  let accessToken: string = '';
+
+  test.beforeEach(async ({ request }) => {
+    const loginResponse = await request.post('/api/auth/login', {
+      data: {
+        email: TEACHER.email,
+        password: TEACHER.password,
+      },
+    });
+
+    if (loginResponse.ok()) {
+      const data = await loginResponse.json();
+      accessToken = data.data?.accessToken || '';
+    }
+  });
   test('should return 401 when sending message without authentication', async ({ request }) => {
     const response = await request.post('/api/message/', {
       data: {
@@ -17,7 +37,7 @@ test.describe('Message API E2E Tests', () => {
   test('should return 400 when sending message without content', async ({ request }) => {
     const response = await request.post('/api/message/', {
       headers: {
-        'Authorization': 'Bearer test-token',
+        'Authorization': `Bearer ${accessToken}`,
       },
       data: {
         recipientId: 'user-123',
