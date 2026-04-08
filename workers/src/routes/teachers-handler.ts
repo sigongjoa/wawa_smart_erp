@@ -12,8 +12,7 @@ import { z } from 'zod';
 // ==================== 스키마 ====================
 const CreateTeacherSchema = z.object({
   name: z.string().min(1, '이름은 필수입니다').max(100),
-  email: z.string().email('유효한 이메일을 입력하세요'),
-  password: z.string().min(4, '비밀번호는 최소 4자 이상이어야 합니다'),
+  pin: z.string().min(4, 'PIN은 최소 4자 이상이어야 합니다').max(20),
   subjects: z.array(z.string()).min(1, '최소 하나의 과목을 선택해주세요'),
   isAdmin: z.boolean().default(false),
 });
@@ -85,21 +84,21 @@ async function handleCreateTeacher(
 
     logger.logRequest('POST', '/api/teachers', undefined, ipAddress);
 
-    // 이메일 중복 확인
+    // PIN 중복 확인 (같은 이름 + PIN)
     const existingTeacher = await executeFirst<any>(
       context.env.DB,
-      'SELECT id FROM users WHERE email = ? LIMIT 1',
-      [input.email]
+      'SELECT id FROM users WHERE name = ? LIMIT 1',
+      [input.name]
     );
 
     if (existingTeacher) {
-      return errorResponse('이미 등록된 이메일입니다', 409);
+      return errorResponse('이미 등록된 선생님입니다', 409);
     }
 
-    // 비밀번호 해싱
-    const passwordHash = await hashPassword(input.password);
+    // PIN 해싱
+    const pinHash = await hashPassword(input.pin);
 
-    // 선생님 생성
+    // 선생님 생성 (email 필드에 PIN 저장)
     const teacherId = generateId('user');
     const now = new Date().toISOString();
     const role = input.isAdmin ? 'admin' : 'instructor';
@@ -108,7 +107,7 @@ async function handleCreateTeacher(
       context.env.DB,
       `INSERT INTO users (id, email, name, password_hash, role, academy_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [teacherId, input.email, input.name, passwordHash, role, context.auth?.academyId || 'acad-1', now, now]
+      [teacherId, input.pin, input.name, pinHash, role, context.auth?.academyId || 'acad-1', now, now]
     );
 
     if (!result.success) {
@@ -119,7 +118,7 @@ async function handleCreateTeacher(
     return successResponse(
       {
         id: teacherId,
-        email: input.email,
+        pin: input.pin,
         name: input.name,
         subjects: input.subjects,
         isAdmin: input.isAdmin,

@@ -1,10 +1,70 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { useReportStore } from '../../stores/reportStore';
 import type { Student, GradeType, DayType, Enrollment } from '../../types';
 import { getTodayDay } from '../../constants/common';
 import { includesHangul } from '../../utils/hangulUtils';
 import PageHeader from '../../components/common/PageHeader';
+
+const GRADE_OPTIONS: string[] = ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3','검정고시'];
+const SUBJECT_OPTIONS: string[] = ['국어','영어','수학','사회','과학','화학','생물','기타'];
+
+function TempStudentModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: { name: string; grade: string; startTime: string; endTime: string; subject?: string }) => void }) {
+  const [name, setName] = useState('');
+  const [grade, setGrade] = useState('고1');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [subject, setSubject] = useState('수학');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !startTime || !endTime) return;
+    onAdd({ name: name.trim(), grade, startTime, endTime, subject });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
+      <div className="card" style={{ width: '360px', padding: '28px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ color: 'var(--warning)' }}>person_add</span>임시 학생 추가
+        </h2>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>이름 <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input className="search-input" style={{ width: '100%' }} value={name} onChange={e => setName(e.target.value)} placeholder="학생 이름" autoFocus />
+          </div>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>학년</label>
+            <select className="search-input" style={{ width: '100%' }} value={grade} onChange={e => setGrade(e.target.value)}>
+              {GRADE_OPTIONS.map(g => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>시작 시간 <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <input type="time" className="search-input" style={{ width: '100%' }} value={startTime} onChange={e => setStartTime(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>종료 시간 <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <input type="time" className="search-input" style={{ width: '100%' }} value={endTime} onChange={e => setEndTime(e.target.value)} />
+            </div>
+          </div>
+          <div style={{ marginBottom: '22px' }}>
+            <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>과목</label>
+            <select className="search-input" style={{ width: '100%' }} value={subject} onChange={e => setSubject(e.target.value)}>
+              {SUBJECT_OPTIONS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>취소</button>
+            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !startTime || !endTime}>추가하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const gradeClassMap: Record<string, string> = {
   '초1': 'm1', '초2': 'm1', '초3': 'm1', '초4': 'm2', '초5': 'm2', '초6': 'm2',
@@ -43,8 +103,9 @@ const isEnrollmentInTimeSlot = (enrollment: Enrollment, time: string) => {
 };
 
 export default function TimeslotView() {
-  const { students, enrollments, timerFilters } = useAppStore();
+  const { students, enrollments, timerFilters, addTempStudent } = useAppStore();
   const { currentUser } = useReportStore();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const now = new Date();
   const currentSlot = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes() >= 30 ? '30' : '00'}`;
@@ -85,9 +146,21 @@ export default function TimeslotView() {
       }));
   }, [students, enrollments, currentUser, timerFilters]);
 
+  const handleAddStudent = (data: { name: string; grade: string; startTime: string; endTime: string; subject?: string }) => {
+    addTempStudent(data);
+  };
+
   return (
     <div>
-      <PageHeader title="시간대별 보기" description="시간대별 수업 현황을 한눈에 확인합니다" />
+      <PageHeader
+        title="시간대별 보기"
+        description="시간대별 수업 현황을 한눈에 확인합니다"
+        actions={
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <span className="material-symbols-outlined">add</span>학생 추가
+          </button>
+        }
+      />
 
       <div className="timeslot-container">
         {visibleDays.map((day) => {
@@ -122,6 +195,7 @@ export default function TimeslotView() {
           );
         })}
       </div>
+      {showAddModal && <TempStudentModal onClose={() => setShowAddModal(false)} onAdd={handleAddStudent} />}
     </div>
   );
 }

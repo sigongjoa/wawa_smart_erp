@@ -8,8 +8,26 @@ import { generateTokens, verifyRefreshToken } from '@/utils/jwt';
 import { executeFirst, executeUpdate } from '@/utils/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { createTokenExpiry } from '@/utils/jwt';
-import { LoginSchema, RefreshTokenSchema, parseAndValidate } from '@/schemas/validation';
+import { RefreshTokenSchema, parseAndValidate } from '@/schemas/validation';
 import { logger } from '@/utils/logger';
+import { z } from 'zod';
+
+// 로그인 스키마 (이름/PIN 기반)
+const TeacherLoginSchema = z.object({
+  name: z.string().min(1, '이름은 필수입니다'),
+  pin: z.string().min(4, 'PIN은 최소 4자 이상이어야 합니다'),
+});
+
+/**
+ * PIN을 SHA256으로 해싱
+ */
+async function hashPin(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export async function handleAuth(
   method: string,
@@ -22,35 +40,32 @@ export async function handleAuth(
   try {
     // POST /login
     if (method === 'POST' && pathname === '/api/auth/login') {
-      const { email, password } = await parseAndValidate(request, LoginSchema);
+      const body = await request.json() as any;
+      const { name, pin } = TeacherLoginSchema.parse(body);
 
       logger.logRequest('POST', '/api/auth/login', undefined, ipAddress);
 
+      // 사용자 조회 (이름으로 검색)
       const user = await executeFirst<any>(
         context.env.DB,
-        'SELECT id, email, name, role, academy_id, password_hash FROM users WHERE email = ? LIMIT 1',
-        [email]
+        'SELECT id, email, name, role, academy_id, password_hash FROM users WHERE name = ? LIMIT 1',
+        [name]
       );
 
       if (!user) {
         return unauthorizedResponse();
       }
 
-      // 비밀번호 검증 (SHA256 - Web Crypto API)
-      const encoder = new TextEncoder();
-      const passwordBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
-      const passwordHash = Array.from(new Uint8Array(passwordBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-
-      if (passwordHash !== user.password_hash) {
-        logger.warn('비밀번호 불일치', { email });
+      // PIN 검증 (SHA256)
+      const pinHash = await hashPin(pin);
+      if (pinHash !== user.password_hash) {
+        logger.warn('PIN 불일치', { name });
         return unauthorizedResponse();
       }
 
       const { accessToken, refreshToken, refreshTokenId } = await generateTokens(
         user.id,
-        user.email,
+        user.name,
         user.role,
         user.academy_id,
         context.env
@@ -70,7 +85,6 @@ export async function handleAuth(
           refreshToken,
           user: {
             id: user.id,
-            email: user.email,
             name: user.name,
             role: user.role,
           },

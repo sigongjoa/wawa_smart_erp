@@ -1,57 +1,45 @@
 import { test, expect } from '@playwright/test';
 
-// 테스트용 자격증명
-const TEST_USER = {
-  email: 'test@example.com',
-  password: 'Test@1234567890',
-};
-
-// Notion 마이그레이션된 선생님 자격증명 (teacher4 = 남현욱, PIN: 1312)
+// Notion 마이그레이션된 선생님 자격증명 (남현욱)
 const NOTION_TEACHER = {
-  email: 'teacher4@academy.local',
-  password: '1312', // SHA256으로 해시됨
+  name: '남현욱',
+  pin: '1312',
 };
 
 test.describe('Authentication E2E Tests', () => {
   let accessToken: string;
 
-  test('should fail login with invalid email format', async ({ request }) => {
+  test('should fail login with missing name', async ({ request }) => {
     const response = await request.post('/api/auth/login', {
       data: {
-        email: 'invalid-email',
-        password: 'password123',
+        name: '',
+        pin: 'password123',
       },
     });
 
     expect(response.status()).toBe(400);
-    const data = await response.json();
-    expect(data.success).toBe(false);
-    expect(data.error).toContain('입력 검증');
   });
 
-  test('should fail login with missing password', async ({ request }) => {
+  test('should fail login with missing pin', async ({ request }) => {
     const response = await request.post('/api/auth/login', {
       data: {
-        email: TEST_USER.email,
+        name: '테스트',
+        pin: '',
       },
     });
 
     expect(response.status()).toBe(400);
-    const data = await response.json();
-    expect(data.success).toBe(false);
   });
 
   test('should fail login with non-existent user', async ({ request }) => {
     const response = await request.post('/api/auth/login', {
       data: {
-        email: 'nonexistent@example.com',
-        password: 'password123',
+        name: '존재하지않는선생님',
+        pin: 'password123',
       },
     });
 
-    expect([401, 404]).toContain(response.status());
-    const data = await response.json();
-    expect(data.success).toBe(false);
+    expect(response.status()).toBe(401);
   });
 
   test('should return 401 for missing authentication header', async ({ request }) => {
@@ -77,8 +65,8 @@ test.describe('Authentication E2E Tests', () => {
   test('should successfully login with valid teacher credentials', async ({ request }) => {
     const response = await request.post('/api/auth/login', {
       data: {
-        email: NOTION_TEACHER.email,
-        password: NOTION_TEACHER.password,
+        name: NOTION_TEACHER.name,
+        pin: NOTION_TEACHER.pin,
       },
     });
 
@@ -87,7 +75,7 @@ test.describe('Authentication E2E Tests', () => {
     expect(data.success).toBe(true);
     expect(data.data.accessToken).toBeTruthy();
     expect(data.data.refreshToken).toBeTruthy();
-    expect(data.data.user.email).toBe(NOTION_TEACHER.email);
+    expect(data.data.user.name).toBe(NOTION_TEACHER.name);
   });
 });
 

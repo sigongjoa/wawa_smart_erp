@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 // Notion 마이그레이션된 선생님 자격증명
 const TEACHER = {
-  email: 'teacher1@academy.local',
-  password: '1234', // PIN
+  name: '김상현',
+  pin: '1234',
 };
 
 test.describe('File API E2E Tests', () => {
@@ -13,8 +13,8 @@ test.describe('File API E2E Tests', () => {
     // 각 테스트마다 로그인해서 유효한 토큰 받기
     const loginResponse = await request.post('/api/auth/login', {
       data: {
-        email: TEACHER.email,
-        password: TEACHER.password,
+        name: TEACHER.name,
+        pin: TEACHER.pin,
       },
     });
 

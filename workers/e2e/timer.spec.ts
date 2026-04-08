@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 const TEACHER = {
-  email: 'teacher1@academy.local',
-  password: '1234',
+  name: '김상현',
+  pin: '1234',
 };
 
 test.describe('Timer API E2E Tests', () => {
@@ -10,8 +10,8 @@ test.describe('Timer API E2E Tests', () => {
   const getAccessToken = async (request: any) => {
     const loginResponse = await request.post('/api/auth/login', {
       data: {
-        email: TEACHER.email,
-        password: TEACHER.password,
+        name: TEACHER.name,
+        pin: TEACHER.pin,
       },
     });
 

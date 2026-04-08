@@ -7,8 +7,26 @@ import { createTokenExpiry } from '@/utils/jwt';
 import { LoginSchema, RefreshTokenSchema, parseAndValidate } from '@/schemas/validation';
 import { logger } from '@/utils/logger';
 import { createSecretsManager } from '@/utils/secrets';
+import { z } from 'zod';
 
 export const authRouter = Router<any>();
+
+// 로그인 스키마 (이름/PIN 기반)
+const TeacherLoginSchema = z.object({
+  name: z.string().min(1, '이름은 필수입니다'),
+  pin: z.string().min(4, 'PIN은 최소 4자 이상이어야 합니다'),
+});
+
+/**
+ * PIN을 SHA256으로 해싱
+ */
+async function hashPin(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 // 로그인
 authRouter.post('/login', async (request: Request, env: any) => { const context = env as RequestContext;
@@ -16,27 +34,27 @@ authRouter.post('/login', async (request: Request, env: any) => { const context 
 
   try {
     // 입력 검증
-    const { email, password } = await parseAndValidate(
-      context.request,
-      LoginSchema
-    );
+    const body = await request.json() as any;
+    const { name, pin } = TeacherLoginSchema.parse(body);
 
     logger.logRequest('POST', '/api/auth/login', undefined, ipAddress);
 
-    // 사용자 조회
+    // 사용자 조회 (이름으로 검색)
     const user = await executeFirst<any>(
       context.env.DB,
-      'SELECT id, email, name, role, academy_id FROM users WHERE email = ? LIMIT 1',
-      [email]
+      'SELECT id, email, name, role, academy_id, password_hash FROM users WHERE name = ? LIMIT 1',
+      [name]
     );
 
     if (!user) {
       return unauthorizedResponse();
     }
 
-    // 실제 프로덕션에서는 bcrypt로 비교
-    // const passwordValid = await bcrypt.compare(password, user.password_hash);
-    // if (!passwordValid) return unauthorizedResponse();
+    // PIN 검증 (email 필드에 저장된 PIN으로 검증)
+    const pinHash = await hashPin(pin);
+    if (user.password_hash !== pinHash) {
+      return unauthorizedResponse();
+    }
 
     // 토큰 생성
     const { accessToken, refreshToken, refreshTokenId } = await generateTokens(
