@@ -17,6 +17,7 @@ import { handleMessage } from '@/routes/message-handler';
 import { handleFile } from '@/routes/file-handler';
 import { handleGrader } from '@/routes/grader-handler';
 import { handleReport } from '@/routes/report-handler';
+import { handleReportImage } from '@/routes/report-image-handler';
 import { handleStudent } from '@/routes/student-handler';
 import { handleTeachers } from '@/routes/teachers-handler';
 
@@ -96,6 +97,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       }
 
       if (pathname.startsWith('/api/report/')) {
+        // 이미지 관련 라우트는 별도로 처리
+        if (pathname === '/api/report/upload-image' || pathname.match(/^\/api\/report\/image\//)) {
+          return addCorsHeaders(await handleReportImage(method, pathname, request, context), env, origin);
+        }
         return addCorsHeaders(await handleReport(method, pathname, request, context), env, origin);
       }
 

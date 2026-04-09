@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { MonthlyReport, Student } from '../../../types';
-import { uploadToCloudinary } from '../../../services/cloudinary';
+import { uploadReportImage } from '../../../services/reportImage';
 import { markReportSent } from '../../../services/notion';
 import { useToastStore } from '../../../stores/toastStore';
 import { useReportStore } from '../../../stores/reportStore';
@@ -61,10 +61,11 @@ export default function ShareLinkModal({ report, student, onClose }: ShareLinkMo
           allowTaint: true,
           backgroundColor: '#ffffff',
         });
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        // PNG 형식으로 캡처
+        const dataUrl = canvas.toDataURL('image/png');
 
         setStatus('uploading');
-        const url = await uploadToCloudinary(dataUrl);
+        const url = await uploadReportImage(dataUrl, student.name, report.yearMonth);
         setImageUrl(url);
         setStatus('done');
       } catch (e: any) {
@@ -74,7 +75,7 @@ export default function ShareLinkModal({ report, student, onClose }: ShareLinkMo
     }, 300); // 300ms: DOM이 완전히 렌더링되길 기다림
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [student.name, report.yearMonth]);
 
   const copyAll = async () => {
     try {
@@ -135,8 +136,8 @@ export default function ShareLinkModal({ report, student, onClose }: ShareLinkMo
 
             {status === 'uploading' && (
               <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '32px', marginBottom: '12px' }}>☁️</div>
-                <p>Cloudinary 업로드 중...</p>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>📤</div>
+                <p>서버에 업로드 중...</p>
               </div>
             )}
 
