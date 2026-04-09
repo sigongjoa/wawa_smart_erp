@@ -244,6 +244,7 @@ export interface AppSettings {
   notionDmMessagesDb?: string;
   notionExamScheduleDb?: string;  // 추가 (Lint 에러 수정)
   notionNotificationsDb?: string; // 추가 (Lint 에러 수정)
+  activeExamMonth?: string;        // 활성 시험 월 (YYYY-MM, D1 저장)
 }
 
 // 현재 로그인한 선생님

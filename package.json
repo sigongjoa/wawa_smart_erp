@@ -8,7 +8,13 @@
     "build": "pnpm --filter @wawa/desktop build",
     "start": "pnpm --filter @wawa/desktop start"
   },
-  "keywords": ["electron", "education", "erp", "grading", "schedule"],
+  "keywords": [
+    "electron",
+    "education",
+    "erp",
+    "grading",
+    "schedule"
+  ],
   "author": "sigongjoa",
   "license": "MIT",
   "engines": {
@@ -19,6 +25,13 @@
     "@google/generative-ai": "^0.24.1"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["electron", "electron-winstaller", "esbuild"]
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.1"
   }
 }

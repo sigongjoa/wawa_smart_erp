@@ -20,6 +20,7 @@ import { handleReport } from '@/routes/report-handler';
 import { handleReportImage } from '@/routes/report-image-handler';
 import { handleStudent } from '@/routes/student-handler';
 import { handleTeachers } from '@/routes/teachers-handler';
+import { handleSettings } from '@/routes/settings-handler';
 
 /**
  * 메인 요청 처리 함수
@@ -112,6 +113,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       if (pathname.startsWith('/api/teachers') || pathname.startsWith('/api/migrate/')) {
         return addCorsHeaders(await handleTeachers(method, pathname, request, context), env, origin);
+      }
+
+      if (pathname.startsWith('/api/settings')) {
+        return addCorsHeaders(await handleSettings(method, pathname, request, context), env, origin);
       }
     }
 

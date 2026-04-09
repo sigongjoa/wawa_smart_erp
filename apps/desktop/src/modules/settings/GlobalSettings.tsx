@@ -32,6 +32,25 @@ export default function GlobalSettings() {
     academyName: appSettings.academyName || '',
   });
 
+  // 시험 월 설정 로드 (탭 전환 시마다)
+  useEffect(() => {
+    if (activeTab === 'exams') {
+      const loadExamMonth = async () => {
+        try {
+          const response = await apiClient.get('/api/settings/active-exam-month');
+          if (response) {
+            setActiveExamMonth(response.activeExamMonth);
+            setAppSettings({ ...appSettings, activeExamMonth: response.activeExamMonth });
+          }
+        } catch (error) {
+          console.log('시험 월 조회 실패 (아직 설정되지 않음)', error);
+        }
+      };
+
+      loadExamMonth();
+    }
+  }, [activeTab]);
+
   // 학생 목록 로드
   useEffect(() => {
     if (activeTab === 'students') {
@@ -117,9 +136,30 @@ export default function GlobalSettings() {
     }
   };
 
-  const handleSaveExamMonth = () => {
-    setAppSettings({ ...appSettings, activeExamMonth });
-    addToast('시험 월이 저장되었습니다', 'success');
+  const handleSaveExamMonth = async () => {
+    setIsLoading(true);
+    try {
+      // API에 저장
+      await apiClient.post('/api/settings/active-exam-month', {
+        activeExamMonth
+      });
+
+      // Zustand 상태 업데이트 (localStorage)
+      setAppSettings({ ...appSettings, activeExamMonth });
+
+      // 저장 직후 최신값 재조회 (다른 선생님의 변경사항 반영)
+      const response = await apiClient.get('/api/settings/active-exam-month');
+      if (response) {
+        setActiveExamMonth(response.activeExamMonth);
+      }
+
+      addToast('시험 월이 저장되었습니다', 'success');
+    } catch (error) {
+      console.error('Failed to save exam month:', error);
+      addToast('시험 월 저장 실패', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSaveBasic = () => {
@@ -128,8 +168,12 @@ export default function GlobalSettings() {
   };
 
   const grades = ['초1', '초2', '초3', '초4', '초5', '초6', '중1', '중2', '중3', '고1', '고2', '고3'];
+
+  // 현재 월 기준으로 이전 3개월 ~ 이후 8개월 표시
   const months = Array.from({ length: 12 }, (_, i) => {
-    const date = new Date(2026, i, 1);
+    const now = new Date();
+    const monthOffset = i - 3; // 현재 월 기준 -3개월부터 +8개월까지
+    const date = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   });
 
@@ -388,7 +432,7 @@ export default function GlobalSettings() {
               활성 월
             </label>
             <select
-              value={activeExamMonth}
+              value={appSettings.activeExamMonth || activeExamMonth}
               onChange={(e) => setActiveExamMonth(e.target.value)}
               style={{
                 width: '100%',

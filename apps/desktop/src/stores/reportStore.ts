@@ -85,6 +85,7 @@ const defaultAppSettings: AppSettings = {
     notionDmMessagesDb: '',
     kakaoJsKey: '',
     academyName: '',
+    activeExamMonth: '',
 };
 
 export const useReportStore = create<ReportState>()(

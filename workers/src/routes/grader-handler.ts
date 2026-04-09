@@ -328,18 +328,18 @@ async function handleCreateGrade(
       return errorResponse('시험을 찾을 수 없습니다', 404);
     }
 
-    // 현재 활성 시험의 exam_month와 비교
-    const currentExam = await executeFirst<any>(
+    // 설정된 활성 시험 월 조회 (exam_settings 테이블)
+    const examSettings = await executeFirst<any>(
       context.env.DB,
-      'SELECT exam_month FROM exams WHERE academy_id = ? AND is_active = 1 LIMIT 1',
+      'SELECT active_exam_month FROM exam_settings WHERE academy_id = ?',
       [context.auth?.academyId || 'acad-1']
     );
 
-    // exam_month가 설정된 시험이 있으면 그 월만 입력 가능
-    if (currentExam && currentExam.exam_month) {
-      if (exam.exam_month !== currentExam.exam_month) {
+    // 활성 시험 월이 설정되어 있으면 그 월만 입력 가능
+    if (examSettings && examSettings.active_exam_month) {
+      if (exam.exam_month !== examSettings.active_exam_month) {
         return errorResponse(
-          `설정된 시험 월(${currentExam.exam_month})이 아닙니다. 해당 월의 성적만 입력 가능합니다`,
+          `설정된 시험 월(${examSettings.active_exam_month})이 아닙니다. 해당 월의 성적만 입력 가능합니다`,
           400
         );
       }
