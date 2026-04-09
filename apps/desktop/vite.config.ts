@@ -28,16 +28,18 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-      '/api/notion/v1': {
-        target: 'https://api.notion.com/v1',
+      '/api': {
+        target: 'http://localhost:8787',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/notion\/v1/, ''),
-        headers: {
-          'Notion-Version': '2022-06-28',
-        },
-        timeout: 60000,
-        proxyTimeout: 60000,
-        secure: true,
+      },
+    },
+  },
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
       },
     },
   },

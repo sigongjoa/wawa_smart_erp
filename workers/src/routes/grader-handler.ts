@@ -346,30 +346,58 @@ async function handleCreateGrade(
       }
     }
 
-    // 성적 저장
-    const gradeId = generateId('grade');
+    // UPSERT: 기존 성적이 있으면 UPDATE, 없으면 INSERT
     const now = new Date().toISOString();
     const year_month = exam.exam_month || new Date().toISOString().slice(0, 7);
 
-    const result = await executeInsert(
+    const existing = await executeFirst<any>(
       context.env.DB,
-      `INSERT INTO grades (id, student_id, exam_id, score, comments, year_month, graded_at, graded_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        gradeId,
-        input.student_id,
-        input.exam_id,
-        input.score,
-        input.comments || null,
-        year_month,
-        now,
-        context.auth?.userId || 'unknown',
-        now,
-      ]
+      'SELECT id FROM grades WHERE student_id = ? AND exam_id = ?',
+      [input.student_id, input.exam_id]
     );
 
-    if (!result.success) {
-      throw new Error('성적 저장 실패');
+    let gradeId: string;
+
+    if (existing) {
+      // UPDATE
+      gradeId = existing.id;
+      const result = await executeUpdate(
+        context.env.DB,
+        `UPDATE grades SET score = ?, comments = ?, graded_at = ?, graded_by = ?
+         WHERE id = ?`,
+        [
+          input.score,
+          input.comments || null,
+          now,
+          context.auth?.userId || 'unknown',
+          gradeId,
+        ]
+      );
+      if (!result) {
+        throw new Error('성적 수정 실패');
+      }
+    } else {
+      // INSERT
+      gradeId = generateId('grade');
+      const result = await executeInsert(
+        context.env.DB,
+        `INSERT INTO grades (id, student_id, exam_id, score, comments, year_month, graded_at, graded_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          gradeId,
+          input.student_id,
+          input.exam_id,
+          input.score,
+          input.comments || null,
+          year_month,
+          now,
+          context.auth?.userId || 'unknown',
+          now,
+        ]
+      );
+      if (!result.success) {
+        throw new Error('성적 저장 실패');
+      }
     }
 
     return successResponse(
@@ -378,9 +406,11 @@ async function handleCreateGrade(
         student_id: input.student_id,
         exam_id: input.exam_id,
         score: input.score,
+        comments: input.comments || null,
         year_month,
+        updated: !!existing,
       },
-      201
+      existing ? 200 : 201
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

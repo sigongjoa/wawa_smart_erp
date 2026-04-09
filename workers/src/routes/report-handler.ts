@@ -148,15 +148,16 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
       return errorResponse('yearMonth 파라미터가 필수입니다', 400);
     }
 
-    // 데이터베이스에서 학생별 성적(grades) 조회
+    // 데이터베이스에서 학생별 성적(grades) 조회 - exam 정보 포함
     const { executeQuery } = await import('@/utils/db');
 
     const grades = await executeQuery<any>(
       context.env.DB,
       `SELECT g.id, g.student_id, g.exam_id, g.score, g.comments, g.year_month,
-              s.name as student_name
+              s.name as student_name, e.name as exam_name
        FROM grades g
        JOIN students s ON g.student_id = s.id
+       LEFT JOIN exams e ON g.exam_id = e.id
        WHERE g.year_month = ? AND s.academy_id = ?
        ORDER BY s.name`,
       [yearMonth, context.auth?.academyId || 'acad-1']
@@ -179,8 +180,17 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
       }
 
       const report = reportMap.get(grade.student_id)!;
+
+      // exam_name에서 과목명 추출 (예: "2026년 4월 월말평가 - 국어" → "국어")
+      let subject = '기타';
+      if (grade.exam_name) {
+        const parts = grade.exam_name.split(' - ');
+        subject = parts.length > 1 ? parts[parts.length - 1] : grade.exam_name;
+      }
+
       report.scores.push({
-        subject: 'Korean', // Placeholder - would need to map exam_id to subject
+        examId: grade.exam_id,
+        subject: subject,
         score: grade.score,
         comment: grade.comments || '',
       });
