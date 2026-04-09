@@ -67,7 +67,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       }
 
       // 인증 체크 (logout, 다른 protected routes)
-      if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh')) {
+      // 이미지 조회는 공개 (인증 필요 없음)
+      const isPublicImage = pathname.match(/^\/api\/report\/image\//);
+      if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage) {
         const authResult = await authMiddleware(context);
         if (authResult instanceof Response) {
           return addCorsHeaders(authResult, env, origin);

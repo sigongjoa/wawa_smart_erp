@@ -111,7 +111,8 @@ async function handleUploadImage(
 }
 
 /**
- * GET /api/report/image/{filePath} - 저장된 이미지 조회
+ * GET /api/report/image/{filePath} - 저장된 이미지 조회 (공개)
+ * - 누구나 접근 가능 (학부모가 공유 링크로 조회)
  * - R2에서 이미지를 조회해서 반환
  */
 async function handleGetImage(
@@ -119,7 +120,7 @@ async function handleGetImage(
   filePath: string
 ): Promise<Response> {
   try {
-    // 경로 검증 (보안)
+    // 경로 검증 (보안: reports/ 폴더만 허용)
     if (!filePath.startsWith('reports/')) {
       return errorResponse('유효하지 않은 경로입니다', 400);
     }
