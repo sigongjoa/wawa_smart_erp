@@ -99,11 +99,12 @@ async function handleCreateExam(
 
     const result = await executeInsert(
       context.env.DB,
-      `INSERT INTO exams (id, academy_id, name, exam_month, date, total_score, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         examId,
         context.auth?.academyId || 'acad-1',
+        null, // class_id - can be null for academy-wide exams (after 005 migration)
         input.name,
         input.exam_month,
         input.date,

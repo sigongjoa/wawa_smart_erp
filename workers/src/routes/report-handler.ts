@@ -132,6 +132,70 @@ async function handleSetSendConfig(
 }
 
 /**
+ * GET /api/report - 월별 리포트 목록 조회
+ */
+async function handleGetReports(request: Request, context: RequestContext): Promise<Response> {
+  try {
+    if (!requireAuth(context)) {
+      return unauthorizedResponse();
+    }
+
+    // 쿼리 파라미터에서 yearMonth 추출
+    const url = new URL(request.url);
+    const yearMonth = url.searchParams.get('yearMonth');
+
+    if (!yearMonth) {
+      return errorResponse('yearMonth 파라미터가 필수입니다', 400);
+    }
+
+    // 데이터베이스에서 학생별 성적(grades) 조회
+    const { executeQuery } = await import('@/utils/db');
+
+    const grades = await executeQuery<any>(
+      context.env.DB,
+      `SELECT g.id, g.student_id, g.exam_id, g.score, g.comments, g.year_month,
+              s.name as student_name
+       FROM grades g
+       JOIN students s ON g.student_id = s.id
+       WHERE g.year_month = ? AND s.academy_id = ?
+       ORDER BY s.name`,
+      [yearMonth, context.auth?.academyId || 'acad-1']
+    );
+
+    // 학생별로 성적을 그룹화하여 리포트 생성
+    const reportMap = new Map<string, any>();
+
+    for (const grade of grades) {
+      if (!reportMap.has(grade.student_id)) {
+        reportMap.set(grade.student_id, {
+          id: `report-${grade.student_id}-${yearMonth}`.replace(/-/g, ''),
+          studentId: grade.student_id,
+          studentName: grade.student_name,
+          yearMonth: yearMonth,
+          scores: [],
+          totalComment: '',
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      const report = reportMap.get(grade.student_id)!;
+      report.scores.push({
+        subject: 'Korean', // Placeholder - would need to map exam_id to subject
+        score: grade.score,
+        comment: grade.comments || '',
+      });
+    }
+
+    const reports = Array.from(reportMap.values());
+
+    return successResponse(reports);
+  } catch (error) {
+    logger.error('리포트 목록 조회 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('리포트 목록 조회에 실패했습니다', 500);
+  }
+}
+
+/**
  * GET /api/report/send-config - 전송주간 설정 조회
  */
 async function handleGetSendConfig(context: RequestContext): Promise<Response> {
@@ -166,6 +230,12 @@ export async function handleReport(
   context: RequestContext
 ): Promise<Response> {
   try {
+    // /api/report (쿼리 파라미터로 yearMonth)
+    if (pathname === '/api/report') {
+      if (method === 'GET') return await handleGetReports(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
     // /api/report/send-config
     if (pathname === '/api/report/send-config') {
       if (method === 'POST') return await handleSetSendConfig(request, context);
