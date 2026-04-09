@@ -26,8 +26,11 @@ const generateMonthOptions = (currentYearMonth: string): { label: string; value:
   return options;
 };
 
+const MODULE_UUID = '550e8400-e29b-41d4-a716-446655440000'; // Unique marker
+
 export default function Input() {
-  const { students, reports } = useFilteredData();
+  console.log(`[Input.tsx] 컴포넌트 로드됨 - UUID: ${MODULE_UUID}`);
+  const { students, reports, exams } = useFilteredData();
   const { currentYearMonth, currentUser, fetchAllData, isLoading } = useReportStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,42 +99,112 @@ export default function Input() {
   const { addToast } = useToastStore();
 
   const handleSave = async (subject: string) => {
-    if (!selectedStudent) return;
+    console.log('[handleSave] 호출됨:', { subject, selectedStudentId, formDataKeys: Object.keys(formData) });
+
+    if (!selectedStudent) {
+      console.log('[handleSave] ❌ selectedStudent 없음');
+      return;
+    }
 
     const teacherId = currentUser?.teacher?.id || '';
     const data = formData[subject];
+    console.log('[handleSave] 데이터:', { subject, data, selectedYearMonth });
+
+    // Exam 필드 원본 데이터 확인 (처음 2개)
+    console.log('[handleSave] Raw exams 데이터:');
+    if (exams && exams.length > 0) {
+      exams.slice(0, 2).forEach((e, i) => {
+        console.log(`  exam[${i}]: id=${e.id}, subject=${e.subject}, yearMonth=${e.yearMonth}`);
+      });
+    }
 
     const isTotalComment = subject === '__TOTAL_COMMENT__';
+    console.log('[handleSave] isTotalComment:', isTotalComment);
+    console.log('[handleSave] 점수 검증:', {
+      data: data,
+      hasData: !!data,
+      score: data?.score,
+      isNaN: isNaN(data?.score),
+      willFail: !isTotalComment && (!data || data.score === undefined || isNaN(data.score))
+    });
 
     if (!isTotalComment && (!data || data.score === undefined || isNaN(data.score))) {
+      console.log('[handleSave] ❌ 점수 검증 실패:', { data, hasScore: data?.score });
       addToast('올바른 점수를 입력해주세요.', 'warning');
       return;
     }
 
     // 현재 선택된 과목에 해당하는 시험 찾기
-    const examForSubject = exams.find(e => e.subject === subject && e.yearMonth === selectedYearMonth);
-    if (!isTotalComment && !examForSubject) {
-      addToast('시험 정보를 찾을 수 없습니다.', 'error');
-      return;
-    }
+    try {
+      console.log('[handleSave] 시험 데이터 확인:', { examsType: typeof exams, examsLength: exams?.length });
 
-    console.log(`[handleSave] 저장 년월: ${selectedYearMonth} (사용자 선택), 과목: ${subject}`);
+      // 첫 번째 exam 객체 구조 출력 (디버깅용)
+      if (exams && exams.length > 0) {
+        console.log('[handleSave] 첫 exam 구조:', Object.keys(exams[0]).join(', '));
+        console.log('[handleSave] 첫 exam[0] 값:', JSON.stringify({
+          id: exams[0].id,
+          subject: exams[0].subject,
+          yearMonth: exams[0].yearMonth,
+          name: exams[0].name,
+          exam_month: exams[0].exam_month,
+        }));
+      }
 
-    const result = await saveAsync.execute(
-      selectedStudent.id,
-      examForSubject?.id || '',  // 과목에 맞는 시험 ID
-      isTotalComment ? 0 : data.score,  // 실제 점수 (숫자)
-      data?.comment || '',  // 코멘트
-      subject,  // 과목명
-      selectedYearMonth,  // 년월 (사용자가 선택한)
-      teacherId
-    );
+      console.log('[handleSave] exams 목록:', exams?.map(e => ({ id: e.id, subject: e.subject, yearMonth: e.yearMonth })));
 
-    if (result.success) {
-      addToast(isTotalComment ? '총평이 저장되었습니다.' : `${subject} 점수가 저장되었습니다.`, 'success');
-      // 저장 후 페이지 새로고침하지 않음 - 사용자가 새로고침 버튼을 클릭할 때 데이터 로드
-    } else {
-      addToast(result.error?.message || '저장에 실패했습니다.', 'error');
+      // Exam이 제대로 변환되지 않았을 가능성 대비 - 과목명 추출 재시도
+      const findExam = (exams: any[], targetSubject: string, targetMonth: string) => {
+        console.log('[handleSave] findExam 호출:', { targetSubject, targetMonth });
+        return exams.find(e => {
+          // 변환된 형식으로 매칭 시도
+          if (e.subject === targetSubject && e.yearMonth === targetMonth) {
+            console.log('[handleSave] ✓ 변환된 형식으로 매칭됨');
+            return true;
+          }
+          // 만약 변환이 제대로 안 됐으면, API 응답 형식에서 직접 추출
+          if (e.name) {
+            const parts = e.name.split(' - ');
+            const extractedSubject = parts[parts.length - 1];
+            if (extractedSubject === targetSubject && e.exam_month === targetMonth) {
+              console.log('[handleSave] ✓ API 원본 형식으로 매칭됨');
+              return true;
+            }
+          }
+          return false;
+        });
+      };
+
+      const examForSubject = findExam(exams, subject, selectedYearMonth);
+      console.log('[handleSave] 시험 찾기 결과:', { subject, selectedYearMonth, examCount: exams?.length || 0, examForSubject: examForSubject?.id });
+
+      if (!isTotalComment && !examForSubject) {
+        console.log('[handleSave] ❌ 시험 정보 없음');
+        addToast('시험 정보를 찾을 수 없습니다.', 'error');
+        return;
+      }
+
+      console.log(`[handleSave] saveAsync.execute 호출 준비`);
+      const result = await saveAsync.execute(
+        selectedStudent.id,
+        examForSubject?.id || '',  // 과목에 맞는 시험 ID
+        isTotalComment ? 0 : data.score,  // 실제 점수 (숫자)
+        data?.comment || '',  // 코멘트
+        subject,  // 과목명
+        selectedYearMonth,  // 년월 (사용자가 선택한)
+        teacherId
+      );
+
+      console.log('[handleSave] 저장 결과:', { success: result.success, error: result.error?.message });
+
+      if (result.success) {
+        addToast(isTotalComment ? '총평이 저장되었습니다.' : `${subject} 점수가 저장되었습니다.`, 'success');
+        // 저장 후 페이지 새로고침하지 않음 - 사용자가 새로고침 버튼을 클릭할 때 데이터 로드
+      } else {
+        addToast(result.error?.message || '저장에 실패했습니다.', 'error');
+      }
+    } catch (error) {
+      console.error('[handleSave] 예상치 못한 에러:', error);
+      addToast(`저장 중 에러가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`, 'error');
     }
   };
 

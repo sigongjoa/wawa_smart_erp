@@ -150,7 +150,40 @@ export const fetchExams = async (yearMonth?: string): Promise<Exam[]> => {
     const exams = await apiClient.get('/api/grader/exams', {
       params: yearMonth ? { exam_month: yearMonth } : {},
     });
-    return Array.isArray(exams) ? exams : [];
+
+    console.log('[fetchExams] API 응답 원본 (첫 2개):', JSON.stringify(exams?.slice(0, 2), null, 2));
+
+    // API 응답을 Exam 인터페이스로 변환
+    if (!Array.isArray(exams)) {
+      console.log('[fetchExams] exams is not array:', typeof exams);
+      return [];
+    }
+
+    const transformed = exams.map((exam: any) => {
+      // exam.name에서 과목명 추출 (예: "2026년 4월 월말평가 - 국어" → "국어")
+      // 마지막 " - " 다음의 텍스트를 추출
+      let extractedSubject = exam.name;
+      const parts = exam.name?.split(' - ');
+      if (parts && parts.length > 1) {
+        extractedSubject = parts[parts.length - 1]; // 마지막 부분이 과목명
+      }
+
+      return {
+        id: exam.id,
+        subject: extractedSubject, // 과목명 추출
+        yearMonth: exam.exam_month, // API의 'exam_month' → 'yearMonth'로 매핑
+        difficulty: exam.difficulty || 'C',
+        scope: exam.scope || '',
+        uploadedBy: exam.uploaded_by || 'system',
+        uploadedAt: exam.updated_at || exam.created_at || new Date().toISOString(),
+        // 선택적 필드
+        examDate: exam.date,
+      };
+    });
+
+    console.log('[fetchExams] 변환된 데이터 (첫 2개):', transformed.slice(0, 2).map(e => ({ id: e.id, subject: e.subject, yearMonth: e.yearMonth })));
+
+    return transformed;
   } catch (error) {
     console.error('[fetchExams] 실패:', error);
     return [];
