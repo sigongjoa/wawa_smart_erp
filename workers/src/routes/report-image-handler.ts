@@ -81,10 +81,9 @@ async function handleUploadImage(
       throw new Error('이미지 저장에 실패했습니다');
     }
 
-    // 공유 가능한 URL 생성
-    // R2 공개 URL 형식: https://{bucket-domain}/{filePath}
-    // 또는 API를 통한 접근: /api/report/image/{filePath}
-    const shareUrl = `${new URL(context.request.url).origin}/api/report/image/${filePath}`;
+    // 공유 가능한 URL 생성 — 환경변수 API_URL 우선, 없으면 request origin 사용
+    const baseUrl = context.env.API_URL || new URL(context.request.url).origin;
+    const shareUrl = `${baseUrl}/api/report/image/${filePath}`;
 
     logger.logRequest('POST', '/api/report/upload-image', 'success', ipAddress);
 
@@ -120,13 +119,16 @@ async function handleGetImage(
   filePath: string
 ): Promise<Response> {
   try {
+    // URL 디코딩 (한글 파일명 지원)
+    const decodedPath = decodeURIComponent(filePath);
+
     // 경로 검증 (보안: reports/ 폴더만 허용)
-    if (!filePath.startsWith('reports/')) {
+    if (!decodedPath.startsWith('reports/')) {
       return errorResponse('유효하지 않은 경로입니다', 400);
     }
 
     // R2에서 조회
-    const object = await context.env.BUCKET.get(filePath);
+    const object = await context.env.BUCKET.get(decodedPath);
 
     if (!object) {
       return errorResponse('이미지를 찾을 수 없습니다', 404);

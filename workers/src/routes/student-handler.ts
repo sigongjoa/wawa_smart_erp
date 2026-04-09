@@ -119,16 +119,35 @@ async function handleGetStudents(context: RequestContext): Promise<Response> {
       return unauthorizedResponse();
     }
 
+    const academyId = context.auth?.academyId || 'acad-1';
+    const userId = context.auth?.userId;
+    const role = context.auth?.role;
     const classId = context.request.url.split('?classId=')[1];
-    let query = 'SELECT * FROM students WHERE academy_id = ? ORDER BY name';
-    let params: any[] = [context.auth?.academyId || 'acad-1'];
 
-    if (classId) {
-      query = 'SELECT * FROM students WHERE academy_id = ? AND class_id = ? ORDER BY name';
-      params = [context.auth?.academyId || 'acad-1', classId];
+    let students: any[];
+
+    if (role === 'instructor' && userId) {
+      // instructor는 본인 담당 학생만 조회
+      let query = `SELECT s.* FROM students s
+        INNER JOIN student_teachers st ON s.id = st.student_id
+        WHERE s.academy_id = ? AND st.teacher_id = ?`;
+      let params: any[] = [academyId, userId];
+      if (classId) {
+        query += ' AND s.class_id = ?';
+        params.push(classId);
+      }
+      query += ' ORDER BY s.name';
+      students = await executeQuery<any>(context.env.DB, query, params);
+    } else {
+      // admin은 전체 조회
+      let query = 'SELECT * FROM students WHERE academy_id = ? ORDER BY name';
+      let params: any[] = [academyId];
+      if (classId) {
+        query = 'SELECT * FROM students WHERE academy_id = ? AND class_id = ? ORDER BY name';
+        params = [academyId, classId];
+      }
+      students = await executeQuery<any>(context.env.DB, query, params);
     }
-
-    const students = await executeQuery<any>(context.env.DB, query, params);
 
     // subjects 필드 파싱 (없으면 빈 배열 반환)
     const studentsWithSubjects = students.map(s => ({
