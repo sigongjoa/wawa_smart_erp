@@ -106,7 +106,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleReport(method, pathname, request, context), env, origin);
       }
 
-      if (pathname.startsWith('/api/student/')) {
+      if (pathname.startsWith('/api/student')) {
         return addCorsHeaders(await handleStudent(method, pathname, request, context), env, origin);
       }
 
