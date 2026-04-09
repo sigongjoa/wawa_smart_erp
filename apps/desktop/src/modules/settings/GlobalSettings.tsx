@@ -23,9 +23,7 @@ export default function GlobalSettings() {
   });
 
   // 시험 월 설정
-  const [activeExamMonth, setActiveExamMonth] = useState(
-    appSettings.activeExamMonth || new Date().toISOString().slice(0, 7)
-  );
+  const [activeExamMonth, setActiveExamMonth] = useState(appSettings.activeExamMonth);
 
   // 기본 설정
   const [basicForm, setBasicForm] = useState({

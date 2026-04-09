@@ -62,6 +62,10 @@ interface ReportState {
 
     // 비동기 액션
     fetchAllData: () => Promise<void>;
+
+    // 리포트 미리보기 선택 학생
+    selectedPreviewStudentId: string;
+    setSelectedPreviewStudentId: (studentId: string) => void;
 }
 
 const getCurrentYearMonth = () => {
@@ -85,7 +89,7 @@ const defaultAppSettings: AppSettings = {
     notionDmMessagesDb: '',
     kakaoJsKey: '',
     academyName: '',
-    activeExamMonth: '',
+    activeExamMonth: '2026-04',
 };
 
 export const useReportStore = create<ReportState>()(
@@ -179,6 +183,10 @@ export const useReportStore = create<ReportState>()(
 
             // 미전송 알림
             unsentAlert: null,
+
+            // 리포트 미리보기 선택 학생
+            selectedPreviewStudentId: '',
+            setSelectedPreviewStudentId: (studentId) => set({ selectedPreviewStudentId: studentId }),
 
             // 비동기 액션 - 중복 호출 방지용 lock
             fetchAllData: async (yearMonth?: string) => {

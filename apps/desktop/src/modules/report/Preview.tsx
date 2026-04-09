@@ -44,9 +44,8 @@ const generateMonthOptions = (currentYearMonth: string): { label: string; value:
 
 export default function Preview() {
   const { students, reports } = useFilteredData();
-  const { currentYearMonth, fetchAllData, isLoading, appSettings, currentUser } = useReportStore();
+  const { currentYearMonth, fetchAllData, isLoading, appSettings, currentUser, selectedPreviewStudentId, setSelectedPreviewStudentId } = useReportStore();
   const { addToast } = useToastStore();
-  const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYearMonth, setSelectedYearMonth] = useState(currentYearMonth);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -59,8 +58,8 @@ export default function Preview() {
     s.grade.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
-  const selectedReport = reports.find(r => r.studentId === selectedStudentId);
+  const selectedStudent = students.find(s => s.id === selectedPreviewStudentId);
+  const selectedReport = reports.find(r => r.studentId === selectedPreviewStudentId);
 
   const monthLabels = generateMonthLabels(currentYearMonth);
 
@@ -73,8 +72,8 @@ export default function Preview() {
   // 과목별 6개월 점수 데이터 (메모이제이션)
   const historicalScoresMap = useMemo(() => {
     const map = new Map<string, number[]>();
-    if (!selectedStudentId) return map;
-    const studentReports = reports.filter(r => r.studentId === selectedStudentId);
+    if (!selectedPreviewStudentId) return map;
+    const studentReports = reports.filter(r => r.studentId === selectedPreviewStudentId);
     const [year, month] = currentYearMonth.split('-').map(Number);
 
     subjects.forEach(subject => {
@@ -91,7 +90,7 @@ export default function Preview() {
       map.set(subject, scores);
     });
     return map;
-  }, [selectedStudentId, reports, currentYearMonth, subjects]);
+  }, [selectedPreviewStudentId, reports, currentYearMonth, subjects]);
 
   const getHistoricalScores = (subject: string): number[] =>
     historicalScoresMap.get(subject) ?? [0, 0, 0, 0, 0, 0];
@@ -218,7 +217,7 @@ export default function Preview() {
             </div>
           ) : filteredStudents.map(s => {
             const report = reports.find(r => r.studentId === s.id);
-            const isSelected = selectedStudentId === s.id;
+            const isSelected = selectedPreviewStudentId === s.id;
             const isPartial = report && report.scores.length > 0 && report.scores.length < s.subjects.length;
             const isComplete = report && report.scores.length >= s.subjects.length;
 
@@ -229,8 +228,8 @@ export default function Preview() {
                 tabIndex={0}
                 aria-pressed={isSelected}
                 aria-label={`${s.name} (${s.grade}) — ${isComplete ? '리포트 완료' : isPartial ? '입력 중' : '미입력'}`}
-                onClick={() => setSelectedStudentId(s.id)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedStudentId(s.id)}
+                onClick={() => setSelectedPreviewStudentId(s.id)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedPreviewStudentId(s.id)}
                 style={{
                   padding: '16px',
                   cursor: 'pointer',

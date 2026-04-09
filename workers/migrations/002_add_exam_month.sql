@@ -1,7 +1,7 @@
 -- 시험 월 설정 및 활성화 컬럼 추가
 ALTER TABLE exams ADD COLUMN exam_month TEXT;  -- YYYY-MM 형식
 ALTER TABLE exams ADD COLUMN is_active BOOLEAN DEFAULT 0;
-ALTER TABLE exams ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE exams ADD COLUMN updated_at DATETIME;
 
 -- exam_month 인덱스
 CREATE INDEX IF NOT EXISTS idx_exams_exam_month ON exams(academy_id, exam_month);
