@@ -63,22 +63,24 @@ async function handleCreateStudent(
 
     const studentId = generateId('student');
     const now = new Date().toISOString();
+    const enrollmentDate = new Date().toISOString().split('T')[0]; // DATE 형식 (YYYY-MM-DD)
 
     const result = await executeInsert(
       context.env.DB,
-      `INSERT INTO students (id, academy_id, name, grade, class_id, contact, guardian_contact, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO students (id, academy_id, name, class_id, contact, guardian_contact, enrollment_date, status, created_at, updated_at, grade)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         studentId,
         context.auth?.academyId || 'acad-1',
         input.name,
-        input.grade,
         input.class_id || null,
         input.contact || null,
         input.guardian_contact || null,
+        enrollmentDate,
         input.status,
         now,
         now,
+        input.grade,
       ]
     );
 
