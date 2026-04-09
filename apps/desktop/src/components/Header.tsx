@@ -22,10 +22,10 @@ export default function Header() {
   const navigate = useNavigate();
 
   const filteredModules = modules.filter(module => {
-    if (!currentUser) return false;
+    if (!currentUser?.teacher) return false;
     // 관리자 전용 메뉴
     if (['student', 'schedule'].includes(module.id)) {
-      return currentUser.teacher.isAdmin;
+      return currentUser.teacher.isAdmin ?? false;
     }
     return true;
   });
@@ -65,7 +65,7 @@ export default function Header() {
                 <span className="header-user-name">{currentUser.teacher.name} 선생님</span>
                 <span className="header-user-role">{currentUser.teacher.isAdmin ? '관리자' : '일반 선생님'}</span>
               </div>
-              <div className="header-avatar" title={`${currentUser.teacher.subjects.join(', ')}`}>
+              <div className="header-avatar" title={`${currentUser.teacher.subjects?.join(', ') || ''}`}>
                 {currentUser.teacher.name[0]}
               </div>
             </div>

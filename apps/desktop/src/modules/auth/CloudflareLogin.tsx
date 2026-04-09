@@ -62,7 +62,9 @@ export default function CloudflareLogin() {
         teacher: {
           id: user.id,
           name: user.name,
-          email: user.email,
+          isAdmin: user.role === 'admin',
+          subjects: [],
+          pin: '', // PIN은 저장하지 않음
         },
         loginAt: new Date().toISOString(),
       });
@@ -222,7 +224,7 @@ export default function CloudflareLogin() {
         </form>
 
         {/* 테스트 계정 정보 (개발용) */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <div
             style={{
               marginTop: '24px',

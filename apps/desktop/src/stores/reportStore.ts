@@ -260,12 +260,12 @@ export const useFilteredData = () => {
 
     return useMemo(() => {
         // 로그인하지 않았거나 관리자인 경우 전체 데이터 반환
-        if (!currentUser || currentUser.teacher.isAdmin) {
+        if (!currentUser?.teacher || currentUser.teacher.isAdmin) {
             return { students, reports, exams };
         }
 
         // 일반 선생님인 경우 담당 과목 학생만 필터링
-        const teacherSubjects = currentUser.teacher.subjects;
+        const teacherSubjects = currentUser.teacher.subjects || [];
 
         const filteredStudents = students.filter(student =>
             student.subjects.some(sub => teacherSubjects.includes(sub))
