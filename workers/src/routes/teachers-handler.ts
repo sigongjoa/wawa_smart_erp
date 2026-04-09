@@ -141,10 +141,13 @@ async function handleCreateTeacher(
 }
 
 /**
- * Notion API에서 학생 데이터 가져오기
+ * Notion API에서 학생 데이터 가져오기 (레거시 - 마이그레이션용)
  */
 async function fetchStudentsFromNotion(): Promise<Array<{ name: string; subjects: string[] }>> {
-  const NOTION_API_KEY = 'REDACTED';
+  // Notion API 토큰은 환경 변수에서 가져오기 (hardcoded 제거)
+  const NOTION_API_KEY = typeof process !== 'undefined' && process.env?.NOTION_API_KEY
+    ? process.env.NOTION_API_KEY
+    : '';
   const DB_STUDENTS = '2f973635-f415-802d-b167-f5cb13265758';
 
   try {
