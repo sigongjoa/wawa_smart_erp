@@ -108,16 +108,23 @@ export default function Input() {
       return;
     }
 
-    console.log(`[handleSave] 저장 년월: ${selectedYearMonth} (사용자 선택)`);
+    // 현재 선택된 과목에 해당하는 시험 찾기
+    const examForSubject = exams.find(e => e.subject === subject && e.yearMonth === selectedYearMonth);
+    if (!isTotalComment && !examForSubject) {
+      addToast('시험 정보를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    console.log(`[handleSave] 저장 년월: ${selectedYearMonth} (사용자 선택), 과목: ${subject}`);
 
     const result = await saveAsync.execute(
       selectedStudent.id,
-      selectedStudent.name,
-      selectedYearMonth,  // ← 사용자가 선택한 년월
-      subject,
-      isTotalComment ? 0 : data.score,
-      teacherId,
-      data?.comment
+      examForSubject?.id || '',  // 과목에 맞는 시험 ID
+      isTotalComment ? 0 : data.score,  // 실제 점수 (숫자)
+      data?.comment || '',  // 코멘트
+      subject,  // 과목명
+      selectedYearMonth,  // 년월 (사용자가 선택한)
+      teacherId
     );
 
     if (result.success) {

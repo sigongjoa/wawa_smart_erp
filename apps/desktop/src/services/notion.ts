@@ -113,17 +113,14 @@ export const saveScore = async (
       studentId,
       examId,
       score,
-      subject,
       yearMonth,
     });
+    // API 스키마에 정확히 맞춘 요청
     const result = await apiClient.post('/api/grader/grades', {
       student_id: studentId,
       exam_id: examId,
-      score,
-      comment,
-      subject,
-      year_month: yearMonth,
-      teacher_id: teacherId,
+      score: Number(score), // 반드시 숫자 타입
+      comments: comment || '', // comments (s 필수)
     });
     return { success: true, data: result as Score };
   } catch (error) {
