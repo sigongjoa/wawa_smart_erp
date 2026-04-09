@@ -98,16 +98,18 @@ async function handleCreateTeacher(
     // PIN 해싱
     const pinHash = await hashPassword(input.pin);
 
-    // 선생님 생성 (email 필드에 PIN 저장)
+    // 선생님 생성
     const teacherId = generateId('user');
     const now = new Date().toISOString();
     const role = input.isAdmin ? 'admin' : 'instructor';
+    // 고유한 이메일 생성 (name + random suffix)
+    const uniqueEmail = `${input.name.replace(/\s+/g, '')}_${teacherId.slice(-8)}@wawa.local`;
 
     const result = await executeInsert(
       context.env.DB,
       `INSERT INTO users (id, email, name, password_hash, role, academy_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [teacherId, input.pin, input.name, pinHash, role, context.auth?.academyId || 'acad-1', now, now]
+      [teacherId, uniqueEmail, input.name, pinHash, role, context.auth?.academyId || 'acad-1', now, now]
     );
 
     if (!result.success) {

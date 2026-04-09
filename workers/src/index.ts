@@ -35,6 +35,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   };
 
   try {
+    // 요청 origin 추출
+    const origin = request.headers.get('origin') || undefined;
+
     // CORS preflight
     if (method === 'OPTIONS') {
       return handleCors(request, env) || new Response(null, { status: 200 });
@@ -43,14 +46,15 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     // Rate Limiting
     const rateLimitResult = await rateLimitMiddleware(context);
     if (rateLimitResult instanceof Response) {
-      return addCorsHeaders(rateLimitResult, env);
+      return addCorsHeaders(rateLimitResult, env, origin);
     }
 
     // Health Check
     if (pathname === '/health') {
       return addCorsHeaders(
         successResponse({ status: 'ok', timestamp: new Date().toISOString() }),
-        env
+        env,
+        origin
       );
     }
 
@@ -58,54 +62,54 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (pathname.startsWith('/api/')) {
       // 인증이 필요 없는 라우트
       if ((pathname === '/api/auth/login' || pathname === '/api/auth/refresh') && method === 'POST') {
-        return addCorsHeaders(await handleAuth(method, pathname, request, context), env);
+        return addCorsHeaders(await handleAuth(method, pathname, request, context), env, origin);
       }
 
       // 인증 체크 (logout, 다른 protected routes)
       if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh')) {
         const authResult = await authMiddleware(context);
         if (authResult instanceof Response) {
-          return addCorsHeaders(authResult, env);
+          return addCorsHeaders(authResult, env, origin);
         }
         Object.assign(context, authResult);
       }
 
       // 라우트 핸들러 매칭
       if (pathname.startsWith('/api/auth/')) {
-        return addCorsHeaders(await handleAuth(method, pathname, request, context), env);
+        return addCorsHeaders(await handleAuth(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/timer/')) {
-        return addCorsHeaders(await handleTimer(method, pathname, request, context), env);
+        return addCorsHeaders(await handleTimer(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/message/')) {
-        return addCorsHeaders(await handleMessage(method, pathname, request, context), env);
+        return addCorsHeaders(await handleMessage(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/file/')) {
-        return addCorsHeaders(await handleFile(method, pathname, request, context), env);
+        return addCorsHeaders(await handleFile(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/grader/')) {
-        return addCorsHeaders(await handleGrader(method, pathname, request, context), env);
+        return addCorsHeaders(await handleGrader(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/report/')) {
-        return addCorsHeaders(await handleReport(method, pathname, request, context), env);
+        return addCorsHeaders(await handleReport(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/student/')) {
-        return addCorsHeaders(await handleStudent(method, pathname, request, context), env);
+        return addCorsHeaders(await handleStudent(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/teachers') || pathname.startsWith('/api/migrate/')) {
-        return addCorsHeaders(await handleTeachers(method, pathname, request, context), env);
+        return addCorsHeaders(await handleTeachers(method, pathname, request, context), env, origin);
       }
     }
 
     // 404
-    return addCorsHeaders(errorResponse('Not found', 404), env);
+    return addCorsHeaders(errorResponse('Not found', 404), env, origin);
   } catch (error) {
     logger.error('Request error', error instanceof Error ? error : new Error(String(error)));
     return addCorsHeaders(internalErrorResponse(error), env);

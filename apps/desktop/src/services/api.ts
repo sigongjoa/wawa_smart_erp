@@ -317,7 +317,7 @@ class ApiClient {
     try {
       const response = await fetch(`${this.baseUrl}/health`);
       const data = await response.json();
-      return data.status === 'ok';
+      return data.data?.status === 'ok';
     } catch {
       return false;
     }
