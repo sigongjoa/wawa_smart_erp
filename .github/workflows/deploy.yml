@@ -38,8 +38,8 @@ jobs:
         run: cd apps/desktop && npm run build
         env:
           VITE_API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://api.wawa.pages.dev' }}
-          VITE_NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VITE_NOTION_API_KEY: ''
+          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
@@ -47,11 +47,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy apps/desktop/dist/renderer
-          secrets: |
-            API_BASE_URL
-            NOTION_API_KEY
-            GEMINI_API_KEY
         env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://api.wawa.pages.dev' }}
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
