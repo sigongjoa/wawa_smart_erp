@@ -130,7 +130,13 @@ async function handleGetStudents(context: RequestContext): Promise<Response> {
 
     const students = await executeQuery<any>(context.env.DB, query, params);
 
-    return successResponse(students);
+    // subjects 필드 파싱 (없으면 빈 배열 반환)
+    const studentsWithSubjects = students.map(s => ({
+      ...s,
+      subjects: s.subjects ? JSON.parse(s.subjects) : []
+    }));
+
+    return successResponse(studentsWithSubjects);
   } catch (error) {
     logger.error('학생 목록 조회 오류', error instanceof Error ? error : new Error(String(error)));
     return errorResponse('학생 목록 조회에 실패했습니다', 500);

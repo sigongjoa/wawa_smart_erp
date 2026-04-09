@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { useAsync } from '../../hooks/useAsync';
@@ -19,9 +19,7 @@ export default function Exams() {
   const [activeTab, setActiveTab] = useState<'schedules' | 'templates'>('schedules');
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+  // AppShell already calls fetchAllData on mount - no duplicate call needed
 
   const isLoading = storeLoading;
 

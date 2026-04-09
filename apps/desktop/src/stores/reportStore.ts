@@ -80,13 +80,6 @@ const getPrevYearMonth = (yearMonth: string) => {
 };
 
 const defaultAppSettings: AppSettings = {
-    notionApiKey: '',
-    notionTeachersDb: '',
-    notionStudentsDb: '',
-    notionScoresDb: '',
-    notionExamsDb: '',
-    notionAbsenceHistoryDb: '',
-    notionDmMessagesDb: '',
     kakaoJsKey: '',
     academyName: '',
     activeExamMonth: '2026-04',
@@ -209,12 +202,31 @@ export const useReportStore = create<ReportState>()(
                     const notion = await import('../services/notion');
 
                     console.log('[fetchAllData] Fetching from D1 API...');
-                    const [teachers, students, exams, reports] = await Promise.all([
-                        notion.fetchTeachers(),
-                        notion.fetchStudents(),
-                        notion.fetchExams(targetMonth),
-                        notion.fetchScores(targetMonth),
-                    ]);
+
+                    // Timeout wrapper for API calls (10초)
+                    const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> => {
+                        return Promise.race([
+                            promise,
+                            new Promise<T>((_, reject) =>
+                                setTimeout(() => reject(new Error('API timeout')), timeoutMs)
+                            ),
+                        ]);
+                    };
+
+                    const [teachers, students, exams, reports] = await Promise.allSettled([
+                        withTimeout(notion.fetchTeachers()),
+                        withTimeout(notion.fetchStudents()),
+                        withTimeout(notion.fetchExams(targetMonth)),
+                        withTimeout(notion.fetchScores(targetMonth)),
+                    ]).then(results => {
+                        // Unpack results and provide defaults for failed promises
+                        return [
+                            results[0].status === 'fulfilled' ? results[0].value : [],
+                            results[1].status === 'fulfilled' ? results[1].value : [],
+                            results[2].status === 'fulfilled' ? results[2].value : [],
+                            results[3].status === 'fulfilled' ? results[3].value : [],
+                        ];
+                    });
 
                     console.log('[fetchAllData] Results:', {
                         teachers: teachers.length,
@@ -272,7 +284,7 @@ export const useFilteredData = () => {
         const teacherSubjects = currentUser.teacher.subjects || [];
 
         const filteredStudents = students.filter(student =>
-            student.subjects.some(sub => teacherSubjects.includes(sub))
+            (student.subjects ?? []).some(sub => teacherSubjects.includes(sub))
         );
 
         const filteredReports = reports.filter(report =>

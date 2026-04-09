@@ -69,8 +69,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       // 인증 체크 (logout, 다른 protected routes)
       // 이미지 조회는 공개 (인증 필요 없음)
+      // 선생님 목록 조회는 공개 (인증 필요 없음) - 로그인 페이지에서 필요
       const isPublicImage = pathname.match(/^\/api\/report\/image\//);
-      if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage) {
+      const isPublicTeacherList = pathname === '/api/teachers' && method === 'GET';
+      if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage && !isPublicTeacherList) {
         const authResult = await authMiddleware(context);
         if (authResult instanceof Response) {
           return addCorsHeaders(authResult, env, origin);
@@ -99,7 +101,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleGrader(method, pathname, request, context), env, origin);
       }
 
-      if (pathname.startsWith('/api/report/')) {
+      if (pathname.startsWith('/api/report')) {
         // 이미지 관련 라우트는 별도로 처리
         if (pathname === '/api/report/upload-image' || pathname.match(/^\/api\/report\/image\//)) {
           return addCorsHeaders(await handleReportImage(method, pathname, request, context), env, origin);

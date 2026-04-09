@@ -15,19 +15,16 @@ export default function MakeupSettings() {
       </div>
 
       <div className="card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontWeight: 600, marginBottom: '1rem' }}>Notion 데이터베이스 연결</h3>
+        <h3 style={{ fontWeight: 600, marginBottom: '1rem' }}>D1 데이터베이스 연결</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span className="material-symbols-outlined" style={{ color: appSettings.notionMakeupDb ? 'var(--success)' : 'var(--danger)' }}>
-              {appSettings.notionMakeupDb ? 'check_circle' : 'cancel'}
+            <span className="material-symbols-outlined" style={{ color: 'var(--success)' }}>
+              check_circle
             </span>
-            <span>보강관리 DB: </span>
-            <code style={{ fontSize: '0.8rem', background: 'var(--bg-secondary)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius-sm)' }}>
-              {appSettings.notionMakeupDb || '미설정'}
-            </code>
+            <span>보강관리: D1 API 연동됨</span>
           </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            보강관리 DB는 리포트 시스템 설정 페이지에서 설정할 수 있습니다.
+            보강관리 데이터는 Cloudflare D1 데이터베이스를 통해 관리됩니다.
           </p>
         </div>
       </div>

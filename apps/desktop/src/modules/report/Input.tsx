@@ -28,7 +28,7 @@ const generateMonthOptions = (currentYearMonth: string): { label: string; value:
 
 export default function Input() {
   const { students, reports } = useFilteredData();
-  const { currentYearMonth, currentUser, fetchAllData, isLoading, appSettings } = useReportStore();
+  const { currentYearMonth, currentUser, fetchAllData, isLoading } = useReportStore();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYearMonth, setSelectedYearMonth] = useState(currentYearMonth);
@@ -47,7 +47,7 @@ export default function Input() {
   const filteredStudents = useMemo(() =>
     students.filter(s =>
       includesHangul(s.name, searchQuery) ||
-      s.grade.toLowerCase().includes(searchQuery.toLowerCase())
+      (s.grade ? s.grade.toLowerCase().includes(searchQuery.toLowerCase()) : false)
     ),
     [students, searchQuery]
   );
@@ -57,11 +57,11 @@ export default function Input() {
     const map = new Map<string, { status: string; count: number; total: number }>();
     students.forEach(student => {
       const report = reports.find(r => r.studentId === student.id);
+      const total = student.subjects?.length ?? 0;
       if (!report) {
-        map.set(student.id, { status: 'none', count: 0, total: student.subjects.length });
+        map.set(student.id, { status: 'none', count: 0, total });
       } else {
         const count = report.scores.length;
-        const total = student.subjects.length;
         map.set(student.id, {
           status: count >= total ? 'complete' : count > 0 ? 'partial' : 'none',
           count,
@@ -76,7 +76,8 @@ export default function Input() {
   useEffect(() => {
     if (selectedStudentId && selectedStudent) {
       const initialForm: Record<string, { score: number; comment: string }> = {};
-      selectedStudent.subjects.forEach(sub => {
+      const subjects = selectedStudent.subjects ?? [];
+      subjects.forEach(sub => {
         const existingScore = currentReport?.scores.find(s => s.subject === sub);
         initialForm[sub] = {
           score: existingScore?.score ?? 0,
@@ -187,9 +188,7 @@ export default function Input() {
                 <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '12px', display: 'block' }}>warning</span>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>학생 데이터가 없습니다</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  {!appSettings.notionApiKey ? 'Notion API 키를 설정해주세요' :
-                    !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
-                      '설정을 확인하거나 새로고침을 시도해주세요'}
+                  설정을 확인하거나 새로고침을 시도해주세요
                 </div>
                 <button className="btn btn-secondary btn-sm" onClick={() => window.location.hash = '#/report/settings'}>
                   설정으로 이동
@@ -244,7 +243,7 @@ export default function Input() {
                   <div>
                     <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>{selectedStudent.name} 학생</h2>
                     <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '12px' }}>
-                      <span>{selectedStudent.grade} · {selectedStudent.subjects.join(', ')}</span>
+                      <span>{selectedStudent.grade} · {(selectedStudent.subjects ?? []).join(', ')}</span>
                       {selectedStudent.examDate && (
                         <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>calendar_month</span>

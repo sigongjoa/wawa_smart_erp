@@ -103,6 +103,31 @@ class ApiClient {
     }
   }
 
+  // ==================== Generic HTTP Methods ====================
+  async get<T>(endpoint: string, options?: { params?: Record<string, string> }): Promise<T> {
+    const params = new URLSearchParams(options?.params || {});
+    const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
+    return this.request<T>(url, { method: 'GET' });
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
   /**
    * 기본 fetch 래퍼
    */

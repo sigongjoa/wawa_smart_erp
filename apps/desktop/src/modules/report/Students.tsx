@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useReportStore, useFilteredData } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { useAsync } from '../../hooks/useAsync';
@@ -18,9 +18,7 @@ export default function Students() {
   const updateAsync = useAsync(updateStudent);
   const deleteAsync = useAsync(deleteStudent);
 
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+  // AppShell already calls fetchAllData on mount - no duplicate call needed
 
   const isLoading = storeLoading || createAsync.isLoading || updateAsync.isLoading || deleteAsync.isLoading;
 

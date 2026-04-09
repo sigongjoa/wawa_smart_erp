@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useReportStore } from '../../stores/reportStore';
 import { useToastStore } from '../../stores/toastStore';
 import { fetchTeachers } from '../../services/notion';
+import apiClient from '../../services/api';
 
 export default function Login() {
-    const { setTeachers, teachers, setCurrentUser, appSettings } = useReportStore();
+    const { setTeachers, teachers, setCurrentUser } = useReportStore();
     const { addToast } = useToastStore();
     const [selectedTeacherId, setSelectedTeacherId] = useState('');
     const [pin, setPin] = useState('');
@@ -12,7 +13,7 @@ export default function Login() {
 
     useEffect(() => {
         const loadTeachers = async () => {
-            if (teachers.length > 0 || !appSettings.notionApiKey) return;
+            if (teachers.length > 0) return;
 
             setIsFetching(true);
             try {
@@ -25,9 +26,9 @@ export default function Login() {
             }
         };
         loadTeachers();
-    }, [appSettings.notionApiKey, teachers.length, setTeachers, addToast]);
+    }, [teachers.length, setTeachers, addToast]);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         const teacher = teachers.find(t => t.id === selectedTeacherId);
         if (!teacher) {
             addToast('선생님을 선택해주세요.', 'warning');
@@ -39,11 +40,20 @@ export default function Login() {
             return;
         }
 
-        setCurrentUser({
-            teacher,
-            loginAt: new Date().toISOString()
-        });
-        addToast(`${teacher.name} 선생님, 환영합니다!`, 'success');
+        try {
+            // API 로그인
+            await apiClient.login(teacher.name, pin);
+
+            // 로컬 로그인
+            setCurrentUser({
+                teacher,
+                loginAt: new Date().toISOString()
+            });
+            addToast(`${teacher.name} 선생님, 환영합니다!`, 'success');
+        } catch (error) {
+            addToast('API 로그인에 실패했습니다.', 'error');
+            console.error('Login error:', error);
+        }
     };
 
     return (

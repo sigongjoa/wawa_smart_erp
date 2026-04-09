@@ -44,7 +44,7 @@ const generateMonthOptions = (currentYearMonth: string): { label: string; value:
 
 export default function Preview() {
   const { students, reports } = useFilteredData();
-  const { currentYearMonth, fetchAllData, isLoading, appSettings, currentUser, selectedPreviewStudentId, setSelectedPreviewStudentId } = useReportStore();
+  const { currentYearMonth, fetchAllData, isLoading, currentUser, selectedPreviewStudentId, setSelectedPreviewStudentId } = useReportStore();
   const { addToast } = useToastStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYearMonth, setSelectedYearMonth] = useState(currentYearMonth);
@@ -203,9 +203,7 @@ export default function Preview() {
               <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '12px', display: 'block' }}>warning</span>
               <div style={{ fontWeight: 600, marginBottom: '8px' }}>학생 데이터가 없습니다</div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                {!appSettings.notionApiKey ? 'Notion API 키를 설정해주세요' :
-                  !appSettings.notionStudentsDb ? '학생 DB ID를 설정해주세요' :
-                    '설정을 확인하거나 새로고침을 시도해주세요'}
+                설정을 확인하거나 새로고침을 시도해주세요
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => window.location.hash = '#/report/settings'}>
                 설정으로 이동

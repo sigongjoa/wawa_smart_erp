@@ -141,8 +141,46 @@ async function handleCreateTeacher(
 }
 
 /**
+ * Notion API에서 학생 데이터 가져오기
+ */
+async function fetchStudentsFromNotion(): Promise<Array<{ name: string; subjects: string[] }>> {
+  const NOTION_API_KEY = 'REDACTED';
+  const DB_STUDENTS = '2f973635-f415-802d-b167-f5cb13265758';
+
+  try {
+    const response = await fetch(`https://api.notion.com/v1/databases/${DB_STUDENTS}/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${NOTION_API_KEY}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+
+    const data = (await response.json()) as any;
+    const students: Array<{ name: string; subjects: string[] }> = [];
+
+    for (const item of data.results || []) {
+      const props = item.properties || {};
+      const name = props['이름']?.title?.[0]?.plain_text;
+      const subjects = (props['수강과목']?.multi_select || []).map((s: any) => s.name);
+
+      if (name) {
+        students.push({ name, subjects });
+      }
+    }
+
+    return students;
+  } catch (error) {
+    console.error('Notion 데이터 조회 오류:', error);
+    return [];
+  }
+}
+
+/**
  * POST /api/migrate/notion-to-d1 - Notion 데이터 마이그레이션
- * 현재는 기존 마이그레이션 된 데이터 확인만 수행
+ * Notion에서 학생의 수강과목 정보를 가져와 D1에 업데이트
  */
 async function handleMigrateNotionToD1(
   request: Request,
@@ -163,8 +201,80 @@ async function handleMigrateNotionToD1(
 
     logger.logRequest('POST', '/api/migrate/notion-to-d1', undefined, ipAddress);
 
-    // Notion에서 학생 데이터 가져오기 (테스트용 샘플 데이터)
-    // 실제 환경에서는 Notion API를 호출하여 데이터를 가져와야 함
+    // Notion에서 학생 데이터 가져오기
+    const notionStudents = await fetchStudentsFromNotion();
+
+    // D1에서 기존 학생 목록 조회
+    const d1Students = await executeQuery<any>(
+      context.env.DB,
+      'SELECT id, name FROM students WHERE academy_id = ?',
+      ['acad-1']
+    );
+
+    // 이름으로 매칭하여 subjects 업데이트
+    let updatedCount = 0;
+    for (const d1Student of d1Students) {
+      const notionStudent = notionStudents.find(s => s.name === d1Student.name);
+
+      if (notionStudent && notionStudent.subjects.length > 0) {
+        // subjects를 JSON 배열로 저장
+        const subjectsJson = JSON.stringify(notionStudent.subjects);
+
+        await executeUpdate(
+          context.env.DB,
+          'UPDATE students SET subjects = ? WHERE id = ?',
+          [subjectsJson, d1Student.id]
+        );
+
+        updatedCount++;
+      }
+    }
+
+    // 최종 학생 수 조회
+    const finalStudents = await executeQuery<any>(
+      context.env.DB,
+      'SELECT COUNT(*) as count FROM students WHERE academy_id = ?',
+      ['acad-1']
+    );
+
+    const finalCount = finalStudents[0]?.count || 0;
+
+    // 응답 반환
+    return successResponse({
+      notionCount: notionStudents.length,
+      d1Count: d1Students.length,
+      updatedCount: updatedCount,
+      finalCount: finalCount,
+      message: `Notion 데이터 마이그레이션 완료: ${updatedCount}명의 학생 수강과목 업데이트`,
+    });
+  } catch (error) {
+    logger.error('마이그레이션 처리 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
+    return errorResponse('마이그레이션 처리에 실패했습니다', 500);
+  }
+}
+
+// ==================== 기존 샘플 데이터 ====================
+// 아래는 참고용 샘플 데이터 (더 이상 사용되지 않음)
+
+async function handleMigrateNotionToD1_old(
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  const ipAddress = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  try {
+    // 인증 확인
+    if (!requireAuth(context)) {
+      return unauthorizedResponse();
+    }
+
+    // 관리자 권한 확인
+    if (!requireRole(context, 'admin')) {
+      return errorResponse('관리자만 마이그레이션을 수행할 수 있습니다', 403);
+    }
+
+    logger.logRequest('POST', '/api/migrate/notion-to-d1-old', undefined, ipAddress);
+
     const sampleStudents = [
       // 기존 31명 + 추가 10명 = 41명
       { id: 'student-001', name: '강은서', grade: '중2', classId: 'class-1' },
@@ -381,14 +491,10 @@ async function handleMigrateCSV(
 }
 
 /**
- * GET /api/teachers - 선생님 목록 조회
+ * GET /api/teachers - 선생님 목록 조회 (공개 - 로그인 페이지에서 필요)
  */
 async function handleGetTeachers(context: RequestContext): Promise<Response> {
   try {
-    if (!requireAuth(context)) {
-      return unauthorizedResponse();
-    }
-
     const teachers = await executeQuery<any>(
       context.env.DB,
       `SELECT id, name, email, role, academy_id, created_at, updated_at

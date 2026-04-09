@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useReportStore } from '../../stores/reportStore';
 import { useAIStore, AI_MODELS, DEFAULT_PROMPT_TEMPLATE } from '../../stores/aiStore';
 import { useToastStore } from '../../stores/toastStore';
-import { testNotionConnection } from '../../services/notion';
 import AdminTeacherManager from './AdminTeacherManager';
 import type { AIProvider } from '../../types';
 
@@ -19,29 +18,17 @@ const PROMPT_VARIABLES = [
   { key: '{{6개월추이}}', desc: '최근 6개월 성적 추이' },
 ];
 
-type SettingsTab = 'notion' | 'ai' | 'kakao' | 'teachers';
+type SettingsTab = 'general' | 'ai' | 'kakao' | 'teachers';
 
 export default function AdminSystemSettings() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('notion');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('teachers');
   const { appSettings, setAppSettings } = useReportStore();
   const { aiSettings, setAISettings, usageRecords, getTotalMonthlyStats } = useAIStore();
   const { addToast } = useToastStore();
 
-  const [notionForm, setNotionForm] = useState({
+  const [generalForm, setGeneralForm] = useState({
     academyName: appSettings.academyName || '',
-    notionApiKey: appSettings.notionApiKey || '',
-    notionTeachersDb: appSettings.notionTeachersDb || '',
-    notionStudentsDb: appSettings.notionStudentsDb || '',
-    notionScoresDb: appSettings.notionScoresDb || '',
-    notionExamsDb: appSettings.notionExamsDb || '',
-    notionEnrollmentDb: appSettings.notionEnrollmentDb || '',
-    notionAbsenceHistoryDb: appSettings.notionAbsenceHistoryDb || '',
-    notionExamScheduleDb: appSettings.notionExamScheduleDb || '',
-    notionMakeupDb: appSettings.notionMakeupDb || '',
-    notionDmMessagesDb: appSettings.notionDmMessagesDb || '',
   });
-  const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const [kakaoForm, setKakaoForm] = useState({
     kakaoBizChannelId: appSettings.kakaoBizChannelId || '',
@@ -91,9 +78,9 @@ export default function AdminSystemSettings() {
     claude: 'smart_toy',
   };
 
-  const handleSaveNotion = () => {
-    setAppSettings({ ...appSettings, ...notionForm });
-    addToast('Notion 설정이 저장되었습니다.', 'success');
+  const handleSaveGeneral = () => {
+    setAppSettings({ ...appSettings, ...generalForm });
+    addToast('기본 설정이 저장되었습니다.', 'success');
   };
 
   const handleSaveKakao = () => {
@@ -106,44 +93,6 @@ export default function AdminSystemSettings() {
     addToast('AI 설정이 저장되었습니다.', 'success');
   };
 
-  const handleTestConnection = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-    try {
-      const result = await testNotionConnection(notionForm.notionApiKey, {
-        teachers: notionForm.notionTeachersDb,
-        students: notionForm.notionStudentsDb,
-        scores: notionForm.notionScoresDb,
-        exams: notionForm.notionExamsDb,
-        absenceHistory: notionForm.notionAbsenceHistoryDb,
-        examSchedule: notionForm.notionExamScheduleDb,
-        enrollment: notionForm.notionEnrollmentDb,
-        makeup: notionForm.notionMakeupDb,
-        dmMessages: notionForm.notionDmMessagesDb,
-      });
-      setTestResult({ success: result.success, message: result.message });
-    } catch (error: any) {
-      setTestResult({ success: false, message: error.message || '연결 테스트 중 오류 발생' });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        setNotionForm(prev => ({ ...prev, ...json }));
-        addToast('설정 파일이 로드되었습니다. "저장"을 눌러 반영하세요.', 'info');
-      } catch {
-        addToast('유효하지 않은 JSON 파일입니다.', 'error');
-      }
-    };
-    reader.readAsText(file);
-  };
 
   const handleProviderChange = (provider: AIProvider) => {
     const firstModel = AI_MODELS.find((m) => m.provider === provider);
@@ -161,7 +110,7 @@ export default function AdminSystemSettings() {
 
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
     { id: 'teachers', label: '선생님 관리', icon: 'school' },
-    { id: 'notion', label: 'Notion 연동', icon: 'database' },
+    { id: 'general', label: '기본 설정', icon: 'settings' },
     { id: 'ai', label: 'AI 설정', icon: 'smart_toy' },
     { id: 'kakao', label: '카카오 알림톡', icon: 'chat' },
   ];
@@ -197,78 +146,33 @@ export default function AdminSystemSettings() {
         <AdminTeacherManager />
       )}
 
-      {/* Notion 설정 탭 */}
-      {activeTab === 'notion' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      {/* 기본 설정 탭 */}
+      {activeTab === 'general' && (
+        <div style={{ maxWidth: '600px' }}>
           <div className="card" style={{ padding: '24px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>기본 설정</h2>
             <div className="form-group" style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>학원 이름</label>
               <input
-                value={notionForm.academyName}
-                onChange={e => setNotionForm(p => ({ ...p, academyName: e.target.value }))}
+                value={generalForm.academyName}
+                onChange={e => setGeneralForm(p => ({ ...p, academyName: e.target.value }))}
                 className="search-input" style={{ width: '100%' }} placeholder="WAWA 학원"
               />
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>리포트에 표시될 학원 이름입니다</div>
             </div>
 
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Notion API 키</h2>
-            <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>API Key</label>
-              <input
-                type="password"
-                value={notionForm.notionApiKey}
-                onChange={e => setNotionForm(p => ({ ...p, notionApiKey: e.target.value }))}
-                className="search-input" style={{ width: '100%' }} placeholder="secret_..."
-              />
+            <div style={{ padding: '16px', background: 'var(--success-light)', borderRadius: '12px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--success)' }}>check_circle</span>
+                <span style={{ fontWeight: 600 }}>Cloudflare D1 데이터베이스 연동됨</span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                모든 데이터는 Cloudflare D1을 통해 관리됩니다.
+              </div>
             </div>
 
-            <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button className="btn btn-secondary" onClick={handleTestConnection} disabled={isTesting}>
-                {isTesting ? '확인 중...' : '연결 테스트'}
-              </button>
-              {testResult && (
-                <span style={{ color: testResult.success ? 'var(--success)' : 'var(--danger)', fontSize: '14px' }}>
-                  {testResult.message}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>데이터베이스 ID</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {[
-                { key: 'notionTeachersDb', label: '선생님 DB' },
-                { key: 'notionStudentsDb', label: '학생 DB' },
-                { key: 'notionScoresDb', label: '성적 DB' },
-                { key: 'notionExamsDb', label: '시험지 DB' },
-                { key: 'notionEnrollmentDb', label: '수강 일정 DB' },
-                { key: 'notionAbsenceHistoryDb', label: '결시 이력 DB' },
-                { key: 'notionExamScheduleDb', label: '시험 일정 DB' },
-                { key: 'notionMakeupDb', label: '보강관리 DB' },
-                { key: 'notionDmMessagesDb', label: '쪽지(DM) DB' },
-              ].map(({ key, label }) => (
-                <div key={key} className="form-group">
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>{label}</label>
-                  <input
-                    value={(notionForm as any)[key]}
-                    onChange={e => setNotionForm(p => ({ ...p, [key]: e.target.value }))}
-                    className="search-input" style={{ width: '100%', fontSize: '12px' }}
-                    placeholder="DB ID..."
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', gap: '12px' }}>
-            <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-              <span className="material-symbols-outlined">upload</span>파일로 설정
-              <input type="file" hidden accept=".json" onChange={handleFileUpload} />
-            </label>
-            <button className="btn btn-primary" onClick={handleSaveNotion}>
-              <span className="material-symbols-outlined">save</span>Notion 설정 저장
+            <button className="btn btn-primary" onClick={handleSaveGeneral}>
+              <span className="material-symbols-outlined">save</span>설정 저장
             </button>
           </div>
         </div>

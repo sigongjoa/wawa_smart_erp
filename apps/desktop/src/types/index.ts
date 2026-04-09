@@ -222,12 +222,6 @@ export interface AlimtalkResult {
 
 // 앱 설정
 export interface AppSettings {
-  notionApiKey?: string;
-  notionTeachersDb?: string;
-  notionStudentsDb?: string;
-  notionScoresDb?: string;
-  notionExamsDb?: string;
-  notionDbId?: string; // Legacy
   kakaoJsKey?: string;
   academyName?: string;
   academyLogo?: string;
@@ -238,12 +232,6 @@ export interface AppSettings {
   cloudinaryUploadPreset?: string;
   cloudinaryApiKey?: string;
   cloudinaryApiSecret?: string;
-  notionAbsenceHistoryDb?: string;
-  notionEnrollmentDb?: string;
-  notionMakeupDb?: string;
-  notionDmMessagesDb?: string;
-  notionExamScheduleDb?: string;  // 추가 (Lint 에러 수정)
-  notionNotificationsDb?: string; // 추가 (Lint 에러 수정)
   activeExamMonth?: string;        // 활성 시험 월 (YYYY-MM, D1 저장)
 }
 
