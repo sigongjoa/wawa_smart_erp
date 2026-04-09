@@ -1,117 +1,71 @@
 /**
- * Notion database column name constants
+ * D1 Database Constants
+ * Cloudflare D1 기반 데이터베이스 설정
  */
 
-export const NOTION_COLUMNS_TEACHER = {
-    NAME: '선생님',
-    SUBJECT: '과목',
-    PIN: 'PIN',
-    IS_ADMIN: 'isAdmin',
+// ========== D1 Database Tables ==========
+export const D1_TABLES = {
+    USERS: 'users',
+    STUDENTS: 'students',
+    CLASSES: 'classes',
+    ACADEMIES: 'academies',
+    EXAMS: 'exams',
+    GRADES: 'grades',
+    REPORTS: 'reports',
+    MESSAGES: 'messages',
+    ATTENDANCE: 'attendance',
+    SESSIONS: 'sessions',
+    AUDIT_LOGS: 'audit_logs',
+    EXAM_SETTINGS: 'exam_settings',
 } as const;
 
-export const NOTION_COLUMNS_STUDENT = {
-    NAME: '이름',
-    GRADE: '학년',
-    SUBJECTS: '수강과목',
-    PARENT_NAME: '학부모',
-    PARENT_PHONE: '전화번호',
-    PARENT_CONTACT: '학부모', // Updated alias
-    PARENT_PHONE_ALT: '전화번호', // Updated alias
-    EXAM_DATE: '시험일',
-    STATUS: '상태',
-    ABSENCE_REASON: '결시사유',
-    TEACHERS: '담당선생님',
+// ========== API Endpoints ==========
+export const API_ENDPOINTS = {
+    // Auth
+    AUTH_LOGIN: '/api/auth/login',
+    AUTH_REFRESH: '/api/auth/refresh',
+
+    // Teachers
+    TEACHERS: '/api/teachers',
+
+    // Students
+    STUDENT_LIST: '/api/student',
+    STUDENT_GET: (id: string) => `/api/student/${id}`,
+    STUDENT_CREATE: '/api/student',
+    STUDENT_UPDATE: (id: string) => `/api/student/${id}`,
+    STUDENT_DELETE: (id: string) => `/api/student/${id}`,
+
+    // Exams
+    EXAMS: '/api/grader/exams',
+    EXAM_GET: (id: string) => `/api/grader/exams/${id}`,
+    EXAM_UPDATE: (id: string) => `/api/grader/exams/${id}`,
+
+    // Grades
+    GRADES: '/api/grader/grades',
+    GRADES_REPORT: '/api/report',
+    REPORT_MARK_SENT: (studentId: string) => `/api/report/${studentId}/mark-sent`,
+
+    // Messages
+    MESSAGES: '/api/message/',
+    MESSAGE_CONVERSATION: (userId: string) => `/api/message/conversation/${userId}`,
+    MESSAGE_INBOX: '/api/message/inbox',
+    MESSAGE_READ: (id: string) => `/api/message/${id}/read`,
+
+    // Migration
+    MIGRATE_CSV: '/api/migrate/csv',
 } as const;
 
-export const NOTION_COLUMNS_SCORE = {
-    NAME: '이름',
-    YEAR_MONTH: '시험년월',
-    SUBJECT: '과목',
-    SCORE: '점수',
-    COMMENT: '코멘트',
-    DIFFICULTY: '난이도',
-    STUDENT: '학생',
-    TEACHER: '선생님',
-    IS_SENT: 'isSend',
+// ========== Data Status Values ==========
+export const STATUS_VALUES = {
+    ACTIVE: 'active',
+    INACTIVE: 'inactive',
+    PENDING: 'pending',
+    COMPLETED: 'completed',
 } as const;
 
-export const NOTION_COLUMNS_EXAM = {
-    SUBJECT: '과목',
-    YEAR_MONTH: '년월',
-    DIFFICULTY: '난이도',
-    EXAM_FILE: '시험지',
-    SCOPE: '범위',
-    UPLOADER: '등록자',
-} as const;
-
-export const NOTION_COLUMNS_ABSENCE_HISTORY = {
-    NAME: '이름',
-    STUDENT: '학생',
-    ORIGINAL_DATE: '원래시험일',
-    ABSENCE_REASON: '결시사유',
-    RETEST_DATE: '재시험일',
-    RETEST_COMPLETED: '재시험완료',
-    YEAR_MONTH: '년월',
-} as const;
-
-export const NOTION_COLUMNS_EXAM_SCHEDULE = {
-    NAME: '이름',
-    STUDENT: '학생',
-    YEAR_MONTH: '년월',
-    EXAM_DATE: '시험일',
-} as const;
-
-export const NOTION_COLUMNS_ENROLLMENT = {
-    NAME: '이름',
-    STUDENT: '학생',
-    DAY: '요일',
-    START_TIME: '시작시간',
-    END_TIME: '종료시간',
-    SUBJECT: '과목',
-    // TUITION: '수강료',
-} as const;
-
-export const NOTION_COLUMNS_MAKEUP = {
-    NAME: '이름',
-    STUDENT: '학생',
-    SUBJECT: '과목',
-    TEACHER: '담당선생님',
-    ABSENT_DATE: '결석일',
-    ABSENT_REASON: '결석사유',
-    MAKEUP_DATE: '보강예정일',
-    MAKEUP_TIME: '보강시간',
-    STATUS: '상태',
-    MEMO: '메모',
-} as const;
-
-export const NOTION_COLUMNS_DM = {
-    SENDER_ID: 'SenderID',
-    RECEIVER_ID: 'ReceiverID',
-    CONTENT: 'Content',
-    CREATED_TIME: 'CreatedTime',
-    READ_AT: 'ReadAt', // 추가됨
-} as const;
-
-export const NOTION_COLUMNS_NOTIFICATION = {
-    TITLE: 'Name',
-    TYPE: 'Type',
-    STATUS: 'Status',
-    TARGET_TEACHER: 'TargetTeacher',
-    CONTENT: 'Content',
-    PRIORITY: 'Priority',
-    PATH: 'Path',
-    CREATED_AT: 'CreatedAt',
-    READ_AT: 'ReadAt',
-} as const;
-
-export const NOTION_MAKEUP_STATUS = {
-    PENDING: '시작 전',
-    IN_PROGRESS: '진행 중',
-    COMPLETED: '완료',
-} as const;
-
-export const NOTION_STATUS_VALUES = {
-    ACTIVE: '활성',
-    INACTIVE: '비활성',
-    TRUE: 'True',
+// ========== Grade/Score Constants ==========
+export const GRADE_CONSTANTS = {
+    MAKEUP_STATUS_PENDING: '시작 전',
+    MAKEUP_STATUS_IN_PROGRESS: '진행 중',
+    MAKEUP_STATUS_COMPLETED: '완료',
 } as const;

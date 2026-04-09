@@ -202,18 +202,13 @@ export const useReportStore = create<ReportState>()(
                 // yearMonth 파라미터가 없으면 currentYearMonth 사용
                 const targetMonth = yearMonth || currentYearMonth;
 
-                console.log('[fetchAllData] Starting...', { targetMonth, hasApiKey: !!appSettings.notionApiKey });
-
-                if (!appSettings.notionApiKey) {
-                    console.warn('[fetchAllData] No API key configured, skipping fetch');
-                    return;
-                }
+                console.log('[fetchAllData] Starting...', { targetMonth, source: 'D1 API' });
 
                 setIsLoading(true);
                 try {
                     const notion = await import('../services/notion');
 
-                    console.log('[fetchAllData] Fetching from Notion...');
+                    console.log('[fetchAllData] Fetching from D1 API...');
                     const [teachers, students, exams, reports] = await Promise.all([
                         notion.fetchTeachers(),
                         notion.fetchStudents(),
