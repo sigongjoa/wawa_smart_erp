@@ -28,8 +28,6 @@ const GraderHistory = lazy(() => import('./modules/grader/History'));
 const GraderStats = lazy(() => import('./modules/grader/Stats'));
 const GraderSettings = lazy(() => import('./modules/grader/Settings'));
 
-const StudentList = lazy(() => import('./modules/student/List'));
-
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 const MakeupDashboard = lazy(() => import('./modules/makeup/Dashboard'));
@@ -65,9 +63,6 @@ function App() {
 
           {/* Admin Dashboard (ADMIN ONLY) */}
           <Route path="admin" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></ErrorBoundary></ProtectedRoute>} />
-
-          {/* Student 모듈 (ADMIN ONLY - Legacy) */}
-          <Route path="student" element={<ProtectedRoute adminOnly><ErrorBoundary><Suspense fallback={<PageLoader />}><StudentList /></Suspense></ErrorBoundary></ProtectedRoute>} />
 
           {/* Timer 모듈 */}
           <Route path="timer">

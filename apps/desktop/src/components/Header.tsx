@@ -13,7 +13,6 @@ interface ModuleTab {
 
 const modules: ModuleTab[] = [
   { id: 'timer', label: '시간표', icon: 'schedule', path: '/timer' },
-  { id: 'student', label: '학생관리', icon: 'person_search', path: '/student' },
   { id: 'report', label: '월말평가', icon: 'description', path: '/report' },
 ];
 
@@ -23,10 +22,7 @@ export default function Header() {
 
   const filteredModules = modules.filter(module => {
     if (!currentUser?.teacher) return false;
-    // 관리자 전용 메뉴
-    if (['student', 'schedule'].includes(module.id)) {
-      return currentUser.teacher.isAdmin ?? false;
-    }
+    // 모든 선생님이 접근 가능
     return true;
   });
 
