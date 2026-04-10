@@ -21,6 +21,9 @@ import { handleReportImage } from '@/routes/report-image-handler';
 import { handleStudent } from '@/routes/student-handler';
 import { handleTeachers } from '@/routes/teachers-handler';
 import { handleSettings } from '@/routes/settings-handler';
+import { handleAI } from '@/routes/ai-handler';
+import { handleAbsence } from '@/routes/absence-handler';
+import { handleBoard } from '@/routes/board-handler';
 
 /**
  * 메인 요청 처리 함수
@@ -119,6 +122,18 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       if (pathname.startsWith('/api/settings')) {
         return addCorsHeaders(await handleSettings(method, pathname, request, context), env, origin);
+      }
+
+      if (pathname.startsWith('/api/ai/')) {
+        return addCorsHeaders(await handleAI(method, pathname, request, context), env, origin);
+      }
+
+      if (pathname.startsWith('/api/absence') || pathname.startsWith('/api/makeup')) {
+        return addCorsHeaders(await handleAbsence(method, pathname, request, context), env, origin);
+      }
+
+      if (pathname.startsWith('/api/board/')) {
+        return addCorsHeaders(await handleBoard(method, pathname, request, context), env, origin);
       }
     }
 

@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage';
 import TimerPage from './pages/TimerPage';
 import ReportPage from './pages/ReportPage';
 import SettingsPage from './pages/SettingsPage';
+import AbsencePage from './pages/AbsencePage';
+import BoardPage from './pages/BoardPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -37,6 +39,8 @@ export default function App() {
         >
           <Route path="/timer" element={<TimerPage />} />
           <Route path="/report" element={<ReportPage />} />
+          <Route path="/absence" element={<AbsencePage />} />
+          <Route path="/board" element={<BoardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/timer" replace />} />

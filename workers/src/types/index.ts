@@ -98,6 +98,48 @@ export interface Grade {
   createdAt: string;
 }
 
+// 수업별 학생 배정
+export interface ClassStudent {
+  id: string;
+  classId: string;
+  studentId: string;
+  createdAt: string;
+}
+
+// 결석 기록
+export interface Absence {
+  id: string;
+  studentId: string;
+  classId: string;
+  absenceDate: string;
+  reason: string;
+  notifiedBy: string;
+  notifiedAt?: string;
+  status: 'absent' | 'makeup_scheduled' | 'makeup_done';
+  recordedBy?: string;
+  createdAt: string;
+  // JOIN fields
+  studentName?: string;
+  className?: string;
+}
+
+// 보강 추적
+export interface Makeup {
+  id: string;
+  absenceId: string;
+  scheduledDate?: string;
+  completedDate?: string;
+  status: 'pending' | 'scheduled' | 'completed';
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  // JOIN fields
+  studentName?: string;
+  className?: string;
+  absenceDate?: string;
+  reason?: string;
+}
+
 // API 응답 형식
 export interface ApiResponse<T> {
   success: boolean;

@@ -150,8 +150,14 @@ export const api = {
       `/api/report/history?studentId=${studentId}&months=${months || 6}`
     ),
 
+  // Report Send Status — 월별 전송 상태 조회
+  getSendStatus: (yearMonth: string) =>
+    request<Record<string, { shareUrl: string; sentBy: string; sentAt: string }>>(
+      `/api/report/send-status?yearMonth=${yearMonth}`
+    ),
+
   // Report Image — upload PNG to R2, get public share URL
-  uploadReportImage: (data: { imageBase64: string; studentName: string; yearMonth: string }) =>
+  uploadReportImage: (data: { imageBase64: string; studentId: string; studentName: string; yearMonth: string }) =>
     request<{ shareUrl: string; imageUrl: string }>('/api/report/upload-image', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -170,4 +176,127 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // ── 시간표/수업 ──
+
+  // 수업 목록
+  getClasses: () =>
+    request<any[]>('/api/timer/classes'),
+
+  // 출석 기록
+  recordAttendance: (data: { studentId: string; classId: string; date: string; status: string; notes?: string }) =>
+    request('/api/timer/attendance', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 수업별 출석 조회
+  getAttendance: (classId: string, date: string) =>
+    request<any[]>(`/api/timer/attendance/${classId}/${date}`),
+
+  // ── 결석/보강 관리 ──
+
+  // 결석 기록
+  recordAbsence: (data: { studentId: string; classId: string; absenceDate: string; reason: string; notifiedBy: string; notifiedAt?: string }) =>
+    request('/api/absence', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 수업 마침 시 일괄 결석 기록
+  recordAbsenceBatch: (absences: Array<{ studentId: string; classId: string; absenceDate: string; reason: string; notifiedBy: string }>) =>
+    request('/api/absence/batch', {
+      method: 'POST',
+      body: JSON.stringify({ absences }),
+    }),
+
+  // 날짜별 결석 조회
+  getAbsences: (date: string) =>
+    request<any[]>(`/api/absence?date=${date}`),
+
+  // 수업 마침 시 미출석자 조회
+  getUncheckedStudents: (classId: string, date: string) =>
+    request<any[]>(`/api/absence/unchecked?classId=${classId}&date=${date}`),
+
+  // 퇴근 요약
+  getDailySummary: (date: string) =>
+    request<{ date: string; todayAbsences: any[]; pendingMakeups: any[]; clipboardText: string }>(
+      `/api/absence/daily-summary?date=${date}`
+    ),
+
+  // 보강 목록 (상태 필터)
+  getMakeups: (status?: string) =>
+    request<any[]>(status ? `/api/makeup?status=${status}` : '/api/makeup'),
+
+  // 보강일 지정
+  scheduleMakeup: (data: { absenceId: string; scheduledDate: string; notes?: string }) =>
+    request('/api/makeup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 보강 완료 처리
+  completeMakeup: (makeupId: string) =>
+    request(`/api/makeup/${makeupId}/complete`, { method: 'PATCH' }),
+
+  // 수업별 배정 학생 조회
+  getClassStudents: (classId: string) =>
+    request<any[]>(`/api/absence/class-students?classId=${classId}`),
+
+  // 학생 수업 배정
+  assignStudent: (data: { classId: string; studentId: string }) =>
+    request('/api/absence/class-students', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 학생 배정 해제
+  unassignStudent: (assignmentId: string) =>
+    request(`/api/absence/class-students/${assignmentId}`, { method: 'DELETE' }),
+
+  // ── 공지/액션 보드 ──
+
+  // 공지 목록
+  getNotices: (category?: string) =>
+    request<any[]>(category ? `/api/board/notices?category=${category}` : '/api/board/notices'),
+
+  // 공지 작성 (액션 아이템 함께 생성 가능)
+  createNotice: (data: { title: string; content?: string; category?: string; isPinned?: boolean; dueDate?: string; actionItems?: Array<{ title: string; assignedTo: string; dueDate?: string; description?: string }> }) =>
+    request('/api/board/notices', { method: 'POST', body: JSON.stringify(data) }),
+
+  // 공지 수정
+  updateNotice: (id: string, data: { title?: string; content?: string; category?: string; isPinned?: boolean; dueDate?: string }) =>
+    request(`/api/board/notices/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // 공지 삭제
+  deleteNotice: (id: string) =>
+    request(`/api/board/notices/${id}`, { method: 'DELETE' }),
+
+  // 공지 읽음 처리
+  markNoticeRead: (id: string) =>
+    request(`/api/board/notices/${id}/read`, { method: 'POST' }),
+
+  // 전체 액션 목록
+  getActions: (status?: string) =>
+    request<any[]>(status ? `/api/board/actions?status=${status}` : '/api/board/actions'),
+
+  // 내 할일
+  getMyActions: () =>
+    request<any[]>('/api/board/my-actions'),
+
+  // 액션 생성
+  createAction: (data: { title: string; assignedTo: string; dueDate?: string; description?: string; noticeId?: string }) =>
+    request('/api/board/actions', { method: 'POST', body: JSON.stringify(data) }),
+
+  // 액션 상태 변경
+  updateAction: (id: string, data: { status?: string; title?: string; description?: string; dueDate?: string }) =>
+    request(`/api/board/actions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // 타임라인
+  getTimeline: () =>
+    request<any[]>('/api/board/timeline'),
+
+  // 보드용 선생님 목록
+  getBoardTeachers: () =>
+    request<any[]>('/api/board/teachers'),
 };
