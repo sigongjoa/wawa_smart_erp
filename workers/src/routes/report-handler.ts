@@ -366,6 +366,53 @@ async function handleGetScoreHistory(request: Request, context: RequestContext):
   }
 }
 
+// ==================== 전송 상태 핸들러 ====================
+
+/**
+ * GET /api/report/send-status?yearMonth=YYYY-MM
+ * 해당 월의 학생별 전송 기록 조회
+ */
+async function handleGetSendStatus(request: Request, context: RequestContext): Promise<Response> {
+  try {
+    if (!requireAuth(context)) {
+      return unauthorizedResponse();
+    }
+
+    const url = new URL(request.url);
+    const yearMonth = url.searchParams.get('yearMonth');
+
+    if (!yearMonth) {
+      return errorResponse('yearMonth 파라미터가 필수입니다', 400);
+    }
+
+    const { executeQuery } = await import('@/utils/db');
+    const academyId = context.auth?.academyId || 'acad-1';
+
+    const sends = await executeQuery<any>(
+      context.env.DB,
+      `SELECT student_id, share_url, sent_by, sent_at
+       FROM report_sends
+       WHERE academy_id = ? AND year_month = ?`,
+      [academyId, yearMonth]
+    );
+
+    // student_id → 전송 정보 맵으로 변환
+    const sendMap: Record<string, { shareUrl: string; sentBy: string; sentAt: string }> = {};
+    for (const s of sends) {
+      sendMap[s.student_id] = {
+        shareUrl: s.share_url,
+        sentBy: s.sent_by,
+        sentAt: s.sent_at,
+      };
+    }
+
+    return successResponse(sendMap);
+  } catch (error) {
+    logger.error('전송 상태 조회 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('전송 상태 조회에 실패했습니다', 500);
+  }
+}
+
 // ==================== 메인 핸들러 ====================
 
 export async function handleReport(
@@ -378,6 +425,12 @@ export async function handleReport(
     // /api/report/history (점수 추이)
     if (pathname === '/api/report/history') {
       if (method === 'GET') return await handleGetScoreHistory(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/report/send-status (전송 상태)
+    if (pathname === '/api/report/send-status') {
+      if (method === 'GET') return await handleGetSendStatus(request, context);
       return errorResponse('Method not allowed', 405);
     }
 

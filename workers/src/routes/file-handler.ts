@@ -50,7 +50,7 @@ export async function handleFile(
 
       logger.logAudit('FILE_UPLOAD', 'File', key, userId, { fileSize: file.size, fileName: file.name }, ipAddress);
 
-      const publicUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
+      const publicUrl = `${context.env.API_URL || new URL(request.url).origin}/api/file/download/${key}`;
 
       return successResponse(
         {
@@ -67,15 +67,20 @@ export async function handleFile(
 
     // GET /api/file/download/:key
     if (method === 'GET' && pathname.startsWith('/api/file/download/')) {
-      const key = pathname.replace('/api/file/download/', '');
+      const key = decodeURIComponent(pathname.replace('/api/file/download/', ''));
 
-      if (!key) {
-        return errorResponse('파일 키가 필요합니다', 400);
+      if (!key || key.includes('..') || key.startsWith('/')) {
+        return errorResponse('유효하지 않은 파일 경로입니다', 400);
       }
 
       if (!requireAuth(context)) return unauthorizedResponse();
 
       const userId = context.auth!.userId;
+
+      // 소유권 검증: 파일 경로에 userId가 포함되어야 함
+      if (!key.includes(userId)) {
+        return errorResponse('권한이 없습니다', 403);
+      }
 
       const object = await context.env.BUCKET.get(key);
 
@@ -96,17 +101,20 @@ export async function handleFile(
 
     // DELETE /api/file/:key
     if (method === 'DELETE' && pathname.startsWith('/api/file/') && !pathname.includes('/download') && !pathname.includes('/list')) {
-      const key = pathname.replace('/api/file/', '');
+      const key = decodeURIComponent(pathname.replace('/api/file/', ''));
 
-      if (!key) {
-        return errorResponse('파일 키가 필요합니다', 400);
+      if (!key || key.includes('..') || key.startsWith('/')) {
+        return errorResponse('유효하지 않은 파일 경로입니다', 400);
       }
 
       if (!requireAuth(context)) return unauthorizedResponse();
 
       const userId = context.auth!.userId;
 
-      if (!key.includes(userId)) {
+      // 소유권 검증: 파일명 형식 timestamp-randomid-userId.ext 에서 userId 정확 매칭
+      const fileName = key.split('/').pop() || '';
+      const ownerMatch = fileName.match(/-([^-.]+)\.[^.]+$/);
+      if (!ownerMatch || ownerMatch[1] !== userId) {
         return errorResponse('권한이 없습니다', 403);
       }
 

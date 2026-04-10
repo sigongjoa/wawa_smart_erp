@@ -63,6 +63,12 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       );
     }
 
+    // 요청 본문 크기 제한 (10MB)
+    const contentLength = parseInt(request.headers.get('content-length') || '0');
+    if (contentLength > 10 * 1024 * 1024) {
+      return addCorsHeaders(errorResponse('요청 크기가 10MB를 초과합니다', 413), env, origin);
+    }
+
     // API Routes
     if (pathname.startsWith('/api/')) {
       // 인증이 필요 없는 라우트
@@ -72,10 +78,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       // 인증 체크 (logout, 다른 protected routes)
       // 이미지 조회는 공개 (인증 필요 없음)
-      // 선생님 목록 조회는 공개 (인증 필요 없음) - 로그인 페이지에서 필요
+      // 선생님 이름 목록은 공개 (로그인 페이지에서 필요) — 이름만 반환
       const isPublicImage = pathname.match(/^\/api\/report\/image\//);
-      const isPublicTeacherList = pathname === '/api/teachers' && method === 'GET';
-      if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage && !isPublicTeacherList) {
+      const isPublicTeacherNames = pathname === '/api/teachers/names' && method === 'GET';
+      if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage && !isPublicTeacherNames) {
         const authResult = await authMiddleware(context);
         if (authResult instanceof Response) {
           return addCorsHeaders(authResult, env, origin);

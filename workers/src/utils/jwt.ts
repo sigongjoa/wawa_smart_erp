@@ -13,8 +13,11 @@ export async function generateTokens(
   const now = Math.floor(Date.now() / 1000);
   const expiresIn = parseInt(env.JWT_EXPIRES_IN) || 3600;
   const refreshExpiresIn = parseInt(env.REFRESH_TOKEN_EXPIRES_IN) || 2592000;
-  const jwtSecret = encoder.encode(env.JWT_SECRET || 'dev-secret-key');
-  const refreshSecret = encoder.encode(env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key');
+  if (!env.JWT_SECRET || !env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be configured');
+  }
+  const jwtSecret = encoder.encode(env.JWT_SECRET);
+  const refreshSecret = encoder.encode(env.JWT_REFRESH_SECRET);
 
   // Access Token (1시간)
   const accessToken = await new SignJWT({
@@ -47,7 +50,8 @@ export async function verifyAccessToken(
   env: Env
 ): Promise<AuthPayload | null> {
   try {
-    const jwtSecret = encoder.encode(env.JWT_SECRET || 'dev-secret-key');
+    if (!env.JWT_SECRET) throw new Error('JWT_SECRET must be configured');
+    const jwtSecret = encoder.encode(env.JWT_SECRET);
     const { payload } = await jwtVerify(token, jwtSecret);
     return {
       userId: payload.userId as string,
@@ -64,7 +68,8 @@ export async function verifyAccessToken(
 
 export async function verifyRefreshToken(token: string, env: Env): Promise<any | null> {
   try {
-    const refreshSecret = encoder.encode(env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key');
+    if (!env.JWT_REFRESH_SECRET) throw new Error('JWT_REFRESH_SECRET must be configured');
+    const refreshSecret = encoder.encode(env.JWT_REFRESH_SECRET);
     const { payload } = await jwtVerify(token, refreshSecret);
     return payload;
   } catch (error) {

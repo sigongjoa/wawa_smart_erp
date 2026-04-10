@@ -81,6 +81,10 @@ export async function handleAbsence(
         return errorResponse('absences 배열 필수', 400);
       }
 
+      if (absences.length > 100) {
+        return errorResponse('한 번에 최대 100건까지 처리 가능', 400);
+      }
+
       const results = [];
       for (const a of absences) {
         const absenceId = crypto.randomUUID();

@@ -133,4 +133,51 @@ test.describe('전체 유즈케이스 플로우', () => {
 
     await ctx.close();
   });
+
+  test('UC7: 카카오톡 공유 복사 — R2 업로드 + 클립보드 텍스트 검증', async ({ browser }) => {
+    // clipboard API requires granted permissions
+    const ctx = await browser.newContext({
+      storageState: STORAGE_PATH,
+      permissions: ['clipboard-read', 'clipboard-write'],
+    });
+    const page = await ctx.newPage();
+
+    await page.goto('/#/report');
+    await page.waitForSelector('.page-title', { timeout: 10000 });
+    await waitForStudents(page);
+
+    // 첫 번째 학생 선택
+    const firstOption = page.locator('#student-select option').nth(1);
+    const studentName = await firstOption.textContent();
+    const firstValue = await firstOption.getAttribute('value');
+    await page.locator('#student-select').selectOption(firstValue!);
+    await page.waitForTimeout(500);
+
+    // 공유 버튼 클릭
+    const shareBtn = page.locator('button:has-text("카카오톡 공유 복사")');
+    await expect(shareBtn).toBeVisible();
+    await shareBtn.click();
+
+    // "업로드 중..." 상태 표시 확인
+    await expect(page.locator('button:has-text("업로드 중")')).toBeVisible({ timeout: 5000 });
+
+    // "복사 완료!" 상태가 나올 때까지 대기 (R2 업로드 포함)
+    await expect(page.locator('button:has-text("복사 완료")')).toBeVisible({ timeout: 30000 });
+
+    // 클립보드 내용 검증
+    const clipText = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clipText).toContain('[와와수학]');
+    expect(clipText).toContain('2026-04');
+    expect(clipText).toContain('월말평가 리포트');
+    expect(clipText).toContain(studentName!.trim());
+    expect(clipText).toContain('리포트 보기:');
+    // URL이 포함되어 있는지 확인
+    expect(clipText).toMatch(/https?:\/\/.+\/api\/report\/image\/.+\.png/);
+
+    // URL 추출하여 실제 접근 가능한지 확인
+    const urlMatch = clipText.match(/(https?:\/\/[^\s]+\.png)/);
+    expect(urlMatch).toBeTruthy();
+
+    await ctx.close();
+  });
 });

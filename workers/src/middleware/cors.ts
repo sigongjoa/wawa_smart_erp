@@ -6,14 +6,20 @@ export function corsHeaders(env: Env, origin?: string): Record<string, string> {
   // 동적 origin 결정
   let allowedOrigin = isDev ? env.FRONTEND_URL : 'https://wawa.app';
 
+  // 허용된 프로덕션 도메인 목록
+  const ALLOWED_ORIGINS = [
+    'https://wawa-smart-erp.pages.dev',
+    'https://wawa.app',
+  ];
+
   // 요청 origin이 있으면 확인
   if (origin) {
-    // 개발 환경 또는 localhost는 무조건 허용
+    // 개발 환경 또는 localhost는 허용
     if (isDev || origin.includes('localhost')) {
       allowedOrigin = origin;
     }
-    // pages.dev 도메인은 라이브 테스트용으로 허용
-    else if (origin.includes('pages.dev')) {
+    // 화이트리스트에 있는 도메인만 허용
+    else if (ALLOWED_ORIGINS.includes(origin)) {
       allowedOrigin = origin;
     }
   }

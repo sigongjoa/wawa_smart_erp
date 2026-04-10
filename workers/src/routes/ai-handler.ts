@@ -69,7 +69,7 @@ ${input.existingComment ? `선생님 메모: "${input.existingComment}" — 이 
 - 코멘트만 출력 (제목, 라벨, 번호 없이 자연스러운 문장으로)`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,7 +77,7 @@ ${input.existingComment ? `선생님 메모: "${input.existingComment}" — 이 
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 500,
+            maxOutputTokens: 1024,
           },
         }),
       }
@@ -132,7 +132,7 @@ async function handleGenerateSummary(
       `- ${g.subject}: ${g.score}점${g.comment ? ` (선생님 메모: ${g.comment})` : ''}`
     ).join('\n');
 
-    const prompt = `당신은 한국의 "와와학습코칭센터" 학원에서 학생을 직접 지도하는 담당 선생님입니다. 학부모님께 카카오톡으로 보내드리는 월말평가 리포트의 "총평"을 작성해주세요.
+    const prompt = `당신은 한국의 "와와학습코칭센터" 학원 담당 선생님입니다. 학부모님께 보내는 월말평가 총평을 작성해주세요.
 
 학생: ${input.studentName}
 평가 기간: ${input.yearMonth}
@@ -141,42 +141,22 @@ async function handleGenerateSummary(
 과목별 성적 및 선생님 메모:
 ${scoreList}
 
-[중요] 반드시 800자 이상으로 길고 구체적으로 작성하세요. 짧게 쓰지 마세요.
+[중요] 반드시 400~500자 이내로 작성하세요. 절대 500자를 초과하지 마세요.
 
-총평 구성 (자연스러운 문단으로, 번호/제목 없이):
+총평 구성 (번호/제목 없이 자연스러운 문단으로):
+1. 이번 달 학습 요약 (1~2문장) — 전체적인 학습 태도와 성과. 선생님 메모 반영.
+2. 과목별 핵심 피드백 (2~3문장) — 잘한 과목은 칭찬, 부족한 과목은 구체적 보완점.
+3. 다음 달 계획 (1~2문장) — 학원에서 할 구체적 액션 1~2가지.
+4. 마무리 격려 (1문장) — 짧고 진심 어린 격려.
 
-■ 이번 달 학습 요약 (2~3문장)
-- 수업 태도, 과제 수행도, 집중력 등을 구체적으로 서술
-- 선생님 메모 내용이 있으면 반드시 반영하여 서술
-
-■ 과목별 분석 (3~4문장)
-- 각 과목의 점수를 기반으로 강점과 약점을 구체적으로 언급
-- 잘한 과목: "~에서 ~개념을 정확히 이해하고 있어 ~점을 받았습니다"
-- 부족한 과목: "~과목에서는 ~부분에서 실수가 있었는데"
-- 선생님 메모 내용을 자연스럽게 녹여서 서술
-
-■ 학원의 구체적 액션 플랜 (3~4문장) ← 이 부분이 가장 중요합니다
-- 선생님이 다음 달에 이 학생을 위해 구체적으로 무엇을 할 것인지 명시
-- 반드시 아래와 같은 구체적인 행동을 포함:
-  · "다음 달부터 매 수업 시작 10분간 ~를 반복 훈련하겠습니다"
-  · "주 1회 ~영역 보충 프린트를 추가로 제공하겠습니다"
-  · "오답노트를 활용하여 틀린 유형을 매주 복습하도록 지도하겠습니다"
-  · "~단원 기초를 다시 잡기 위해 개별 보충 시간을 마련하겠습니다"
-  · "다음 평가까지 ~점 이상을 목표로 단계별 학습 계획을 세웠습니다"
-- 학원이 체계적으로 관리하고 있다는 신뢰감을 줄 것
-
-■ 가정 연계 (1~2문장)
-- 학부모님께서 가정에서 도와주시면 좋을 구체적인 사항 1~2가지
-- 예: "가정에서 하루 10분 ~연습을 해주시면 효과가 배가 됩니다"
-
-■ 마무리 격려 (1~2문장)
-- 학생의 가능성에 대한 진심 어린 격려
-- "저희 와와학습코칭센터에서 책임지고 꼼꼼히 지도하겠습니다"로 마무리
-
-코멘트만 출력하세요 (제목, 번호, ■ 기호 없이 하나의 자연스러운 문단으로).`;
+작성 규칙:
+- 존댓말, 따뜻하고 전문적인 톤
+- 선생님 메모가 있으면 자연스럽게 반영 (원문 그대로 인용하지 말 것)
+- 코멘트만 출력 (제목, 번호, 기호 없이)
+- 400~500자 엄수`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -184,7 +164,7 @@ ${scoreList}
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 2000,
+            maxOutputTokens: 1024,
           },
         }),
       }

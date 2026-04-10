@@ -494,23 +494,44 @@ async function handleMigrateCSV(
 }
 
 /**
- * GET /api/teachers - 선생님 목록 조회 (공개 - 로그인 페이지에서 필요)
+ * GET /api/teachers - 선생님 목록 조회 (인증 필요)
  */
 async function handleGetTeachers(context: RequestContext): Promise<Response> {
   try {
+    if (!context.auth) return unauthorizedResponse();
+
     const teachers = await executeQuery<any>(
       context.env.DB,
       `SELECT id, name, email, role, academy_id, created_at, updated_at
        FROM users
        WHERE academy_id = ? AND role IN ('teacher', 'admin')
        ORDER BY name`,
-      [context.auth?.academyId || 'acad-1']
+      [context.auth.academyId]
     );
 
     return successResponse(teachers);
   } catch (error) {
     logger.error('선생님 목록 조회 오류', error instanceof Error ? error : new Error(String(error)));
     return errorResponse('선생님 목록 조회에 실패했습니다', 500);
+  }
+}
+
+/**
+ * GET /api/teachers/names - 이름 목록만 조회 (공개 - 로그인 페이지용)
+ * 이메일, 역할 등 민감 정보 미포함
+ */
+async function handleGetTeacherNames(context: RequestContext): Promise<Response> {
+  try {
+    const teachers = await executeQuery<{ name: string }>(
+      context.env.DB,
+      `SELECT name FROM users WHERE academy_id = 'acad-1' AND role IN ('teacher', 'admin') ORDER BY name`,
+      []
+    );
+
+    return successResponse(teachers.map(t => t.name));
+  } catch (error) {
+    logger.error('선생님 이름 목록 조회 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('조회 실패', 500);
   }
 }
 
@@ -521,6 +542,10 @@ export async function handleTeachers(
   context: RequestContext
 ): Promise<Response> {
   try {
+    if (pathname === '/api/teachers/names' && method === 'GET') {
+      return await handleGetTeacherNames(context);
+    }
+
     if (pathname === '/api/teachers' && method === 'GET') {
       return await handleGetTeachers(context);
     }

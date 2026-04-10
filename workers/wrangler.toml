@@ -34,7 +34,15 @@ binding = "BUCKET"
 bucket_name = "wawa-smart-erp"
 jurisdiction = "eu"
 
-# 환경 변수 (Secrets는 wrangler secret로 설정)
+# 기본 환경 변수 (wrangler deploy 시 사용)
+[vars]
+API_URL = "https://wawa-smart-erp-api.zeskywa499.workers.dev"
+FRONTEND_URL = "https://wawa.app"
+JWT_EXPIRES_IN = "3600"
+REFRESH_TOKEN_EXPIRES_IN = "2592000"
+LOG_LEVEL = "info"
+
+# 개발 환경 변수 (wrangler dev 시 자동 오버라이드)
 [env.development.vars]
 ENVIRONMENT = "development"
 API_URL = "http://localhost:8787"
@@ -44,7 +52,7 @@ REFRESH_TOKEN_EXPIRES_IN = "2592000"
 LOG_LEVEL = "debug"
 
 [env.production.vars]
-API_URL = "https://api.wawa.app"
+API_URL = "https://wawa-smart-erp-api.zeskywa499.workers.dev"
 FRONTEND_URL = "https://wawa.app"
 JWT_EXPIRES_IN = "3600"
 REFRESH_TOKEN_EXPIRES_IN = "2592000"

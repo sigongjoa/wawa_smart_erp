@@ -6,12 +6,14 @@
 
 import { RequestContext } from '@/types';
 import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/response';
+import { executeFirst } from '@/utils/db';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
 
 // 이미지 업로드 스키마
 const UploadImageSchema = z.object({
   imageBase64: z.string().min(1, 'PNG 이미지가 필요합니다'),
+  studentId: z.string().min(1, '학생 ID가 필요합니다'),
   studentName: z.string().min(1, '학생 이름이 필요합니다'),
   yearMonth: z.string().regex(/^\d{4}-\d{2}$/, '년월 형식이 필요합니다 (YYYY-MM)'),
 });
@@ -56,6 +58,11 @@ async function handleUploadImage(
     const input = await parseUploadInput(request);
     logger.logRequest('POST', '/api/report/upload-image', undefined, ipAddress);
 
+    // Base64 크기 제한 (5MB 이미지 ≈ 6.7MB base64)
+    if (input.imageBase64.length > 7 * 1024 * 1024) {
+      return errorResponse('이미지 크기가 5MB를 초과합니다', 413);
+    }
+
     // Base64에서 바이너리로 변환
     const base64Data = input.imageBase64.replace(/^data:image\/png;base64,/, '');
     const binaryString = atob(base64Data);
@@ -85,6 +92,46 @@ async function handleUploadImage(
     const baseUrl = context.env.API_URL || new URL(context.request.url).origin;
     const shareUrl = `${baseUrl}/api/report/image/${filePath}`;
 
+    // report_sends 기록 — 이전 이미지가 있으면 R2에서 삭제 후 UPSERT
+    const academyId = context.auth.academyId;
+    const sentBy = context.auth.userId;
+    const now = new Date().toISOString();
+
+    try {
+      const existing = await executeFirst<any>(
+        context.env.DB,
+        `SELECT id, image_path FROM report_sends
+         WHERE academy_id = ? AND student_id = ? AND year_month = ?`,
+        [academyId, input.studentId, input.yearMonth]
+      );
+
+      if (existing) {
+        // 이전 R2 이미지 삭제 (실패해도 진행)
+        try {
+          await context.env.BUCKET.delete(existing.image_path);
+        } catch {
+          logger.warn('이전 이미지 삭제 실패 (무시)', { path: existing.image_path });
+        }
+
+        // 기존 레코드 업데이트
+        await context.env.DB.prepare(
+          `UPDATE report_sends
+           SET share_url = ?, image_path = ?, sent_by = ?, sent_at = ?
+           WHERE id = ?`
+        ).bind(shareUrl, filePath, sentBy, now, existing.id).run();
+      } else {
+        // 신규 레코드 삽입
+        const sendId = generateId('send');
+        await context.env.DB.prepare(
+          `INSERT INTO report_sends (id, academy_id, student_id, year_month, share_url, image_path, sent_by, sent_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(sendId, academyId, input.studentId, input.yearMonth, shareUrl, filePath, sentBy, now).run();
+      }
+    } catch (dbError) {
+      // DB 기록 실패해도 이미지 업로드는 성공으로 처리
+      logger.warn('report_sends 기록 실패', { error: dbError instanceof Error ? dbError.message : String(dbError) });
+    }
+
     logger.logRequest('POST', '/api/report/upload-image', 'success', ipAddress);
 
     return successResponse(
@@ -92,7 +139,7 @@ async function handleUploadImage(
         fileName,
         filePath,
         shareUrl,
-        imageUrl: shareUrl, // 클라이언트에서 사용할 URL
+        imageUrl: shareUrl,
       },
       201
     );

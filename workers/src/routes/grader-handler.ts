@@ -359,19 +359,21 @@ async function handleCreateGrade(
     let gradeId: string;
 
     if (existing) {
-      // UPDATE
+      // UPDATE — 전달된 필드만 업데이트 (comments가 undefined면 기존 값 유지)
       gradeId = existing.id;
+      const setClauses = ['score = ?', 'graded_at = ?', 'graded_by = ?'];
+      const params: any[] = [input.score, now, context.auth?.userId || 'unknown'];
+
+      if (input.comments !== undefined) {
+        setClauses.splice(1, 0, 'comments = ?');
+        params.splice(1, 0, input.comments || null);
+      }
+
+      params.push(gradeId);
       const result = await executeUpdate(
         context.env.DB,
-        `UPDATE grades SET score = ?, comments = ?, graded_at = ?, graded_by = ?
-         WHERE id = ?`,
-        [
-          input.score,
-          input.comments || null,
-          now,
-          context.auth?.userId || 'unknown',
-          gradeId,
-        ]
+        `UPDATE grades SET ${setClauses.join(', ')} WHERE id = ?`,
+        params
       );
       if (!result) {
         throw new Error('성적 수정 실패');

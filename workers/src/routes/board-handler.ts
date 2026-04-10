@@ -64,8 +64,8 @@ export async function handleBoard(
         [noticeId, context.auth!.academyId, context.auth!.userId, title, content || '', category || 'general', isPinned ? 1 : 0, dueDate || null]
       );
 
-      // 액션 아이템이 함께 전달되면 생성
-      if (actionItems && Array.isArray(actionItems)) {
+      // 액션 아이템이 함께 전달되면 생성 (최대 20개)
+      if (actionItems && Array.isArray(actionItems) && actionItems.length <= 20) {
         for (const item of actionItems) {
           if (!item.title || !item.assignedTo) continue;
           const actionId = crypto.randomUUID();

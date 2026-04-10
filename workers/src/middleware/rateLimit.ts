@@ -2,7 +2,7 @@ import { RequestContext } from '@/types';
 import { errorResponse } from '@/utils/response';
 
 const RATE_LIMIT_WINDOW = 60; // 1분
-const RATE_LIMIT_REQUESTS = 1000; // 1분에 1000개 요청 (테스트 환경용)
+const RATE_LIMIT_REQUESTS = 300; // 1분에 300개 요청
 
 export async function rateLimitMiddleware(
   context: RequestContext
