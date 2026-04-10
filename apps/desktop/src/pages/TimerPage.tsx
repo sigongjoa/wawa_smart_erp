@@ -221,17 +221,19 @@ export default function TimerPage() {
             ) : (
               <div className="timer-class-list">
                 {todayClasses.map((c) => (
-                  <div
+                  <button
                     key={c.id}
+                    type="button"
                     className={`timer-class-card ${selectedClass?.id === c.id ? 'timer-class-card--active' : ''}`}
                     onClick={() => setSelectedClass(c)}
+                    aria-pressed={selectedClass?.id === c.id}
                   >
                     <div className="timer-class-name">{c.name}</div>
                     <div className="timer-class-time">
                       {c.start_time} ~ {c.end_time}
                     </div>
                     {c.grade && <div className="timer-class-grade">{c.grade}</div>}
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -245,10 +247,12 @@ export default function TimerPage() {
                     .filter((c) => c.day_of_week !== todayDow)
                     .sort((a, b) => (a.day_of_week || 0) - (b.day_of_week || 0))
                     .map((c) => (
-                      <div
+                      <button
                         key={c.id}
+                        type="button"
                         className={`timer-class-card timer-class-card--other ${selectedClass?.id === c.id ? 'timer-class-card--active' : ''}`}
                         onClick={() => setSelectedClass(c)}
+                        aria-pressed={selectedClass?.id === c.id}
                       >
                         <div className="timer-class-name">
                           <span className="timer-dow-badge">{DAY_NAMES[c.day_of_week || 0]}</span>
@@ -257,7 +261,7 @@ export default function TimerPage() {
                         <div className="timer-class-time">
                           {c.start_time} ~ {c.end_time}
                         </div>
-                      </div>
+                      </button>
                     ))}
                 </div>
               </>
@@ -387,8 +391,8 @@ export default function TimerPage() {
                   <p className="leave-none">결석 없음</p>
                 ) : (
                   <div className="leave-list">
-                    {dailySummary.todayAbsences.map((a: any, i: number) => (
-                      <div key={i} className="leave-item">
+                    {dailySummary.todayAbsences.map((a: any) => (
+                      <div key={a.student_name + a.class_name} className="leave-item">
                         <span className="leave-item-name">{a.student_name}</span>
                         <span className="leave-item-class">{a.class_name}</span>
                         <span className="leave-item-reason">{a.reason || '미통보'}</span>
@@ -404,8 +408,8 @@ export default function TimerPage() {
                   <p className="leave-none">없음</p>
                 ) : (
                   <div className="leave-list">
-                    {dailySummary.pendingMakeups.map((m: any, i: number) => (
-                      <div key={i} className="leave-item">
+                    {dailySummary.pendingMakeups.map((m: any) => (
+                      <div key={m.student_name + m.absence_date} className="leave-item">
                         <span className="leave-item-name">{m.student_name}</span>
                         <span className="leave-item-class">{m.absence_date} {m.class_name}</span>
                         <span className="leave-item-reason">미지정</span>

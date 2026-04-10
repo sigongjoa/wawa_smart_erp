@@ -286,7 +286,7 @@ export default function ReportPage() {
         <div className="report-progress">
           <span className="report-progress-label">전송 현황</span>
           <span className="report-progress-value">{sentCount}/{students.length}</span>
-          <div className="report-progress-bar">
+          <div className="report-progress-bar" role="progressbar" aria-valuenow={sentCount} aria-valuemin={0} aria-valuemax={students.length} aria-label="전송 진행률">
             <div
               className="report-progress-fill"
               style={{ width: students.length ? `${(sentCount / students.length) * 100}%` : '0%' }}
@@ -325,6 +325,10 @@ export default function ReportPage() {
                       key={student.id}
                       className={`send-row ${isSelected ? 'send-row--active' : ''}`}
                       onClick={() => setSelectedStudent(student.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedStudent(student.id); } }}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={isSelected}
                     >
                       <td className="send-cell-num">{idx + 1}</td>
                       <td className="send-cell-name">

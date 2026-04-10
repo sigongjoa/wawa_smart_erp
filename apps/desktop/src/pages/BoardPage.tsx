@@ -214,15 +214,19 @@ export default function BoardPage() {
                     const cat = CATEGORIES[n.category] || CATEGORIES.general;
                     const dday = getDday(n.due_date);
                     return (
-                      <div
+                      <article
                         key={n.id}
                         className={`board-card board-card--pinned ${!n.is_read ? 'board-card--unread' : ''}`}
+                        role={!n.is_read ? 'button' : undefined}
+                        tabIndex={!n.is_read ? 0 : undefined}
                         onClick={() => !n.is_read && handleReadNotice(n.id)}
+                        onKeyDown={(e) => { if (!n.is_read && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleReadNotice(n.id); } }}
+                        aria-label={`${n.title} — ${!n.is_read ? '읽지 않음, 클릭하여 읽음 처리' : '읽음'}`}
                       >
                         <div className="board-card-top">
                           <span className="board-cat" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                           {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
-                          <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} title="고정 해제">📌</button>
+                          <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정 해제">📌</button>
                         </div>
                         <div className="board-card-title">{n.title}</div>
                         {n.content && <div className="board-card-content">{n.content}</div>}
@@ -230,7 +234,7 @@ export default function BoardPage() {
                           <span>읽음: {n.read_count}/{n.total_users}명</span>
                           <span>{n.author_name} · {formatDate(n.created_at)}</span>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -248,7 +252,7 @@ export default function BoardPage() {
                     const dday = getDday(a.due_date);
                     return (
                       <div key={a.id} className="board-action-row">
-                        <button className="board-check" onClick={() => handleToggleAction(a)}>☐</button>
+                        <button className="board-check" onClick={() => handleToggleAction(a)} aria-label={`${a.title} 완료 처리`}>☐</button>
                         <div className="board-action-info">
                           <span className="board-action-title">{a.title}</span>
                           {a.notice_title && <span className="board-action-notice">← {a.notice_title}</span>}
@@ -260,7 +264,7 @@ export default function BoardPage() {
                   })}
                   {completedActions.slice(0, 5).map((a) => (
                     <div key={a.id} className="board-action-row board-action-row--done">
-                      <button className="board-check board-check--done" onClick={() => handleToggleAction(a)}>☑</button>
+                      <button className="board-check board-check--done" onClick={() => handleToggleAction(a)} aria-label={`${a.title} 미완료로 되돌리기`}>☑</button>
                       <span className="board-action-title board-action-title--done">{a.title}</span>
                       {a.completed_at && <span className="board-action-due">{formatDate(a.completed_at)}</span>}
                     </div>
@@ -299,21 +303,24 @@ export default function BoardPage() {
                 {recentNotices.map((n) => {
                   const cat = CATEGORIES[n.category] || CATEGORIES.general;
                   return (
-                    <div
+                    <article
                       key={n.id}
                       className={`board-notice-item ${!n.is_read ? 'board-notice-item--unread' : ''}`}
+                      role={!n.is_read ? 'button' : undefined}
+                      tabIndex={!n.is_read ? 0 : undefined}
                       onClick={() => !n.is_read && handleReadNotice(n.id)}
+                      onKeyDown={(e) => { if (!n.is_read && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleReadNotice(n.id); } }}
                     >
                       <div className="board-notice-item-top">
                         <span className="board-cat board-cat--sm" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                         <span className="board-notice-date">{formatDate(n.created_at)}</span>
-                        <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} title="고정">📌</button>
-                        <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} title="삭제">×</button>
+                        <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정">📌</button>
+                        <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label="삭제">×</button>
                       </div>
                       <div className="board-notice-item-title">{n.title}</div>
                       {n.content && <div className="board-notice-item-body">{n.content.slice(0, 80)}{n.content.length > 80 ? '...' : ''}</div>}
                       <div className="board-notice-item-meta">{n.author_name} · 읽음 {n.read_count}/{n.total_users}</div>
-                    </div>
+                    </article>
                   );
                 })}
               </div>
@@ -337,8 +344,8 @@ export default function BoardPage() {
                   고정
                 </label>
               </div>
-              <input className="form-input" placeholder="제목" value={noticeForm.title} onChange={(e) => setNoticeForm((p) => ({ ...p, title: e.target.value }))} />
-              <textarea className="form-textarea" placeholder="내용 (선택)" rows={3} value={noticeForm.content} onChange={(e) => setNoticeForm((p) => ({ ...p, content: e.target.value }))} />
+              <input className="form-input" placeholder="제목" aria-label="공지 제목" value={noticeForm.title} onChange={(e) => setNoticeForm((p) => ({ ...p, title: e.target.value }))} />
+              <textarea className="form-textarea" placeholder="내용 (선택)" aria-label="공지 내용" rows={3} value={noticeForm.content} onChange={(e) => setNoticeForm((p) => ({ ...p, content: e.target.value }))} />
               <div className="form-row">
                 <label className="form-label">기한</label>
                 <input type="date" className="form-input form-input--sm" value={noticeForm.dueDate} onChange={(e) => setNoticeForm((p) => ({ ...p, dueDate: e.target.value }))} />
@@ -378,13 +385,13 @@ export default function BoardPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">할일 추가</h3>
             <div className="modal-body">
-              <input className="form-input" placeholder="할일 제목" value={actionForm.title} onChange={(e) => setActionForm((p) => ({ ...p, title: e.target.value }))} />
-              <select className="form-select" value={actionForm.assignedTo} onChange={(e) => setActionForm((p) => ({ ...p, assignedTo: e.target.value }))}>
+              <input className="form-input" placeholder="할일 제목" aria-label="할일 제목" value={actionForm.title} onChange={(e) => setActionForm((p) => ({ ...p, title: e.target.value }))} />
+              <select className="form-select" aria-label="담당자 선택" value={actionForm.assignedTo} onChange={(e) => setActionForm((p) => ({ ...p, assignedTo: e.target.value }))}>
                 <option value="">담당자 선택</option>
                 {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
-              <input type="date" className="form-input" value={actionForm.dueDate} onChange={(e) => setActionForm((p) => ({ ...p, dueDate: e.target.value }))} />
-              <textarea className="form-textarea" placeholder="설명 (선택)" rows={2} value={actionForm.description} onChange={(e) => setActionForm((p) => ({ ...p, description: e.target.value }))} />
+              <input type="date" className="form-input" aria-label="마감일" value={actionForm.dueDate} onChange={(e) => setActionForm((p) => ({ ...p, dueDate: e.target.value }))} />
+              <textarea className="form-textarea" placeholder="설명 (선택)" aria-label="할일 설명" rows={2} value={actionForm.description} onChange={(e) => setActionForm((p) => ({ ...p, description: e.target.value }))} />
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowActionModal(false)}>취소</button>
