@@ -81,10 +81,10 @@ test.describe('학생 성장 대시보드 — UI 플로우 테스트', () => {
     const pageErrorsDuringNav = errors.length;
     console.log(`✅ 페이지 에러: ${pageErrorsDuringNav === 0 ? '없음' : pageErrorsDuringNav + '건'}`);
 
-    // "학생 목록" 텍스트 확인
+    // "내 학생" 텍스트 확인
     const bodyText = await page.locator('body').innerText();
-    const hasTitle = bodyText.includes('학생 목록');
-    console.log(`  "학생 목록" 표시: ${hasTitle ? '✅' : '❌'}`);
+    const hasTitle = bodyText.includes('내 학생');
+    console.log(`  "내 학생" 표시: ${hasTitle ? '✅' : '❌'}`);
     expect(hasTitle).toBe(true);
 
     // 검색 인풋 존재
@@ -354,7 +354,7 @@ test.describe('학생 성장 대시보드 — UI 플로우 테스트', () => {
 
     // 학생 목록 제목 확인
     const bodyText = await page.locator('body').innerText();
-    expect(bodyText).toContain('학생 목록');
+    expect(bodyText).toContain('내 학생');
 
     // 카드가 다시 보이는지
     const cards = await page.locator('.student-card').count();
@@ -374,7 +374,7 @@ test.describe('학생 성장 대시보드 — UI 플로우 테스트', () => {
     await page.waitForTimeout(3000);
 
     const bodyText = await page.locator('body').innerText();
-    expect(bodyText).toContain('학생 목록');
+    expect(bodyText).toContain('내 학생');
 
     const cards = await page.locator('.student-card').count();
     console.log(`✅ 복귀 후 학생 카드: ${cards}개`);

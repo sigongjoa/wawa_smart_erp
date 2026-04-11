@@ -1,9 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, Student } from '../api';
+import { useAuthStore } from '../store';
 
 export default function StudentListPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin';
+
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState('');
   const [activeOnly, setActiveOnly] = useState(true);
@@ -27,7 +31,10 @@ export default function StudentListPage() {
   return (
     <div className="student-list-page">
       <div className="student-list-header">
-        <h2>학생 목록</h2>
+        <div className="student-list-title-row">
+          <h2>내 학생</h2>
+          <span className="student-count">{filtered.length}명</span>
+        </div>
         <div className="student-list-filters">
           <input
             type="text"
@@ -50,7 +57,7 @@ export default function StudentListPage() {
       {loading ? (
         <p className="student-list-empty">불러오는 중...</p>
       ) : filtered.length === 0 ? (
-        <p className="student-list-empty">학생이 없습니다</p>
+        <p className="student-list-empty">담당 학생이 없습니다</p>
       ) : (
         <div className="student-list-grid">
           {filtered.map((s) => (
@@ -61,7 +68,7 @@ export default function StudentListPage() {
             >
               <div className="student-card-name">{s.name}</div>
               <div className="student-card-meta">
-                {s.grade && <span>{s.grade}</span>}
+                {s.grade && <span className="student-card-grade">{s.grade}</span>}
                 {s.subjects.length > 0 && (
                   <span className="student-card-subjects">
                     {s.subjects.join(', ')}

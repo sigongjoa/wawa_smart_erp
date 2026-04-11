@@ -2042,9 +2042,28 @@ body {
   gap: 12px;
 }
 
+.student-list-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .student-list-header h2 {
   font-size: 20px;
   font-weight: 600;
+}
+
+.student-count {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.student-card-grade {
+  background: var(--color-bg-card);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
 }
 
 .student-list-filters {

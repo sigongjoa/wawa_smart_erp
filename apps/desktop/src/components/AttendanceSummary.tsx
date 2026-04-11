@@ -39,8 +39,8 @@ export default function AttendanceSummary({ data }: Props) {
           {data.recentAbsences.slice(0, 3).map((a, i) => (
             <div key={i} className="absence-row">
               <span>{a.date}</span>
-              <span>{a.className}</span>
               {a.reason && <span className="absence-reason">{a.reason}</span>}
+              {!a.reason && <span className="absence-reason">사유 없음</span>}
             </div>
           ))}
         </div>
