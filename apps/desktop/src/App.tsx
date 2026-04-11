@@ -8,6 +8,8 @@ import ReportPage from './pages/ReportPage';
 import SettingsPage from './pages/SettingsPage';
 import AbsencePage from './pages/AbsencePage';
 import BoardPage from './pages/BoardPage';
+import StudentListPage from './pages/StudentListPage';
+import StudentProfilePage from './pages/StudentProfilePage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -40,6 +42,8 @@ export default function App() {
           <Route path="/timer" element={<TimerPage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/absence" element={<AbsencePage />} />
+          <Route path="/student" element={<StudentListPage />} />
+          <Route path="/student/:id" element={<StudentProfilePage />} />
           <Route path="/board" element={<BoardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

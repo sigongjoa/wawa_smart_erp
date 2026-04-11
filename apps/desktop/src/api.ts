@@ -82,6 +82,29 @@ export interface Student {
   class_id: string;
   subjects: string[];
   status: string;
+  grade?: string;
+  guardian_contact?: string;
+  enrollment_date?: string;
+}
+
+export interface StudentProfile extends Student {
+  teachers: { id: string; name: string }[];
+}
+
+export interface CommentHistoryEntry {
+  yearMonth: string;
+  scores: { subject: string; score: number; comment: string }[];
+  totalComment: string;
+}
+
+export interface AttendanceSummary {
+  totalClasses: number;
+  present: number;
+  absent: number;
+  late: number;
+  attendanceRate: number;
+  recentAbsences: { date: string; className: string; reason: string }[];
+  makeups: { completed: number; pending: number };
 }
 
 export interface Exam {
@@ -176,6 +199,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // ── 학생 성장 대시보드 ──
+
+  getStudentProfile: (id: string) =>
+    request<StudentProfile>(`/api/student/${id}/profile`),
+
+  getStudentComments: (id: string, months?: number) =>
+    request<CommentHistoryEntry[]>(`/api/student/${id}/comments?months=${months || 12}`),
+
+  getStudentAttendance: (id: string, months?: number) =>
+    request<AttendanceSummary>(`/api/student/${id}/attendance?months=${months || 6}`),
 
   // ── 시간표/수업 ──
 
