@@ -293,6 +293,53 @@ export default function TimerPage() {
     }
   };
 
+  // ─── 퇴근(수업 마침) ───────────────────────────
+  const [finishOpen, setFinishOpen] = useState(false);
+  const [finishResult, setFinishResult] = useState<{
+    date: string;
+    absentStudents: string[];
+    recorded: number;
+  } | null>(null);
+  const [finishing, setFinishing] = useState(false);
+
+  const handleFinishDay = async () => {
+    // 진행 중 세션이 있으면 경고
+    if (active.length + paused.length > 0) {
+      const ok = await confirmDialog(
+        `수업 중인 학생이 ${active.length + paused.length}명 있습니다.\n먼저 모든 수업을 종료해야 퇴근할 수 있습니다.`
+      );
+      return;
+    }
+
+    if (waiting.length === 0) {
+      toast.info('모든 학생이 수업을 완료했습니다. 퇴근 처리할 학생이 없습니다.');
+      return;
+    }
+
+    // 대기 학생 목록을 보여주고 확인
+    setFinishOpen(true);
+  };
+
+  const confirmFinishDay = async () => {
+    setFinishing(true);
+    try {
+      const date = todayStr();
+      const res = await api.finishDay({ date });
+      setFinishResult({
+        date,
+        absentStudents: waiting.map((s) => s.name),
+        recorded: res.recorded,
+      });
+      await load(); // 목록 새로고침
+      toast.success(`${res.recorded}명 결석 처리 + 보강 등록 완료`);
+    } catch (err) {
+      toast.error('퇴근 처리 실패: ' + (err as Error).message);
+      setFinishOpen(false);
+    } finally {
+      setFinishing(false);
+    }
+  };
+
   return (
     <div className="rt-root">
       <div className="page-header">
@@ -332,6 +379,16 @@ export default function TimerPage() {
           {paused.length > 0 && <span className="rt-pill paused">정지 <strong>{paused.length}</strong></span>}
           <span className="rt-pill completed">완료 <strong>{completed}</strong></span>
         </div>
+        {isToday && (
+          <button
+            className="rt-finish-day-btn"
+            onClick={handleFinishDay}
+            type="button"
+            data-testid="finish-day-btn"
+          >
+            퇴근
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -453,6 +510,97 @@ export default function TimerPage() {
             <button className="rt-pause-skip" onClick={() => confirmPause()} type="button">
               사유 없이 정지
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 퇴근 확인 모달 */}
+      {finishOpen && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="퇴근 확인"
+          onClick={() => { if (!finishing) { setFinishOpen(false); setFinishResult(null); } }}
+          onKeyDown={(e) => { if (e.key === 'Escape' && !finishing) { setFinishOpen(false); setFinishResult(null); } }}
+        >
+          <div className="modal-content rt-finish-modal" onClick={(e) => e.stopPropagation()}>
+            {!finishResult ? (
+              <>
+                <h3 className="rt-finish-title">퇴근 — 수업 마침</h3>
+                <p className="rt-finish-desc">
+                  아래 <strong>{waiting.length}명</strong>이 오늘 수업에 오지 않았습니다.
+                  <br />퇴근 처리하면 일괄 <strong>결석 + 보강</strong> 등록됩니다.
+                </p>
+                <ul className="rt-finish-student-list">
+                  {waiting.map((s) => (
+                    <li key={s.id} className="rt-finish-student-item">
+                      <span className="rt-student-name">{s.name}</span>
+                      {s.grade && <span className={`grade-badge ${gradeClass(s.grade)}`}>{s.grade}</span>}
+                      {s.enrollments[0] && (
+                        <span className="rt-finish-student-time">
+                          {s.enrollments[0].startTime}~{s.enrollments[0].endTime}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setFinishOpen(false)}
+                    disabled={finishing}
+                    type="button"
+                  >
+                    취소
+                  </button>
+                  <button
+                    className="btn btn-danger"
+                    onClick={confirmFinishDay}
+                    disabled={finishing}
+                    type="button"
+                    data-testid="confirm-finish-day"
+                  >
+                    {finishing ? '처리 중...' : '퇴근 처리'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="rt-finish-title">퇴근 완료</h3>
+                <div className="rt-finish-summary">
+                  <div className="rt-finish-summary-item">
+                    <span className="rt-finish-summary-label">날짜</span>
+                    <span className="rt-finish-summary-value">{finishResult.date}</span>
+                  </div>
+                  <div className="rt-finish-summary-item">
+                    <span className="rt-finish-summary-label">수업 완료</span>
+                    <span className="rt-finish-summary-value">{completed}명</span>
+                  </div>
+                  <div className="rt-finish-summary-item rt-finish-summary-item--absent">
+                    <span className="rt-finish-summary-label">결석 처리</span>
+                    <span className="rt-finish-summary-value">{finishResult.recorded}명</span>
+                  </div>
+                  {finishResult.absentStudents.length > 0 && (
+                    <div className="rt-finish-absent-names">
+                      {finishResult.absentStudents.join(', ')}
+                    </div>
+                  )}
+                </div>
+                <p className="rt-finish-notice">
+                  보강 관리 페이지에서 보강일을 지정할 수 있습니다.
+                </p>
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => { setFinishOpen(false); setFinishResult(null); }}
+                    type="button"
+                  >
+                    확인
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

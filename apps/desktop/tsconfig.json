@@ -22,9 +22,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@wawa/notion-client": [
-        "../../packages/notion-client/src"
       ]
     }
   },

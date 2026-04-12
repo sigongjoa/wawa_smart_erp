@@ -46,7 +46,6 @@ class Logger {
         error: {
           name: error.name,
           message: error.message,
-          stack: error.stack,
         },
       }),
     };

@@ -37,7 +37,7 @@ export async function handleFile(
       }
 
       const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 15);
+      const randomId = crypto.randomUUID();
       const extension = file.name.split('.').pop() || 'bin';
       const key = `${folder}/${timestamp}-${randomId}-${userId}.${extension}`;
 
@@ -77,8 +77,10 @@ export async function handleFile(
 
       const userId = context.auth!.userId;
 
-      // 소유권 검증: 파일 경로에 userId가 포함되어야 함
-      if (!key.includes(userId)) {
+      // 소유권 검증: 파일명 형식 timestamp-uuid-userId.ext 에서 userId 정확 매칭
+      const downloadFileName = key.split('/').pop() || '';
+      const downloadOwnerMatch = downloadFileName.match(/-([^-.]+)\.[^.]+$/);
+      if (!downloadOwnerMatch || downloadOwnerMatch[1] !== userId) {
         return errorResponse('권한이 없습니다', 403);
       }
 

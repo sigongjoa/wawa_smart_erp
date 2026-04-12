@@ -4,11 +4,18 @@ import { toast } from '../components/Toast';
 
 // Debounce hook
 function useDebounce(fn: (...args: any[]) => void, delay: number) {
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
   const timer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, []);
+
   return useCallback((...args: any[]) => {
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => fn(...args), delay);
-  }, [fn, delay]);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => fnRef.current(...args), delay);
+  }, [delay]);
 }
 
 // 저장 상태 타입
@@ -17,10 +24,22 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 // 개별 셀 저장 상태 관리
 function useCellStatus() {
   const [statuses, setStatuses] = useState<Record<string, SaveStatus>>({});
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(timers.current).forEach(clearTimeout);
+    };
+  }, []);
+
   const set = (key: string, status: SaveStatus) => {
     setStatuses((prev) => ({ ...prev, [key]: status }));
     if (status === 'saved') {
-      setTimeout(() => setStatuses((prev) => ({ ...prev, [key]: 'idle' })), 2000);
+      if (timers.current[key]) clearTimeout(timers.current[key]);
+      timers.current[key] = setTimeout(() => {
+        setStatuses((prev) => ({ ...prev, [key]: 'idle' }));
+        delete timers.current[key];
+      }, 1500);
     }
   };
   return { statuses, set };
@@ -205,14 +224,17 @@ export default function ReportPage() {
       canvas.toBlob((blob) => {
         if (!blob) return;
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const typeLabel = REPORT_TYPE_LABEL[reportType];
-        a.download = `${typeLabel}리포트-${currentStudent?.name || selectedStudent}-${activePeriodKey}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        try {
+          const a = document.createElement('a');
+          a.href = url;
+          const typeLabel = REPORT_TYPE_LABEL[reportType];
+          a.download = `${typeLabel}리포트-${currentStudent?.name || selectedStudent}-${activePeriodKey}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } finally {
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
       }, 'image/jpeg', 0.95);
     } catch (err) {
       toast.error('다운로드 실패: ' + (err as Error).message);
@@ -275,6 +297,7 @@ export default function ReportPage() {
 
   // 학생 선택 시 점수 추이 로드
   useEffect(() => {
+    commentRefs.current = {};
     if (!selectedStudent) { setScoreHistory(null); return; }
     api.getScoreHistory(selectedStudent, 6).then(setScoreHistory).catch(() => setScoreHistory(null));
   }, [selectedStudent]);

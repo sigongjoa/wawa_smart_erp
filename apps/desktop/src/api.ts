@@ -29,8 +29,7 @@ function forceLogout() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
-  window.location.hash = '#/login';
-  window.location.reload();
+  window.location.href = '/';
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -205,7 +204,7 @@ export const api = {
 
   // Exams — returns Exam[] directly
   getExams: (yearMonth?: string) =>
-    request<Exam[]>(yearMonth ? `/api/grader/exams?yearMonth=${yearMonth}` : '/api/grader/exams'),
+    request<Exam[]>(yearMonth ? `/api/grader/exams?${new URLSearchParams({ yearMonth })}` : '/api/grader/exams'),
 
   // Grades
   saveGrade: (data: { student_id: string; exam_id: string; score: number; comments?: string }) =>
@@ -228,7 +227,7 @@ export const api = {
   // Score history — 월말평가 전용 (과목별 월간 점수 추이)
   getScoreHistory: (studentId: string, months?: number) =>
     request<{ months: string[]; subjects: Record<string, (number | null)[]> }>(
-      `/api/report/history?studentId=${studentId}&months=${months || 6}`
+      `/api/report/history?${new URLSearchParams({ studentId, months: String(months || 6) })}`
     ),
 
   // Report Send Status
@@ -290,10 +289,10 @@ export const api = {
     request<StudentProfile>(`/api/student/${id}/profile`),
 
   getStudentComments: (id: string, months?: number) =>
-    request<CommentHistoryEntry[]>(`/api/student/${id}/comments?months=${months || 12}`),
+    request<CommentHistoryEntry[]>(`/api/student/${id}/comments?${new URLSearchParams({ months: String(months || 12) })}`),
 
   getStudentAttendance: (id: string, months?: number) =>
-    request<AttendanceSummary>(`/api/student/${id}/attendance?months=${months || 6}`),
+    request<AttendanceSummary>(`/api/student/${id}/attendance?${new URLSearchParams({ months: String(months || 6) })}`),
 
   // ── 시간표/수업 ──
 
@@ -326,7 +325,7 @@ export const api = {
         attendance_id: string | null;
         notes: string | null;
       }>;
-    }>(`/api/timer/today-students?date=${date}`),
+    }>(`/api/timer/today-students?${new URLSearchParams({ date })}`),
 
   // 수업 마침 — 오늘 담당 학생 중 pending 전원 일괄 결석 처리
   finishDay: (data: { date: string }) =>
@@ -361,7 +360,7 @@ export const api = {
   // 수강일정 CRUD
   listEnrollments: (studentId: string) =>
     request<Array<{ id: string; studentId: string; day: string; startTime: string; endTime: string; subject?: string | null }>>(
-      `/api/timer/enrollments?studentId=${studentId}`
+      `/api/timer/enrollments?${new URLSearchParams({ studentId })}`
     ),
   createEnrollment: (data: { studentId: string; day: string; startTime: string; endTime: string; subject?: string }) =>
     request('/api/timer/enrollments', { method: 'POST', body: JSON.stringify(data) }),
@@ -408,21 +407,21 @@ export const api = {
 
   // 날짜별 결석 조회
   getAbsences: (date: string) =>
-    request<any[]>(`/api/absence?date=${date}`),
+    request<any[]>(`/api/absence?${new URLSearchParams({ date })}`),
 
   // 수업 마침 시 미출석자 조회
   getUncheckedStudents: (classId: string, date: string) =>
-    request<any[]>(`/api/absence/unchecked?classId=${classId}&date=${date}`),
+    request<any[]>(`/api/absence/unchecked?${new URLSearchParams({ classId, date })}`),
 
   // 퇴근 요약
   getDailySummary: (date: string) =>
     request<{ date: string; todayAbsences: any[]; pendingMakeups: any[]; clipboardText: string }>(
-      `/api/absence/daily-summary?date=${date}`
+      `/api/absence/daily-summary?${new URLSearchParams({ date })}`
     ),
 
   // 보강 목록 (상태 필터)
   getMakeups: (status?: string) =>
-    request<any[]>(status ? `/api/makeup?status=${status}` : '/api/makeup'),
+    request<any[]>(status ? `/api/makeup?${new URLSearchParams({ status })}` : '/api/makeup'),
 
   // 보강일 지정
   scheduleMakeup: (data: { absenceId: string; scheduledDate: string; notes?: string }) =>
@@ -437,7 +436,7 @@ export const api = {
 
   // 수업별 배정 학생 조회
   getClassStudents: (classId: string) =>
-    request<any[]>(`/api/absence/class-students?classId=${classId}`),
+    request<any[]>(`/api/absence/class-students?${new URLSearchParams({ classId })}`),
 
   // 학생 수업 배정
   assignStudent: (data: { classId: string; studentId: string }) =>
@@ -454,7 +453,7 @@ export const api = {
 
   // 공지 목록
   getNotices: (category?: string) =>
-    request<any[]>(category ? `/api/board/notices?category=${category}` : '/api/board/notices'),
+    request<any[]>(category ? `/api/board/notices?${new URLSearchParams({ category })}` : '/api/board/notices'),
 
   // 공지 작성 (액션 아이템 함께 생성 가능)
   createNotice: (data: { title: string; content?: string; category?: string; isPinned?: boolean; dueDate?: string; actionItems?: Array<{ title: string; assignedTo: string; dueDate?: string; description?: string }> }) =>
@@ -474,7 +473,7 @@ export const api = {
 
   // 전체 액션 목록
   getActions: (status?: string) =>
-    request<any[]>(status ? `/api/board/actions?status=${status}` : '/api/board/actions'),
+    request<any[]>(status ? `/api/board/actions?${new URLSearchParams({ status })}` : '/api/board/actions'),
 
   // 내 할일
   getMyActions: () =>

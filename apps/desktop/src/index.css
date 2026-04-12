@@ -819,6 +819,25 @@ input, select, textarea {
   gap: var(--sp-2);
 }
 
+/* 퇴근 버튼 */
+.rt-finish-day-btn {
+  margin-left: auto;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 14px;
+  font-weight: 700;
+  border: 2px solid var(--danger, #e74c3c);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--danger, #e74c3c);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.rt-finish-day-btn:hover {
+  background: var(--danger, #e74c3c);
+  color: #fff;
+}
+
 .rt-pill {
   display: flex;
   align-items: center;
@@ -1199,6 +1218,95 @@ input, select, textarea {
 }
 
 .rt-pause-skip:hover { color: var(--text-primary); }
+
+/* ─── 퇴근 모달 ─── */
+.rt-finish-modal {
+  max-width: 440px;
+  width: calc(100vw - 32px);
+}
+.rt-finish-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 var(--sp-3);
+  color: var(--text-primary);
+}
+.rt-finish-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--sp-4);
+}
+.rt-finish-student-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-4);
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.rt-finish-student-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.rt-finish-student-item:last-child { border-bottom: none; }
+.rt-finish-student-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.btn-danger {
+  background: var(--danger, #e74c3c);
+  color: #fff;
+  border: none;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-danger:hover { opacity: 0.9; }
+.btn-danger:disabled { opacity: 0.5; cursor: default; }
+
+/* 퇴근 결과 요약 */
+.rt-finish-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+.rt-finish-summary-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.rt-finish-summary-label {
+  color: var(--text-secondary);
+}
+.rt-finish-summary-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.rt-finish-summary-item--absent .rt-finish-summary-value {
+  color: var(--danger, #e74c3c);
+}
+.rt-finish-absent-names {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+.rt-finish-notice {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--sp-3);
+}
 
 /* Pause info inside card */
 .rt-pause-info {
@@ -3300,13 +3408,21 @@ input, select, textarea {
   }
 
   .rt-summary-bar {
-    flex-direction: column;
-    gap: var(--sp-3);
-    text-align: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .rt-summary-pills {
+    flex-wrap: wrap;
   }
 
   .rt-clock {
     font-size: 22px;
+  }
+
+  .rt-finish-day-btn {
+    padding: var(--sp-2) var(--sp-3);
+    font-size: 13px;
   }
 
   .board-layout {

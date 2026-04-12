@@ -13,6 +13,11 @@ import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse 
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 
+// ─── JSON 파싱 헬퍼 ────────────────────────────────────────
+function safeJsonParse<T>(json: string | null | undefined, fallback: T): T {
+  try { return json ? JSON.parse(json) : fallback; } catch { return fallback; }
+}
+
 // ─── 타입 ───────────────────────────────────────────────
 interface PauseRecord {
   pausedAt: string;
@@ -216,7 +221,7 @@ async function handleRealtimeToday(
       addedMinutes: row.added_minutes,
       scheduledStartTime: row.scheduled_start_time,
       scheduledEndTime: row.scheduled_end_time,
-      pauseHistory: JSON.parse(row.pause_history || '[]') as PauseRecord[],
+      pauseHistory: safeJsonParse<PauseRecord[]>(row.pause_history, []),
       subject: row.subject,
     }));
 
@@ -467,7 +472,7 @@ async function handlePause(
     return errorResponse('진행 중인 세션만 일시정지할 수 있습니다', 400);
   }
 
-  const history: PauseRecord[] = JSON.parse(session.pause_history || '[]');
+  const history: PauseRecord[] = safeJsonParse<PauseRecord[]>(session.pause_history, []);
   history.push({ pausedAt: new Date().toISOString(), reason: body.reason });
 
   await executeUpdate(
@@ -497,7 +502,7 @@ async function handleResume(id: string, context: RequestContext): Promise<Respon
     return errorResponse('정지된 세션만 재개할 수 있습니다', 400);
   }
 
-  const history: PauseRecord[] = JSON.parse(session.pause_history || '[]');
+  const history: PauseRecord[] = safeJsonParse<PauseRecord[]>(session.pause_history, []);
   const last = history[history.length - 1];
   if (last && !last.resumedAt) {
     last.resumedAt = new Date().toISOString();
@@ -540,7 +545,7 @@ async function handleCheckOut(
   const nowIso = now.toISOString();
 
   // 정지 중이었으면 마지막 pause 종료
-  const history: PauseRecord[] = JSON.parse(session.pause_history || '[]');
+  const history: PauseRecord[] = safeJsonParse<PauseRecord[]>(session.pause_history, []);
   if (session.status === 'paused') {
     const last = history[history.length - 1];
     if (last && !last.resumedAt) last.resumedAt = nowIso;

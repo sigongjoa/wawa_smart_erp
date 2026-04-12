@@ -28,7 +28,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     const userStr = localStorage.getItem('user');
     if (token && userStr && userStr !== 'undefined') {
       try {
-        set({ user: JSON.parse(userStr), isLoggedIn: true });
+        const parsed = JSON.parse(userStr);
+        if (parsed && typeof parsed.id === 'string' && typeof parsed.name === 'string') {
+          set({ user: parsed, isLoggedIn: true });
+        } else {
+          localStorage.removeItem('user');
+        }
       } catch {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');

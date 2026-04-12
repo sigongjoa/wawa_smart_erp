@@ -473,6 +473,16 @@ export async function handleReport(
   context: RequestContext
 ): Promise<Response> {
   try {
+    // 학원 소속 검증 — 인증된 사용자가 해당 academy에 실제로 속하는지 확인
+    if (context.auth?.userId && context.auth?.academyId) {
+      const userCheck = await executeFirst<{ id: string }>(
+        context.env.DB,
+        'SELECT id FROM users WHERE id = ? AND academy_id = ?',
+        [context.auth.userId, context.auth.academyId]
+      );
+      if (!userCheck) return unauthorizedResponse();
+    }
+
     // /api/report/history (점수 추이)
     if (pathname === '/api/report/history') {
       if (method === 'GET') return await handleGetScoreHistory(request, context);

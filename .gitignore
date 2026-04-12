@@ -29,6 +29,7 @@ Thumbs.db
 
 # Environment variables & secrets
 .env
+.env.*
 .env.local
 .dev.vars
 workers/.dev.vars

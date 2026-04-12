@@ -21,18 +21,18 @@ export default function StudentProfilePage() {
     if (!id) return;
 
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       api.getStudentProfile(id),
       api.getScoreHistory(id, historyMonths),
       api.getStudentComments(id, 12),
       api.getStudentAttendance(id, 6),
-    ]).then(([p, h, c, a]) => {
-      setProfile(p);
-      setScoreHistory(h);
-      setComments(c);
-      setAttendance(a);
+    ]).then(([profileRes, scoresRes, commentsRes, attendanceRes]) => {
+      setProfile(profileRes.status === 'fulfilled' ? profileRes.value : null);
+      setScoreHistory(scoresRes.status === 'fulfilled' ? scoresRes.value : null);
+      setComments(commentsRes.status === 'fulfilled' ? commentsRes.value : []);
+      setAttendance(attendanceRes.status === 'fulfilled' ? attendanceRes.value : null);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    });
   }, [id, historyMonths]);
 
   if (loading) {

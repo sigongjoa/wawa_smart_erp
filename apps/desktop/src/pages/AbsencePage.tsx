@@ -36,7 +36,8 @@ export default function AbsencePage() {
     try {
       const data = await api.getMakeups(status || undefined);
       setMakeups(data || []);
-    } catch {
+    } catch (err) {
+      toast.error('보강 목록 조회 실패');
       setMakeups([]);
     } finally {
       setLoading(false);
