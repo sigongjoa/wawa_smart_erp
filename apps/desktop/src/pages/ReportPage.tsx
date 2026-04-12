@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, Student, ReportEntry } from '../api';
+import { api, Student, ReportEntry, ReportType } from '../api';
+import { toast } from '../components/Toast';
 
 // Debounce hook
 function useDebounce(fn: (...args: any[]) => void, delay: number) {
@@ -44,11 +45,27 @@ function autoResize(el: HTMLTextAreaElement) {
 // 전송 상태 타입
 type SendInfo = { shareUrl: string; sentBy: string; sentAt: string };
 
+// 리포트 유형 라벨
+const REPORT_TYPE_LABEL: Record<ReportType, string> = {
+  monthly: '월말평가',
+  midterm: '중간고사',
+  final: '기말고사',
+};
+
+// 학기 문자열 → 사람이 읽기 쉬운 형태 (2026-1 → "2026년 1학기")
+function formatTerm(term: string | null): string {
+  if (!term) return '';
+  const [year, half] = term.split('-');
+  return `${year}년 ${half}학기`;
+}
+
 export default function ReportPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [reports, setReports] = useState<ReportEntry[]>([]);
   const [selectedStudent, setSelectedStudent] = useState('');
+  const [reportType, setReportType] = useState<ReportType>('monthly');
   const [activeMonth, setActiveMonth] = useState('');
+  const [activeTerm, setActiveTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -63,39 +80,75 @@ export default function ReportPage() {
   const commentRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const cellStatus = useCellStatus();
 
+  // 초기 로드: 월말 설정 + 정기고사 설정 + 학생 목록을 병렬로
   useEffect(() => {
     Promise.all([
       api.getActiveMonth().catch(() => null),
+      api.getActiveExamReview().catch(() => null),
       api.getStudents().catch(() => []),
-    ]).then(([settings, studentList]) => {
-      const month = settings?.activeExamMonth ?? null;
-      if (month) {
-        setActiveMonth(month);
-        loadReports(month);
-        loadSendStatus(month);
-      }
+    ]).then(([monthSettings, reviewSettings, studentList]) => {
+      const month = monthSettings?.activeExamMonth ?? '';
+      const term = reviewSettings?.activeTerm ?? '';
+      const reviewType = reviewSettings?.activeExamType ?? null;
+      if (month) setActiveMonth(month);
+      if (term) setActiveTerm(term);
       setStudents(studentList || []);
+
+      // 초기 탭 결정: 정기고사 설정이 있으면 그걸로, 아니면 월말
+      if (reviewType && term) {
+        setReportType(reviewType);
+      }
       setLoading(false);
     });
   }, []);
 
-  const loadReports = async (ym: string) => {
+  // 리포트 유형/월/학기 변경 시 재로드
+  useEffect(() => {
+    if (reportType === 'monthly') {
+      if (activeMonth) {
+        loadReports({ reportType: 'monthly', yearMonth: activeMonth });
+        loadSendStatus({ reportType: 'monthly', yearMonth: activeMonth });
+      } else {
+        setReports([]);
+        setSendStatus({});
+      }
+    } else {
+      if (activeTerm) {
+        loadReports({ reportType, term: activeTerm });
+        loadSendStatus({ reportType, term: activeTerm });
+      } else {
+        setReports([]);
+        setSendStatus({});
+      }
+    }
+  }, [reportType, activeMonth, activeTerm]);
+
+  const loadReports = async (params: { reportType: ReportType; yearMonth?: string; term?: string }) => {
     try {
-      const data = await api.getReport(ym);
+      const data = await api.getReport(params);
       setReports(data || []);
     } catch {
       setReports([]);
     }
   };
 
-  const loadSendStatus = async (ym: string) => {
+  const loadSendStatus = async (params: { reportType: ReportType; yearMonth?: string; term?: string }) => {
     try {
-      const data = await api.getSendStatus(ym);
+      const data = await api.getSendStatus(params);
       setSendStatus(data || {});
     } catch {
       setSendStatus({});
     }
   };
+
+  // 현재 활성 주기 키 ("2026-04" 또는 "2026-1")
+  const activePeriodKey = reportType === 'monthly' ? activeMonth : activeTerm;
+  const periodLabel = reportType === 'monthly' ? activeMonth : formatTerm(activeTerm);
+  const isExamReview = reportType !== 'monthly';
+
+  const examContextForAI = isExamReview && activeTerm
+    ? { reportType: reportType as 'midterm' | 'final', term: activeTerm }
+    : undefined;
 
   // 점수 저장 (onBlur)
   const handleScoreSave = async (studentId: string, examId: string, value: string) => {
@@ -107,7 +160,11 @@ export default function ReportPage() {
       await api.saveGrade({ student_id: studentId, exam_id: examId, score: num });
       cellStatus.set(key, 'saved');
       // 차트 실시간 갱신
-      if (activeMonth) loadReports(activeMonth);
+      if (reportType === 'monthly' && activeMonth) {
+        loadReports({ reportType: 'monthly', yearMonth: activeMonth });
+      } else if (reportType !== 'monthly' && activeTerm) {
+        loadReports({ reportType, term: activeTerm });
+      }
     } catch {
       cellStatus.set(key, 'error');
     }
@@ -120,11 +177,15 @@ export default function ReportPage() {
     try {
       await api.saveGrade({ student_id: studentId, exam_id: examId, score, comments: comment });
       cellStatus.set(key, 'saved');
-      if (activeMonth) loadReports(activeMonth);
+      if (reportType === 'monthly' && activeMonth) {
+        loadReports({ reportType: 'monthly', yearMonth: activeMonth });
+      } else if (reportType !== 'monthly' && activeTerm) {
+        loadReports({ reportType, term: activeTerm });
+      }
     } catch {
       cellStatus.set(key, 'error');
     }
-  }, [activeMonth]);
+  }, [reportType, activeMonth, activeTerm]);
 
   const debouncedSaveComment = useDebounce(saveComment, 500);
 
@@ -146,14 +207,15 @@ export default function ReportPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `리포트-${currentStudent?.name || selectedStudent}-${activeMonth}.jpg`;
+        const typeLabel = REPORT_TYPE_LABEL[reportType];
+        a.download = `${typeLabel}리포트-${currentStudent?.name || selectedStudent}-${activePeriodKey}.jpg`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 'image/jpeg', 0.95);
     } catch (err) {
-      alert('다운로드 실패: ' + (err as Error).message);
+      toast.error('다운로드 실패: ' + (err as Error).message);
     } finally {
       setDownloading(false);
     }
@@ -166,14 +228,27 @@ export default function ReportPage() {
     try {
       const canvas = await captureWithMode();
       const dataUrl = canvas.toDataURL('image/png');
-      const res = await api.uploadReportImage({
+      const uploadParams: Parameters<typeof api.uploadReportImage>[0] = {
         imageBase64: dataUrl,
         studentId: selectedStudent,
         studentName: currentStudent.name,
-        yearMonth: activeMonth,
-      });
-      const monthNum = activeMonth.split('-')[1]?.replace(/^0/, '') || '';
-      const message = `[와와학습코칭센터] ${activeMonth} 월말평가 리포트\n\n안녕하세요, ${currentStudent.name} 학생 학부모님.\n${monthNum}월 월말평가 리포트를 보내드립니다.\n\n리포트 보기:\n${res.shareUrl}`;
+        reportType,
+      };
+      if (reportType === 'monthly') {
+        uploadParams.yearMonth = activeMonth;
+      } else {
+        uploadParams.term = activeTerm;
+      }
+      const res = await api.uploadReportImage(uploadParams);
+
+      const typeLabel = REPORT_TYPE_LABEL[reportType];
+      const headerLine = reportType === 'monthly'
+        ? `${activeMonth} ${typeLabel} 리포트`
+        : `${formatTerm(activeTerm)} ${typeLabel} 리포트`;
+      const bodyLine = reportType === 'monthly'
+        ? `${activeMonth.split('-')[1]?.replace(/^0/, '') || ''}월 월말평가 리포트를 보내드립니다.`
+        : `${formatTerm(activeTerm)} ${typeLabel} 리포트를 보내드립니다.`;
+      const message = `[와와학습코칭센터] ${headerLine}\n\n안녕하세요, ${currentStudent.name} 학생 학부모님.\n${bodyLine}\n\n리포트 보기:\n${res.shareUrl}`;
       await navigator.clipboard.writeText(message);
       setShareResult('copied');
       // 전송 상태 즉시 업데이트
@@ -188,7 +263,7 @@ export default function ReportPage() {
       setTimeout(() => setShareResult(''), 3000);
     } catch (err) {
       setShareResult('error');
-      alert('공유 실패: ' + (err as Error).message);
+      toast.error('공유 실패: ' + (err as Error).message);
       setTimeout(() => setShareResult(''), 3000);
     } finally {
       setSharing(false);
@@ -212,8 +287,9 @@ export default function ReportPage() {
         studentName: currentStudent.name,
         subject,
         score,
-        yearMonth: activeMonth,
+        yearMonth: reportType === 'monthly' ? activeMonth : activeTerm,
         existingComment: existingComment || undefined,
+        examContext: examContextForAI,
       });
       const textarea = commentRefs.current[examId];
       if (textarea) {
@@ -222,7 +298,7 @@ export default function ReportPage() {
         debouncedSaveComment(selectedStudent, examId, res.comment, score);
       }
     } catch (err) {
-      alert('AI 생성 실패: ' + (err as Error).message);
+      toast.error('AI 생성 실패: ' + (err as Error).message);
     } finally {
       setAiLoading((prev) => ({ ...prev, [examId]: false }));
     }
@@ -234,16 +310,17 @@ export default function ReportPage() {
     try {
       const res = await api.generateSummary({
         studentName: currentStudent.name,
-        yearMonth: activeMonth,
+        yearMonth: reportType === 'monthly' ? activeMonth : activeTerm,
         scores: studentReport.scores.map((g) => ({
           subject: g.subject,
           score: g.score,
           comment: commentRefs.current[g.examId]?.value || g.comment || undefined,
         })),
+        examContext: examContextForAI,
       });
       setTotalComment((prev) => ({ ...prev, [selectedStudent]: res.summary }));
     } catch (err) {
-      alert('AI 총평 생성 실패: ' + (err as Error).message);
+      toast.error('AI 총평 생성 실패: ' + (err as Error).message);
     } finally {
       setSummaryLoading(false);
     }
@@ -252,9 +329,9 @@ export default function ReportPage() {
   // 저장 상태 표시 스타일
   const statusStyle = (key: string): React.CSSProperties => {
     const s = cellStatus.statuses[key];
-    if (s === 'saving') return { borderColor: '#1a73e8', outline: '1px solid #1a73e8' };
-    if (s === 'saved') return { borderColor: '#2e7d32', outline: '1px solid #2e7d32' };
-    if (s === 'error') return { borderColor: '#d32f2f', outline: '1px solid #d32f2f' };
+    if (s === 'saving') return { borderColor: 'var(--info)', outline: '1px solid var(--info)' };
+    if (s === 'saved') return { borderColor: 'var(--success)', outline: '1px solid var(--success)' };
+    if (s === 'error') return { borderColor: 'var(--danger)', outline: '1px solid var(--danger)' };
     return {};
   };
 
@@ -277,11 +354,24 @@ export default function ReportPage() {
   const sentCount = students.filter((s) => sendStatus[s.id]).length;
 
   return (
-    <div>
+    <div className="report-page">
       <div className="report-page-header">
-        <h2 className="page-title">월말평가 리포트</h2>
+        <h2 className="page-title">{REPORT_TYPE_LABEL[reportType]} 리포트</h2>
+        <div className="report-type-tabs" role="tablist" aria-label="리포트 유형">
+          {(['monthly', 'midterm', 'final'] as ReportType[]).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={reportType === t}
+              className={`report-type-tab ${reportType === t ? 'report-type-tab--active' : ''}`}
+              onClick={() => setReportType(t)}
+            >
+              {REPORT_TYPE_LABEL[t]}
+            </button>
+          ))}
+        </div>
         <div className="report-month-badge">
-          {activeMonth || '미설정'}
+          {periodLabel || '미설정'}
         </div>
         <div className="report-progress">
           <span className="report-progress-label">전송 현황</span>
@@ -302,7 +392,29 @@ export default function ReportPage() {
         </div>
       ) : (
         <div className="report-split">
-          {/* ════ 좌측: 학생 전송 현황 테이블 ════ */}
+          {/* ════ 모바일: 학생 드롭다운 셀렉터 ════ */}
+          <div className="report-mobile-selector">
+            <label htmlFor="student-select" className="report-mobile-selector-label">학생 선택</label>
+            <select
+              id="student-select"
+              className="report-mobile-select"
+              value={selectedStudent}
+              onChange={(e) => setSelectedStudent(e.target.value)}
+            >
+              <option value="">학생을 선택하세요</option>
+              {students.map((s) => {
+                const isSent = !!sendStatus[s.id];
+                const { total, entered } = getStudentScoreStatus(s.id);
+                return (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {total > 0 ? `(${entered}/${total})` : ''} {isSent ? '✓' : ''}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* ════ 데스크탑: 학생 전송 현황 테이블 ════ */}
           <div className="report-left">
             <table className="send-table">
               <thead>
@@ -391,7 +503,7 @@ export default function ReportPage() {
               {!selectedStudent ? (
                 <div className="report-empty">
                   <div className="report-empty-icon">←</div>
-                  <div>좌측에서 학생을 선택하세요</div>
+                  <div>학생을 선택하세요</div>
                 </div>
               ) : (
                 <>
@@ -405,13 +517,22 @@ export default function ReportPage() {
                       </div>
                     </div>
                     <div className="rpt-header-right">
-                      <div className="rpt-month">{activeMonth?.split('-')[1]?.replace(/^0/, '')}월</div>
-                      <div className="rpt-year">{activeMonth?.split('-')[0]}</div>
+                      {reportType === 'monthly' ? (
+                        <>
+                          <div className="rpt-month">{activeMonth?.split('-')[1]?.replace(/^0/, '')}월</div>
+                          <div className="rpt-year">{activeMonth?.split('-')[0]}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="rpt-month">{activeTerm?.split('-')[1]}학기</div>
+                          <div className="rpt-year">{activeTerm?.split('-')[0]}</div>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <div className="rpt-title-bar">
-                    <span className="rpt-title">월말평가 리포트</span>
+                    <span className="rpt-title">{REPORT_TYPE_LABEL[reportType]} 리포트</span>
                   </div>
 
                   <div className="rpt-student-row">
@@ -441,7 +562,11 @@ export default function ReportPage() {
                     }
                     return (
                       <>
-                        <div className="rpt-section-label">{activeMonth?.split('-')[1]?.replace(/^0/, '')}월 성적</div>
+                        <div className="rpt-section-label">
+                          {reportType === 'monthly'
+                            ? `${activeMonth?.split('-')[1]?.replace(/^0/, '')}월 성적`
+                            : `${REPORT_TYPE_LABEL[reportType]} 성적`}
+                        </div>
                         <div className="rpt-chart">
                           {studentReport.scores.map((g) => {
                             const prev = prevScoreMap[g.subject];
@@ -570,7 +695,7 @@ export default function ReportPage() {
                     </div>
                   ) : (
                     <p className="report-empty" style={{ marginTop: 24 }}>
-                      이 학생의 {activeMonth} 성적 데이터가 없습니다
+                      이 학생의 {periodLabel} {REPORT_TYPE_LABEL[reportType]} 성적 데이터가 없습니다
                     </p>
                   )}
 

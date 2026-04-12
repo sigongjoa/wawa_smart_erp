@@ -40,12 +40,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div>
+    <div className="settings-page">
       <h2 className="page-title">설정</h2>
 
       <div className="settings-section">
         <h3>성적 입력 활성 월</h3>
         <div className="month-selector">
+          <label htmlFor="active-month" className="sr-only">활성 월 선택</label>
           <select
             id="active-month"
             value={selectedMonth}
@@ -59,18 +60,17 @@ export default function SettingsPage() {
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? '저장 중...' : '저장'}
           </button>
-          {message && <span style={{ fontSize: 13, color: message.startsWith('오류') ? '#d32f2f' : '#2e7d32' }}>{message}</span>}
+          {message && (
+            <span className={`settings-message ${message.startsWith('오류') ? 'settings-message--error' : 'settings-message--success'}`}>
+              {message}
+            </span>
+          )}
         </div>
         {activeMonth && (
-          <p style={{ marginTop: 12, fontSize: 13, color: '#666' }}>
+          <p className="settings-active-month">
             현재 활성 월: <strong>{activeMonth}</strong>
           </p>
         )}
-      </div>
-
-      <div className="settings-section">
-        <h3>학생 관리</h3>
-        <div className="wireframe-box">학생 목록 / 등록 — 추후 구현</div>
       </div>
     </div>
   );

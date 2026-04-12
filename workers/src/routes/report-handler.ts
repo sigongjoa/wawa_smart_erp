@@ -7,6 +7,8 @@ import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/re
 import { executeFirst, executeInsert, executeUpdate } from '@/utils/db';
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
+import { getAcademyId } from '@/utils/context';
+import { handleRouteError } from '@/utils/error-handler';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -62,7 +64,7 @@ async function handleSetSendConfig(
     const existing = await executeFirst<any>(
       context.env.DB,
       'SELECT id FROM report_send_configs WHERE academy_id = ?',
-      [context.auth?.academyId || 'acad-1']
+      [getAcademyId(context)]
     );
 
     const now = new Date().toISOString();
@@ -97,7 +99,7 @@ async function handleSetSendConfig(
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           configId,
-          context.auth?.academyId || 'acad-1',
+          getAcademyId(context),
           input.start_date,
           input.end_date,
           now,
@@ -132,7 +134,11 @@ async function handleSetSendConfig(
 }
 
 /**
- * GET /api/report - 월별 리포트 목록 조회
+ * GET /api/report - 리포트 목록 조회
+ *
+ * 지원 모드:
+ *   - reportType=monthly (기본): ?yearMonth=YYYY-MM 로 월말평가 리포트
+ *   - reportType=midterm|final:  ?term=YYYY-N 로 정기고사 리포트
  */
 async function handleGetReports(request: Request, context: RequestContext): Promise<Response> {
   try {
@@ -140,16 +146,25 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
       return unauthorizedResponse();
     }
 
-    // 쿼리 파라미터에서 yearMonth 추출
     const url = new URL(request.url);
+    const reportType = (url.searchParams.get('reportType') || 'monthly') as 'monthly' | 'midterm' | 'final';
     const yearMonth = url.searchParams.get('yearMonth');
+    const term = url.searchParams.get('term');
 
-    if (!yearMonth) {
+    if (!['monthly', 'midterm', 'final'].includes(reportType)) {
+      return errorResponse('reportType은 monthly|midterm|final 중 하나여야 합니다', 400);
+    }
+
+    if (reportType === 'monthly' && !yearMonth) {
       return errorResponse('yearMonth 파라미터가 필수입니다', 400);
     }
 
+    if (reportType !== 'monthly' && !term) {
+      return errorResponse('term 파라미터가 필수입니다 (예: 2026-1)', 400);
+    }
+
     const { executeQuery } = await import('@/utils/db');
-    const academyId = context.auth?.academyId || 'acad-1';
+    const academyId = getAcademyId(context);
     const userId = context.auth?.userId;
     const role = context.auth?.role;
 
@@ -173,23 +188,40 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
       );
     }
 
-    // 2) 해당 월의 시험 목록
-    const exams = await executeQuery<any>(
-      context.env.DB,
-      `SELECT id, name, exam_month FROM exams WHERE academy_id = ? AND exam_month = ?`,
-      [academyId, yearMonth]
-    );
+    // 2) 시험 목록 — 모드에 따라 필터 기준 상이
+    let exams: any[];
+    if (reportType === 'monthly') {
+      exams = await executeQuery<any>(
+        context.env.DB,
+        `SELECT id, name, exam_month FROM exams
+         WHERE academy_id = ? AND exam_month = ?
+           AND (exam_type IS NULL OR exam_type = 'monthly')`,
+        [academyId, yearMonth!]
+      );
+    } else {
+      exams = await executeQuery<any>(
+        context.env.DB,
+        `SELECT id, name, exam_month FROM exams
+         WHERE academy_id = ? AND exam_type = ? AND term = ?`,
+        [academyId, reportType, term!]
+      );
+    }
 
-    // 3) 해당 월의 모든 성적
-    const grades = await executeQuery<any>(
-      context.env.DB,
-      `SELECT g.id, g.student_id, g.exam_id, g.score, g.comments, g.year_month,
-              e.name as exam_name
-       FROM grades g
-       LEFT JOIN exams e ON g.exam_id = e.id
-       WHERE g.year_month = ?`,
-      [yearMonth]
-    );
+    // 3) 해당 시험들의 성적 목록
+    const examIds = exams.map((e: any) => e.id);
+    let grades: any[] = [];
+    if (examIds.length > 0) {
+      const placeholders = examIds.map(() => '?').join(',');
+      grades = await executeQuery<any>(
+        context.env.DB,
+        `SELECT g.id, g.student_id, g.exam_id, g.score, g.comments, g.year_month,
+                e.name as exam_name
+         FROM grades g
+         LEFT JOIN exams e ON g.exam_id = e.id
+         WHERE g.exam_id IN (${placeholders})`,
+        examIds
+      );
+    }
 
     // 성적을 student_id별로 인덱싱
     const gradeMap = new Map<string, any[]>();
@@ -251,11 +283,14 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
         }
       }
 
+      const reportKey = reportType === 'monthly' ? yearMonth! : `${term}-${reportType}`;
       return {
-        id: `report-${student.id}-${yearMonth}`.replace(/-/g, ''),
+        id: `report-${student.id}-${reportKey}`.replace(/-/g, ''),
         studentId: student.id,
         studentName: student.name,
-        yearMonth,
+        reportType,
+        yearMonth: reportType === 'monthly' ? yearMonth : null,
+        term: reportType !== 'monthly' ? term : null,
         scores,
         totalComment: '',
         createdAt: new Date().toISOString(),
@@ -281,7 +316,7 @@ async function handleGetSendConfig(context: RequestContext): Promise<Response> {
     const config = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM report_send_configs WHERE academy_id = ?',
-      [context.auth?.academyId || 'acad-1']
+      [getAcademyId(context)]
     );
 
     if (!config) {
@@ -369,8 +404,11 @@ async function handleGetScoreHistory(request: Request, context: RequestContext):
 // ==================== 전송 상태 핸들러 ====================
 
 /**
- * GET /api/report/send-status?yearMonth=YYYY-MM
- * 해당 월의 학생별 전송 기록 조회
+ * GET /api/report/send-status
+ *   월말: ?yearMonth=YYYY-MM         → report_sends
+ *   정기고사: ?reportType=midterm|final&term=YYYY-N → exam_review_sends
+ *
+ * 학생별 전송 기록 조회
  */
 async function handleGetSendStatus(request: Request, context: RequestContext): Promise<Response> {
   try {
@@ -379,22 +417,35 @@ async function handleGetSendStatus(request: Request, context: RequestContext): P
     }
 
     const url = new URL(request.url);
+    const reportType = (url.searchParams.get('reportType') || 'monthly') as 'monthly' | 'midterm' | 'final';
     const yearMonth = url.searchParams.get('yearMonth');
+    const term = url.searchParams.get('term');
 
-    if (!yearMonth) {
+    if (reportType === 'monthly' && !yearMonth) {
       return errorResponse('yearMonth 파라미터가 필수입니다', 400);
+    }
+    if (reportType !== 'monthly' && !term) {
+      return errorResponse('term 파라미터가 필수입니다', 400);
     }
 
     const { executeQuery } = await import('@/utils/db');
-    const academyId = context.auth?.academyId || 'acad-1';
+    const academyId = getAcademyId(context);
 
-    const sends = await executeQuery<any>(
-      context.env.DB,
-      `SELECT student_id, share_url, sent_by, sent_at
-       FROM report_sends
-       WHERE academy_id = ? AND year_month = ?`,
-      [academyId, yearMonth]
-    );
+    const sends = reportType === 'monthly'
+      ? await executeQuery<any>(
+          context.env.DB,
+          `SELECT student_id, share_url, sent_by, sent_at
+           FROM report_sends
+           WHERE academy_id = ? AND year_month = ?`,
+          [academyId, yearMonth!]
+        )
+      : await executeQuery<any>(
+          context.env.DB,
+          `SELECT student_id, share_url, sent_by, sent_at
+           FROM exam_review_sends
+           WHERE academy_id = ? AND term = ? AND exam_type = ?`,
+          [academyId, term!, reportType]
+        );
 
     // student_id → 전송 정보 맵으로 변환
     const sendMap: Record<string, { shareUrl: string; sentBy: string; sentAt: string }> = {};

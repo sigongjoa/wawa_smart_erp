@@ -23,7 +23,7 @@ test('최종 테스트: 성적 저장 완전 플로우', async ({ page }) => {
   await page.waitForLoadState('domcontentloaded');
 
   console.log('🔐 로그인');
-  await page.locator('input[placeholder*="예:"]').first().fill(ADMIN.name);
+  await page.locator('input').first().fill(ADMIN.name);
   await page.locator('input[type="password"]').first().fill(ADMIN.pin);
   await page.locator('button:has-text("접속하기"), button:has-text("로그인")').first().click();
   await page.waitForTimeout(3000);

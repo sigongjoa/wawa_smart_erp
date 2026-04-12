@@ -7,6 +7,8 @@ import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/re
 import { executeFirst, executeQuery, executeInsert, executeUpdate, executeDelete } from '@/utils/db';
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
+import { getAcademyId } from '@/utils/context';
+import { handleRouteError } from '@/utils/error-handler';
 import { z } from 'zod';
 
 // ==================== 헬퍼: 과목명 추출 ====================
@@ -78,7 +80,7 @@ async function handleCreateStudent(
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         studentId,
-        context.auth?.academyId || 'acad-1',
+        getAcademyId(context),
         input.name,
         input.class_id || null,
         input.contact || null,
@@ -105,15 +107,7 @@ async function handleCreateStudent(
       201
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
-      logger.warn('학생 추가 검증 오류', { error: errorMessage, ipAddress });
-      return errorResponse(errorMessage, 400);
-    }
-
-    logger.error('학생 추가 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
-    return errorResponse('학생 추가에 실패했습니다', 500);
+    return handleRouteError(error, '학생 추가', { ipAddress });
   }
 }
 
@@ -126,7 +120,7 @@ async function handleGetStudents(context: RequestContext): Promise<Response> {
       return unauthorizedResponse();
     }
 
-    const academyId = context.auth?.academyId || 'acad-1';
+    const academyId = getAcademyId(context);
     const userId = context.auth?.userId;
     const role = context.auth?.role;
     const classId = context.request.url.split('?classId=')[1];
@@ -181,7 +175,7 @@ async function handleGetStudent(context: RequestContext, studentId: string): Pro
     const student = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM students WHERE id = ? AND academy_id = ?',
-      [studentId, context.auth?.academyId || 'acad-1']
+      [studentId, getAcademyId(context)]
     );
 
     if (!student) {
@@ -213,7 +207,7 @@ async function handleUpdateStudent(
     const student = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM students WHERE id = ? AND academy_id = ?',
-      [studentId, context.auth?.academyId || 'acad-1']
+      [studentId, getAcademyId(context)]
     );
 
     if (!student) {
@@ -244,14 +238,7 @@ async function handleUpdateStudent(
 
     return successResponse({ id: studentId, ...input });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    if (errorMessage.includes('입력 검증')) {
-      return errorResponse(errorMessage, 400);
-    }
-
-    logger.error('학생 수정 중 오류', error instanceof Error ? error : new Error(String(error)));
-    return errorResponse('학생 수정에 실패했습니다', 500);
+    return handleRouteError(error, '학생 수정');
   }
 }
 
@@ -270,7 +257,7 @@ async function handleDeleteStudent(
     const student = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM students WHERE id = ? AND academy_id = ?',
-      [studentId, context.auth?.academyId || 'acad-1']
+      [studentId, getAcademyId(context)]
     );
 
     if (!student) {
@@ -306,7 +293,7 @@ async function handleGetStudentProfile(
   try {
     if (!requireAuth(context)) return unauthorizedResponse();
 
-    const academyId = context.auth?.academyId || 'acad-1';
+    const academyId = getAcademyId(context);
 
     const student = await executeFirst<any>(
       context.env.DB,

@@ -7,6 +7,8 @@ import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/re
 import { executeFirst, executeQuery, executeInsert, executeUpdate, executeDelete } from '@/utils/db';
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
+import { getAcademyId } from '@/utils/context';
+import { handleRouteError } from '@/utils/error-handler';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -16,7 +18,14 @@ const CreateExamSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '시험 날짜는 YYYY-MM-DD 형식이어야 합니다'),
   total_score: z.number().optional(),
   is_active: z.boolean().default(false),
-});
+  // 리포트 유형 — 'monthly'(기본) / 'midterm' / 'final'
+  exam_type: z.enum(['monthly', 'midterm', 'final']).default('monthly'),
+  // 정기고사 학기 — 'YYYY-N' (midterm/final 일 때만 필수)
+  term: z.string().regex(/^\d{4}-\d$/, '학기는 YYYY-N 형식이어야 합니다').optional(),
+}).refine(
+  (data) => data.exam_type === 'monthly' || !!data.term,
+  { message: '정기고사(midterm/final)는 term이 필수입니다', path: ['term'] },
+);
 
 const CreateGradeSchema = z.object({
   student_id: z.string().min(1, '학생 ID는 필수입니다'),
@@ -93,23 +102,25 @@ async function handleCreateExam(
       await executeUpdate(
         context.env.DB,
         'UPDATE exams SET is_active = 0 WHERE academy_id = ?',
-        [context.auth?.academyId || 'acad-1']
+        [getAcademyId(context)]
       );
     }
 
     const result = await executeInsert(
       context.env.DB,
-      `INSERT INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         examId,
-        context.auth?.academyId || 'acad-1',
+        getAcademyId(context),
         null, // class_id - can be null for academy-wide exams (after 005 migration)
         input.name,
         input.exam_month,
         input.date,
         input.total_score || null,
         input.is_active ? 1 : 0,
+        input.exam_type,
+        input.term || null,
         now,
         now,
       ]
@@ -127,19 +138,13 @@ async function handleCreateExam(
         date: input.date,
         total_score: input.total_score,
         is_active: input.is_active,
+        exam_type: input.exam_type,
+        term: input.term || null,
       },
       201
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
-      logger.warn('시험 생성 검증 오류', { error: errorMessage, ipAddress });
-      return errorResponse(errorMessage, 400);
-    }
-
-    logger.error('시험 생성 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
-    return errorResponse('시험 생성에 실패했습니다', 500);
+    return handleRouteError(error, '시험 생성', { ipAddress });
   }
 }
 
@@ -155,7 +160,7 @@ async function handleGetExams(context: RequestContext): Promise<Response> {
     const exams = await executeQuery<any>(
       context.env.DB,
       'SELECT * FROM exams WHERE academy_id = ? ORDER BY date DESC',
-      [context.auth?.academyId || 'acad-1']
+      [getAcademyId(context)]
     );
 
     return successResponse(exams);
@@ -177,7 +182,7 @@ async function handleGetCurrentExam(context: RequestContext): Promise<Response> 
     const exam = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM exams WHERE academy_id = ? AND is_active = 1 LIMIT 1',
-      [context.auth?.academyId || 'acad-1']
+      [getAcademyId(context)]
     );
 
     if (!exam) {
@@ -209,7 +214,7 @@ async function handleUpdateExam(
     const exam = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM exams WHERE id = ? AND academy_id = ?',
-      [examId, context.auth?.academyId || 'acad-1']
+      [examId, getAcademyId(context)]
     );
 
     if (!exam) {
@@ -221,7 +226,7 @@ async function handleUpdateExam(
       await executeUpdate(
         context.env.DB,
         'UPDATE exams SET is_active = 0 WHERE academy_id = ? AND id != ?',
-        [context.auth?.academyId || 'acad-1', examId]
+        [getAcademyId(context), examId]
       );
     }
 
@@ -248,14 +253,7 @@ async function handleUpdateExam(
 
     return successResponse({ id: examId, ...input });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    if (errorMessage.includes('입력 검증')) {
-      return errorResponse(errorMessage, 400);
-    }
-
-    logger.error('시험 수정 중 오류', error instanceof Error ? error : new Error(String(error)));
-    return errorResponse('시험 수정에 실패했습니다', 500);
+    return handleRouteError(error, '시험 수정');
   }
 }
 
@@ -274,7 +272,7 @@ async function handleDeleteExam(
     const exam = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM exams WHERE id = ? AND academy_id = ?',
-      [examId, context.auth?.academyId || 'acad-1']
+      [examId, getAcademyId(context)]
     );
 
     if (!exam) {
@@ -322,27 +320,48 @@ async function handleCreateGrade(
     const exam = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM exams WHERE id = ? AND academy_id = ?',
-      [input.exam_id, context.auth?.academyId || 'acad-1']
+      [input.exam_id, getAcademyId(context)]
     );
 
     if (!exam) {
       return errorResponse('시험을 찾을 수 없습니다', 404);
     }
 
-    // 설정된 활성 시험 월 조회 (exam_settings 테이블)
-    const examSettings = await executeFirst<any>(
-      context.env.DB,
-      'SELECT active_exam_month FROM exam_settings WHERE academy_id = ?',
-      [context.auth?.academyId || 'acad-1']
-    );
+    // 활성 설정 제약 확인
+    //   - 월말평가(monthly): exam_settings.active_exam_month 와 exam.exam_month 가 일치해야 함
+    //   - 정기고사(midterm/final): exam_review_settings 의 (active_term, active_exam_type) 과 일치해야 함
+    const examType = exam.exam_type || 'monthly';
 
-    // 활성 시험 월이 설정되어 있으면 그 월만 입력 가능
-    if (examSettings && examSettings.active_exam_month) {
-      if (exam.exam_month !== examSettings.active_exam_month) {
-        return errorResponse(
-          `설정된 시험 월(${examSettings.active_exam_month})이 아닙니다. 해당 월의 성적만 입력 가능합니다`,
-          400
-        );
+    if (examType === 'monthly') {
+      const examSettings = await executeFirst<any>(
+        context.env.DB,
+        'SELECT active_exam_month FROM exam_settings WHERE academy_id = ?',
+        [getAcademyId(context)]
+      );
+
+      if (examSettings && examSettings.active_exam_month) {
+        if (exam.exam_month !== examSettings.active_exam_month) {
+          return errorResponse(
+            `설정된 시험 월(${examSettings.active_exam_month})이 아닙니다. 해당 월의 성적만 입력 가능합니다`,
+            400
+          );
+        }
+      }
+    } else {
+      // 정기고사
+      const reviewSettings = await executeFirst<any>(
+        context.env.DB,
+        'SELECT active_term, active_exam_type FROM exam_review_settings WHERE academy_id = ?',
+        [getAcademyId(context)]
+      );
+
+      if (reviewSettings && reviewSettings.active_term && reviewSettings.active_exam_type) {
+        if (exam.term !== reviewSettings.active_term || examType !== reviewSettings.active_exam_type) {
+          return errorResponse(
+            `설정된 정기고사(${reviewSettings.active_term} ${reviewSettings.active_exam_type})가 아닙니다`,
+            400
+          );
+        }
       }
     }
 
@@ -415,14 +434,7 @@ async function handleCreateGrade(
       existing ? 200 : 201
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    if (errorMessage.includes('입력 검증')) {
-      return errorResponse(errorMessage, 400);
-    }
-
-    logger.error('성적 저장 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
-    return errorResponse('성적 저장에 실패했습니다', 500);
+    return handleRouteError(error, '성적 저장', { ipAddress });
   }
 }
 

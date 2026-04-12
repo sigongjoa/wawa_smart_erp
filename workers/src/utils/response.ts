@@ -1,4 +1,5 @@
 import { ApiResponse } from '@/types';
+import { logger } from '@/utils/logger';
 
 export function successResponse<T>(data: T, status: number = 200): Response {
   const response: ApiResponse<T> = {
@@ -59,7 +60,9 @@ export function validationErrorResponse(errors: Record<string, string>): Respons
   });
 }
 
-export function internalErrorResponse(error?: any): Response {
-  console.error('Internal server error:', error);
+export function internalErrorResponse(error?: unknown): Response {
+  if (error) {
+    logger.error('Internal server error', error instanceof Error ? error : new Error(String(error)));
+  }
   return errorResponse('Internal server error', 500);
 }

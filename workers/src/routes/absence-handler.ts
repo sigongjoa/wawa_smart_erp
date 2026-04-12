@@ -85,11 +85,9 @@ export async function handleAbsence(
         return errorResponse('한 번에 최대 100건까지 처리 가능', 400);
       }
 
-      const results = [];
+      // 1) 일괄 INSERT absences
       for (const a of absences) {
         const absenceId = crypto.randomUUID();
-        const makeupId = crypto.randomUUID();
-
         await executeInsert(
           context.env.DB,
           `INSERT INTO absences (id, student_id, class_id, absence_date, reason, notified_by, status, recorded_by)
@@ -98,24 +96,33 @@ export async function handleAbsence(
              reason = excluded.reason, notified_by = excluded.notified_by`,
           [absenceId, a.studentId, a.classId, a.absenceDate, a.reason || '', a.notifiedBy || '', context.auth?.userId || null]
         );
-
-        const inserted = await executeFirst<any>(
-          context.env.DB,
-          'SELECT id FROM absences WHERE student_id = ? AND class_id = ? AND absence_date = ?',
-          [a.studentId, a.classId, a.absenceDate]
-        );
-
-        if (inserted) {
-          await executeInsert(
-            context.env.DB,
-            `INSERT INTO makeups (id, absence_id, status) VALUES (?, ?, 'pending')
-             ON CONFLICT(absence_id) DO NOTHING`,
-            [makeupId, inserted.id]
-          );
-        }
-
-        results.push({ studentId: a.studentId, absenceId: inserted?.id || absenceId });
       }
+
+      // 2) 한 번의 쿼리로 모든 결석 ID 조회 (N+1 제거)
+      const conditions = absences.map(() => '(student_id = ? AND class_id = ? AND absence_date = ?)').join(' OR ');
+      const conditionParams = absences.flatMap(a => [a.studentId, a.classId, a.absenceDate]);
+      const insertedRows = await executeQuery<{ id: string; student_id: string }>(
+        context.env.DB,
+        `SELECT id, student_id FROM absences WHERE ${conditions}`,
+        conditionParams
+      );
+
+      // 3) 일괄 INSERT makeups (N+1 제거)
+      for (const row of insertedRows) {
+        const makeupId = crypto.randomUUID();
+        await executeInsert(
+          context.env.DB,
+          `INSERT INTO makeups (id, absence_id, status) VALUES (?, ?, 'pending')
+           ON CONFLICT(absence_id) DO NOTHING`,
+          [makeupId, row.id]
+        );
+      }
+
+      const idMap = new Map(insertedRows.map(r => [r.student_id, r.id]));
+      const results = absences.map(a => ({
+        studentId: a.studentId,
+        absenceId: idMap.get(a.studentId) || '',
+      }));
 
       return successResponse({ recorded: results.length, results }, 201);
     }

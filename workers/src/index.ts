@@ -24,6 +24,7 @@ import { handleSettings } from '@/routes/settings-handler';
 import { handleAI } from '@/routes/ai-handler';
 import { handleAbsence } from '@/routes/absence-handler';
 import { handleBoard } from '@/routes/board-handler';
+import { handleMaterials } from '@/routes/materials-handler';
 
 /**
  * 메인 요청 처리 함수
@@ -140,6 +141,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       if (pathname.startsWith('/api/board/')) {
         return addCorsHeaders(await handleBoard(method, pathname, request, context), env, origin);
+      }
+
+      if (pathname.startsWith('/api/materials')) {
+        return addCorsHeaders(await handleMaterials(method, pathname, request, context), env, origin);
       }
     }
 

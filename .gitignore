@@ -27,9 +27,11 @@ build/
 .DS_Store
 Thumbs.db
 
-# Environment variables
+# Environment variables & secrets
 .env
 .env.local
+.dev.vars
+workers/.dev.vars
 .env.development.local
 .env.test.local
 .env.production.local

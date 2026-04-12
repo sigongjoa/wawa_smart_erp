@@ -7,6 +7,8 @@ import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/re
 import { executeFirst, executeQuery, executeInsert, executeUpdate } from '@/utils/db';
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
+import { getAcademyId } from '@/utils/context';
+import { handleRouteError } from '@/utils/error-handler';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -109,7 +111,7 @@ async function handleCreateTeacher(
       context.env.DB,
       `INSERT INTO users (id, email, name, password_hash, role, academy_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [teacherId, uniqueEmail, input.name, pinHash, role, context.auth?.academyId || 'acad-1', now, now]
+      [teacherId, uniqueEmail, input.name, pinHash, role, getAcademyId(context), now, now]
     );
 
     if (!result.success) {
@@ -128,15 +130,7 @@ async function handleCreateTeacher(
       201
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
-      logger.warn('선생님 추가 검증 오류', { error: errorMessage, ipAddress });
-      return errorResponse(errorMessage, 400);
-    }
-
-    logger.error('선생님 추가 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
-    return errorResponse('선생님 추가에 실패했습니다', 500);
+    return handleRouteError(error, '선생님 추가', { ipAddress });
   }
 }
 
@@ -255,120 +249,6 @@ async function handleMigrateNotionToD1(
     return errorResponse('마이그레이션 처리에 실패했습니다', 500);
   }
 }
-
-// ==================== 기존 샘플 데이터 ====================
-// 아래는 참고용 샘플 데이터 (더 이상 사용되지 않음)
-
-async function handleMigrateNotionToD1_old(
-  request: Request,
-  context: RequestContext
-): Promise<Response> {
-  const ipAddress = context.request.headers.get('CF-Connecting-IP') || 'unknown';
-
-  try {
-    // 인증 확인
-    if (!requireAuth(context)) {
-      return unauthorizedResponse();
-    }
-
-    // 관리자 권한 확인
-    if (!requireRole(context, 'admin')) {
-      return errorResponse('관리자만 마이그레이션을 수행할 수 있습니다', 403);
-    }
-
-    logger.logRequest('POST', '/api/migrate/notion-to-d1-old', undefined, ipAddress);
-
-    const sampleStudents = [
-      // 기존 31명 + 추가 10명 = 41명
-      { id: 'student-001', name: '강은서', grade: '중2', classId: 'class-1' },
-      { id: 'student-002', name: '이지은', grade: '중2', classId: 'class-1' },
-      { id: 'student-003', name: '김민지', grade: '중2', classId: 'class-1' },
-      { id: 'student-004', name: '박지호', grade: '중2', classId: 'class-1' },
-      { id: 'student-005', name: '최준호', grade: '중2', classId: 'class-1' },
-      { id: 'student-006', name: '이승아', grade: '중2', classId: 'class-1' },
-      { id: 'student-007', name: '정다은', grade: '중2', classId: 'class-1' },
-      { id: 'student-008', name: '임수현', grade: '중2', classId: 'class-1' },
-      { id: 'student-009', name: '한예은', grade: '중3', classId: 'class-2' },
-      { id: 'student-010', name: '김준영', grade: '중3', classId: 'class-2' },
-      { id: 'student-011', name: '이인우', grade: '중3', classId: 'class-2' },
-      { id: 'student-012', name: '박세진', grade: '중3', classId: 'class-2' },
-      { id: 'student-013', name: '최우진', grade: '중3', classId: 'class-2' },
-      { id: 'student-014', name: '정현준', grade: '중3', classId: 'class-2' },
-      { id: 'student-015', name: '임지훈', grade: '중3', classId: 'class-2' },
-      { id: 'student-016', name: '한민준', grade: '중3', classId: 'class-2' },
-      { id: 'student-017', name: '김서연', grade: '고1', classId: 'class-3' },
-      { id: 'student-018', name: '이수진', grade: '고1', classId: 'class-3' },
-      { id: 'student-019', name: '박민경', grade: '고1', classId: 'class-3' },
-      { id: 'student-020', name: '최지은', grade: '고1', classId: 'class-3' },
-      { id: 'student-021', name: '정예림', grade: '고1', classId: 'class-3' },
-      { id: 'student-022', name: '임나은', grade: '고1', classId: 'class-3' },
-      { id: 'student-023', name: '한소현', grade: '고1', classId: 'class-3' },
-      { id: 'student-024', name: '김준호', grade: '고1', classId: 'class-3' },
-      { id: 'student-025', name: '이동현', grade: '고2', classId: 'class-4' },
-      { id: 'student-026', name: '박준혁', grade: '고2', classId: 'class-4' },
-      { id: 'student-027', name: '최동욱', grade: '고2', classId: 'class-4' },
-      { id: 'student-028', name: '정준영', grade: '고2', classId: 'class-4' },
-      { id: 'student-029', name: '임현준', grade: '고2', classId: 'class-4' },
-      { id: 'student-030', name: '한상준', grade: '고2', classId: 'class-4' },
-      { id: 'student-031', name: '김진호', grade: '고2', classId: 'class-4' },
-      // 추가 10명
-      { id: 'student-032', name: '이재욱', grade: '중2', classId: 'class-1' },
-      { id: 'student-033', name: '박은영', grade: '중2', classId: 'class-1' },
-      { id: 'student-034', name: '최민정', grade: '중3', classId: 'class-2' },
-      { id: 'student-035', name: '정우경', grade: '중3', classId: 'class-2' },
-      { id: 'student-036', name: '임수연', grade: '고1', classId: 'class-3' },
-      { id: 'student-037', name: '한민경', grade: '고1', classId: 'class-3' },
-      { id: 'student-038', name: '김소영', grade: '고2', classId: 'class-4' },
-      { id: 'student-039', name: '이윤정', grade: '고2', classId: 'class-4' },
-      { id: 'student-040', name: '박수정', grade: '중1', classId: 'class-1' },
-      { id: 'student-041', name: '최준영', grade: '고3', classId: 'class-5' },
-    ];
-
-    // 기존 학생들 확인 (중복 피하기)
-    const existingStudents = await executeQuery<any>(
-      context.env.DB,
-      'SELECT id FROM students WHERE academy_id = ?',
-      ['acad-1']
-    );
-
-    const existingIds = new Set(existingStudents.map(s => s.id));
-
-    // 신규 학생만 추가
-    let insertedCount = 0;
-    for (const student of sampleStudents) {
-      if (!existingIds.has(student.id)) {
-        await executeInsert(
-          context.env.DB,
-          `INSERT INTO students (id, name, grade, class_id, academy_id, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-          [student.id, student.name, student.grade, student.classId, 'acad-1', 'active']
-        );
-        insertedCount++;
-      }
-    }
-
-    // 최종 학생 수 조회
-    const finalStudents = await executeQuery<any>(
-      context.env.DB,
-      'SELECT COUNT(*) as count FROM students WHERE academy_id = ?',
-      ['acad-1']
-    );
-
-    const finalCount = finalStudents[0]?.count || 0;
-
-    // 응답 반환
-    return successResponse({
-      migratedCount: finalCount,
-      insertedCount: insertedCount,
-      message: `총 ${finalCount}명의 학생 데이터가 준비되었습니다 (신규 추가: ${insertedCount}명)`,
-    });
-  } catch (error) {
-    logger.error('마이그레이션 처리 중 오류', error instanceof Error ? error : new Error(String(error)), { ipAddress });
-    return errorResponse('마이그레이션 처리에 실패했습니다', 500);
-  }
-}
-
-// ==================== 메인 핸들러 ====================
 
 /**
  * CSV 마이그레이션 함수

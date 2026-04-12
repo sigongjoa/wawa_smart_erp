@@ -8,12 +8,19 @@ import { requireAuth } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
 
+// 정기고사 문맥 주입용 옵션
+const ExamContextSchema = z.object({
+  reportType: z.enum(['midterm', 'final']),
+  term: z.string().regex(/^\d{4}-\d$/),
+}).optional();
+
 const GenerateCommentSchema = z.object({
   studentName: z.string().min(1),
   subject: z.string().min(1),
   score: z.number().min(0),
   yearMonth: z.string(),
   existingComment: z.string().optional(),
+  examContext: ExamContextSchema,
 });
 
 const GenerateSummarySchema = z.object({
@@ -24,7 +31,15 @@ const GenerateSummarySchema = z.object({
     score: z.number(),
     comment: z.string().optional(),
   })),
+  examContext: ExamContextSchema,
 });
+
+function examContextLabel(ctx: { reportType: 'midterm' | 'final'; term: string } | undefined): string {
+  if (!ctx) return '';
+  const [year, half] = ctx.term.split('-');
+  const typeLabel = ctx.reportType === 'midterm' ? '중간고사' : '기말고사';
+  return `${year}년 ${half}학기 ${typeLabel}`;
+}
 
 /**
  * POST /api/ai/generate-comment
@@ -47,12 +62,19 @@ async function handleGenerateComment(
     const body = await request.json() as any;
     const input = GenerateCommentSchema.parse(body);
 
-    const prompt = `당신은 한국 수학 학원의 경험 많은 선생님입니다. 학부모에게 보내는 월말평가 리포트의 과목별 코멘트를 작성해주세요.
+    const isExamReview = !!input.examContext;
+    const examLabel = examContextLabel(input.examContext);
+    const reportKindLabel = isExamReview ? examLabel : '월말평가';
+    const periodLabel = isExamReview ? examLabel : input.yearMonth;
+    const periodFeedbackLabel = isExamReview ? '이번 시험' : '이번 달';
+    const nextPlanLabel = isExamReview ? '다음 학습 단계' : '다음 달 학습';
+
+    const prompt = `당신은 한국 수학 학원의 경험 많은 선생님입니다. 학부모에게 보내는 ${reportKindLabel} 리포트의 과목별 코멘트를 작성해주세요.
 
 학생: ${input.studentName}
 과목: ${input.subject}
 점수: ${input.score}점 (100점 만점)
-평가 기간: ${input.yearMonth}
+평가 기간: ${periodLabel}
 ${input.existingComment ? `선생님 메모: "${input.existingComment}" — 이 메모를 핵심 내용으로 삼아 학부모에게 전달할 수 있는 상세한 코멘트로 확장해주세요.` : ''}
 
 작성 규칙:
@@ -63,16 +85,16 @@ ${input.existingComment ? `선생님 메모: "${input.existingComment}" — 이 
   · 70~89점: 양호한 수준, 보완할 부분과 성장 가능성 언급
   · 50~69점: 노력이 필요한 부분을 구체적으로 짚고 개선 방법 제시
   · 50점 미만: 기초 보강 필요, 따뜻한 격려와 함께 단계적 학습 계획 제안
-- 이번 달 학습 내용에 대한 구체적 피드백 포함
-- 다음 달 학습에 대한 간단한 방향 제시
+- ${periodFeedbackLabel} 학습 내용에 대한 구체적 피드백 포함
+- ${nextPlanLabel}에 대한 간단한 방향 제시
 - 긍정적이고 격려하는 톤 유지
 - 코멘트만 출력 (제목, 라벨, 번호 없이 자연스러운 문장으로)`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
@@ -132,10 +154,21 @@ async function handleGenerateSummary(
       `- ${g.subject}: ${g.score}점${g.comment ? ` (선생님 메모: ${g.comment})` : ''}`
     ).join('\n');
 
-    const prompt = `당신은 한국의 "와와학습코칭센터" 학원 담당 선생님입니다. 학부모님께 보내는 월말평가 총평을 작성해주세요.
+    const isExamReview = !!input.examContext;
+    const examLabel = examContextLabel(input.examContext);
+    const reportKindLabel = isExamReview ? examLabel : '월말평가';
+    const periodLabel = isExamReview ? examLabel : input.yearMonth;
+    const summaryLine = isExamReview
+      ? '이번 시험 학습 요약 (1~2문장) — 시험 준비 과정과 성과. 선생님 메모 반영.'
+      : '이번 달 학습 요약 (1~2문장) — 전체적인 학습 태도와 성과. 선생님 메모 반영.';
+    const planLine = isExamReview
+      ? '다음 학습 단계 (1~2문장) — 이번 시험 결과를 바탕으로 학원에서 할 구체적 액션 1~2가지.'
+      : '다음 달 계획 (1~2문장) — 학원에서 할 구체적 액션 1~2가지.';
+
+    const prompt = `당신은 한국의 "와와학습코칭센터" 학원 담당 선생님입니다. 학부모님께 보내는 ${reportKindLabel} 총평을 작성해주세요.
 
 학생: ${input.studentName}
-평가 기간: ${input.yearMonth}
+평가 기간: ${periodLabel}
 전체 평균: ${avgScore}점
 
 과목별 성적 및 선생님 메모:
@@ -144,9 +177,9 @@ ${scoreList}
 [중요] 반드시 400~500자 이내로 작성하세요. 절대 500자를 초과하지 마세요.
 
 총평 구성 (번호/제목 없이 자연스러운 문단으로):
-1. 이번 달 학습 요약 (1~2문장) — 전체적인 학습 태도와 성과. 선생님 메모 반영.
+1. ${summaryLine}
 2. 과목별 핵심 피드백 (2~3문장) — 잘한 과목은 칭찬, 부족한 과목은 구체적 보완점.
-3. 다음 달 계획 (1~2문장) — 학원에서 할 구체적 액션 1~2가지.
+3. ${planLine}
 4. 마무리 격려 (1문장) — 짧고 진심 어린 격려.
 
 작성 규칙:
@@ -156,10 +189,10 @@ ${scoreList}
 - 400~500자 엄수`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {

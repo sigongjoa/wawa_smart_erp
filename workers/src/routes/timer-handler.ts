@@ -9,6 +9,8 @@ import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse 
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { CreateClassSchema, RecordAttendanceSchema, parseAndValidate } from '@/schemas/validation';
 import { logger } from '@/utils/logger';
+import { handleRouteError } from '@/utils/error-handler';
+import { handleTimerSession } from './timer-session-handler';
 
 /**
  * URL에서 파라미터 추출
@@ -36,6 +38,10 @@ export async function handleTimer(
   context: RequestContext
 ): Promise<Response> {
   try {
+    // ═══ v1.9.0 복원: enrollment + realtime session 라우트 ═══
+    const sessionResult = await handleTimerSession(method, pathname, request, context);
+    if (sessionResult !== null) return sessionResult;
+
     // GET /api/timer/classes
     if (method === 'GET' && pathname === '/api/timer/classes') {
       if (!requireAuth(context)) return unauthorizedResponse();
@@ -169,7 +175,7 @@ export async function handleTimer(
       return successResponse(updated);
     }
 
-    // POST /api/timer/attendance
+    // POST /api/timer/attendance — UPSERT (선생님이 버튼 재클릭 시 상태 변경 허용)
     if (method === 'POST' && pathname === '/api/timer/attendance') {
       const { studentId, classId, date, status, notes } = await parseAndValidate(
         request,
@@ -186,7 +192,9 @@ export async function handleTimer(
       const result = await executeInsert(
         context.env.DB,
         `INSERT INTO attendance (id, student_id, class_id, date, status, notes, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(student_id, class_id, date) DO UPDATE SET
+           status = excluded.status, notes = excluded.notes`,
         [id, studentId, classId, date, status || 'present', notes]
       );
 
@@ -196,11 +204,170 @@ export async function handleTimer(
 
       const record = await executeFirst<Attendance>(
         context.env.DB,
-        'SELECT * FROM attendance WHERE id = ?',
-        [id]
+        'SELECT * FROM attendance WHERE student_id = ? AND class_id = ? AND date = ?',
+        [studentId, classId, date]
       );
 
       return successResponse(record, 201);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // GET /api/timer/today-students?date=YYYY-MM-DD
+    // 로그인한 선생님의 담당 학생 + 오늘 출석/결석 상태를 반환
+    // admin 역할도 본인 담당 학생만 반환한다 (학원 전체 보기는 별도 페이지에서).
+    // ────────────────────────────────────────────────────────────
+    if (method === 'GET' && pathname === '/api/timer/today-students') {
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
+
+      const url = new URL(request.url);
+      const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+
+      const academyId = context.auth!.academyId;
+      const userId = context.auth!.userId;
+
+      // 해당 academy의 default_class_id 조회
+      const academyRow = await executeFirst<{ default_class_id: string | null }>(
+        context.env.DB,
+        'SELECT default_class_id FROM academies WHERE id = ?',
+        [academyId]
+      );
+      const defaultClassId = academyRow?.default_class_id || `class-default-${academyId}`;
+
+      // 학생 목록 + 오늘 출석 상태 LEFT JOIN
+      //   - student_teachers: 로그인 사용자(userId)가 담당한 학생만
+      //   - attendance: default_class_id + date로 매칭
+      //   - absences:    default_class_id + absence_date로 매칭
+      // 우선순위: attendance.status > absence (absent) > pending
+      const sql = `SELECT s.id, s.name, s.grade, s.subjects,
+                  att.id AS attendance_id, att.status AS att_status, att.notes AS att_notes,
+                  abs.id AS absence_id, abs.reason AS abs_reason
+           FROM students s
+           INNER JOIN student_teachers st ON s.id = st.student_id AND st.teacher_id = ?
+           LEFT JOIN attendance att
+             ON att.student_id = s.id AND att.class_id = ? AND att.date = ?
+           LEFT JOIN absences abs
+             ON abs.student_id = s.id AND abs.class_id = ? AND abs.absence_date = ?
+           WHERE s.academy_id = ? AND s.status = 'active'
+           ORDER BY s.grade DESC, s.name`;
+
+      const params = [userId, defaultClassId, date, defaultClassId, date, academyId];
+
+      const rows = await executeQuery<any>(context.env.DB, sql, params);
+
+      const students = rows.map((r) => {
+        let attendance_status: 'pending' | 'present' | 'late' | 'absent' = 'pending';
+        if (r.att_status) {
+          attendance_status = r.att_status as any;
+        } else if (r.absence_id) {
+          attendance_status = 'absent';
+        }
+
+        let subjects: string[] = [];
+        try {
+          subjects = r.subjects ? JSON.parse(r.subjects) : [];
+        } catch {
+          subjects = [];
+        }
+
+        return {
+          id: r.id,
+          name: r.name,
+          grade: r.grade,
+          subjects,
+          attendance_status,
+          attendance_id: r.attendance_id || null,
+          notes: r.att_notes || r.abs_reason || null,
+        };
+      });
+
+      return successResponse({
+        date,
+        defaultClassId,
+        students,
+      });
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // POST /api/timer/finish-day { date }
+    // 수업 마침 — 담당 학생 중 오늘 attendance/absence 모두 없는 학생을
+    // 일괄 결석 처리 (absences 테이블에 reason='수업마침 일괄')
+    // ────────────────────────────────────────────────────────────
+    if (method === 'POST' && pathname === '/api/timer/finish-day') {
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
+
+      const body = await request.json() as { date?: string };
+      const date = body?.date || new Date().toISOString().split('T')[0];
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return errorResponse('date는 YYYY-MM-DD 형식이어야 합니다', 400);
+      }
+
+      const academyId = context.auth!.academyId;
+      const userId = context.auth!.userId;
+
+      const academyRow = await executeFirst<{ default_class_id: string | null }>(
+        context.env.DB,
+        'SELECT default_class_id FROM academies WHERE id = ?',
+        [academyId]
+      );
+      const defaultClassId = academyRow?.default_class_id || `class-default-${academyId}`;
+
+      // pending 학생 찾기 — 담당 학생 중 attendance/absence 모두 없는 경우
+      // admin 역할도 본인 담당 학생만 처리한다.
+      const pendingSql = `SELECT s.id FROM students s
+           INNER JOIN student_teachers st ON s.id = st.student_id AND st.teacher_id = ?
+           LEFT JOIN attendance att
+             ON att.student_id = s.id AND att.class_id = ? AND att.date = ?
+           LEFT JOIN absences abs
+             ON abs.student_id = s.id AND abs.class_id = ? AND abs.absence_date = ?
+           WHERE s.academy_id = ? AND s.status = 'active'
+             AND att.id IS NULL AND abs.id IS NULL`;
+
+      const pendingParams = [userId, defaultClassId, date, defaultClassId, date, academyId];
+
+      const pending = await executeQuery<{ id: string }>(context.env.DB, pendingSql, pendingParams);
+
+      // 1) 일괄 INSERT absences
+      for (const p of pending) {
+        const absenceId = crypto.randomUUID();
+        await executeInsert(
+          context.env.DB,
+          `INSERT INTO absences (id, student_id, class_id, absence_date, reason, notified_by, status, recorded_by)
+           VALUES (?, ?, ?, ?, ?, ?, 'absent', ?)
+           ON CONFLICT(student_id, class_id, absence_date) DO NOTHING`,
+          [absenceId, p.id, defaultClassId, date, '수업마침 일괄 결석', '', userId]
+        );
+      }
+
+      // 2) 한 번의 쿼리로 모든 결석 ID 조회 (N+1 제거)
+      const placeholders = pending.map(() => '?').join(',');
+      const studentIds = pending.map(p => p.id);
+      const insertedRows = await executeQuery<{ id: string; student_id: string }>(
+        context.env.DB,
+        `SELECT id, student_id FROM absences WHERE student_id IN (${placeholders}) AND class_id = ? AND absence_date = ?`,
+        [...studentIds, defaultClassId, date]
+      );
+
+      // 3) 일괄 INSERT makeups (N+1 제거)
+      for (const row of insertedRows) {
+        const makeupId = crypto.randomUUID();
+        await executeInsert(
+          context.env.DB,
+          `INSERT INTO makeups (id, absence_id, status) VALUES (?, ?, 'pending')
+           ON CONFLICT(absence_id) DO NOTHING`,
+          [makeupId, row.id]
+        );
+      }
+
+      const recorded = insertedRows.length;
+
+      logger.logRequest('POST', '/api/timer/finish-day', userId, request.headers.get('CF-Connecting-IP') || undefined);
+
+      return successResponse({ date, recorded, total: pending.length }, 201);
     }
 
     // GET /api/timer/attendance/:classId/:date
@@ -222,14 +389,6 @@ export async function handleTimer(
 
     return errorResponse('Not found', 404);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    if (errorMessage.includes('입력 검증') || errorMessage.includes('요청 처리')) {
-      logger.warn('타이머 검증 오류', { error: errorMessage });
-      return errorResponse(errorMessage, 400);
-    }
-
-    logger.error('타이머 처리 중 오류', error instanceof Error ? error : new Error(String(error)));
-    return errorResponse('요청 처리 실패', 500);
+    return handleRouteError(error, '타이머 처리');
   }
 }

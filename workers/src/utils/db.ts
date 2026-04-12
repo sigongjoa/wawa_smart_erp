@@ -1,9 +1,9 @@
-import { Env, ApiResponse } from '@/types';
+import { logger } from '@/utils/logger';
 
 export async function executeQuery<T>(
-  db: any,
+  db: D1Database,
   query: string,
-  params?: any[]
+  params?: unknown[]
 ): Promise<T[]> {
   try {
     const statement = db.prepare(query);
@@ -11,15 +11,15 @@ export async function executeQuery<T>(
     const result = await boundStatement.all();
     return (result.results || []) as T[];
   } catch (error) {
-    console.error('Database query error:', error);
+    logger.error('Database query error', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
 
 export async function executeFirst<T>(
-  db: any,
+  db: D1Database,
   query: string,
-  params?: any[]
+  params?: unknown[]
 ): Promise<T | null> {
   try {
     const statement = db.prepare(query);
@@ -27,15 +27,15 @@ export async function executeFirst<T>(
     const result = await boundStatement.first();
     return (result || null) as T | null;
   } catch (error) {
-    console.error('Database query error:', error);
+    logger.error('Database query error', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
 
 export async function executeInsert(
-  db: any,
+  db: D1Database,
   query: string,
-  params?: any[]
+  params?: unknown[]
 ): Promise<{ id: string; success: boolean }> {
   try {
     const statement = db.prepare(query);
@@ -46,15 +46,15 @@ export async function executeInsert(
       success: result.success,
     };
   } catch (error) {
-    console.error('Database insert error:', error);
+    logger.error('Database insert error', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
 
 export async function executeUpdate(
-  db: any,
+  db: D1Database,
   query: string,
-  params?: any[]
+  params?: unknown[]
 ): Promise<boolean> {
   try {
     const statement = db.prepare(query);
@@ -62,15 +62,15 @@ export async function executeUpdate(
     const result = await boundStatement.run();
     return result.success;
   } catch (error) {
-    console.error('Database update error:', error);
+    logger.error('Database update error', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
 
 export async function executeDelete(
-  db: any,
+  db: D1Database,
   query: string,
-  params?: any[]
+  params?: unknown[]
 ): Promise<boolean> {
   try {
     const statement = db.prepare(query);
@@ -78,16 +78,16 @@ export async function executeDelete(
     const result = await boundStatement.run();
     return result.success;
   } catch (error) {
-    console.error('Database delete error:', error);
+    logger.error('Database delete error', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
 
 // 트랜잭션 실행
-export async function executeTransaction(
-  db: any,
-  callback: (db: any) => Promise<any>
-): Promise<any> {
+export async function executeTransaction<T>(
+  db: D1Database,
+  callback: (db: D1Database) => Promise<T>
+): Promise<T> {
   try {
     await db.prepare('BEGIN TRANSACTION').run();
     const result = await callback(db);

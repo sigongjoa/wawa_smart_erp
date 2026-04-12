@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAuthStore } from '../store';
+import { toast, useConfirm } from '../components/Toast';
 
 interface Notice {
   id: string;
@@ -126,7 +127,7 @@ export default function BoardPage() {
       setActionDrafts([]);
       loadData();
     } catch (err) {
-      alert('작성 실패: ' + (err as Error).message);
+      toast.error('작성 실패: ' + (err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -156,15 +157,18 @@ export default function BoardPage() {
       setActionForm({ title: '', assignedTo: '', dueDate: '', description: '' });
       loadData();
     } catch (err) {
-      alert('추가 실패: ' + (err as Error).message);
+      toast.error('추가 실패: ' + (err as Error).message);
     } finally {
       setSaving(false);
     }
   };
 
+  const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
+
   // 공지 삭제
   const handleDeleteNotice = async (id: string) => {
-    if (!confirm('이 공지를 삭제하시겠습니까?')) return;
+    const ok = await confirmDialog('이 공지를 삭제하시겠습니까?');
+    if (!ok) return;
     try {
       await api.deleteNotice(id);
       loadData();
@@ -186,7 +190,7 @@ export default function BoardPage() {
   const allPending = allActions.filter((a) => a.status !== 'completed');
 
   return (
-    <div>
+    <div className="board-page">
       <div className="board-header">
         <h2 className="page-title">보드</h2>
         <div className="board-header-actions">
@@ -329,9 +333,18 @@ export default function BoardPage() {
         </div>
       )}
 
+      {ConfirmDialog}
+
       {/* ═══ 공지 작성 모달 ═══ */}
       {showNoticeModal && (
-        <div className="modal-overlay" onClick={() => setShowNoticeModal(false)}>
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="공지 작성"
+          onClick={() => setShowNoticeModal(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowNoticeModal(false); }}
+        >
           <div className="modal-content modal-board" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">공지 작성</h3>
             <div className="modal-body">
@@ -381,7 +394,14 @@ export default function BoardPage() {
 
       {/* ═══ 할일 추가 모달 ═══ */}
       {showActionModal && (
-        <div className="modal-overlay" onClick={() => setShowActionModal(false)}>
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="할일 추가"
+          onClick={() => setShowActionModal(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowActionModal(false); }}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">할일 추가</h3>
             <div className="modal-body">

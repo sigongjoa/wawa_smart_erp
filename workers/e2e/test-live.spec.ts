@@ -24,7 +24,7 @@ test('라이브 서버 로그인 및 데이터 조회', async ({ page }) => {
 
   // 로그인
   console.log('🔐 로그인 시작');
-  await page.locator('input[placeholder*="예:"]').first().fill(ADMIN.name);
+  await page.locator('input').first().fill(ADMIN.name);
   await page.locator('input[type="password"]').first().fill(ADMIN.pin);
   await page.locator('button:has-text("접속하기"), button:has-text("로그인")').first().click();
   await page.waitForTimeout(3000);

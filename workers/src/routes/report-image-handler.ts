@@ -11,12 +11,22 @@ import { logger } from '@/utils/logger';
 import { z } from 'zod';
 
 // 이미지 업로드 스키마
+//   월말: yearMonth 만 전달
+//   정기고사: reportType=midterm|final, term 을 전달하고 yearMonth는 참고용(선택)
 const UploadImageSchema = z.object({
   imageBase64: z.string().min(1, 'PNG 이미지가 필요합니다'),
   studentId: z.string().min(1, '학생 ID가 필요합니다'),
   studentName: z.string().min(1, '학생 이름이 필요합니다'),
-  yearMonth: z.string().regex(/^\d{4}-\d{2}$/, '년월 형식이 필요합니다 (YYYY-MM)'),
-});
+  yearMonth: z.string().regex(/^\d{4}-\d{2}$/, '년월 형식이 필요합니다 (YYYY-MM)').optional(),
+  reportType: z.enum(['monthly', 'midterm', 'final']).default('monthly'),
+  term: z.string().regex(/^\d{4}-\d$/, '학기는 YYYY-N 형식이어야 합니다').optional(),
+}).refine(
+  (data) => data.reportType !== 'monthly' || !!data.yearMonth,
+  { message: '월말 모드에서는 yearMonth가 필수입니다', path: ['yearMonth'] },
+).refine(
+  (data) => data.reportType === 'monthly' || !!data.term,
+  { message: '정기고사 모드에서는 term이 필수입니다', path: ['term'] },
+);
 
 type UploadImageInput = z.infer<typeof UploadImageSchema>;
 
@@ -71,8 +81,13 @@ async function handleUploadImage(
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // R2 파일 경로 생성 (academy_id/student/yearmonth_studentname.png)
-    const fileName = `${input.yearMonth}_${input.studentName.replace(/\s+/g, '_')}_${generateId('report')}.png`;
+    // R2 파일 경로 생성
+    //   월말:   <yearMonth>_<name>_<id>.png
+    //   정기고사: <term>_<type>_<name>_<id>.png
+    const fileKey = input.reportType === 'monthly'
+      ? input.yearMonth!
+      : `${input.term}_${input.reportType}`;
+    const fileName = `${fileKey}_${input.studentName.replace(/\s+/g, '_')}_${generateId('report')}.png`;
     const filePath = `reports/${context.auth.academyId}/${fileName}`;
 
     // R2에 업로드
@@ -92,44 +107,73 @@ async function handleUploadImage(
     const baseUrl = context.env.API_URL || new URL(context.request.url).origin;
     const shareUrl = `${baseUrl}/api/report/image/${filePath}`;
 
-    // report_sends 기록 — 이전 이미지가 있으면 R2에서 삭제 후 UPSERT
+    // 전송 기록 — 이전 이미지가 있으면 R2에서 삭제 후 UPSERT
+    //   월말: report_sends (academy_id, student_id, year_month)
+    //   정기고사: exam_review_sends (academy_id, student_id, term, exam_type)
     const academyId = context.auth.academyId;
     const sentBy = context.auth.userId;
     const now = new Date().toISOString();
 
     try {
-      const existing = await executeFirst<any>(
-        context.env.DB,
-        `SELECT id, image_path FROM report_sends
-         WHERE academy_id = ? AND student_id = ? AND year_month = ?`,
-        [academyId, input.studentId, input.yearMonth]
-      );
+      if (input.reportType === 'monthly') {
+        const existing = await executeFirst<any>(
+          context.env.DB,
+          `SELECT id, image_path FROM report_sends
+           WHERE academy_id = ? AND student_id = ? AND year_month = ?`,
+          [academyId, input.studentId, input.yearMonth!]
+        );
 
-      if (existing) {
-        // 이전 R2 이미지 삭제 (실패해도 진행)
-        try {
-          await context.env.BUCKET.delete(existing.image_path);
-        } catch {
-          logger.warn('이전 이미지 삭제 실패 (무시)', { path: existing.image_path });
+        if (existing) {
+          try {
+            await context.env.BUCKET.delete(existing.image_path);
+          } catch {
+            logger.warn('이전 이미지 삭제 실패 (무시)', { path: existing.image_path });
+          }
+
+          await context.env.DB.prepare(
+            `UPDATE report_sends
+             SET share_url = ?, image_path = ?, sent_by = ?, sent_at = ?
+             WHERE id = ?`
+          ).bind(shareUrl, filePath, sentBy, now, existing.id).run();
+        } else {
+          const sendId = generateId('send');
+          await context.env.DB.prepare(
+            `INSERT INTO report_sends (id, academy_id, student_id, year_month, share_url, image_path, sent_by, sent_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(sendId, academyId, input.studentId, input.yearMonth!, shareUrl, filePath, sentBy, now).run();
         }
-
-        // 기존 레코드 업데이트
-        await context.env.DB.prepare(
-          `UPDATE report_sends
-           SET share_url = ?, image_path = ?, sent_by = ?, sent_at = ?
-           WHERE id = ?`
-        ).bind(shareUrl, filePath, sentBy, now, existing.id).run();
       } else {
-        // 신규 레코드 삽입
-        const sendId = generateId('send');
-        await context.env.DB.prepare(
-          `INSERT INTO report_sends (id, academy_id, student_id, year_month, share_url, image_path, sent_by, sent_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(sendId, academyId, input.studentId, input.yearMonth, shareUrl, filePath, sentBy, now).run();
+        // 정기고사
+        const existing = await executeFirst<any>(
+          context.env.DB,
+          `SELECT id, image_path FROM exam_review_sends
+           WHERE academy_id = ? AND student_id = ? AND term = ? AND exam_type = ?`,
+          [academyId, input.studentId, input.term!, input.reportType]
+        );
+
+        if (existing) {
+          try {
+            await context.env.BUCKET.delete(existing.image_path);
+          } catch {
+            logger.warn('이전 정기고사 이미지 삭제 실패 (무시)', { path: existing.image_path });
+          }
+
+          await context.env.DB.prepare(
+            `UPDATE exam_review_sends
+             SET share_url = ?, image_path = ?, sent_by = ?, sent_at = ?
+             WHERE id = ?`
+          ).bind(shareUrl, filePath, sentBy, now, existing.id).run();
+        } else {
+          const sendId = generateId('review-send');
+          await context.env.DB.prepare(
+            `INSERT INTO exam_review_sends (id, academy_id, student_id, term, exam_type, share_url, image_path, sent_by, sent_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(sendId, academyId, input.studentId, input.term!, input.reportType, shareUrl, filePath, sentBy, now).run();
+        }
       }
     } catch (dbError) {
       // DB 기록 실패해도 이미지 업로드는 성공으로 처리
-      logger.warn('report_sends 기록 실패', { error: dbError instanceof Error ? dbError.message : String(dbError) });
+      logger.warn('전송 기록 실패', { error: dbError instanceof Error ? dbError.message : String(dbError) });
     }
 
     logger.logRequest('POST', '/api/report/upload-image', 'success', ipAddress);

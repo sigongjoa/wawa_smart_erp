@@ -1,8 +1,8 @@
 // 환경 변수 타입
 export interface Env {
-  DB: any;
-  KV: any;
-  BUCKET: any;
+  DB: D1Database;
+  KV: KVNamespace;
+  BUCKET: R2Bucket;
   ENVIRONMENT: string;
   API_URL: string;
   FRONTEND_URL: string;

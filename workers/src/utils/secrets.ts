@@ -25,11 +25,8 @@ export class SecretsManager {
       throw new Error('JWT_SECRET 환경변수가 필수입니다 (프로덕션)');
     }
 
-    // 개발 환경에서는 안전한 기본값 사용 가능
     if (!secret) {
-      console.warn('⚠️ JWT_SECRET을 찾을 수 없습니다. 개발 모드 기본값을 사용합니다.');
-      console.warn('⚠️ 프로덕션에서는 반드시 JWT_SECRET을 설정하세요.');
-      return 'dev-jwt-secret-change-in-production';
+      throw new Error('JWT_SECRET 환경변수가 설정되지 않았습니다. .dev.vars 또는 wrangler secret put JWT_SECRET으로 설정하세요.');
     }
 
     return secret;
@@ -46,8 +43,7 @@ export class SecretsManager {
     }
 
     if (!secret) {
-      console.warn('⚠️ JWT_REFRESH_SECRET을 찾을 수 없습니다. 개발 모드 기본값을 사용합니다.');
-      return 'dev-refresh-secret-change-in-production';
+      throw new Error('JWT_REFRESH_SECRET 환경변수가 설정되지 않았습니다. .dev.vars 또는 wrangler secret put JWT_REFRESH_SECRET으로 설정하세요.');
     }
 
     return secret;

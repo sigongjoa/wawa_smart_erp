@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { toast } from '../components/Toast';
 
 type MakeupStatus = '' | 'pending' | 'scheduled' | 'completed';
 
@@ -53,7 +54,7 @@ export default function AbsencePage() {
       await api.scheduleMakeup({ absenceId, scheduledDate: date });
       loadMakeups(filter);
     } catch (err) {
-      alert('보강일 지정 실패: ' + (err as Error).message);
+      toast.error('보강일 지정 실패: ' + (err as Error).message);
     }
   };
 
@@ -62,7 +63,7 @@ export default function AbsencePage() {
       await api.completeMakeup(makeupId);
       loadMakeups(filter);
     } catch (err) {
-      alert('보강 완료 처리 실패: ' + (err as Error).message);
+      toast.error('보강 완료 처리 실패: ' + (err as Error).message);
     }
   };
 
@@ -76,7 +77,7 @@ export default function AbsencePage() {
   const displayMakeups = filter ? makeups.filter((m) => m.status === filter) : makeups;
 
   return (
-    <div>
+    <div className="absence-page">
       <div className="absence-page-header">
         <h2 className="page-title">보강 관리</h2>
         <div className="absence-filters">
@@ -110,7 +111,9 @@ export default function AbsencePage() {
           {filter ? `${STATUS_LABELS[filter]} 항목이 없습니다` : '보강 데이터가 없습니다'}
         </div>
       ) : (
-        <table className="absence-table">
+        <>
+        {/* 데스크탑: 테이블 */}
+        <table className="absence-table absence-desktop">
           <thead>
             <tr>
               <th>학생</th>
@@ -168,7 +171,7 @@ export default function AbsencePage() {
                       </button>
                     )}
                     {m.status === 'completed' && (
-                      <span style={{ color: '#2e7d32', fontSize: 12 }}>
+                      <span style={{ color: 'var(--success)', fontSize: 12 }}>
                         {m.completed_date}
                       </span>
                     )}
@@ -178,6 +181,65 @@ export default function AbsencePage() {
             ))}
           </tbody>
         </table>
+
+        {/* 모바일: 카드 리스트 */}
+        <div className="absence-cards absence-mobile">
+          {displayMakeups.map((m) => (
+            <div key={m.id} className="absence-card">
+              <div className="absence-card-top">
+                <span className="absence-card-name">{m.student_name}</span>
+                <span className={`makeup-status makeup-status--${m.status}`}>
+                  {STATUS_LABELS[m.status]}
+                </span>
+              </div>
+              <div className="absence-card-details">
+                <span>결석 {m.absence_date}</span>
+                <span>{m.class_name}</span>
+                {m.reason && <span>{m.reason}</span>}
+              </div>
+              {m.scheduled_date && (
+                <div className="absence-card-schedule">
+                  보강일: {m.scheduled_date}
+                </div>
+              )}
+              <div className="absence-card-action">
+                {m.status === 'pending' && (
+                  <>
+                    <input
+                      type="date"
+                      className="date-input"
+                      value={scheduleDates[m.absence_id] || ''}
+                      onChange={(e) =>
+                        setScheduleDates((prev) => ({ ...prev, [m.absence_id]: e.target.value }))
+                      }
+                    />
+                    <button
+                      className="btn btn-sm btn-present"
+                      onClick={() => handleSchedule(m.absence_id)}
+                      disabled={!scheduleDates[m.absence_id]}
+                    >
+                      보강일 지정
+                    </button>
+                  </>
+                )}
+                {m.status === 'scheduled' && (
+                  <button
+                    className="btn btn-sm btn-present"
+                    onClick={() => handleComplete(m.id)}
+                  >
+                    보강 완료
+                  </button>
+                )}
+                {m.status === 'completed' && m.completed_date && (
+                  <span className="absence-card-done">
+                    {m.completed_date} 완료
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
     </div>
   );
