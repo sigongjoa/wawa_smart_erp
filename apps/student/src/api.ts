@@ -105,7 +105,19 @@ export interface StudentProfile {
 
 // ── API ──
 
+export interface Academy {
+  slug: string;
+  name: string;
+  logo: string | null;
+}
+
 export const api = {
+  getAcademies: async (): Promise<Academy[]> => {
+    const res = await fetch(`${API_BASE}/api/onboard/academies`);
+    const json = await res.json();
+    return json?.data ?? [];
+  },
+
   login: (academy_slug: string, name: string, pin: string) =>
     request<{ token: string; student: { id: string; name: string; grade: string } }>('/api/play/login', {
       method: 'POST',

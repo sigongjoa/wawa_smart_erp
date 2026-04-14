@@ -32,6 +32,7 @@ import { handleGachaStudent } from '@/routes/gacha-student-handler';
 import { handleGachaCard } from '@/routes/gacha-card-handler';
 import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
+import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
 import { tenantMiddleware } from '@/middleware/tenant';
 
 /**
@@ -112,7 +113,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 인증 체크 (logout, 다른 protected routes)
       // 이미지 조회는 공개 (인증 필요 없음)
       // 선생님 이름 목록은 공개 (로그인 페이지에서 필요) — 이름만 반환
-      const isPublicImage = pathname.match(/^\/api\/report\/image\//) || pathname.match(/^\/api\/gacha\/image\//) || pathname.match(/^\/api\/proof\/image\//);
+      const isPublicImage = pathname.match(/^\/api\/report\/image\//) || pathname.match(/^\/api\/gacha\/image\//) || pathname.match(/^\/api\/proof\/image\//) || pathname === '/api/report/list';
       const isPublicTeacherNames = pathname === '/api/teachers/names' && method === 'GET';
       if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage && !isPublicTeacherNames) {
         const authResult = await authMiddleware(context);
@@ -156,7 +157,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       if (pathname.startsWith('/api/report')) {
         // 이미지 관련 라우트는 별도로 처리
-        if (pathname === '/api/report/upload-image' || pathname.match(/^\/api\/report\/image\//)) {
+        if (pathname === '/api/report/upload-image' || pathname === '/api/report/list' || pathname.match(/^\/api\/report\/image\//)) {
           return addCorsHeaders(await handleReportImage(method, pathname, request, context), env, origin);
         }
         return addCorsHeaders(await handleReport(method, pathname, request, context), env, origin);
@@ -206,6 +207,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 증명 관리 (JWT 인증)
       if (pathname.startsWith('/api/proof')) {
         return addCorsHeaders(await handleProof(method, pathname, request, context), env, origin);
+      }
+
+      // 정기고사 관리 (JWT 인증)
+      if (pathname.startsWith('/api/exam-mgmt')) {
+        return addCorsHeaders(await handleExamMgmt(method, pathname, request, context), env, origin);
       }
     }
 

@@ -12,6 +12,7 @@ export function corsHeaders(env: Env, origin?: string): Record<string, string> {
     'https://wawa.app',
     'https://learn.wawa.app',
     'https://wawa-learn.pages.dev',
+    'https://master.wawa-learn.pages.dev',
   ];
 
   // 요청 origin이 있으면 확인
@@ -22,6 +23,10 @@ export function corsHeaders(env: Env, origin?: string): Record<string, string> {
     }
     // 화이트리스트에 있는 도메인만 허용
     else if (ALLOWED_ORIGINS.includes(origin)) {
+      allowedOrigin = origin;
+    }
+    // Cloudflare Pages 프리뷰 배포 (*.wawa-smart-erp.pages.dev, *.wawa-learn.pages.dev)
+    else if (/^https:\/\/[a-z0-9-]+\.(wawa-smart-erp|wawa-learn)\.pages\.dev$/.test(origin)) {
       allowedOrigin = origin;
     }
   }

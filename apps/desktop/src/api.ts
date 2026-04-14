@@ -54,8 +54,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  // 401 → refresh token으로 재시도
-  if (res.status === 401) {
+  // 401 → refresh token으로 재시도 (로그인/리프레시 자체는 제외 — 에러를 호출자에 그대로 전달)
+  const isAuthEndpoint = path.startsWith('/api/auth/login') || path.startsWith('/api/auth/refresh');
+  if (res.status === 401 && !isAuthEndpoint) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       const retry = await fetch(`${API_BASE}${path}`, {
@@ -767,6 +768,67 @@ export const api = {
   // 대시보드 통계
   getGachaStats: () =>
     request<GachaStats>('/api/proof/stats'),
+
+  // ── 정기고사 관리 ──
+
+  getExamPeriods: () =>
+    request<ExamPeriod[]>('/api/exam-mgmt'),
+
+  createExamPeriod: (data: { title: string; period_month: string }) =>
+    request<{ id: string; title: string; period_month: string }>('/api/exam-mgmt', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateExamPeriod: (id: string, data: { title?: string; status?: string }) =>
+    request(`/api/exam-mgmt/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteExamPeriod: (id: string) =>
+    request(`/api/exam-mgmt/${id}`, { method: 'DELETE' }),
+
+  getExamPapers: (periodId: string) =>
+    request<ExamPaper[]>(`/api/exam-mgmt/${periodId}/papers`),
+
+  createExamPaper: (periodId: string, data: { title: string; grade_filter?: string; is_custom?: boolean }) =>
+    request<{ id: string }>(`/api/exam-mgmt/${periodId}/papers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteExamPaper: (periodId: string, paperId: string) =>
+    request(`/api/exam-mgmt/${periodId}/papers/${paperId}`, { method: 'DELETE' }),
+
+  getExamAssignments: (periodId: string) =>
+    request<ExamAssignment[]>(`/api/exam-mgmt/${periodId}/assignments`),
+
+  autoAssignExam: (periodId: string) =>
+    request<{ created: number; total: number }>(`/api/exam-mgmt/${periodId}/auto-assign`, {
+      method: 'POST',
+    }),
+
+  manualAssignExam: (periodId: string, data: { student_id: string; exam_paper_id: string }) =>
+    request<{ id: string }>(`/api/exam-mgmt/${periodId}/assign`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateExamAssignment: (periodId: string, assignId: string, data: Partial<ExamAssignmentUpdate>) =>
+    request(`/api/exam-mgmt/${periodId}/assignments/${assignId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  bulkCheckExam: (periodId: string, field: 'created_check' | 'printed' | 'reviewed', value: boolean) =>
+    request(`/api/exam-mgmt/${periodId}/bulk-check`, {
+      method: 'POST',
+      body: JSON.stringify({ field, value }),
+    }),
+
+  deleteExamAssignment: (periodId: string, assignId: string) =>
+    request(`/api/exam-mgmt/${periodId}/assignments/${assignId}`, { method: 'DELETE' }),
 };
 
 // ── 가차/증명 타입 ──
@@ -838,6 +900,56 @@ export interface ProofStepInput {
   content_image?: string;
   blanks_json?: string;
   hint?: string;
+}
+
+// ── 정기고사 타입 ──
+
+export interface ExamPeriod {
+  id: string;
+  academy_id: string;
+  title: string;
+  period_month: string;
+  status: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExamPaper {
+  id: string;
+  exam_period_id: string;
+  academy_id: string;
+  title: string;
+  grade_filter: string | null;
+  is_custom: number;
+  created_at: string;
+}
+
+export interface ExamAssignment {
+  id: string;
+  exam_period_id: string;
+  exam_paper_id: string;
+  student_id: string;
+  academy_id: string;
+  created_check: number;
+  printed: number;
+  reviewed: number;
+  drive_link: string | null;
+  score: number | null;
+  memo: string | null;
+  created_at: string;
+  student_name: string;
+  student_grade: string;
+  paper_title: string;
+}
+
+export interface ExamAssignmentUpdate {
+  created_check: boolean;
+  printed: boolean;
+  reviewed: boolean;
+  drive_link: string;
+  score: number;
+  memo: string;
 }
 
 export interface GachaStats {

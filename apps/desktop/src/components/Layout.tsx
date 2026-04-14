@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/materials', label: '교재', iconClass: 'nav-icon--materials' },
   { to: '/absence', label: '보강', iconClass: 'nav-icon--absence' },
   { to: '/student', label: '학생', iconClass: 'nav-icon--student' },
+  { to: '/exams', label: '정기고사', iconClass: 'nav-icon--exam' },
   { to: '/meeting', label: '회의', iconClass: 'nav-icon--meeting' },
   { to: '/board', label: '보드', iconClass: 'nav-icon--board' },
 ];

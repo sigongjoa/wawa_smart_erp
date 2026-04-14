@@ -20,6 +20,7 @@ const GachaStudentPage = lazy(() => import('./pages/GachaStudentPage'));
 const GachaCardPage = lazy(() => import('./pages/GachaCardPage'));
 const ProofEditorPage = lazy(() => import('./pages/ProofEditorPage'));
 const GachaDashboardPage = lazy(() => import('./pages/GachaDashboardPage'));
+const ExamManagementPage = lazy(() => import('./pages/ExamManagementPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/gacha/cards" element={<GachaCardPage />} />
             <Route path="/gacha/proofs" element={<ProofEditorPage />} />
             <Route path="/gacha/dashboard" element={<GachaDashboardPage />} />
+            <Route path="/exams" element={<ExamManagementPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/timer" replace />} />
         </Routes>

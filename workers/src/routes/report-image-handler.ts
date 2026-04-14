@@ -278,6 +278,22 @@ export async function handleReportImage(
       return errorResponse('Method not allowed', 405);
     }
 
+    // /api/report/list — 임시 R2 리스트 (디버깅용)
+    if (pathname === '/api/report/list') {
+      const url = new URL(context.request.url);
+      const prefix = url.searchParams.get('prefix') || 'reports/';
+      const listed = await context.env.BUCKET.list({ prefix, limit: 1000 });
+      return successResponse({
+        count: listed.objects.length,
+        truncated: listed.truncated,
+        objects: listed.objects.map(o => ({
+          key: o.key,
+          size: o.size,
+          uploaded: o.uploaded,
+        })),
+      });
+    }
+
     // /api/report/image/{filePath} - GET
     const imageMatch = pathname.match(/^\/api\/report\/image\/(.+)$/);
     if (imageMatch) {

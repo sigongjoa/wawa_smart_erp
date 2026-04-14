@@ -13,6 +13,90 @@ import { handleRouteError } from '@/utils/error-handler';
 import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
+// ==================== 과목별 exam 자동 생성 ====================
+/**
+ * 학원에서 수강 중인 모든 과목에 대해 해당 기간의 exam 레코드를 보장.
+ * 이미 존재하는 과목은 건너뛴다 (멱등).
+ */
+async function ensureExamsForAllSubjects(
+  db: D1Database,
+  academyId: string,
+  params:
+    | { type: 'monthly'; yearMonth: string }
+    | { type: 'midterm' | 'final'; term: string }
+): Promise<void> {
+  // 1) 학원 수강 과목 union — students.subjects (JSON) 파싱
+  const studentRows = await db.prepare(
+    `SELECT subjects FROM students WHERE academy_id = ? AND status = 'active'`
+  ).bind(academyId).all<{ subjects: string | null }>();
+  const subjectSet = new Set<string>();
+  for (const row of studentRows.results || []) {
+    try {
+      const arr = row.subjects ? JSON.parse(row.subjects) : [];
+      if (Array.isArray(arr)) {
+        for (const s of arr) {
+          if (typeof s === 'string' && s.length > 0) subjectSet.add(s);
+        }
+      }
+    } catch { /* skip malformed */ }
+  }
+  const subjects = [...subjectSet];
+
+  if (subjects.length === 0) return;
+
+  // 2) 기존 exam 조회
+  const existingRes = params.type === 'monthly'
+    ? await db.prepare(
+        `SELECT name FROM exams
+         WHERE academy_id = ? AND exam_month = ?
+           AND (exam_type IS NULL OR exam_type = 'monthly')`
+      ).bind(academyId, params.yearMonth).all<{ name: string }>()
+    : await db.prepare(
+        `SELECT name FROM exams
+         WHERE academy_id = ? AND exam_type = ? AND term = ?`
+      ).bind(academyId, params.type, params.term).all<{ name: string }>();
+
+  const extractSubject = (n: string | null): string | null => {
+    if (!n) return null;
+    const m = n.match(/\(([^)]+)\)\s*$/);
+    if (m) return m[1];
+    const parts = n.split(' - ');
+    if (parts.length > 1) return parts[parts.length - 1].trim();
+    return null;
+  };
+  const existing = new Set(
+    (existingRes.results || []).map((r) => extractSubject(r.name)).filter((s): s is string => !!s)
+  );
+
+  // 3) 누락 과목만 INSERT
+  const now = new Date().toISOString();
+  for (const subject of subjects) {
+    if (existing.has(subject)) continue;
+    const id = generatePrefixedId('exam');
+
+    if (params.type === 'monthly') {
+      const [y, m] = params.yearMonth.split('-');
+      const name = `${y}년 ${parseInt(m, 10)}월 월말평가 - ${subject}`;
+      await db.prepare(
+        `INSERT INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
+         VALUES (?, ?, NULL, ?, ?, ?, 100, 0, 'monthly', NULL, ?, ?)`
+      ).bind(id, academyId, name, params.yearMonth, `${params.yearMonth}-15`, now, now).run();
+    } else {
+      const typeLabel = params.type === 'midterm' ? '중간고사' : '기말고사';
+      const name = `${params.term} ${typeLabel} - ${subject}`;
+      const [y, sem] = params.term.split('-');
+      const monthGuess = params.type === 'midterm'
+        ? (sem === '1' ? '04' : '10')
+        : (sem === '1' ? '06' : '12');
+      const examMonth = `${y}-${monthGuess}`;
+      await db.prepare(
+        `INSERT INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
+         VALUES (?, ?, NULL, ?, ?, ?, 100, 0, ?, ?, ?, ?)`
+      ).bind(id, academyId, name, examMonth, `${examMonth}-15`, params.type, params.term, now, now).run();
+    }
+  }
+}
+
 // ==================== 스키마 ====================
 const SetActiveExamMonthSchema = z.object({
   activeExamMonth: z.string().regex(/^\d{4}-\d{2}$/, '시험 월은 YYYY-MM 형식이어야 합니다'),
@@ -138,6 +222,8 @@ async function handleSetActiveExamMonth(
         throw new Error('시험 월 업데이트 실패');
       }
 
+      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: 'monthly', yearMonth: input.activeExamMonth });
+
       return successResponse(
         {
           academyId,
@@ -168,6 +254,8 @@ async function handleSetActiveExamMonth(
       if (!result.success) {
         throw new Error('시험 월 저장 실패');
       }
+
+      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: 'monthly', yearMonth: input.activeExamMonth });
 
       return successResponse(
         {
@@ -264,6 +352,8 @@ async function handleSetActiveExamReview(
         throw new Error('활성 정기고사 업데이트 실패');
       }
 
+      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: input.activeExamType, term: input.activeTerm });
+
       return successResponse({
         academyId,
         activeTerm: input.activeTerm,
@@ -292,6 +382,8 @@ async function handleSetActiveExamReview(
       if (!result.success) {
         throw new Error('활성 정기고사 저장 실패');
       }
+
+      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: input.activeExamType, term: input.activeTerm });
 
       return successResponse(
         {
