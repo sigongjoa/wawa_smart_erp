@@ -25,6 +25,14 @@ import { handleAI } from '@/routes/ai-handler';
 import { handleAbsence } from '@/routes/absence-handler';
 import { handleBoard } from '@/routes/board-handler';
 import { handleMaterials } from '@/routes/materials-handler';
+import { handleOnboard } from '@/routes/onboard-handler';
+import { handleAcademy } from '@/routes/academy-handler';
+import { handleMeeting } from '@/routes/meeting-handler';
+import { handleGachaStudent } from '@/routes/gacha-student-handler';
+import { handleGachaCard } from '@/routes/gacha-card-handler';
+import { handleProof } from '@/routes/proof-handler';
+import { handleGachaPlay } from '@/routes/gacha-play-handler';
+import { tenantMiddleware } from '@/middleware/tenant';
 
 /**
  * 메인 요청 처리 함수
@@ -41,6 +49,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   };
 
   try {
+    // JWT 시크릿 필수 검증 (시작 시)
+    if (!env.JWT_SECRET || !env.JWT_REFRESH_SECRET) {
+      return internalErrorResponse(new Error('JWT secrets not configured'));
+    }
     // 요청 origin 추출
     const origin = request.headers.get('origin') || undefined;
 
@@ -55,8 +67,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return addCorsHeaders(rateLimitResult, env, origin);
     }
 
-    // Health Check
+    // Health Check + 만료 세션 정리 (lazy cleanup)
     if (pathname === '/health') {
+      try {
+        await env.DB.prepare(
+          "DELETE FROM sessions WHERE expires_at < datetime('now')"
+        ).run();
+      } catch { /* non-critical */ }
       return addCorsHeaders(
         successResponse({ status: 'ok', timestamp: new Date().toISOString() }),
         env,
@@ -77,10 +94,25 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleAuth(method, pathname, request, context), env, origin);
       }
 
+      // 온보딩 라우트 (공개)
+      if (pathname.startsWith('/api/onboard/')) {
+        return addCorsHeaders(await handleOnboard(method, pathname, request, context), env, origin);
+      }
+
+      // 초대 수락 (공개)
+      if (pathname === '/api/invite/accept' && method === 'POST') {
+        return addCorsHeaders(await handleAcademy(method, pathname, request, context), env, origin);
+      }
+
+      // 학생 앱 (PIN 토큰 인증 — JWT 미들웨어 스킵)
+      if (pathname.startsWith('/api/play/')) {
+        return addCorsHeaders(await handleGachaPlay(method, pathname, request, context), env, origin);
+      }
+
       // 인증 체크 (logout, 다른 protected routes)
       // 이미지 조회는 공개 (인증 필요 없음)
       // 선생님 이름 목록은 공개 (로그인 페이지에서 필요) — 이름만 반환
-      const isPublicImage = pathname.match(/^\/api\/report\/image\//);
+      const isPublicImage = pathname.match(/^\/api\/report\/image\//) || pathname.match(/^\/api\/gacha\/image\//) || pathname.match(/^\/api\/proof\/image\//);
       const isPublicTeacherNames = pathname === '/api/teachers/names' && method === 'GET';
       if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage && !isPublicTeacherNames) {
         const authResult = await authMiddleware(context);
@@ -88,11 +120,22 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
           return addCorsHeaders(authResult, env, origin);
         }
         Object.assign(context, authResult);
+
+        // 테넌트 미들웨어 — 인증된 요청에 학원 정보 로드 + 활성 상태 확인
+        const tenantResult = await tenantMiddleware(context);
+        if (tenantResult instanceof Response) {
+          return addCorsHeaders(tenantResult, env, origin);
+        }
+        Object.assign(context, tenantResult);
       }
 
       // 라우트 핸들러 매칭
       if (pathname.startsWith('/api/auth/')) {
         return addCorsHeaders(await handleAuth(method, pathname, request, context), env, origin);
+      }
+
+      if (pathname.startsWith('/api/academy') || pathname.startsWith('/api/invite/')) {
+        return addCorsHeaders(await handleAcademy(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/timer/')) {
@@ -143,8 +186,26 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleBoard(method, pathname, request, context), env, origin);
       }
 
+      if (pathname.startsWith('/api/meeting')) {
+        return addCorsHeaders(await handleMeeting(method, pathname, request, context), env, origin);
+      }
+
       if (pathname.startsWith('/api/materials')) {
         return addCorsHeaders(await handleMaterials(method, pathname, request, context), env, origin);
+      }
+
+      // 가차 학생/카드 관리 (JWT 인증)
+      if (pathname.startsWith('/api/gacha/')) {
+        if (pathname.startsWith('/api/gacha/students')) {
+          return addCorsHeaders(await handleGachaStudent(method, pathname, request, context), env, origin);
+        }
+        // 카드 CRUD + 이미지 업로드/서빙
+        return addCorsHeaders(await handleGachaCard(method, pathname, request, context), env, origin);
+      }
+
+      // 증명 관리 (JWT 인증)
+      if (pathname.startsWith('/api/proof')) {
+        return addCorsHeaders(await handleProof(method, pathname, request, context), env, origin);
       }
     }
 

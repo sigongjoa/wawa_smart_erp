@@ -7,6 +7,7 @@ import { RequestContext } from '@/types';
 import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/utils/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { requireAuth } from '@/middleware/auth';
+import { generateId } from '@/utils/id';
 
 interface MaterialRow {
   id: string;
@@ -19,10 +20,6 @@ interface MaterialRow {
   created_by: string;
   created_at: string;
   completed_at: string | null;
-}
-
-function generateId(): string {
-  return 'mat-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
 export async function handleMaterials(

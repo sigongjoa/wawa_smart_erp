@@ -13,8 +13,9 @@ import { logger } from '@/utils/logger';
 import { loginRateLimit } from '@/middleware/rateLimit';
 import { z } from 'zod';
 
-// 로그인 스키마 (이름/PIN 기반)
+// 로그인 스키마 (학원코드/이름/PIN 기반)
 const TeacherLoginSchema = z.object({
+  slug: z.string().min(1, '학원코드는 필수입니다'),
   name: z.string().min(1, '이름은 필수입니다'),
   pin: z.string().min(4, 'PIN은 최소 4자 이상이어야 합니다'),
 });
@@ -106,15 +107,19 @@ export async function handleAuth(
       if (blocked) return blocked;
 
       const body = await request.json() as any;
-      const { name, pin } = TeacherLoginSchema.parse(body);
+      const { slug, name, pin } = TeacherLoginSchema.parse(body);
 
       logger.logRequest('POST', '/api/auth/login', undefined, ipAddress);
 
-      // 사용자 조회 (이름으로 검색)
+      // 사용자 조회 (학원 slug + 이름으로 검색 — 다른 학원 이름 충돌 방지)
       const user = await executeFirst<any>(
         context.env.DB,
-        'SELECT id, email, name, role, academy_id, password_hash FROM users WHERE name = ? LIMIT 1',
-        [name]
+        `SELECT u.id, u.email, u.name, u.role, u.academy_id, u.password_hash
+         FROM users u
+         JOIN academies a ON u.academy_id = a.id
+         WHERE u.name = ? AND a.slug = ? AND a.is_active = 1
+         LIMIT 1`,
+        [name, slug]
       );
 
       if (!user) {
@@ -154,10 +159,10 @@ export async function handleAuth(
         [refreshTokenId, user.id, refreshToken, expiresAt.toISOString()]
       );
 
-      // academy default_class_id — TimerPage 출석 기록에 사용
-      const academyRow = await executeFirst<{ default_class_id: string | null }>(
+      // academy 정보 — TimerPage 출석 기록에 사용
+      const academyRow = await executeFirst<{ default_class_id: string | null; name: string; slug: string; logo_url: string | null }>(
         context.env.DB,
-        'SELECT default_class_id FROM academies WHERE id = ?',
+        'SELECT default_class_id, name, slug, logo_url FROM academies WHERE id = ?',
         [user.academy_id]
       );
       const defaultClassId = academyRow?.default_class_id || `class-default-${user.academy_id}`;
@@ -172,6 +177,9 @@ export async function handleAuth(
             role: user.role,
             academyId: user.academy_id,
             defaultClassId,
+            academyName: academyRow?.name,
+            academySlug: academyRow?.slug,
+            academyLogo: academyRow?.logo_url,
           },
         },
         200

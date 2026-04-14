@@ -2,7 +2,7 @@ import { RequestContext } from '@/types';
 import { errorResponse } from '@/utils/response';
 
 const RATE_LIMIT_WINDOW = 60; // 1분
-const RATE_LIMIT_REQUESTS = 300; // 일반 API: 1분에 300개
+const RATE_LIMIT_REQUESTS = 120; // 일반 API: 1분에 120개
 const LOGIN_RATE_LIMIT_WINDOW = 60; // 1분
 const LOGIN_RATE_LIMIT_REQUESTS = 5; // 로그인: 1분에 5회
 
@@ -35,6 +35,25 @@ const ENDPOINT_LIMITS: EndpointRateLimitConfig[] = [
     windowSeconds: 60,
     message: '리포트 수정 요청이 너무 많습니다. 1분 후 다시 시도하세요.',
   },
+  {
+    prefix: '/api/ai/',
+    maxRequests: 10,
+    windowSeconds: 60,
+    message: 'AI 요청이 너무 많습니다. 1분 후 다시 시도하세요.',
+  },
+  {
+    prefix: '/api/meeting',
+    methods: ['POST'],
+    maxRequests: 10,
+    windowSeconds: 60,
+    message: '회의 요청이 너무 많습니다. 1분 후 다시 시도하세요.',
+  },
+  {
+    prefix: '/api/file/upload',
+    maxRequests: 20,
+    windowSeconds: 60,
+    message: '파일 업로드 요청이 너무 많습니다. 1분 후 다시 시도하세요.',
+  },
 ];
 
 export async function rateLimitMiddleware(
@@ -55,16 +74,7 @@ export async function rateLimitMiddleware(
     const currentEpCount = epCount ? parseInt(epCount) : 0;
 
     if (currentEpCount >= limit.maxRequests) {
-      return new Response(
-        JSON.stringify({ error: limit.message, code: 'rate_limited' }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': limit.windowSeconds.toString(),
-          },
-        },
-      );
+      return errorResponse(limit.message, 429);
     }
 
     await context.env.KV.put(epKey, (currentEpCount + 1).toString(), {

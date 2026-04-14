@@ -9,6 +9,7 @@ import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
+import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -33,14 +34,6 @@ async function hashPassword(password: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * UUID v4 생성
- */
-function generateId(prefix: string): string {
-  const uuid = crypto.randomUUID();
-  return `${prefix}-${uuid.split('-')[0]}`;
 }
 
 /**
@@ -86,11 +79,12 @@ async function handleCreateTeacher(
 
     logger.logRequest('POST', '/api/teachers', undefined, ipAddress);
 
-    // PIN 중복 확인 (같은 이름 + PIN)
+    // 같은 학원 내 이름 중복 확인
+    const academyId = getAcademyId(context);
     const existingTeacher = await executeFirst<any>(
       context.env.DB,
-      'SELECT id FROM users WHERE name = ? LIMIT 1',
-      [input.name]
+      'SELECT id FROM users WHERE name = ? AND academy_id = ? LIMIT 1',
+      [input.name, academyId]
     );
 
     if (existingTeacher) {
@@ -101,7 +95,7 @@ async function handleCreateTeacher(
     const pinHash = await hashPassword(input.pin);
 
     // 선생님 생성
-    const teacherId = generateId('user');
+    const teacherId = generatePrefixedId('user');
     const now = new Date().toISOString();
     const role = input.isAdmin ? 'admin' : 'instructor';
     // 고유한 이메일 생성 (name + random suffix)
@@ -205,7 +199,7 @@ async function handleMigrateNotionToD1(
     const d1Students = await executeQuery<any>(
       context.env.DB,
       'SELECT id, name FROM students WHERE academy_id = ?',
-      ['acad-1']
+      [getAcademyId(context)]
     );
 
     // 이름으로 매칭하여 subjects 업데이트
@@ -231,7 +225,7 @@ async function handleMigrateNotionToD1(
     const finalStudents = await executeQuery<any>(
       context.env.DB,
       'SELECT COUNT(*) as count FROM students WHERE academy_id = ?',
-      ['acad-1']
+      [getAcademyId(context)]
     );
 
     const finalCount = finalStudents[0]?.count || 0;
@@ -303,7 +297,7 @@ async function handleMigrateCSV(
     const existingStudents = await executeQuery<any>(
       context.env.DB,
       'SELECT id FROM students WHERE academy_id = ?',
-      ['acad-1']
+      [getAcademyId(context)]
     );
     const existingIds = new Set(existingStudents.map((s: any) => s.id));
 
@@ -338,7 +332,7 @@ async function handleMigrateCSV(
           context.env.DB,
           `INSERT INTO students (id, name, grade, class_id, academy_id, status, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-          [studentId, name, grade, classId, 'acad-1', 'active']
+          [studentId, name, grade, classId, getAcademyId(context), 'active']
         );
         insertedCount++;
         existingIds.add(studentId);
@@ -352,7 +346,7 @@ async function handleMigrateCSV(
     const finalStudents = await executeQuery<any>(
       context.env.DB,
       'SELECT COUNT(*) as count FROM students WHERE academy_id = ?',
-      ['acad-1']
+      [getAcademyId(context)]
     );
 
     const finalCount = finalStudents[0]?.count || 0;
@@ -397,18 +391,38 @@ async function handleGetTeachers(context: RequestContext): Promise<Response> {
 }
 
 /**
- * GET /api/teachers/names - 이름 목록만 조회 (공개 - 로그인 페이지용)
- * 이메일, 역할 등 민감 정보 미포함
+ * GET /api/teachers/names?slug=xxx - 이름 목록만 조회 (공개 - 로그인 페이지용)
+ * slug로 학원 식별, 이메일/역할 등 민감 정보 미포함
  */
 async function handleGetTeacherNames(context: RequestContext): Promise<Response> {
   try {
+    const url = new URL(context.request.url);
+    const slug = url.searchParams.get('slug');
+
+    if (!slug) {
+      return errorResponse('학원코드(slug)가 필요합니다', 400);
+    }
+
     const teachers = await executeQuery<{ name: string }>(
       context.env.DB,
-      `SELECT name FROM users WHERE academy_id = 'acad-1' AND role IN ('teacher', 'admin') ORDER BY name`,
-      []
+      `SELECT u.name FROM users u
+       JOIN academies a ON u.academy_id = a.id
+       WHERE a.slug = ? AND a.is_active = 1 AND u.role IN ('instructor', 'admin')
+       ORDER BY u.name`,
+      [slug]
     );
 
-    return successResponse(teachers.map(t => t.name));
+    // 학원 기본 정보도 함께 반환 (로고, 이름)
+    const academy = await executeFirst<{ name: string; logo_url: string | null }>(
+      context.env.DB,
+      'SELECT name, logo_url FROM academies WHERE slug = ? AND is_active = 1',
+      [slug]
+    );
+
+    return successResponse({
+      teachers: teachers.map(t => t.name),
+      academy: academy ? { name: academy.name, logo: academy.logo_url } : null,
+    });
   } catch (error) {
     logger.error('선생님 이름 목록 조회 오류', error instanceof Error ? error : new Error(String(error)));
     return errorResponse('조회 실패', 500);

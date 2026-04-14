@@ -130,7 +130,8 @@ export default function ScoreChart({ months, subjects }: ScoreChartProps) {
     const chartH = rect.height - PAD.top - PAD.bottom;
     const stepX = months.length > 1 ? chartW / (months.length - 1) : chartW / 2;
 
-    let closest: { dist: number; text: string } | null = null;
+    let closestDist = Infinity;
+    let closestText = '';
 
     Object.entries(subjects).forEach(([name, data]) => {
       data.forEach((val, i) => {
@@ -138,13 +139,14 @@ export default function ScoreChart({ months, subjects }: ScoreChartProps) {
         const x = PAD.left + (months.length > 1 ? i * stepX : chartW / 2);
         const y = PAD.top + chartH - (val / 100) * chartH;
         const dist = Math.sqrt((mx - x) ** 2 + (my - y) ** 2);
-        if (dist < 20 && (!closest || dist < closest.dist)) {
-          closest = { dist, text: `${name} ${formatMonth(months[i])}: ${val}점` };
+        if (dist < 20 && dist < closestDist) {
+          closestDist = dist;
+          closestText = `${name} ${formatMonth(months[i])}: ${val}점`;
         }
       });
     });
 
-    canvas.title = closest ? closest.text : '';
+    canvas.title = closestText;
   };
 
   return (

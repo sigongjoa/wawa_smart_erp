@@ -176,6 +176,14 @@ async function handleRealtimeToday(
   const enrollmentParams = dayParam ? [...studentIds, dayParam] : studentIds;
   const enrollments = await executeQuery<any>(context.env.DB, enrollmentSql, enrollmentParams);
 
+  // 학원 전체에 enrollment이 하나라도 있는지 (시간표 설정 여부 판단)
+  const allEnrollmentCount = await executeFirst<{ cnt: number }>(
+    context.env.DB,
+    `SELECT COUNT(*) as cnt FROM enrollments WHERE student_id IN (${placeholders})`,
+    studentIds
+  );
+  const hasAnyEnrollments = (allEnrollmentCount?.cnt || 0) > 0;
+
   // 3) 오늘 진행 중/완료 세션 (본인이 체크인한 것만)
   const sessions = await executeQuery<SessionRow>(
     context.env.DB,
@@ -203,7 +211,8 @@ async function handleRealtimeToday(
     sessionsByStudent.get(s.student_id)!.push(s);
   }
 
-  const result = students.map((s: any) => {
+  const result: any[] = [];
+  for (const s of students) {
     let subjects: string[] = [];
     try {
       subjects = s.subjects ? JSON.parse(s.subjects) : [];
@@ -230,7 +239,13 @@ async function handleRealtimeToday(
     ) || null;
     const completedSession = studentSessions.find((s) => s.status === 'completed') || null;
 
-    return {
+    // 해당 요일에 수업이 없고 진행/완료 세션도 없으면 목록에서 제외
+    // 단, enrollment이 하나도 없는 학원(시간표 미설정)은 담당 학생 전원 표시
+    if (dayParam && hasAnyEnrollments && studentEnrollments.length === 0 && !activeSession && !completedSession) {
+      continue;
+    }
+
+    result.push({
       id: s.id,
       name: s.name,
       grade: s.grade,
@@ -238,8 +253,8 @@ async function handleRealtimeToday(
       enrollments: studentEnrollments,
       activeSession,
       completedSession,
-    };
-  });
+    });
+  }
 
   return successResponse({ date, day: dayParam, students: result });
 }

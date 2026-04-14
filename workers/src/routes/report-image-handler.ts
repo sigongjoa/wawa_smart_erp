@@ -8,6 +8,7 @@ import { RequestContext } from '@/types';
 import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/response';
 import { executeFirst } from '@/utils/db';
 import { logger } from '@/utils/logger';
+import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
 // 이미지 업로드 스키마
@@ -29,11 +30,6 @@ const UploadImageSchema = z.object({
 );
 
 type UploadImageInput = z.infer<typeof UploadImageSchema>;
-
-function generateId(prefix: string): string {
-  const uuid = crypto.randomUUID();
-  return `${prefix}-${uuid.split('-')[0]}`;
-}
 
 async function parseUploadInput(request: Request): Promise<UploadImageInput> {
   try {
@@ -87,7 +83,7 @@ async function handleUploadImage(
     const fileKey = input.reportType === 'monthly'
       ? input.yearMonth!
       : `${input.term}_${input.reportType}`;
-    const fileName = `${fileKey}_${input.studentName.replace(/\s+/g, '_')}_${generateId('report')}.png`;
+    const fileName = `${fileKey}_${input.studentName.replace(/\s+/g, '_')}_${generatePrefixedId('report')}.png`;
     const filePath = `reports/${context.auth.academyId}/${fileName}`;
 
     // R2에 업로드
@@ -136,7 +132,7 @@ async function handleUploadImage(
              WHERE id = ?`
           ).bind(shareUrl, filePath, sentBy, now, existing.id).run();
         } else {
-          const sendId = generateId('send');
+          const sendId = generatePrefixedId('send');
           await context.env.DB.prepare(
             `INSERT INTO report_sends (id, academy_id, student_id, year_month, share_url, image_path, sent_by, sent_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
@@ -164,7 +160,7 @@ async function handleUploadImage(
              WHERE id = ?`
           ).bind(shareUrl, filePath, sentBy, now, existing.id).run();
         } else {
-          const sendId = generateId('review-send');
+          const sendId = generatePrefixedId('review-send');
           await context.env.DB.prepare(
             `INSERT INTO exam_review_sends (id, academy_id, student_id, term, exam_type, share_url, image_path, sent_by, sent_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`

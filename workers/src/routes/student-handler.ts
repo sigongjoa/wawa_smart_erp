@@ -9,6 +9,7 @@ import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
+import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
 // ==================== 헬퍼: 과목명 추출 ====================
@@ -25,17 +26,13 @@ const CreateStudentSchema = z.object({
   class_id: z.string().optional(),
   contact: z.string().optional(),
   guardian_contact: z.string().optional(),
+  subjects: z.array(z.string()).optional(),
   status: z.enum(['active', 'inactive']).default('active'),
 });
 
 type CreateStudentInput = z.infer<typeof CreateStudentSchema>;
 
 // ==================== 헬퍼 함수 ====================
-
-function generateId(prefix: string): string {
-  const uuid = crypto.randomUUID();
-  return `${prefix}-${uuid.split('-')[0]}`;
-}
 
 async function parseStudentInput(request: Request): Promise<CreateStudentInput> {
   try {
@@ -70,14 +67,18 @@ async function handleCreateStudent(
 
     logger.logRequest('POST', '/api/student', undefined, ipAddress);
 
-    const studentId = generateId('student');
+    const studentId = generatePrefixedId('student');
     const now = new Date().toISOString();
     const enrollmentDate = new Date().toISOString().split('T')[0]; // DATE 형식 (YYYY-MM-DD)
 
+    const subjectsJson = input.subjects && input.subjects.length > 0
+      ? JSON.stringify(input.subjects)
+      : null;
+
     const result = await executeInsert(
       context.env.DB,
-      `INSERT INTO students (id, academy_id, name, class_id, contact, guardian_contact, enrollment_date, status, created_at, updated_at, grade)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO students (id, academy_id, name, class_id, contact, guardian_contact, enrollment_date, status, created_at, updated_at, grade, subjects)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         studentId,
         getAcademyId(context),
@@ -90,11 +91,22 @@ async function handleCreateStudent(
         now,
         now,
         input.grade,
+        subjectsJson,
       ]
     );
 
     if (!result.success) {
       throw new Error('데이터베이스 삽입 실패');
+    }
+
+    // 생성한 사람을 담당 선생님으로 자동 매핑
+    const userId = context.auth?.userId;
+    if (userId) {
+      await executeInsert(
+        context.env.DB,
+        'INSERT OR IGNORE INTO student_teachers (student_id, teacher_id) VALUES (?, ?)',
+        [studentId, userId]
+      );
     }
 
     return successResponse(
@@ -264,6 +276,10 @@ async function handleDeleteStudent(
       return errorResponse('학생을 찾을 수 없습니다', 404);
     }
 
+    // 관련 데이터 정리
+    await executeDelete(context.env.DB, 'DELETE FROM student_teachers WHERE student_id = ?', [studentId]);
+    await executeDelete(context.env.DB, 'DELETE FROM enrollments WHERE student_id = ?', [studentId]);
+
     const result = await executeDelete(
       context.env.DB,
       'DELETE FROM students WHERE id = ?',
@@ -310,8 +326,8 @@ async function handleGetStudentProfile(
       context.env.DB,
       `SELECT u.id, u.name FROM student_teachers st
        JOIN users u ON st.teacher_id = u.id
-       WHERE st.student_id = ?`,
-      [studentId]
+       WHERE st.student_id = ? AND u.academy_id = ?`,
+      [studentId, academyId]
     );
 
     return successResponse({

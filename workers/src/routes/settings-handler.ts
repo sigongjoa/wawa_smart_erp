@@ -10,6 +10,7 @@ import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
+import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -29,11 +30,6 @@ const SetActiveExamReviewSchema = z.object({
 type SetActiveExamReviewInput = z.infer<typeof SetActiveExamReviewSchema>;
 
 // ==================== 헬퍼 함수 ====================
-
-function generateId(prefix: string): string {
-  const uuid = crypto.randomUUID();
-  return `${prefix}-${uuid.split('-')[0]}`;
-}
 
 async function parseSetActiveExamMonthInput(request: Request): Promise<SetActiveExamMonthInput> {
   try {
@@ -153,7 +149,7 @@ async function handleSetActiveExamMonth(
       );
     } else {
       // 신규 설정 생성
-      const settingId = generateId('setting');
+      const settingId = generatePrefixedId('setting');
 
       const result = await executeInsert(
         context.env.DB,
@@ -276,7 +272,7 @@ async function handleSetActiveExamReview(
         updatedAt: now,
       });
     } else {
-      const settingId = generateId('review-setting');
+      const settingId = generatePrefixedId('review-setting');
 
       const result = await executeInsert(
         context.env.DB,

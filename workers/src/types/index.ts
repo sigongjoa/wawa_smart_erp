@@ -9,6 +9,8 @@ export interface Env {
   JWT_SECRET?: string;
   JWT_REFRESH_SECRET?: string;
   GEMINI_API_KEY?: string;
+  CLOVA_INVOKE_URL?: string;
+  CLOVA_SECRET_KEY?: string;
   JWT_EXPIRES_IN: string;
   REFRESH_TOKEN_EXPIRES_IN: string;
   LOG_LEVEL: string;
@@ -148,10 +150,31 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
+// 학원 정보 (테넌트)
+export interface Academy {
+  id: string;
+  name: string;
+  slug: string;
+  phone?: string;
+  address?: string;
+  owner_id?: string;
+  plan: 'free' | 'basic' | 'pro';
+  max_students: number;
+  max_teachers: number;
+  is_active: number;
+  logo_url?: string;
+  default_class_id?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // 요청 컨텍스트
 export interface RequestContext {
   request: Request;
   env: Env;
   auth?: AuthPayload;
   params: Record<string, string>;
+  tenantId?: string;
+  academy?: Academy;
 }

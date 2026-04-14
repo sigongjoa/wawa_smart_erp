@@ -29,7 +29,10 @@ export async function handleFile(
       const userId = context.auth!.userId;
       const ipAddress = request.headers.get('CF-Connecting-IP') || 'unknown';
 
-      const folder = (formData.get('folder') as string) || 'uploads';
+      const rawFolder = (formData.get('folder') as string) || 'uploads';
+      // 경로 탐색 방지: 허용된 폴더명만 사용
+      const ALLOWED_FOLDERS = ['uploads', 'materials', 'reports', 'meetings', 'avatars'];
+      const folder = ALLOWED_FOLDERS.includes(rawFolder) ? rawFolder : 'uploads';
 
       const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {

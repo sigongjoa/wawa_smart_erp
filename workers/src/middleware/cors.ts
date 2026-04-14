@@ -10,6 +10,8 @@ export function corsHeaders(env: Env, origin?: string): Record<string, string> {
   const ALLOWED_ORIGINS = [
     'https://wawa-smart-erp.pages.dev',
     'https://wawa.app',
+    'https://learn.wawa.app',
+    'https://wawa-learn.pages.dev',
   ];
 
   // 요청 origin이 있으면 확인

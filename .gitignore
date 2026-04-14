@@ -1,64 +1,122 @@
-# Logs
-logs
+# ========================================
+# wawa_smart_erp .gitignore
+# ========================================
+
+# ── Dependencies ──
+node_modules/
+jspm_packages/
+.yarn/
+
+# ── Build artifacts ──
+dist/
+build/
+.next/
+.nuxt/
+.vite/
+.serverless/
+
+# ── Logs ──
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Dependency directories
-node_modules/
-jspm_packages/
-
-# Build artifacts
-dist/
-build/
-.next/
-.nuxt/
-.vuepress/dist/
-.serverless/
-.yarn/
-.vite/
-
-# Editor directories and files
+# ── Editor / OS ──
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 
-# Environment variables & secrets
+# ========================================
+# SECRETS & ENVIRONMENT (최우선 보호)
+# ========================================
 .env
 .env.*
-.env.local
+!.env.example
 .dev.vars
 workers/.dev.vars
-.env.development.local
-.env.test.local
-.env.production.local
 
-# Misc
+# ── Cloudflare Wrangler (로컬 D1/KV/R2 데이터 + 계정 정보) ──
+.wrangler/
+workers/.wrangler/
+
+# ── E2E test config (API keys 포함 가능) ──
+apps/desktop/e2e/test-config.json
+
+# ========================================
+# E2E TEST ARTIFACTS
+# ========================================
+test-results/
+**/test-results/
+**/playwright-report/
+**/html-report/
+**/.playwright/
+apps/desktop/e2e-report/
+apps/desktop/e2e-screenshots/
+apps/desktop/e2e-usecase-screenshots/
+
+# ========================================
+# APP-SPECIFIC
+# ========================================
+
+# ── Desktop app (Electron) ──
+apps/desktop/release/
+
+# ── Student app ──
+apps/student/dist/
+
+# ── 개인정보 보호 ──
+backup/
+reports/
+apps/reports/
+uploads/
+processed/
+
+# ── Notion config (API key 포함) ──
+notion_config.json
+
+# ── Scripts (개인 데이터 포함 가능) ──
+scripts/
+
+# ========================================
+# BINARY / DOCUMENT FILES
+# ========================================
+*.pptx
+*.docx
+*.pdf
 *.pid
 *.seed
 *.patch
-.nyc_output/
-/coverage/
-.cache/
-.eslintcache
-.prettierignore
-/storybook-static/
-notion_config.json
-.env
-code*.html
-logo.jpg
-*.pdf
+
+# ── Images (소스 로고 등) ──
 *.png
 *.jpg
 *.jpeg
 *.gif
+/app_logo.jpg
+/wawa_logo.jpg
+**/assets/**/*.pdf
+**/assets/**/*.png
+**/assets/**/*.jpg
+**/assets/**/*.jpeg
+**/assets/**/*.gif
 
+# ========================================
+# MISC
+# ========================================
+.nyc_output/
+/coverage/
+.cache/
+.eslintcache
+/storybook-static/
+code*.html
 
-# Python
+# ── Python ──
 __pycache__/
 *.py[cod]
 *$py.class
@@ -69,48 +127,3 @@ ENV/
 env/
 *.egg-info/
 .eggs/
-
-# Smart Grader temp files
-uploads/
-processed/
-
-# E2E test config (contains API keys)
-apps/desktop/e2e/test-config.json
-
-# E2E test artifacts
-apps/desktop/e2e-report/
-apps/desktop/e2e-screenshots/
-apps/desktop/e2e-usecase-screenshots/
-apps/desktop/test-results/
-apps/desktop/.playwright/
-workers/test-results/
-
-# Kakao API keys (never commit)
-apps/desktop/.env
-apps/desktop/.env.*
-# Electron build output (binary)
-apps/desktop/release/
-
-# Utility scripts (may contain personal data)
-scripts/
-
-# 개인정보 보호 - 학생 성적/리포트 백업 데이터
-backup/
-reports/
-apps/reports/
-
-# 바이너리/문서 파일 (개인정보 포함 가능)
-*.pptx
-*.docx
-
-# Source logo files (ico/png already in assets)
-/app_logo.jpg
-/wawa_logo.jpg
-
-# Global blocks for assets that might be added later
-**/assets/**/*.pdf
-**/assets/**/*.png
-**/assets/**/*.jpg
-**/assets/**/*.jpeg
-**/assets/**/*.gif
-

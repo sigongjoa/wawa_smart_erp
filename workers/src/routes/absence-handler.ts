@@ -7,6 +7,7 @@ import { RequestContext, Absence, Makeup } from '@/types';
 import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/utils/db';
 import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
 import { requireAuth, requireRole } from '@/middleware/auth';
+import { getAcademyId } from '@/utils/context';
 import { logger } from '@/utils/logger';
 
 export async function handleAbsence(
@@ -138,15 +139,16 @@ export async function handleAbsence(
         return errorResponse('date 파라미터 필수', 400);
       }
 
+      const academyId = getAcademyId(context);
       const absences = await executeQuery<any>(
         context.env.DB,
         `SELECT a.*, s.name as student_name, c.name as class_name
          FROM absences a
          JOIN students s ON a.student_id = s.id
          JOIN classes c ON a.class_id = c.id
-         WHERE a.absence_date = ?
+         WHERE a.absence_date = ? AND s.academy_id = ?
          ORDER BY c.start_time, s.name`,
-        [date]
+        [date, academyId]
       );
 
       return successResponse(absences);
@@ -188,6 +190,8 @@ export async function handleAbsence(
       const url = new URL(request.url);
       const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
 
+      const academyId2 = getAcademyId(context);
+
       // 오늘 결석
       const todayAbsences = await executeQuery<any>(
         context.env.DB,
@@ -195,9 +199,9 @@ export async function handleAbsence(
          FROM absences a
          JOIN students s ON a.student_id = s.id
          JOIN classes c ON a.class_id = c.id
-         WHERE a.absence_date = ?
+         WHERE a.absence_date = ? AND s.academy_id = ?
          ORDER BY c.start_time, s.name`,
-        [date]
+        [date, academyId2]
       );
 
       // 미보강 누적
@@ -209,9 +213,9 @@ export async function handleAbsence(
          JOIN absences a ON m.absence_id = a.id
          JOIN students s ON a.student_id = s.id
          JOIN classes c ON a.class_id = c.id
-         WHERE m.status = 'pending'
+         WHERE m.status = 'pending' AND s.academy_id = ?
          ORDER BY a.absence_date`,
-        []
+        [academyId2]
       );
 
       // 요일 계산
@@ -293,6 +297,7 @@ export async function handleAbsence(
       const url = new URL(request.url);
       const status = url.searchParams.get('status');
 
+      const academyId3 = getAcademyId(context);
       let query = `
         SELECT m.*, a.absence_date, a.reason, a.student_id, a.class_id,
                s.name as student_name, c.name as class_name
@@ -300,11 +305,12 @@ export async function handleAbsence(
         JOIN absences a ON m.absence_id = a.id
         JOIN students s ON a.student_id = s.id
         JOIN classes c ON a.class_id = c.id
+        WHERE s.academy_id = ?
       `;
-      const params: any[] = [];
+      const params: any[] = [academyId3];
 
       if (status) {
-        query += ' WHERE m.status = ?';
+        query += ' AND m.status = ?';
         params.push(status);
       }
 

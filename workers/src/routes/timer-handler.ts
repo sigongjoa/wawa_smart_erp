@@ -316,18 +316,23 @@ export async function handleTimer(
       );
       const defaultClassId = academyRow?.default_class_id || `class-default-${academyId}`;
 
-      // pending 학생 찾기 — 담당 학생 중 attendance/absence 모두 없는 경우
+      // pending 학생 찾기 — 담당 학생 중 해당 요일에 수업이 있고, attendance/absence 모두 없는 경우
       // admin 역할도 본인 담당 학생만 처리한다.
+      const DAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
+      const dayOfWeek = DAYS_KR[new Date(date + 'T00:00:00').getDay()];
+
       const pendingSql = `SELECT s.id FROM students s
            INNER JOIN student_teachers st ON s.id = st.student_id AND st.teacher_id = ?
-           LEFT JOIN attendance att
-             ON att.student_id = s.id AND att.class_id = ? AND att.date = ?
+           INNER JOIN enrollments e ON e.student_id = s.id AND e.day = ?
+           LEFT JOIN realtime_sessions rs
+             ON rs.student_id = s.id AND rs.teacher_id = ? AND rs.date = ?
            LEFT JOIN absences abs
              ON abs.student_id = s.id AND abs.class_id = ? AND abs.absence_date = ?
            WHERE s.academy_id = ? AND s.status = 'active'
-             AND att.id IS NULL AND abs.id IS NULL`;
+             AND rs.id IS NULL AND abs.id IS NULL
+           GROUP BY s.id`;
 
-      const pendingParams = [userId, defaultClassId, date, defaultClassId, date, academyId];
+      const pendingParams = [userId, dayOfWeek, userId, date, defaultClassId, date, academyId];
 
       const pending = await executeQuery<{ id: string }>(context.env.DB, pendingSql, pendingParams);
 
@@ -363,7 +368,7 @@ export async function handleTimer(
         );
       }
 
-      const recorded = insertedRows.length;
+      const recorded = pending.length;
 
       logger.logRequest('POST', '/api/timer/finish-day', userId, request.headers.get('CF-Connecting-IP') || undefined);
 

@@ -226,6 +226,101 @@ ${scoreList}
   }
 }
 
+// ==================== 회의 요약 ====================
+
+const MeetingSummarySchema = z.object({
+  transcript: z.string().min(1, '녹취록은 필수입니다'),
+  title: z.string().optional(),
+  participants: z.array(z.string()).optional(),
+  durationMinutes: z.number().optional(),
+});
+
+async function handleMeetingSummary(
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  try {
+    if (!requireAuth(context)) return unauthorizedResponse();
+
+    const apiKey = context.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return errorResponse('Gemini API 키가 설정되지 않았습니다', 500);
+    }
+
+    const body = await request.json() as any;
+    const input = MeetingSummarySchema.parse(body);
+
+    const participantList = input.participants?.join(', ') || '미지정';
+    const duration = input.durationMinutes ? `${input.durationMinutes}분` : '미지정';
+
+    const prompt = `당신은 학원 강사 회의 내용을 정리하는 비서입니다.
+아래 회의 녹취록을 분석하여 JSON 형식으로 결과를 반환하세요.
+
+## 규칙
+- summary: 3~5문장 핵심 요약
+- keyDecisions: 회의에서 결정된 사항 목록 (없으면 빈 배열)
+- extractedActions: 구체적인 할일 목록
+  - title: 할일 내용
+  - assigneeName: 담당자 이름 (녹취록에서 언급된 이름, 없으면 null)
+  - dueDate: 기한 (언급된 경우 YYYY-MM-DD 형식, 없으면 null)
+
+## 회의 정보
+- 제목: ${input.title || '미팅'}
+- 참석자: ${participantList}
+- 소요 시간: ${duration}
+
+## 녹취록
+${input.transcript}
+
+## 출력 (순수 JSON만, 마크다운 코드블록 없이)
+{"summary":"...","keyDecisions":["..."],"extractedActions":[{"title":"...","assigneeName":"...","dueDate":"..."}]}`;
+
+    const geminiRes = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048,
+          },
+        }),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      logger.error('Gemini API 오류 (회의 요약)', new Error(errText));
+      return errorResponse('AI 회의 요약 생성에 실패했습니다', 502);
+    }
+
+    const geminiData = await geminiRes.json() as any;
+    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+    if (!rawText) {
+      return errorResponse('AI 응답이 비어있습니다', 502);
+    }
+
+    // JSON 파싱 (코드블록 제거)
+    const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    try {
+      const parsed = JSON.parse(jsonStr);
+      return successResponse(parsed);
+    } catch {
+      // JSON 파싱 실패 시 원문 반환
+      return successResponse({ summary: rawText, keyDecisions: [], extractedActions: [] });
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return errorResponse('입력 검증 오류: ' + error.errors.map(e => e.message).join(', '), 400);
+    }
+    logger.error('회의 요약 생성 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('회의 요약 생성에 실패했습니다', 500);
+  }
+}
+
 export async function handleAI(
   method: string,
   pathname: string,
@@ -237,6 +332,9 @@ export async function handleAI(
   }
   if (pathname === '/api/ai/generate-summary' && method === 'POST') {
     return await handleGenerateSummary(request, context);
+  }
+  if (pathname === '/api/ai/meeting-summary' && method === 'POST') {
+    return await handleMeetingSummary(request, context);
   }
   return errorResponse('Not found', 404);
 }

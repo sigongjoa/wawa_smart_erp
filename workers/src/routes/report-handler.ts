@@ -9,6 +9,7 @@ import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
+import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -20,11 +21,6 @@ const SendConfigSchema = z.object({
 type SendConfigInput = z.infer<typeof SendConfigSchema>;
 
 // ==================== 헬퍼 함수 ====================
-
-function generateId(prefix: string): string {
-  const uuid = crypto.randomUUID();
-  return `${prefix}-${uuid.split('-')[0]}`;
-}
 
 async function parseSendConfigInput(request: Request): Promise<SendConfigInput> {
   try {
@@ -91,7 +87,7 @@ async function handleSetSendConfig(
       });
     } else {
       // 신규 설정 생성
-      const configId = generateId('config');
+      const configId = generatePrefixedId('config');
 
       const result = await executeInsert(
         context.env.DB,
@@ -231,10 +227,16 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
     }
 
     // exam_name에서 과목명 추출 헬퍼
+    // "4월 월말평가 (수학)" → "수학", "중간고사 - 영어" → "영어"
     function extractSubject(examName: string | null): string {
       if (!examName) return '기타';
+      // 괄호 안 과목명: "월말평가 (수학)" → "수학"
+      const parenMatch = examName.match(/\(([^)]+)\)\s*$/);
+      if (parenMatch) return parenMatch[1];
+      // 대시 구분: "중간고사 - 영어" → "영어"
       const parts = examName.split(' - ');
-      return parts.length > 1 ? parts[parts.length - 1] : examName;
+      if (parts.length > 1) return parts[parts.length - 1].trim();
+      return examName;
     }
 
     // 4) 학생별 리포트 생성 — 성적 유무 관계없이 모든 학생 포함

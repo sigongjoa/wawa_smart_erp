@@ -85,7 +85,8 @@ export async function handleBoard(
     if (method === 'PATCH' && pathname.match(/^\/api\/board\/notices\/[^/]+$/) && !pathname.includes('/read')) {
       if (!requireAuth(context)) return unauthorizedResponse();
 
-      const id = pathname.split('/').pop()!;
+      const id = pathname.split('/').pop() || '';
+      if (!id) return errorResponse('유효하지 않은 ID', 400);
       const updates = await request.json() as any;
 
       const existing = await executeFirst<any>(context.env.DB, 'SELECT * FROM notices WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
@@ -113,7 +114,8 @@ export async function handleBoard(
     if (method === 'DELETE' && pathname.match(/^\/api\/board\/notices\/[^/]+$/)) {
       if (!requireAuth(context)) return unauthorizedResponse();
 
-      const id = pathname.split('/').pop()!;
+      const id = pathname.split('/').pop() || '';
+      if (!id) return errorResponse('유효하지 않은 ID', 400);
       await executeUpdate(context.env.DB, 'DELETE FROM notices WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
       return successResponse({ deleted: true });
     }
@@ -214,10 +216,11 @@ export async function handleBoard(
     if (method === 'PATCH' && pathname.match(/^\/api\/board\/actions\/[^/]+$/)) {
       if (!requireAuth(context)) return unauthorizedResponse();
 
-      const id = pathname.split('/').pop()!;
+      const id = pathname.split('/').pop() || '';
+      if (!id) return errorResponse('유효하지 않은 ID', 400);
       const updates = await request.json() as any;
 
-      const existing = await executeFirst<any>(context.env.DB, 'SELECT * FROM action_items WHERE id = ?', [id]);
+      const existing = await executeFirst<any>(context.env.DB, 'SELECT * FROM action_items WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
       if (!existing) return notFoundResponse();
 
       const fields: string[] = [];

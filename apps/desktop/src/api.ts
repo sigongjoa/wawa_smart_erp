@@ -2,27 +2,38 @@
 // 배포 시에는 VITE_API_URL 환경변수 사용
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+// 토큰 갱신 중복 방지 — 동시 401 여러 개가 와도 refresh는 1번만
+let refreshPromise: Promise<string | null> | null = null;
+
 async function tryRefreshToken(): Promise<string | null> {
-  const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return null;
-  try {
-    const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const data = json?.data ?? json;
-    if (data?.accessToken) {
-      localStorage.setItem('accessToken', data.accessToken);
-      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-      return data.accessToken;
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return null;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      const data = json?.data ?? json;
+      if (data?.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+        if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+        return data.accessToken;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
     }
-    return null;
-  } catch {
-    return null;
-  }
+  })();
+
+  return refreshPromise;
 }
 
 function forceLogout() {
@@ -174,11 +185,53 @@ export interface MaterialItem {
 
 export const api = {
   // Auth
-  login: (name: string, pin: string) =>
+  login: (slug: string, name: string, pin: string) =>
     request<{ accessToken: string; refreshToken: string; user: any }>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ name, pin }),
+      body: JSON.stringify({ slug, name, pin }),
     }),
+
+  // 학원 공개 정보 (로그인 페이지용)
+  getTeacherNames: (slug: string) =>
+    request<{ teachers: string[]; academy: { name: string; logo: string | null } | null }>(
+      `/api/teachers/names?${new URLSearchParams({ slug })}`
+    ),
+
+  // 온보딩
+  registerAcademy: (data: { academyName: string; slug: string; ownerName: string; pin: string; phone?: string }) =>
+    request<{ academyId: string; slug: string }>('/api/onboard/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  verifySlug: (slug: string) =>
+    request<{ available: boolean; reason?: string }>('/api/onboard/verify-slug', {
+      method: 'POST',
+      body: JSON.stringify({ slug }),
+    }),
+  getAcademyInfo: (slug: string) =>
+    request<{ name: string; logo: string | null }>(`/api/onboard/academy-info?${new URLSearchParams({ slug })}`),
+  getAcademyList: () =>
+    request<{ slug: string; name: string; logo: string | null }[]>('/api/onboard/academies'),
+
+  // 초대 수락
+  acceptInvite: (data: { code: string; name: string; pin: string }) =>
+    request<{ userId: string; academyName: string; academySlug: string }>('/api/invite/accept', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 학원 관리
+  getAcademy: () => request<any>('/api/academy'),
+  updateAcademy: (data: { name?: string; phone?: string; address?: string; logo_url?: string | null }) =>
+    request('/api/academy', { method: 'PUT', body: JSON.stringify(data) }),
+  getAcademyUsage: () =>
+    request<{ students: { current: number; max: number }; teachers: { current: number; max: number }; plan: string }>('/api/academy/usage'),
+  createInvite: (data: { role?: string; expiresInDays?: number }) =>
+    request<{ code: string; expiresAt: string }>('/api/academy/invite', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getInvites: () => request<any[]>('/api/academy/invites'),
 
   // Settings — returns { activeExamMonth, ... }
   getActiveMonth: () =>
@@ -198,9 +251,15 @@ export const api = {
       body: JSON.stringify({ activeTerm, activeExamType }),
     }),
 
-  // Students — returns Student[] directly
+  // Students — CRUD
   getStudents: () =>
     request<Student[]>('/api/student'),
+  createStudent: (data: { name: string; grade: string; subjects?: string[]; contact?: string; guardian_contact?: string }) =>
+    request<Student>('/api/student', { method: 'POST', body: JSON.stringify(data) }),
+  updateStudent: (id: string, data: { name: string; grade: string; contact?: string; guardian_contact?: string; status?: string }) =>
+    request<Student>(`/api/student/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteStudent: (id: string) =>
+    request(`/api/student/${id}`, { method: 'DELETE' }),
 
   // Exams — returns Exam[] directly
   getExams: (yearMonth?: string) =>
@@ -495,6 +554,44 @@ export const api = {
   getBoardTeachers: () =>
     request<any[]>('/api/board/teachers'),
 
+  // ── 회의 녹음/요약 ──
+
+  getMeetings: () =>
+    request<any[]>('/api/meeting'),
+
+  getMeeting: (id: string) =>
+    request<any>(`/api/meeting/${id}`),
+
+  createMeeting: (data: { title: string; participants?: string[] }) =>
+    request<{ id: string; title: string; status: string }>('/api/meeting', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  uploadMeetingAudio: (id: string, data: { audioBase64: string; mimeType?: string }) =>
+    request<any>(`/api/meeting/${id}/upload`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  transcribeMeetingText: (id: string, transcript: string) =>
+    request<any>(`/api/meeting/${id}/transcribe`, {
+      method: 'POST',
+      body: JSON.stringify({ transcript }),
+    }),
+
+  updateMeetingAction: (actionId: string, status: 'pending' | 'done') =>
+    request(`/api/meeting/actions/${actionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  publishMeeting: (id: string) =>
+    request<{ noticeId: string }>(`/api/meeting/${id}/publish`, { method: 'POST' }),
+
+  deleteMeeting: (id: string) =>
+    request(`/api/meeting/${id}`, { method: 'DELETE' }),
+
   // ── 교재 관리 ──
   getMaterials: (params?: { status?: string; studentId?: string }) => {
     const qs = new URLSearchParams();
@@ -518,4 +615,254 @@ export const api = {
 
   deleteMaterial: (id: string) =>
     request('/api/materials/' + id, { method: 'DELETE' }),
+
+  // ── 가차 학생 관리 ──
+
+  getGachaStudents: () =>
+    request<GachaStudent[]>('/api/gacha/students'),
+
+  createGachaStudent: (data: { name: string; pin: string; grade?: string }) =>
+    request<{ id: string; name: string; grade: string }>('/api/gacha/students', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateGachaStudent: (id: string, data: { name?: string; grade?: string; status?: string }) =>
+    request(`/api/gacha/students/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteGachaStudent: (id: string) =>
+    request(`/api/gacha/students/${id}`, { method: 'DELETE' }),
+
+  resetGachaStudentPin: (id: string, pin: string) =>
+    request(`/api/gacha/students/${id}/reset-pin`, {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    }),
+
+  // ── 가차 카드 관리 ──
+
+  getGachaCards: (params?: { student_id?: string; topic?: string; grade?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.student_id) qs.set('student_id', params.student_id);
+    if (params?.topic) qs.set('topic', params.topic);
+    if (params?.grade) qs.set('grade', params.grade);
+    const q = qs.toString();
+    return request<GachaCard[]>(`/api/gacha/cards${q ? '?' + q : ''}`);
+  },
+
+  createGachaCard: (data: { student_id?: string; type: string; question?: string; question_image?: string; answer: string; topic?: string; chapter?: string; grade?: string }) =>
+    request<{ id: string }>('/api/gacha/cards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  createGachaCardsBulk: (cards: Array<{ student_id?: string; type: string; question?: string; answer: string; topic?: string; grade?: string }>) =>
+    request<{ created: string[]; count: number }>('/api/gacha/cards/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ cards }),
+    }),
+
+  updateGachaCard: (id: string, data: Partial<GachaCard>) =>
+    request(`/api/gacha/cards/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteGachaCard: (id: string) =>
+    request(`/api/gacha/cards/${id}`, { method: 'DELETE' }),
+
+  uploadGachaCardImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('accessToken');
+    const res = await fetch(`${API_BASE}/api/gacha/cards/upload-image`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || res.statusText);
+    return (json?.data ?? json) as { key: string; url: string };
+  },
+
+  // ── 증명 관리 ──
+
+  getProofs: (params?: { grade?: string; difficulty?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.grade) qs.set('grade', params.grade);
+    if (params?.difficulty) qs.set('difficulty', params.difficulty);
+    const q = qs.toString();
+    return request<Proof[]>(`/api/proof${q ? '?' + q : ''}`);
+  },
+
+  getProof: (id: string) =>
+    request<ProofDetail>(`/api/proof/${id}`),
+
+  createProof: (data: { title: string; grade: string; chapter?: string; difficulty?: number; description?: string; description_image?: string; steps?: ProofStepInput[] }) =>
+    request<{ id: string; title: string }>('/api/proof', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateProof: (id: string, data: { title?: string; grade?: string; chapter?: string; difficulty?: number; description?: string; description_image?: string }) =>
+    request(`/api/proof/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteProof: (id: string) =>
+    request(`/api/proof/${id}`, { method: 'DELETE' }),
+
+  updateProofSteps: (proofId: string, steps: ProofStepInput[]) =>
+    request(`/api/proof/${proofId}/steps`, {
+      method: 'PUT',
+      body: JSON.stringify({ steps }),
+    }),
+
+  uploadProofImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('accessToken');
+    const res = await fetch(`${API_BASE}/api/proof/upload-image`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || res.statusText);
+    return (json?.data ?? json) as { key: string; url: string };
+  },
+
+  // 공유 마켓
+  getSharedProofs: (params?: { grade?: string; q?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.grade) qs.set('grade', params.grade);
+    if (params?.q) qs.set('q', params.q);
+    const q = qs.toString();
+    return request<Proof[]>(`/api/proof/shared${q ? '?' + q : ''}`);
+  },
+
+  shareProof: (id: string) =>
+    request(`/api/proof/${id}/share`, { method: 'POST' }),
+
+  unshareProof: (id: string) =>
+    request(`/api/proof/${id}/share`, { method: 'DELETE' }),
+
+  copyProof: (id: string) =>
+    request<{ id: string; copiedFrom: string; title: string }>(`/api/proof/${id}/copy`, { method: 'POST' }),
+
+  // 학생 배정
+  assignProof: (proofId: string, studentIds: string[]) =>
+    request(`/api/proof/${proofId}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ student_ids: studentIds }),
+    }),
+
+  unassignProof: (proofId: string, studentId: string) =>
+    request(`/api/proof/${proofId}/assign/${studentId}`, { method: 'DELETE' }),
+
+  // 대시보드 통계
+  getGachaStats: () =>
+    request<GachaStats>('/api/proof/stats'),
 };
+
+// ── 가차/증명 타입 ──
+
+export interface GachaStudent {
+  id: string;
+  academy_id: string;
+  teacher_id: string;
+  name: string;
+  grade: string;
+  status: string;
+  card_count?: number;
+  proof_count?: number;
+  session_count?: number;
+  created_at: string;
+}
+
+export interface GachaCard {
+  id: string;
+  student_id: string | null;
+  type: 'text' | 'image';
+  question: string | null;
+  question_image: string | null;
+  answer: string;
+  topic: string | null;
+  chapter: string | null;
+  grade: string | null;
+  box: number;
+  success_count: number;
+  fail_count: number;
+  last_review: string | null;
+  created_at: string;
+}
+
+export interface Proof {
+  id: string;
+  academy_id: string;
+  created_by: string;
+  title: string;
+  grade: string;
+  chapter: string | null;
+  difficulty: number;
+  description: string | null;
+  description_image: string | null;
+  is_shared: number;
+  share_count: number;
+  step_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProofStep {
+  id: string;
+  proof_id: string;
+  step_order: number;
+  content: string;
+  content_image: string | null;
+  blanks_json: string | null;
+  hint: string | null;
+}
+
+export interface ProofDetail extends Proof {
+  steps: ProofStep[];
+}
+
+export interface ProofStepInput {
+  id?: string;
+  content: string;
+  content_image?: string;
+  blanks_json?: string;
+  hint?: string;
+}
+
+export interface GachaStats {
+  summary: {
+    students: number;
+    cards: number;
+    proofs: number;
+    activeToday: number;
+  };
+  studentProgress: Array<{
+    id: string;
+    name: string;
+    grade: string;
+    card_count: number;
+    assigned_proofs: number;
+    completed_proofs: number;
+    avg_proof_score: number | null;
+    last_activity: string | null;
+  }>;
+  hardProofs: Array<{
+    id: string;
+    title: string;
+    grade: string;
+    difficulty: number;
+    avg_score: number;
+    attempt_count: number;
+  }>;
+}

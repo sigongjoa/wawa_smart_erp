@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, Student, ReportEntry, ReportType } from '../api';
 import { toast } from '../components/Toast';
+import { useAuthStore } from '../store';
 
 // Debounce hook
 function useDebounce(fn: (...args: any[]) => void, delay: number) {
@@ -79,6 +80,8 @@ function formatTerm(term: string | null): string {
 }
 
 export default function ReportPage() {
+  const user = useAuthStore((s) => s.user);
+  const academyName = user?.academyName || 'WAWA';
   const [students, setStudents] = useState<Student[]>([]);
   const [reports, setReports] = useState<ReportEntry[]>([]);
   const [selectedStudent, setSelectedStudent] = useState('');
@@ -270,7 +273,7 @@ export default function ReportPage() {
       const bodyLine = reportType === 'monthly'
         ? `${activeMonth.split('-')[1]?.replace(/^0/, '') || ''}월 월말평가 리포트를 보내드립니다.`
         : `${formatTerm(activeTerm)} ${typeLabel} 리포트를 보내드립니다.`;
-      const message = `[와와학습코칭센터] ${headerLine}\n\n안녕하세요, ${currentStudent.name} 학생 학부모님.\n${bodyLine}\n\n리포트 보기:\n${res.shareUrl}`;
+      const message = `[${academyName}] ${headerLine}\n\n안녕하세요, ${currentStudent.name} 학생 학부모님.\n${bodyLine}\n\n리포트 보기:\n${res.shareUrl}`;
       await navigator.clipboard.writeText(message);
       setShareResult('copied');
       // 전송 상태 즉시 업데이트
@@ -535,8 +538,7 @@ export default function ReportPage() {
                     <div className="rpt-header-left">
                       <div className="rpt-logo">W</div>
                       <div>
-                        <div className="rpt-academy">와와학습코칭센터</div>
-                        <div className="rpt-branch">알파시티점</div>
+                        <div className="rpt-academy">{academyName}</div>
                       </div>
                     </div>
                     <div className="rpt-header-right">
@@ -726,8 +728,7 @@ export default function ReportPage() {
                   <div className="rpt-footer">
                     <div className="rpt-footer-line" />
                     <div className="rpt-footer-content">
-                      <span className="rpt-footer-name">와와학습코칭센터 알파시티점</span>
-                      <span className="rpt-footer-tel">0507-1349-2705</span>
+                      <span className="rpt-footer-name">{academyName}</span>
                     </div>
                   </div>
                 </>

@@ -9,6 +9,7 @@ import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
+import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -38,11 +39,6 @@ type CreateExamInput = z.infer<typeof CreateExamSchema>;
 type CreateGradeInput = z.infer<typeof CreateGradeSchema>;
 
 // ==================== 헬퍼 함수 ====================
-
-function generateId(prefix: string): string {
-  const uuid = crypto.randomUUID();
-  return `${prefix}-${uuid.split('-')[0]}`;
-}
 
 async function parseExamInput(request: Request): Promise<CreateExamInput> {
   try {
@@ -94,7 +90,7 @@ async function handleCreateExam(
 
     logger.logRequest('POST', '/api/grader/exams', undefined, ipAddress);
 
-    const examId = generateId('exam');
+    const examId = generatePrefixedId('exam');
     const now = new Date().toISOString();
 
     // 기존 활성 시험이 있으면 비활성화
@@ -281,8 +277,8 @@ async function handleDeleteExam(
 
     const result = await executeDelete(
       context.env.DB,
-      'DELETE FROM exams WHERE id = ?',
-      [examId]
+      'DELETE FROM exams WHERE id = ? AND academy_id = ?',
+      [examId, getAcademyId(context)]
     );
 
     if (!result) {
@@ -399,7 +395,7 @@ async function handleCreateGrade(
       }
     } else {
       // INSERT
-      gradeId = generateId('grade');
+      gradeId = generatePrefixedId('grade');
       const result = await executeInsert(
         context.env.DB,
         `INSERT INTO grades (id, student_id, exam_id, score, comments, year_month, graded_at, graded_by, created_at)

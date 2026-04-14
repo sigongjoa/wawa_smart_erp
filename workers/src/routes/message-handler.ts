@@ -36,7 +36,12 @@ export async function handleMessage(
       const userId = context.auth!.userId;
       const ipAddress = request.headers.get('CF-Connecting-IP') || 'unknown';
 
-      const recipient = await executeFirst(context.env.DB, 'SELECT id FROM users WHERE id = ?', [recipientId]);
+      // 같은 학원 소속인지 확인 (다른 학원에 메시지 보내기 방지)
+      const recipient = await executeFirst(
+        context.env.DB,
+        'SELECT id FROM users WHERE id = ? AND academy_id = ?',
+        [recipientId, context.auth!.academyId]
+      );
 
       if (!recipient) return notFoundResponse();
 
