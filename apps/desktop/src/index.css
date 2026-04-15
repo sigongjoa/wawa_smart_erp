@@ -5139,6 +5139,13 @@ input[type="number"] {
 .exam-paper-delete { background: none; border: none; cursor: pointer; color: #999; font-size: 16px; padding: 0 2px; line-height: 1; }
 .exam-paper-delete:hover { color: #e74c3c; }
 
+.exam-month-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 16px; }
+.exam-month-tab { padding: 12px 8px; border: 1px solid var(--border, #e0e0e0); background: var(--bg-primary, #fff); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.15s; font-family: inherit; }
+.exam-month-tab:hover { background: var(--bg-secondary, #f5f5f5); }
+.exam-month-tab--active { background: var(--color-primary, #4a7bd4); color: #fff; border-color: var(--color-primary, #4a7bd4); }
+.exam-month-tab-label { font-size: 13px; font-weight: 600; }
+.exam-month-tab-sub { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
 .exam-summary-bar { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--bg-secondary, #f8f9fa); border-radius: 8px; margin-bottom: 12px; font-size: 14px; flex-wrap: wrap; }
 .exam-stat { font-weight: 500; }
 .exam-filters { display: flex; gap: 8px; margin-left: auto; }

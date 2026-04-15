@@ -6,6 +6,24 @@ const RATE_LIMIT_REQUESTS = 120; // 일반 API: 1분에 120개
 const LOGIN_RATE_LIMIT_WINDOW = 60; // 1분
 const LOGIN_RATE_LIMIT_REQUESTS = 5; // 로그인: 1분에 5회
 
+// In-memory rate limit store (per isolate). 무료티어 KV put 한도(1000/day) 보호용.
+// isolate가 recycle되면 초기화되지만, 봇/스크래퍼 요청에 대한 소프트 실드로 충분함.
+// 민감한 엔드포인트(로그인, AI)는 별도로 KV 기반 rate limit 유지.
+interface MemoryBucket { count: number; resetAt: number; }
+const memStore: Map<string, MemoryBucket> = (globalThis as any).__rateLimitStore ??= new Map();
+
+function memCheck(key: string, max: number, windowSec: number): boolean {
+  const now = Date.now();
+  const bucket = memStore.get(key);
+  if (!bucket || bucket.resetAt < now) {
+    memStore.set(key, { count: 1, resetAt: now + windowSec * 1000 });
+    return true;
+  }
+  if (bucket.count >= max) return false;
+  bucket.count++;
+  return true;
+}
+
 // 엔드포인트별 rate limit 설정
 interface EndpointRateLimitConfig {
   prefix: string;
@@ -64,39 +82,23 @@ export async function rateLimitMiddleware(
   const pathname = url.pathname;
   const method = context.request.method;
 
-  // 엔드포인트별 rate limit 체크
+  // 엔드포인트별 rate limit 체크 (in-memory)
   for (const limit of ENDPOINT_LIMITS) {
     if (!pathname.startsWith(limit.prefix)) continue;
     if (limit.methods && !limit.methods.includes(method)) continue;
 
-    const epKey = `ep-limit:${ip}:${limit.prefix}`;
-    const epCount = await context.env.KV.get(epKey);
-    const currentEpCount = epCount ? parseInt(epCount) : 0;
-
-    if (currentEpCount >= limit.maxRequests) {
+    const epKey = `ep:${ip}:${limit.prefix}`;
+    if (!memCheck(epKey, limit.maxRequests, limit.windowSeconds)) {
       return errorResponse(limit.message, 429);
     }
-
-    await context.env.KV.put(epKey, (currentEpCount + 1).toString(), {
-      expirationTtl: limit.windowSeconds,
-    });
-
     break; // 첫 매칭 엔드포인트만 적용
   }
 
-  // 일반 rate limit 체크
-  const key = `rate-limit:${ip}`;
-
-  const count = await context.env.KV.get(key);
-  const currentCount = count ? parseInt(count) : 0;
-
-  if (currentCount >= RATE_LIMIT_REQUESTS) {
+  // 일반 rate limit 체크 (in-memory)
+  const key = `rl:${ip}`;
+  if (!memCheck(key, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW)) {
     return errorResponse('Too many requests', 429);
   }
-
-  await context.env.KV.put(key, (currentCount + 1).toString(), {
-    expirationTtl: RATE_LIMIT_WINDOW,
-  });
 
   return context;
 }
@@ -139,15 +141,14 @@ export async function loginRateLimit(
 export async function setRateLimitHeaders(
   response: Response,
   ip: string,
-  kv: any
+  _kv: any
 ): Promise<Response> {
-  const key = `rate-limit:${ip}`;
-  const count = await kv.get(key);
-  const currentCount = count ? parseInt(count) : 0;
+  const bucket = memStore.get(`rl:${ip}`);
+  const currentCount = bucket && bucket.resetAt > Date.now() ? bucket.count : 0;
 
   const newResponse = new Response(response.body, response);
   newResponse.headers.set('X-RateLimit-Limit', RATE_LIMIT_REQUESTS.toString());
-  newResponse.headers.set('X-RateLimit-Remaining', (RATE_LIMIT_REQUESTS - currentCount).toString());
+  newResponse.headers.set('X-RateLimit-Remaining', Math.max(0, RATE_LIMIT_REQUESTS - currentCount).toString());
   newResponse.headers.set('X-RateLimit-Reset', Math.ceil(Date.now() / 1000 + RATE_LIMIT_WINDOW).toString());
 
   return newResponse;

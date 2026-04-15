@@ -829,6 +829,32 @@ export const api = {
 
   deleteExamAssignment: (periodId: string, assignId: string) =>
     request(`/api/exam-mgmt/${periodId}/assignments/${assignId}`, { method: 'DELETE' }),
+
+  // ── 월 기반 간편 배정 ──
+
+  getExamByMonth: (month: string) =>
+    request<{
+      period: ExamPeriod;
+      students: Array<{
+        student_id: string;
+        student_name: string;
+        student_grade: string;
+        assignment_id: string | null;
+        assigned: boolean;
+        created_check: number;
+        printed: number;
+        reviewed: number;
+        drive_link: string | null;
+        score: number | null;
+        memo: string | null;
+      }>;
+    }>(`/api/exam-mgmt/by-month?month=${encodeURIComponent(month)}`),
+
+  toggleExamByMonth: (month: string, student_id: string) =>
+    request<{ assigned: boolean; assignment_id?: string }>(`/api/exam-mgmt/by-month/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({ month, student_id }),
+    }),
 };
 
 // ── 가차/증명 타입 ──

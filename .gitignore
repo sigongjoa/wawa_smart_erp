@@ -64,8 +64,18 @@ apps/desktop/e2e-usecase-screenshots/
 # APP-SPECIFIC
 # ========================================
 
-# ── Desktop app (Electron) ──
+# ── Desktop app (legacy Electron + Python backend 제거됨) ──
 apps/desktop/release/
+apps/desktop/backend/
+apps/desktop/backend.log
+apps/desktop/assets/
+apps/desktop/shared/
+apps/desktop/e2e-report/
+apps/desktop/e2e-screenshots-all/
+apps/desktop/e2e-screenshots-makeup-dm/
+apps/desktop/ppt-screenshots/
+apps/desktop/test-downloads/
+apps/desktop/coverage/
 
 # ── Student app ──
 apps/student/dist/

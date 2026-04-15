@@ -58,6 +58,141 @@ export async function handleExamMgmt(
 
   const db = context.env.DB;
   const academyId = context.auth!.academyId;
+  const userId = context.auth!.userId;
+
+  // ═══════════════════════════════════════════
+  // 월 기반 간편 배정 (by-month)
+  // ═══════════════════════════════════════════
+
+  // GET /api/exam-mgmt/by-month?month=YYYY-MM
+  // 해당 월의 period(없으면 생성) + 현재 사용자 담당 학생 + 배정 상태
+  if (method === 'GET' && pathname === '/api/exam-mgmt/by-month') {
+    const url = new URL(request.url);
+    const month = url.searchParams.get('month');
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
+    }
+
+    // period 조회 또는 생성
+    let period = await executeFirst<ExamPeriodRow>(
+      db,
+      `SELECT * FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
+      [academyId, month]
+    );
+    if (!period) {
+      const [y, m] = month.split('-');
+      const title = `${y}년 ${parseInt(m)}월 정기고사`;
+      const id = generatePrefixedId('ep');
+      await executeInsert(db,
+        `INSERT INTO exam_periods (id, academy_id, title, period_month, created_by)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, academyId, title, month, userId]
+      );
+      period = await executeFirst<ExamPeriodRow>(
+        db,
+        `SELECT * FROM exam_periods WHERE id = ?`,
+        [id]
+      );
+    }
+
+    // 담당 학생 조회 (admin도 본인 담당만 — feedback_admin_scope)
+    const students = await executeQuery<{ id: string; name: string; grade: string }>(
+      db,
+      `SELECT id, name, grade FROM gacha_students
+       WHERE academy_id = ? AND teacher_id = ? AND status = 'active'
+       ORDER BY grade, name`,
+      [academyId, userId]
+    );
+
+    // 배정 상태 조회
+    const assignments = await executeQuery<ExamAssignmentRow>(
+      db,
+      `SELECT a.* FROM exam_assignments a
+       WHERE a.exam_period_id = ? AND a.academy_id = ?`,
+      [period!.id, academyId]
+    );
+    const assignMap = new Map(assignments.map(a => [a.student_id, a]));
+
+    const rows = students.map(s => {
+      const a = assignMap.get(s.id);
+      return {
+        student_id: s.id,
+        student_name: s.name,
+        student_grade: s.grade,
+        assignment_id: a?.id ?? null,
+        assigned: !!a,
+        created_check: a?.created_check ?? 0,
+        printed: a?.printed ?? 0,
+        reviewed: a?.reviewed ?? 0,
+        drive_link: a?.drive_link ?? null,
+        score: a?.score ?? null,
+        memo: a?.memo ?? null,
+      };
+    });
+
+    return successResponse({ period, students: rows });
+  }
+
+  // POST /api/exam-mgmt/by-month/toggle — 학생 배정 토글
+  if (method === 'POST' && pathname === '/api/exam-mgmt/by-month/toggle') {
+    const body = await request.json() as any;
+    const { month, student_id } = body;
+    if (!month || !student_id) {
+      return errorResponse('month, student_id는 필수입니다', 400);
+    }
+
+    // 학생이 본인 담당인지 확인
+    const student = await executeFirst<{ id: string; grade: string }>(
+      db,
+      `SELECT id, grade FROM gacha_students
+       WHERE id = ? AND academy_id = ? AND teacher_id = ?`,
+      [student_id, academyId, userId]
+    );
+    if (!student) return errorResponse('담당 학생이 아닙니다', 403);
+
+    const period = await executeFirst<ExamPeriodRow>(
+      db,
+      `SELECT * FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
+      [academyId, month]
+    );
+    if (!period) return errorResponse('시험 기간이 없습니다', 404);
+
+    // 기존 배정 조회
+    const existing = await executeFirst<ExamAssignmentRow>(
+      db,
+      `SELECT id FROM exam_assignments WHERE exam_period_id = ? AND student_id = ?`,
+      [period.id, student_id]
+    );
+
+    if (existing) {
+      await executeUpdate(db, 'DELETE FROM exam_assignments WHERE id = ?', [existing.id]);
+      return successResponse({ assigned: false });
+    }
+
+    // 학년 기반 시험지 찾거나 생성
+    let paper = await executeFirst<ExamPaperRow>(
+      db,
+      `SELECT * FROM exam_papers WHERE exam_period_id = ? AND grade_filter = ? AND is_custom = 0`,
+      [period.id, student.grade]
+    );
+    if (!paper) {
+      const paperId = generatePrefixedId('epaper');
+      await executeInsert(db,
+        `INSERT INTO exam_papers (id, exam_period_id, academy_id, title, grade_filter, is_custom)
+         VALUES (?, ?, ?, ?, ?, 0)`,
+        [paperId, period.id, academyId, `${student.grade} 정기고사`, student.grade]
+      );
+      paper = { id: paperId } as ExamPaperRow;
+    }
+
+    const id = generatePrefixedId('eassign');
+    await executeInsert(db,
+      `INSERT INTO exam_assignments (id, exam_period_id, exam_paper_id, student_id, academy_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [id, period.id, paper.id, student_id, academyId]
+    );
+    return successResponse({ assigned: true, assignment_id: id });
+  }
 
   // ═══════════════════════════════════════════
   // 시험 기간 (Exam Periods)
