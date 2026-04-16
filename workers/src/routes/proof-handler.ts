@@ -174,6 +174,11 @@ async function handleUpdateProof(request: Request, context: RequestContext, proo
     return errorResponse('증명을 찾을 수 없습니다', 404);
   }
 
+  // 소유자 또는 admin만 수정 가능
+  if (proof.created_by !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return errorResponse('수정 권한이 없습니다', 403);
+  }
+
   const body = await request.json() as any;
   const sets: string[] = [];
   const params: unknown[] = [];
@@ -203,11 +208,16 @@ async function handleUpdateSteps(request: Request, context: RequestContext, proo
 
   const proof = await executeFirst<any>(
     context.env.DB,
-    'SELECT id FROM proofs WHERE id = ? AND academy_id = ?',
+    'SELECT id, created_by FROM proofs WHERE id = ? AND academy_id = ?',
     [proofId, academyId]
   );
   if (!proof) {
     return errorResponse('증명을 찾을 수 없습니다', 404);
+  }
+
+  // 소유자 또는 admin만 단계 수정 가능
+  if (proof.created_by !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return errorResponse('수정 권한이 없습니다', 403);
   }
 
   const body = await request.json() as any;
@@ -254,6 +264,11 @@ async function handleDeleteProof(context: RequestContext, proofId: string): Prom
   );
   if (!proof) {
     return errorResponse('증명을 찾을 수 없습니다', 404);
+  }
+
+  // 소유자 또는 admin만 삭제 가능
+  if (proof.created_by !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return errorResponse('삭제 권한이 없습니다', 403);
   }
 
   // R2 이미지 정리
@@ -367,6 +382,11 @@ async function handleShareProof(context: RequestContext, proofId: string): Promi
   );
   if (!proof) return errorResponse('증명을 찾을 수 없습니다', 404);
 
+  // 소유자 또는 admin만 공유 가능
+  if (proof.created_by !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return errorResponse('공유 권한이 없습니다', 403);
+  }
+
   await executeUpdate(
     context.env.DB,
     'UPDATE proofs SET is_shared = 1, updated_at = ? WHERE id = ?',
@@ -388,6 +408,11 @@ async function handleUnshareProof(context: RequestContext, proofId: string): Pro
     [proofId, academyId]
   );
   if (!proof) return errorResponse('증명을 찾을 수 없습니다', 404);
+
+  // 소유자 또는 admin만 공유 해제 가능
+  if (proof.created_by !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return errorResponse('공유 해제 권한이 없습니다', 403);
+  }
 
   await executeUpdate(
     context.env.DB,

@@ -2,30 +2,80 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store';
 
-const NAV_ITEMS = [
-  { to: '/timer', label: '수업', iconClass: 'nav-icon--timer' },
-  { to: '/report', label: '평가', iconClass: 'nav-icon--report' },
-  { to: '/materials', label: '교재', iconClass: 'nav-icon--materials' },
-  { to: '/absence', label: '보강', iconClass: 'nav-icon--absence' },
-  { to: '/student', label: '학생', iconClass: 'nav-icon--student' },
-  { to: '/exams', label: '정기고사', iconClass: 'nav-icon--exam' },
-  { to: '/meeting', label: '회의', iconClass: 'nav-icon--meeting' },
-  { to: '/board', label: '보드', iconClass: 'nav-icon--board' },
+type NavLeaf = { to: string; label: string; iconClass?: string; exact?: boolean };
+type NavGroup = { key: string; label: string; iconClass: string; paths: string[]; items: NavLeaf[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    key: 'class',
+    label: '수업',
+    iconClass: 'nav-icon--timer',
+    paths: ['/timer', '/absence'],
+    items: [
+      { to: '/timer', label: '수업 타이머' },
+      { to: '/absence', label: '보강 관리' },
+    ],
+  },
+  {
+    key: 'student',
+    label: '학생',
+    iconClass: 'nav-icon--student',
+    paths: ['/student', '/exams', '/report'],
+    items: [
+      { to: '/student', label: '학생 관리' },
+      { to: '/exams', label: '정기고사' },
+      { to: '/report', label: '평가/리포트' },
+    ],
+  },
+  {
+    key: 'gacha',
+    label: '학습 (수학)',
+    iconClass: 'nav-icon--gacha',
+    paths: ['/gacha'],
+    items: [
+      { to: '/gacha', label: '학생 관리', exact: true },
+      { to: '/gacha/cards', label: '카드 관리' },
+      { to: '/gacha/proofs', label: '증명 연습' },
+      { to: '/gacha/dashboard', label: '학습 현황' },
+    ],
+  },
+  {
+    key: 'content',
+    label: '자료',
+    iconClass: 'nav-icon--materials',
+    paths: ['/materials', '/exam-papers'],
+    items: [
+      { to: '/materials', label: '교재' },
+      { to: '/exam-papers', label: '시험지' },
+    ],
+  },
+  {
+    key: 'schedule',
+    label: '학원 일정',
+    iconClass: 'nav-icon--meeting',
+    paths: ['/board', '/meeting'],
+    items: [
+      { to: '/board', label: '보드' },
+      { to: '/meeting', label: '회의 요약' },
+    ],
+  },
 ];
 
-const GACHA_SUB_ITEMS = [
-  { to: '/gacha', label: '학생 관리', exact: true },
-  { to: '/gacha/cards', label: '카드 관리' },
-  { to: '/gacha/proofs', label: '증명 연습' },
-  { to: '/gacha/dashboard', label: '학습 현황' },
-];
+function isGroupActive(group: NavGroup, pathname: string): boolean {
+  return group.paths.some(p => pathname === p || pathname.startsWith(p + '/'));
+}
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
   const location = useLocation();
-  const [gachaOpen, setGachaOpen] = useState(location.pathname.startsWith('/gacha'));
 
-  const isGachaActive = location.pathname.startsWith('/gacha');
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    NAV_GROUPS.forEach(g => { init[g.key] = isGroupActive(g, location.pathname); });
+    return init;
+  });
+
+  const toggle = (key: string) => setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <div className="app-layout">
@@ -37,33 +87,41 @@ export default function Layout() {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ to, label, iconClass }) => (
-            <NavLink key={to} to={to}>
-              <span className={`nav-icon ${iconClass}`} aria-hidden="true" />
-              {label}
-            </NavLink>
-          ))}
-
-          {/* 학습 (가차/증명) — 서브메뉴 */}
-          <div className={`sidebar-nav-group ${isGachaActive ? 'active' : ''}`}>
-            <button
-              className={`sidebar-nav-group-toggle ${isGachaActive ? 'active' : ''}`}
-              onClick={() => setGachaOpen(!gachaOpen)}
-            >
-              <span className="nav-icon nav-icon--gacha" aria-hidden="true" />
-              학습
-              <span className={`sidebar-nav-arrow ${gachaOpen ? 'open' : ''}`}>&#9662;</span>
-            </button>
-            {gachaOpen && (
-              <div className="sidebar-nav-sub">
-                {GACHA_SUB_ITEMS.map(({ to, label, exact }) => (
-                  <NavLink key={to} to={to} end={exact}>
-                    {label}
-                  </NavLink>
-                ))}
+          {NAV_GROUPS.map(group => {
+            const active = isGroupActive(group, location.pathname);
+            const open = openGroups[group.key];
+            // 단일 항목인 경우 NavLink로 바로
+            if (group.items.length === 1) {
+              const it = group.items[0];
+              return (
+                <NavLink key={it.to} to={it.to} end={it.exact}>
+                  <span className={`nav-icon ${group.iconClass}`} aria-hidden="true" />
+                  {group.label}
+                </NavLink>
+              );
+            }
+            return (
+              <div key={group.key} className={`sidebar-nav-group ${active ? 'active' : ''}`}>
+                <button
+                  className={`sidebar-nav-group-toggle ${active ? 'active' : ''}`}
+                  onClick={() => toggle(group.key)}
+                >
+                  <span className={`nav-icon ${group.iconClass}`} aria-hidden="true" />
+                  {group.label}
+                  <span className={`sidebar-nav-arrow ${open ? 'open' : ''}`}>&#9662;</span>
+                </button>
+                {open && (
+                  <div className="sidebar-nav-sub">
+                    {group.items.map(it => (
+                      <NavLink key={it.to} to={it.to} end={it.exact}>
+                        {it.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })}
 
           <NavLink to="/settings">
             <span className="nav-icon nav-icon--settings" aria-hidden="true" />
@@ -84,22 +142,15 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Mobile: Bottom Navigation — 핵심 5개만 */}
+      {/* Mobile: Bottom Navigation — 핵심 5개 */}
       <nav className="app-bottom-nav" aria-label="모바일 내비게이션">
-        {['/timer', '/report', '/materials', '/student', '/gacha'].map(to => {
-          const item = to === '/gacha'
-            ? { to: '/gacha', label: '학습', iconClass: 'nav-icon--gacha' }
-            : NAV_ITEMS.find(n => n.to === to)!;
-          return (
-            <NavLink key={item.to} to={item.to}>
-              <span className={`nav-icon ${item.iconClass}`} aria-hidden="true" />
-              {item.label}
-            </NavLink>
-          );
-        })}
+        <NavLink to="/timer"><span className="nav-icon nav-icon--timer" aria-hidden="true" />수업</NavLink>
+        <NavLink to="/student"><span className="nav-icon nav-icon--student" aria-hidden="true" />학생</NavLink>
+        <NavLink to="/exams"><span className="nav-icon nav-icon--exam" aria-hidden="true" />정기고사</NavLink>
+        <NavLink to="/materials"><span className="nav-icon nav-icon--materials" aria-hidden="true" />교재</NavLink>
+        <NavLink to="/gacha"><span className="nav-icon nav-icon--gacha" aria-hidden="true" />학습</NavLink>
       </nav>
 
-      {/* Main Content */}
       <main className="app-content">
         <Outlet />
       </main>

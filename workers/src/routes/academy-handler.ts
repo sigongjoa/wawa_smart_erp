@@ -6,6 +6,7 @@ import { RequestContext } from '@/types';
 import { executeFirst, executeQuery, executeInsert, executeUpdate } from '@/utils/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { requireAuth, requireRole } from '@/middleware/auth';
+import { invalidateTenantCache } from '@/middleware/tenant';
 import { getAcademyId } from '@/utils/context';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
@@ -119,7 +120,8 @@ export async function handleAcademy(
         values
       );
 
-      // KV 캐시 무효화
+      // 캐시 무효화 (in-memory + KV)
+      invalidateTenantCache(academyId);
       try {
         await context.env.KV.delete(`academy:${academyId}:info`);
       } catch { /* ignore */ }

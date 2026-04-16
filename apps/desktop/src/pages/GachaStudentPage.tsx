@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, GachaStudent } from '../api';
 import { toast, useConfirm } from '../components/Toast';
+import { useAuthStore } from '../store';
 
 const GRADE_OPTIONS = ['중1', '중2', '중3', '고1', '고2', '고3'];
 
 export default function GachaStudentPage() {
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin';
+  const [scope, setScope] = useState<'mine' | 'all'>('mine');
   const [students, setStudents] = useState<GachaStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -31,14 +35,14 @@ export default function GachaStudentPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.getGachaStudents();
+      const data = await api.getGachaStudents(isAdmin && scope === 'all' ? 'all' : 'mine');
       setStudents(data || []);
     } catch {
       setStudents([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, scope]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -109,7 +113,21 @@ export default function GachaStudentPage() {
 
       <div className="gacha-page-header">
         <h1>학습 학생 관리</h1>
-        <button className="btn-primary" onClick={() => setShowAdd(true)}>+ 학생 추가</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isAdmin && (
+            <div className="scope-toggle" role="group">
+              <button
+                className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
+                onClick={() => setScope('mine')}
+              >내 학생</button>
+              <button
+                className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
+                onClick={() => setScope('all')}
+              >모두 보기</button>
+            </div>
+          )}
+          <button className="btn-primary" onClick={() => setShowAdd(true)}>+ 학생 추가</button>
+        </div>
       </div>
 
       {/* 필터 */}

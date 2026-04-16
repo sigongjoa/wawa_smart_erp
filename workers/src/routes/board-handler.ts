@@ -25,14 +25,22 @@ export async function handleBoard(
       const url = new URL(request.url);
       const category = url.searchParams.get('category');
 
+      // total_users는 단일 쿼리로 계산 후 JS에서 주입 (N+1 방지)
+      const totalUsersRow = await executeFirst<{ cnt: number }>(
+        context.env.DB,
+        `SELECT COUNT(*) as cnt FROM users WHERE academy_id = ?`,
+        [context.auth!.academyId]
+      );
+      const totalUsers = totalUsersRow?.cnt ?? 0;
+
       let query = `
         SELECT n.*,
                u.name as author_name,
-               (SELECT COUNT(*) FROM notice_reads nr WHERE nr.notice_id = n.id) as read_count,
-               (SELECT COUNT(*) FROM users WHERE academy_id = n.academy_id) as total_users,
-               EXISTS(SELECT 1 FROM notice_reads nr WHERE nr.notice_id = n.id AND nr.user_id = ?) as is_read
+               COUNT(DISTINCT nr.user_id) as read_count,
+               MAX(CASE WHEN nr.user_id = ? THEN 1 ELSE 0 END) as is_read
         FROM notices n
         JOIN users u ON n.author_id = u.id
+        LEFT JOIN notice_reads nr ON nr.notice_id = n.id
         WHERE n.academy_id = ?
       `;
       const params: any[] = [context.auth!.userId, context.auth!.academyId];
@@ -42,10 +50,11 @@ export async function handleBoard(
         params.push(category);
       }
 
-      query += ' ORDER BY n.is_pinned DESC, n.created_at DESC LIMIT 50';
+      query += ' GROUP BY n.id, u.name ORDER BY n.is_pinned DESC, n.created_at DESC LIMIT 50';
 
       const notices = await executeQuery<any>(context.env.DB, query, params);
-      return successResponse(notices);
+      const withTotal = notices.map((n) => ({ ...n, total_users: totalUsers }));
+      return successResponse(withTotal);
     }
 
     // POST /api/board/notices — 공지 작성
@@ -56,18 +65,33 @@ export async function handleBoard(
 
       if (!title) return errorResponse('title 필수', 400);
 
+      // 마감일 과거 검증
+      const today = new Date().toISOString().slice(0, 10);
+      if (dueDate && dueDate < today) {
+        return errorResponse('마감일은 오늘 이후여야 합니다', 400);
+      }
+
+      // 핀 고정은 admin만 허용
+      const canPin = context.auth!.role === 'admin';
+      const pinValue = (isPinned && canPin) ? 1 : 0;
+
       const noticeId = crypto.randomUUID();
       await executeInsert(
         context.env.DB,
         `INSERT INTO notices (id, academy_id, author_id, title, content, category, is_pinned, due_date)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [noticeId, context.auth!.academyId, context.auth!.userId, title, content || '', category || 'general', isPinned ? 1 : 0, dueDate || null]
+        [noticeId, context.auth!.academyId, context.auth!.userId, title, content || '', category || 'general', pinValue, dueDate || null]
       );
 
-      // 액션 아이템이 함께 전달되면 생성 (최대 20개)
+      // 액션 아이템이 함께 전달되면 생성 (최대 20개) — (notice_id, title, assigned_to) 조합으로 중복 제거
       if (actionItems && Array.isArray(actionItems) && actionItems.length <= 20) {
+        const seen = new Set<string>();
         for (const item of actionItems) {
           if (!item.title || !item.assignedTo) continue;
+          if (item.dueDate && item.dueDate < today) continue; // 과거 마감일 스킵
+          const dedupKey = `${item.title}|${item.assignedTo}|${item.dueDate || ''}`;
+          if (seen.has(dedupKey)) continue;
+          seen.add(dedupKey);
           const actionId = crypto.randomUUID();
           await executeInsert(
             context.env.DB,
@@ -91,6 +115,22 @@ export async function handleBoard(
 
       const existing = await executeFirst<any>(context.env.DB, 'SELECT * FROM notices WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
       if (!existing) return notFoundResponse();
+
+      // 권한: 본인 작성 또는 admin
+      const isAuthor = existing.author_id === context.auth!.userId;
+      const isAdmin = context.auth!.role === 'admin';
+      if (!isAuthor && !isAdmin) return errorResponse('공지 수정 권한 없음', 403);
+
+      // 핀 고정 변경은 admin 전용
+      if (updates.isPinned !== undefined && !isAdmin) {
+        return errorResponse('공지 고정/해제는 관리자만 가능합니다', 403);
+      }
+
+      // 마감일 과거 검증
+      const today = new Date().toISOString().slice(0, 10);
+      if (updates.dueDate && updates.dueDate < today) {
+        return errorResponse('마감일은 오늘 이후여야 합니다', 400);
+      }
 
       const fields: string[] = [];
       const values: any[] = [];
@@ -116,6 +156,14 @@ export async function handleBoard(
 
       const id = pathname.split('/').pop() || '';
       if (!id) return errorResponse('유효하지 않은 ID', 400);
+
+      const existing = await executeFirst<any>(context.env.DB, 'SELECT author_id FROM notices WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
+      if (!existing) return notFoundResponse();
+
+      const isAuthor = existing.author_id === context.auth!.userId;
+      const isAdmin = context.auth!.role === 'admin';
+      if (!isAuthor && !isAdmin) return errorResponse('공지 삭제 권한 없음', 403);
+
       await executeUpdate(context.env.DB, 'DELETE FROM notices WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
       return successResponse({ deleted: true });
     }
@@ -201,6 +249,11 @@ export async function handleBoard(
 
       if (!title || !assignedTo) return errorResponse('title, assignedTo 필수', 400);
 
+      const today = new Date().toISOString().slice(0, 10);
+      if (dueDate && dueDate < today) {
+        return errorResponse('마감일은 오늘 이후여야 합니다', 400);
+      }
+
       const id = crypto.randomUUID();
       await executeInsert(
         context.env.DB,
@@ -223,11 +276,23 @@ export async function handleBoard(
       const existing = await executeFirst<any>(context.env.DB, 'SELECT * FROM action_items WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
       if (!existing) return notFoundResponse();
 
+      // 권한: 본인 할당/생성자/admin
+      const isOwner = existing.assigned_to === context.auth!.userId || existing.assigned_by === context.auth!.userId;
+      const isAdmin = context.auth!.role === 'admin';
+      if (!isOwner && !isAdmin) return errorResponse('할일 수정 권한 없음', 403);
+
+      // 마감일 과거 검증
+      const today = new Date().toISOString().slice(0, 10);
+      if (updates.dueDate && updates.dueDate < today) {
+        return errorResponse('마감일은 오늘 이후여야 합니다', 400);
+      }
+
       const fields: string[] = [];
       const values: any[] = [];
 
       if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
       if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description); }
+      if (updates.assignedTo !== undefined) { fields.push('assigned_to = ?'); values.push(updates.assignedTo); }
       if (updates.status !== undefined) {
         fields.push('status = ?');
         values.push(updates.status);
@@ -244,6 +309,25 @@ export async function handleBoard(
 
       await executeUpdate(context.env.DB, `UPDATE action_items SET ${fields.join(', ')} WHERE id = ?`, values);
       return successResponse({ id });
+    }
+
+    // DELETE /api/board/actions/:id
+    if (method === 'DELETE' && pathname.match(/^\/api\/board\/actions\/[^/]+$/)) {
+      if (!requireAuth(context)) return unauthorizedResponse();
+
+      const id = pathname.split('/').pop() || '';
+      if (!id) return errorResponse('유효하지 않은 ID', 400);
+
+      const existing = await executeFirst<any>(context.env.DB, 'SELECT assigned_to, assigned_by FROM action_items WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
+      if (!existing) return notFoundResponse();
+
+      // 본인이 만든 할일이거나, 본인에게 할당된 할일이거나, admin만 삭제 가능
+      const isOwner = existing.assigned_by === context.auth!.userId || existing.assigned_to === context.auth!.userId;
+      const isAdmin = context.auth!.role === 'admin';
+      if (!isOwner && !isAdmin) return errorResponse('삭제 권한 없음', 403);
+
+      await executeUpdate(context.env.DB, 'DELETE FROM action_items WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
+      return successResponse({ deleted: true });
     }
 
     // ── 타임라인 ──

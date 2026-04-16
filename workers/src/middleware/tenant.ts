@@ -7,6 +7,19 @@ import { RequestContext, Academy } from '@/types';
 import { executeFirst } from '@/utils/db';
 import { errorResponse } from '@/utils/response';
 
+// In-memory tenant 캐시 (isolate별, KV write 폭주 방지)
+// 5분 TTL — KV는 1h fallback. 학원 정보 변경 시 academy-handler에서 invalidate 필요.
+interface TenantCacheEntry { academy: Academy; expiresAt: number; }
+const tenantMemCache: Map<string, TenantCacheEntry> =
+  (globalThis as any).__tenantCache ??= new Map();
+
+const MEM_TTL_MS = 5 * 60 * 1000;   // 5분 (in-memory)
+const KV_TTL_SEC = 60 * 60;          // 1시간 (KV)
+
+export function invalidateTenantCache(academyId: string) {
+  tenantMemCache.delete(academyId);
+}
+
 /**
  * 인증된 요청에 테넌트(학원) 정보를 주입
  * - JWT의 academyId로 학원 조회
@@ -22,19 +35,30 @@ export async function tenantMiddleware(
     return errorResponse('학원 정보가 없습니다', 403);
   }
 
-  // KV 캐시 확인 (5분 TTL)
-  const cacheKey = `academy:${academyId}:info`;
   let academy: Academy | null = null;
 
-  try {
-    const cached = await context.env.KV.get(cacheKey, 'json');
-    if (cached) {
-      academy = cached as Academy;
-    }
-  } catch {
-    // 캐시 실패는 무시
+  // 1차: in-memory 캐시 (KV write 폭주 방지)
+  const now = Date.now();
+  const memHit = tenantMemCache.get(academyId);
+  if (memHit && memHit.expiresAt > now) {
+    academy = memHit.academy;
   }
 
+  // 2차: KV 캐시 (1h TTL)
+  const cacheKey = `academy:${academyId}:info`;
+  if (!academy) {
+    try {
+      const cached = await context.env.KV.get(cacheKey, 'json');
+      if (cached) {
+        academy = cached as Academy;
+        tenantMemCache.set(academyId, { academy, expiresAt: now + MEM_TTL_MS });
+      }
+    } catch {
+      // 캐시 실패는 무시
+    }
+  }
+
+  // 3차: D1
   if (!academy) {
     academy = await executeFirst<Academy>(
       context.env.DB,
@@ -43,8 +67,9 @@ export async function tenantMiddleware(
     );
 
     if (academy) {
+      tenantMemCache.set(academyId, { academy, expiresAt: now + MEM_TTL_MS });
       try {
-        await context.env.KV.put(cacheKey, JSON.stringify(academy), { expirationTtl: 300 });
+        await context.env.KV.put(cacheKey, JSON.stringify(academy), { expirationTtl: KV_TTL_SEC });
       } catch {
         // 캐시 저장 실패는 무시
       }

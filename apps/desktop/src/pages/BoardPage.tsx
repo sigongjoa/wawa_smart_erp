@@ -78,7 +78,10 @@ export default function BoardPage() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionForm, setActionForm] = useState({ title: '', assignedTo: '', dueDate: '', description: '' });
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const loadData = useCallback(async () => {
+    setLoadError(null);
     try {
       const [n, ma, aa, t] = await Promise.all([
         api.getNotices(),
@@ -90,8 +93,10 @@ export default function BoardPage() {
       setMyActions(ma || []);
       setAllActions(aa || []);
       setTeachers(t || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      const msg = (err as Error).message || '보드 데이터를 불러오지 못했습니다';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -175,16 +180,69 @@ export default function BoardPage() {
     } catch { /* ignore */ }
   };
 
-  // 고정 토글
+  // 할일 삭제
+  const handleDeleteAction = async (action: ActionItem) => {
+    const ok = await confirmDialog(`"${action.title}" 할일을 삭제하시겠습니까?`);
+    if (!ok) return;
+    try {
+      await api.deleteAction(action.id);
+      toast.success('할일을 삭제했습니다');
+      loadData();
+    } catch {
+      toast.error('삭제에 실패했습니다');
+    }
+  };
+
+  // 고정 토글 (admin 전용)
   const handleTogglePin = async (notice: Notice) => {
+    if (user?.role !== 'admin') {
+      toast.error('공지 고정/해제는 관리자만 가능합니다');
+      return;
+    }
     try {
       await api.updateNotice(notice.id, { isPinned: !notice.is_pinned });
       loadData();
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast.error('고정 상태 변경 실패: ' + (err as Error).message);
+    }
+  };
+
+  // 할일 수정 모달
+  const [editingAction, setEditingAction] = useState<ActionItem | null>(null);
+  const [editActionForm, setEditActionForm] = useState({ title: '', assignedTo: '', dueDate: '' });
+
+  const openEditAction = (a: ActionItem) => {
+    setEditingAction(a);
+    setEditActionForm({ title: a.title, assignedTo: a.assigned_to, dueDate: a.due_date || '' });
+  };
+
+  const handleUpdateAction = async () => {
+    if (!editingAction) return;
+    if (!editActionForm.title.trim() || !editActionForm.assignedTo) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (editActionForm.dueDate && editActionForm.dueDate < today) {
+      toast.error('마감일은 오늘 이후여야 합니다');
+      return;
+    }
+    try {
+      await api.updateAction(editingAction.id, {
+        title: editActionForm.title,
+        assignedTo: editActionForm.assignedTo,
+        dueDate: editActionForm.dueDate || undefined,
+      });
+      toast.success('할일을 수정했습니다');
+      setEditingAction(null);
+      loadData();
+    } catch (err) {
+      toast.error('수정 실패: ' + (err as Error).message);
+    }
   };
 
   const pinnedNotices = notices.filter((n) => n.is_pinned);
-  const recentNotices = notices.filter((n) => !n.is_pinned);
+  const fourteenDaysAgo = Date.now() - 14 * 86400000;
+  const recentNotices = notices.filter(
+    (n) => !n.is_pinned && new Date(n.created_at).getTime() >= fourteenDaysAgo
+  );
   const pendingActions = myActions.filter((a) => a.status !== 'completed');
   const completedActions = myActions.filter((a) => a.status === 'completed');
   const allPending = allActions.filter((a) => a.status !== 'completed');
@@ -230,7 +288,8 @@ export default function BoardPage() {
                         <div className="board-card-top">
                           <span className="board-cat" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                           {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
-                          <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정 해제">📌</button>
+                          {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정 해제">📌</button>}
+                          <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}>×</button>
                         </div>
                         <div className="board-card-title">{n.title}</div>
                         {n.content && <div className="board-card-content">{n.content}</div>}
@@ -256,21 +315,24 @@ export default function BoardPage() {
                     const dday = getDday(a.due_date);
                     return (
                       <div key={a.id} className="board-action-row">
-                        <button className="board-check" onClick={() => handleToggleAction(a)} aria-label={`${a.title} 완료 처리`}>☐</button>
+                        <button className="board-check" onClick={() => handleToggleAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 완료 처리`}>☐</button>
                         <div className="board-action-info">
                           <span className="board-action-title">{a.title}</span>
                           {a.notice_title && <span className="board-action-notice">← {a.notice_title}</span>}
                         </div>
                         {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
                         {a.due_date && <span className="board-action-due">{a.due_date}</span>}
+                        <button className="board-edit-btn" onClick={() => openEditAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 수정`}>✎</button>
+                        <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 삭제`}>×</button>
                       </div>
                     );
                   })}
                   {completedActions.slice(0, 5).map((a) => (
                     <div key={a.id} className="board-action-row board-action-row--done">
-                      <button className="board-check board-check--done" onClick={() => handleToggleAction(a)} aria-label={`${a.title} 미완료로 되돌리기`}>☑</button>
+                      <button className="board-check board-check--done" onClick={() => handleToggleAction(a)} aria-label={`${a.title} (${a.completed_at ? formatDate(a.completed_at) : ''}) 미완료로 되돌리기`}>☑</button>
                       <span className="board-action-title board-action-title--done">{a.title}</span>
                       {a.completed_at && <span className="board-action-due">{formatDate(a.completed_at)}</span>}
+                      <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.title} (완료: ${a.completed_at ? formatDate(a.completed_at) : ''}) 삭제`}>×</button>
                     </div>
                   ))}
                 </div>
@@ -284,11 +346,15 @@ export default function BoardPage() {
                 <div className="board-action-list">
                   {allPending.map((a) => {
                     const dday = getDday(a.due_date);
+                    const canDelete = user?.role === 'admin' || a.assigned_to === user?.id;
                     return (
                       <div key={a.id} className="board-action-row">
                         <span className="board-action-assignee">{a.assigned_to_name}</span>
                         <span className="board-action-title">{a.title}</span>
                         {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
+                        {canDelete && (
+                          <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.assigned_to_name}의 ${a.title} (${a.due_date || '기한없음'}) 삭제`}>×</button>
+                        )}
                       </div>
                     );
                   })}
@@ -318,8 +384,8 @@ export default function BoardPage() {
                       <div className="board-notice-item-top">
                         <span className="board-cat board-cat--sm" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                         <span className="board-notice-date">{formatDate(n.created_at)}</span>
-                        <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정">📌</button>
-                        <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label="삭제">×</button>
+                        {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정">📌</button>}
+                        <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}>×</button>
                       </div>
                       <div className="board-notice-item-title">{n.title}</div>
                       {n.content && <div className="board-notice-item-body">{n.content.slice(0, 80)}{n.content.length > 80 ? '...' : ''}</div>}
@@ -352,16 +418,18 @@ export default function BoardPage() {
                 <select className="form-select" value={noticeForm.category} onChange={(e) => setNoticeForm((p) => ({ ...p, category: e.target.value }))}>
                   {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
-                <label className="form-checkbox">
-                  <input type="checkbox" checked={noticeForm.isPinned} onChange={(e) => setNoticeForm((p) => ({ ...p, isPinned: e.target.checked }))} />
-                  고정
-                </label>
+                {user?.role === 'admin' && (
+                  <label className="form-checkbox">
+                    <input type="checkbox" checked={noticeForm.isPinned} onChange={(e) => setNoticeForm((p) => ({ ...p, isPinned: e.target.checked }))} />
+                    고정
+                  </label>
+                )}
               </div>
               <input className="form-input" placeholder="제목" aria-label="공지 제목" value={noticeForm.title} onChange={(e) => setNoticeForm((p) => ({ ...p, title: e.target.value }))} />
               <textarea className="form-textarea" placeholder="내용 (선택)" aria-label="공지 내용" rows={3} value={noticeForm.content} onChange={(e) => setNoticeForm((p) => ({ ...p, content: e.target.value }))} />
               <div className="form-row">
                 <label className="form-label">기한</label>
-                <input type="date" className="form-input form-input--sm" value={noticeForm.dueDate} onChange={(e) => setNoticeForm((p) => ({ ...p, dueDate: e.target.value }))} />
+                <input type="date" className="form-input form-input--sm" min={new Date().toISOString().slice(0, 10)} value={noticeForm.dueDate} onChange={(e) => setNoticeForm((p) => ({ ...p, dueDate: e.target.value }))} />
               </div>
 
               {/* 액션 아이템 추가 */}
@@ -377,7 +445,7 @@ export default function BoardPage() {
                     <option value="">담당자</option>
                     {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
-                  <input type="date" className="form-input form-input--xs" value={draft.dueDate} onChange={(e) => { const d = [...actionDrafts]; d[i].dueDate = e.target.value; setActionDrafts(d); }} />
+                  <input type="date" className="form-input form-input--xs" min={new Date().toISOString().slice(0, 10)} value={draft.dueDate} onChange={(e) => { const d = [...actionDrafts]; d[i].dueDate = e.target.value; setActionDrafts(d); }} />
                   <button className="btn-icon" onClick={() => setActionDrafts((p) => p.filter((_, j) => j !== i))}>×</button>
                 </div>
               ))}
@@ -410,7 +478,7 @@ export default function BoardPage() {
                 <option value="">담당자 선택</option>
                 {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
-              <input type="date" className="form-input" aria-label="마감일" value={actionForm.dueDate} onChange={(e) => setActionForm((p) => ({ ...p, dueDate: e.target.value }))} />
+              <input type="date" className="form-input" aria-label="마감일" min={new Date().toISOString().slice(0, 10)} value={actionForm.dueDate} onChange={(e) => setActionForm((p) => ({ ...p, dueDate: e.target.value }))} />
               <textarea className="form-textarea" placeholder="설명 (선택)" aria-label="할일 설명" rows={2} value={actionForm.description} onChange={(e) => setActionForm((p) => ({ ...p, description: e.target.value }))} />
             </div>
             <div className="modal-footer">
@@ -420,6 +488,41 @@ export default function BoardPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ═══ 할일 수정 모달 ═══ */}
+      {editingAction && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="할일 수정"
+          onClick={() => setEditingAction(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setEditingAction(null); }}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">할일 수정</h3>
+            <div className="modal-body">
+              <input className="form-input" placeholder="할일 제목" aria-label="할일 제목" value={editActionForm.title} onChange={(e) => setEditActionForm((p) => ({ ...p, title: e.target.value }))} />
+              <select className="form-select" aria-label="담당자 선택" value={editActionForm.assignedTo} onChange={(e) => setEditActionForm((p) => ({ ...p, assignedTo: e.target.value }))}>
+                <option value="">담당자 선택</option>
+                {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+              <input type="date" className="form-input" aria-label="마감일" min={new Date().toISOString().slice(0, 10)} value={editActionForm.dueDate} onChange={(e) => setEditActionForm((p) => ({ ...p, dueDate: e.target.value }))} />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setEditingAction(null)}>취소</button>
+              <button className="btn btn-primary" onClick={handleUpdateAction} disabled={!editActionForm.title.trim() || !editActionForm.assignedTo}>저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loadError && (
+        <div className="board-error-banner" role="alert">
+          <span>보드 데이터 로드 실패: {loadError}</span>
+          <button className="btn btn-sm btn-secondary" onClick={loadData}>다시 시도</button>
         </div>
       )}
     </div>

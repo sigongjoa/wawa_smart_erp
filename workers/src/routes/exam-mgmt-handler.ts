@@ -69,6 +69,9 @@ export async function handleExamMgmt(
   if (method === 'GET' && pathname === '/api/exam-mgmt/by-month') {
     const url = new URL(request.url);
     const month = url.searchParams.get('month');
+    const scope = url.searchParams.get('scope');
+    const isAdmin = context.auth!.role === 'admin';
+    const showAll = isAdmin && scope === 'all';
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
     }
@@ -95,14 +98,23 @@ export async function handleExamMgmt(
       );
     }
 
-    // 담당 학생 조회 (admin도 본인 담당만 — feedback_admin_scope)
-    const students = await executeQuery<{ id: string; name: string; grade: string }>(
-      db,
-      `SELECT id, name, grade FROM gacha_students
-       WHERE academy_id = ? AND teacher_id = ? AND status = 'active'
-       ORDER BY grade, name`,
-      [academyId, userId]
-    );
+    // 학원 전체 학생 대상 (수학 여부와 무관). admin은 scope=all로 전체, 아니면 담당만
+    const students = showAll
+      ? await executeQuery<{ id: string; name: string; grade: string; school: string | null }>(
+          db,
+          `SELECT id, name, grade, school FROM students
+           WHERE academy_id = ? AND status = 'active'
+           ORDER BY grade, name`,
+          [academyId]
+        )
+      : await executeQuery<{ id: string; name: string; grade: string; school: string | null }>(
+          db,
+          `SELECT s.id, s.name, s.grade, s.school FROM students s
+           JOIN student_teachers st ON st.student_id = s.id
+           WHERE s.academy_id = ? AND st.teacher_id = ? AND s.status = 'active'
+           ORDER BY s.grade, s.name`,
+          [academyId, userId]
+        );
 
     // 배정 상태 조회
     const assignments = await executeQuery<ExamAssignmentRow>(
@@ -119,6 +131,7 @@ export async function handleExamMgmt(
         student_id: s.id,
         student_name: s.name,
         student_grade: s.grade,
+        student_school: s.school,
         assignment_id: a?.id ?? null,
         assigned: !!a,
         created_check: a?.created_check ?? 0,
@@ -133,6 +146,26 @@ export async function handleExamMgmt(
     return successResponse({ period, students: rows });
   }
 
+  // PATCH /api/exam-mgmt/student-school — 학생 학교명 수정 (inline edit)
+  if (method === 'PATCH' && pathname === '/api/exam-mgmt/student-school') {
+    const body = await request.json() as any;
+    const { student_id, school } = body;
+    if (!student_id) return errorResponse('student_id는 필수입니다', 400);
+    const isAdminUpd = context.auth!.role === 'admin';
+    const owned = isAdminUpd
+      ? await executeFirst<{ id: string }>(db,
+          `SELECT id FROM students WHERE id = ? AND academy_id = ?`, [student_id, academyId])
+      : await executeFirst<{ id: string }>(db,
+          `SELECT s.id FROM students s JOIN student_teachers st ON st.student_id = s.id
+           WHERE s.id = ? AND s.academy_id = ? AND st.teacher_id = ?`,
+          [student_id, academyId, userId]);
+    if (!owned) return errorResponse('담당 학생이 아닙니다', 403);
+    await executeUpdate(db,
+      `UPDATE students SET school = ?, updated_at = ? WHERE id = ?`,
+      [school?.trim() || null, new Date().toISOString(), student_id]);
+    return successResponse({ id: student_id, school });
+  }
+
   // POST /api/exam-mgmt/by-month/toggle — 학생 배정 토글
   if (method === 'POST' && pathname === '/api/exam-mgmt/by-month/toggle') {
     const body = await request.json() as any;
@@ -141,13 +174,21 @@ export async function handleExamMgmt(
       return errorResponse('month, student_id는 필수입니다', 400);
     }
 
-    // 학생이 본인 담당인지 확인
-    const student = await executeFirst<{ id: string; grade: string }>(
-      db,
-      `SELECT id, grade FROM gacha_students
-       WHERE id = ? AND academy_id = ? AND teacher_id = ?`,
-      [student_id, academyId, userId]
-    );
+    // 학생이 본인 담당인지 확인 (admin은 전체 허용)
+    const isAdminToggle = context.auth!.role === 'admin';
+    const student = isAdminToggle
+      ? await executeFirst<{ id: string; grade: string }>(
+          db,
+          `SELECT id, grade FROM students WHERE id = ? AND academy_id = ?`,
+          [student_id, academyId]
+        )
+      : await executeFirst<{ id: string; grade: string }>(
+          db,
+          `SELECT s.id, s.grade FROM students s
+           JOIN student_teachers st ON st.student_id = s.id
+           WHERE s.id = ? AND s.academy_id = ? AND st.teacher_id = ?`,
+          [student_id, academyId, userId]
+        );
     if (!student) return errorResponse('담당 학생이 아닙니다', 403);
 
     const period = await executeFirst<ExamPeriodRow>(

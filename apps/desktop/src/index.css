@@ -415,10 +415,12 @@ input, select, textarea {
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
 }
 .btn-ghost:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+  border-color: var(--border-primary);
 }
 
 .btn-danger {
@@ -2171,6 +2173,28 @@ input, select, textarea {
   padding: var(--sp-10) var(--sp-8);
 }
 
+.student-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.student-table th { text-align: left; padding: 10px; border-bottom: 2px solid var(--border, #ddd); font-weight: 600; font-size: 13px; background: var(--bg-subtle, #f9f9fb); }
+.student-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-light, #eee); }
+.student-table tbody tr:hover { background: var(--bg-hover, #f5f5ff); }
+.student-row--inactive { opacity: 0.5; }
+.student-cell-name { font-weight: 600; }
+.student-cell-contact { color: var(--text-secondary, #666); font-size: 13px; }
+.student-inline-input, .student-inline-select { width: 100%; padding: 4px 6px; border: 1px solid var(--border, #ddd); border-radius: 4px; font-size: 13px; background: transparent; }
+.student-inline-input:focus, .student-inline-select:focus { outline: none; border-color: var(--primary, #4f46e5); background: var(--bg, #fff); }
+.student-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.student-status--active { background: #d4f4dd; color: #1a7f37; }
+.student-status--inactive { background: #f0f0f0; color: #888; }
+.teacher-checkboxes { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--border, #ddd); border-radius: 6px; max-height: 200px; overflow-y: auto; }
+.teacher-checkbox { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.teacher-role { color: var(--text-secondary, #888); font-size: 12px; }
+.btn-danger-ghost {
+  background: transparent;
+  color: var(--danger, #dc2626);
+  border: 1px solid #fca5a5;
+}
+.btn-danger-ghost:hover { background: var(--danger-surface, #fef2f2); }
+
 .student-list-header {
   margin-bottom: var(--sp-8);
 }
@@ -2971,6 +2995,35 @@ input, select, textarea {
   transition: all var(--duration-fast) ease;
 }
 .board-del-btn:hover { color: var(--danger); background: var(--danger-surface); }
+
+.board-edit-btn {
+  font-size: 14px;
+  padding: var(--sp-1);
+  color: var(--text-tertiary);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+}
+.board-edit-btn:hover { color: var(--primary, #2d3a8c); background: var(--bg-subtle); }
+
+.board-error-banner {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--danger-surface, #fee2e2);
+  color: var(--danger, #ef4444);
+  border: 1px solid var(--danger, #ef4444);
+  border-radius: var(--radius-md, 8px);
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
 
 .board-card-title {
   font-size: 15px;
@@ -4812,14 +4865,8 @@ input[type="number"] {
   color: var(--text-primary, #333); border: none; border-radius: 8px;
   font-size: 14px; cursor: pointer;
 }
-.btn-sm {
-  padding: 4px 10px; font-size: 12px;
-  border: 1px solid var(--border, #ddd); border-radius: 6px;
-  background: #fff; cursor: pointer;
-}
-.btn-sm:hover { background: var(--hover-bg, #f5f5f5); }
-.btn-danger { color: #dc2626; border-color: #fca5a5; }
-.btn-danger:hover { background: #fef2f2; }
+/* .btn-sm 은 430행에서 size-only 유틸로 정의됨 (중복 제거) */
+/* .btn-danger 은 424행에 정의됨 (중복 제거) */
 
 /* 폼 카드 */
 .gacha-form-card {
@@ -5150,6 +5197,8 @@ input[type="number"] {
 .exam-stat { font-weight: 500; }
 .exam-filters { display: flex; gap: 8px; margin-left: auto; }
 .exam-filter-select { padding: 4px 8px; border: 1px solid var(--border, #ddd); border-radius: 4px; font-size: 13px; }
+.exam-print-btn { padding: 4px 12px; border: 1px solid var(--primary, #4f46e5); background: var(--primary, #4f46e5); color: #fff; border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.exam-print-btn:hover { opacity: 0.85; }
 
 .exam-bulk-actions { display: flex; gap: 8px; margin-bottom: 12px; }
 
@@ -5158,15 +5207,32 @@ input[type="number"] {
 .exam-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-light, #eee); }
 .exam-table tbody tr:hover { background: var(--bg-hover, #f5f5ff); }
 
+.scope-toggle { display: inline-flex; border: 1px solid var(--border, #ddd); border-radius: 6px; overflow: hidden; }
+.scope-toggle-btn { background: transparent; border: none; padding: 6px 12px; cursor: pointer; font-size: 13px; color: var(--text-secondary, #666); }
+.scope-toggle-btn:hover { background: var(--bg-hover, #f5f5ff); }
+.scope-toggle-btn--active { background: var(--primary, #4f46e5); color: white; }
+.scope-toggle-btn--active:hover { background: var(--primary, #4f46e5); }
+
 .exam-th-check { text-align: center; width: 60px; }
 .exam-cell-check { text-align: center; }
 .exam-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary, #4f46e5); }
 
 .exam-cell-name { font-weight: 500; white-space: nowrap; }
-.exam-cell-grade { color: var(--text-secondary, #888); white-space: nowrap; }
+.exam-cell-grade { color: var(--text-secondary, #888); white-space: nowrap; width: 50px; text-align: center; font-size: 12px; }
+.exam-th-grade { width: 50px; text-align: center; }
+.exam-th-school { width: 140px; }
+.exam-cell-school { width: 140px; }
+.exam-school-input { width: 100%; padding: 4px 6px; border: 1px solid var(--border, #ddd); border-radius: 4px; font-size: 13px; background: transparent; }
+.exam-school-input:focus { outline: none; border-color: var(--primary, #4f46e5); background: var(--bg, #fff); }
+.exam-th-link { width: 200px; }
+.exam-link-wrap { display: flex; align-items: center; gap: 4px; }
+.exam-link-input { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--border, #ddd); border-radius: 4px; font-size: 12px; background: transparent; }
+.exam-link-input:focus { outline: none; border-color: var(--primary, #4f46e5); background: var(--bg, #fff); }
+.exam-link-icon { text-decoration: none; color: var(--primary, #4f46e5); font-size: 14px; padding: 2px 4px; }
+.exam-link-placeholder { color: var(--text-secondary, #bbb); font-size: 12px; }
 .exam-cell-paper { font-size: 13px; }
 
-.exam-cell-link { min-width: 80px; }
+.exam-cell-link { width: 200px; }
 .exam-drive-link { color: var(--primary, #4f46e5); text-decoration: none; font-size: 13px; }
 .exam-drive-link:hover { text-decoration: underline; }
 .exam-add-link { background: none; border: 1px dashed var(--border, #ccc); border-radius: 4px; padding: 2px 10px; cursor: pointer; color: #999; font-size: 14px; }
@@ -5214,3 +5280,384 @@ input[type="number"] {
   .exam-table th, .exam-table td { padding: 4px 6px; }
   .exam-link-input { width: 140px; }
 }
+
+/* 보강 카드 — 타이머 페이지 */
+.rt-waiting-card--makeup {
+  border-left: 4px solid #f97316;
+  padding: 0;
+}
+.rt-waiting-card-main {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.rt-waiting-card-main:disabled { cursor: not-allowed; opacity: 0.6; }
+.rt-makeup-badge {
+  background: #f97316;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+.rt-makeup-checkin-btn {
+  display: block;
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.rt-makeup-checkin-btn:hover:not(:disabled) { background: #ffedd5; }
+.rt-makeup-checkin-btn:disabled { cursor: default; opacity: 0.75; }
+
+/* action-cell: 버튼 3개 플렉스 배치 + 모바일 터치 타겟 */
+.absence-page .action-cell {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.absence-page .action-cell .btn,
+.absence-page .absence-card-action .btn {
+  min-width: 48px;
+}
+@media (max-width: 768px) {
+  .absence-page .action-cell .btn,
+  .absence-page .absence-card-action .btn {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* ── 시험지 관리 페이지 ── */
+.modal-content--wide { max-width: 720px; width: 100%; }
+
+.exam-papers-table .badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge--midterm { background: var(--info-surface, #e0f2fe); color: var(--info, #0369a1); }
+.badge--final { background: var(--danger-surface, #fee2e2); color: var(--danger, #b91c1c); }
+.badge--performance { background: var(--success-surface, #dcfce7); color: var(--success, #15803d); }
+.badge--auto { background: var(--border-subtle, #f1f5f9); color: var(--text-secondary, #475569); }
+.badge--manual { background: var(--warning-surface, #fef3c7); color: var(--warning, #b45309); }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0;
+}
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary, #475569);
+}
+.form-grid label input,
+.form-grid label select,
+.form-grid label textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border-primary, #cbd5e1);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-surface, #fff);
+}
+.form-grid .form-full { grid-column: 1 / -1; }
+.file-preview {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+.distribute-preview {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 8px;
+}
+.distribute-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary, #475569);
+  margin-bottom: 8px;
+}
+.distribute-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.student-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-primary, #cbd5e1);
+  border-radius: 14px;
+  font-size: 12px;
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  user-select: none;
+}
+.student-chip input { margin: 0; }
+.student-chip--excluded {
+  background: var(--border-subtle, #f1f5f9);
+  color: var(--text-muted, #94a3b8);
+  text-decoration: line-through;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary, #475569);
+  margin: 8px 0;
+}
+.detail-memo {
+  background: var(--bg-subtle, #f8fafc);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary, #0f172a);
+  margin: 8px 0;
+}
+.detail-file { margin: 8px 0; }
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+  color: var(--text-primary, #0f172a);
+}
+
+.distribution-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.distribution-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--bg-subtle, #f8fafc);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.distribution-list .muted { color: var(--text-muted, #94a3b8); font-size: 12px; }
+
+.loading-block,
+.empty-block {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted, #94a3b8);
+  font-size: 14px;
+}
+
+.required-mark { color: var(--text-tertiary, #94a3b8); margin-left: 2px; font-weight: 500; }
+
+/* ExamPapersPage: 테이블/필터/폼 로컬 스타일 */
+.exam-papers-page .table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border-secondary, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-surface, #fff);
+}
+.exam-papers-page .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.exam-papers-page .data-table thead th {
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--bg-subtle, #f8fafc);
+  color: var(--text-secondary, #475569);
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-secondary, #e2e8f0);
+  white-space: nowrap;
+}
+.exam-papers-page .data-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+  vertical-align: middle;
+}
+.exam-papers-page .data-table tbody tr:last-child td { border-bottom: none; }
+
+.exam-papers-page .filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: var(--sp-6, 24px);
+}
+.exam-papers-page .filter-bar select,
+.exam-papers-page .filter-bar input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-primary, #cbd5e1);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-surface, #fff);
+  min-height: 38px;
+}
+.exam-papers-page .filter-bar select:focus,
+.exam-papers-page .filter-bar input:focus {
+  outline: 2px solid var(--primary, #3b82f6);
+  outline-offset: 1px;
+}
+
+.exam-papers-page .modal-content h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  margin: 0 0 16px;
+}
+.exam-papers-page .modal-content h3.section-title {
+  margin-top: 16px;
+  font-size: 15px;
+}
+
+.exam-papers-table tbody tr:hover,
+.exam-papers-table tbody tr:focus-within {
+  background: var(--bg-subtle, #f8fafc);
+}
+
+/* 모바일 카드 뷰 (기본 숨김) */
+.exam-papers-cards {
+  display: none;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 10px;
+  flex-direction: column;
+}
+.exam-paper-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.exam-paper-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.exam-paper-card-title {
+  font-size: 15px;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.3;
+}
+.exam-paper-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.exam-paper-card-meta > div { display: flex; gap: 6px; align-items: baseline; }
+.exam-paper-card-meta dt { color: var(--text-muted, #94a3b8); margin: 0; font-weight: 500; min-width: 48px; }
+.exam-paper-card-meta dd { margin: 0; color: var(--text-primary, #0f172a); }
+.exam-paper-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.exam-paper-card-actions .btn { min-height: 40px; }
+
+/* 배포 리스트 모바일 개선 */
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .modal-content--wide { max-width: 95vw; }
+  .distribution-list li {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "name source" "meta button";
+    row-gap: 4px;
+  }
+  .distribution-list li > :nth-child(1) { grid-area: name; }
+  .distribution-list li > .muted { grid-area: meta; }
+  .distribution-list li > .badge { grid-area: source; }
+  .distribution-list li > .btn { grid-area: button; justify-self: end; min-height: 36px; }
+}
+
+/* 모바일: 테이블 숨기고 카드 표시 */
+@media (max-width: 768px) {
+  .exam-papers-page .exam-papers-desktop { display: none; }
+  .exam-papers-page .exam-papers-cards { display: flex; }
+  .exam-papers-page .filter-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .exam-papers-page .filter-bar > * { min-height: 40px; }
+}
+
+/* ── 분할 보강 세션 모달 ── */
+.ms-modal { max-width: 640px; width: 92%; }
+.ms-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 20px; }
+.ms-summary { background: #f5f7fa; border-radius: 8px; padding: 14px 16px; }
+.ms-summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.ms-summary-sub { margin-top: 6px; color: #6b7280; font-size: 12px; }
+.ms-label { color: #6b7280; }
+.ms-value { color: #0a1f44; font-size: 14px; }
+.ms-value strong { color: #ff6b6b; font-size: 18px; }
+.ms-bar { height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin: 10px 0 4px; }
+.ms-bar-fill { height: 100%; transition: width 0.25s; }
+.ms-bar--done { background: #2eb87c; }
+.ms-bar--progress { background: #ffc107; }
+.ms-bar--idle { background: #d1d5db; }
+.ms-list-title { font-weight: 600; color: #0a1f44; margin-bottom: 8px; font-size: 13px; }
+.ms-list ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.ms-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
+.ms-item--completed { background: #f0fdf4; border-color: #bbf7d0; }
+.ms-item--cancelled { background: #fef2f2; opacity: 0.6; text-decoration: line-through; }
+.ms-item-icon { font-size: 16px; }
+.ms-item-idx { font-weight: 600; color: #0a1f44; min-width: 50px; }
+.ms-item-date { flex: 1; color: #374151; }
+.ms-item-date em { color: #6b7280; font-style: normal; font-size: 12px; }
+.ms-item-actions { display: flex; gap: 6px; align-items: center; }
+.ms-completed-at { font-size: 11px; color: #6b7280; }
+.ms-empty { padding: 24px; text-align: center; color: #9ca3af; font-size: 13px; }
+.ms-add { border-top: 1px solid #e5e7eb; padding-top: 16px; }
+.ms-add-title { font-weight: 600; color: #0a1f44; margin-bottom: 10px; font-size: 13px; }
+.ms-add-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.ms-add-row label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #6b7280; }
+.ms-add-row input { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; }
+.ms-duration-hint { font-size: 12px; color: #6b7280; padding-bottom: 8px; }
+.ms-warn { color: #dc2626; font-size: 12px; margin-top: 8px; }

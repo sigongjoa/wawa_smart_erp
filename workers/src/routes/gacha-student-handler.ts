@@ -44,6 +44,7 @@ interface UpdateStudentInput {
   name?: string;
   grade?: string;
   status?: string;
+  school?: string | null;
 }
 
 function validateCreateInput(body: any): CreateStudentInput {
@@ -69,6 +70,7 @@ function validateUpdateInput(body: any): UpdateStudentInput {
     result.name = body.name.trim();
   }
   if (body.grade !== undefined) result.grade = body.grade?.trim() || null;
+  if (body.school !== undefined) result.school = body.school?.trim() || null;
   if (body.status !== undefined) {
     if (!['active', 'inactive'].includes(body.status)) {
       throw new Error('입력 검증 오류: 상태는 active 또는 inactive여야 합니다');
@@ -80,13 +82,15 @@ function validateUpdateInput(body: any): UpdateStudentInput {
 
 // ── 핸들러 함수들 ──
 
-async function handleGetStudents(context: RequestContext): Promise<Response> {
+async function handleGetStudents(context: RequestContext, request?: Request): Promise<Response> {
   if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
     return unauthorizedResponse();
   }
   const academyId = getAcademyId(context);
   const userId = getUserId(context);
   const isAdmin = context.auth!.role === 'admin';
+  const scope = request ? new URL(request.url).searchParams.get('scope') : null;
+  const showAll = isAdmin && scope === 'all';
 
   let query = `
     SELECT gs.*,
@@ -97,7 +101,7 @@ async function handleGetStudents(context: RequestContext): Promise<Response> {
   `;
   const params: unknown[] = [academyId];
 
-  if (!isAdmin) {
+  if (!showAll) {
     query += ' AND gs.teacher_id = ?';
     params.push(userId);
   }
@@ -186,6 +190,7 @@ async function handleUpdateStudent(request: Request, context: RequestContext, st
   const params: unknown[] = [];
   if (input.name !== undefined) { sets.push('name = ?'); params.push(input.name); }
   if (input.grade !== undefined) { sets.push('grade = ?'); params.push(input.grade); }
+  if (input.school !== undefined) { sets.push('school = ?'); params.push(input.school); }
   if (input.status !== undefined) { sets.push('status = ?'); params.push(input.status); }
   if (sets.length === 0) {
     return errorResponse('입력 검증 오��: 수정할 필드가 없습니다', 400);
@@ -270,7 +275,7 @@ export async function handleGachaStudent(
   try {
     // /api/gacha/students
     if (pathname === '/api/gacha/students') {
-      if (method === 'GET') return await handleGetStudents(context);
+      if (method === 'GET') return await handleGetStudents(context, request);
       if (method === 'POST') return await handleCreateStudent(request, context);
       return errorResponse('Method not allowed', 405);
     }

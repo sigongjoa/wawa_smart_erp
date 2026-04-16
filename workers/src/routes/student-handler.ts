@@ -12,6 +12,20 @@ import { handleRouteError } from '@/utils/error-handler';
 import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
+// ==================== 헬퍼: 담당 학생 체크 ====================
+async function teacherOwnsStudent(
+  db: any,
+  teacherId: string,
+  studentId: string
+): Promise<boolean> {
+  const row = await executeFirst<{ n: number }>(
+    db,
+    'SELECT 1 AS n FROM student_teachers WHERE teacher_id = ? AND student_id = ? LIMIT 1',
+    [teacherId, studentId]
+  );
+  return !!row;
+}
+
 // ==================== 헬퍼: 과목명 추출 ====================
 function extractSubject(examName: string | null): string {
   if (!examName) return '기타';
@@ -23,14 +37,18 @@ function extractSubject(examName: string | null): string {
 const CreateStudentSchema = z.object({
   name: z.string().min(1, '학생 이름은 필수입니다'),
   grade: z.string().min(1, '학년은 필수입니다'),
-  class_id: z.string().optional(),
-  contact: z.string().optional(),
-  guardian_contact: z.string().optional(),
+  school: z.string().nullable().optional(),
+  class_id: z.string().nullable().optional(),
+  contact: z.string().nullable().optional(),
+  guardian_contact: z.string().nullable().optional(),
   subjects: z.array(z.string()).optional(),
   status: z.enum(['active', 'inactive']).default('active'),
 });
 
+const UpdateStudentSchema = CreateStudentSchema.partial();
+
 type CreateStudentInput = z.infer<typeof CreateStudentSchema>;
+type UpdateStudentInput = z.infer<typeof UpdateStudentSchema>;
 
 // ==================== 헬퍼 함수 ====================
 
@@ -77,8 +95,8 @@ async function handleCreateStudent(
 
     const result = await executeInsert(
       context.env.DB,
-      `INSERT INTO students (id, academy_id, name, class_id, contact, guardian_contact, enrollment_date, status, created_at, updated_at, grade, subjects)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO students (id, academy_id, name, class_id, contact, guardian_contact, enrollment_date, status, created_at, updated_at, grade, subjects, school)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         studentId,
         getAcademyId(context),
@@ -92,6 +110,7 @@ async function handleCreateStudent(
         now,
         input.grade,
         subjectsJson,
+        input.school || null,
       ]
     );
 
@@ -126,7 +145,7 @@ async function handleCreateStudent(
 /**
  * GET /api/student - 학생 목록 조회
  */
-async function handleGetStudents(context: RequestContext): Promise<Response> {
+async function handleGetStudents(request: Request, context: RequestContext): Promise<Response> {
   try {
     if (!requireAuth(context)) {
       return unauthorizedResponse();
@@ -135,30 +154,29 @@ async function handleGetStudents(context: RequestContext): Promise<Response> {
     const academyId = getAcademyId(context);
     const userId = context.auth?.userId;
     const role = context.auth?.role;
-    const classId = context.request.url.split('?classId=')[1];
+    const url = new URL(request.url);
+    const classId = url.searchParams.get('classId');
+    const scope = url.searchParams.get('scope');
+    const isAdmin = role === 'admin';
+    const showAll = isAdmin && scope === 'all';
 
     let students: any[];
 
-    if (role === 'instructor' && userId) {
-      // instructor는 본인 담당 학생만 조회
+    if (!showAll) {
+      // instructor + admin(default) = 본인 담당만
       let query = `SELECT s.* FROM students s
         INNER JOIN student_teachers st ON s.id = st.student_id
         WHERE s.academy_id = ? AND st.teacher_id = ?`;
-      let params: any[] = [academyId, userId];
-      if (classId) {
-        query += ' AND s.class_id = ?';
-        params.push(classId);
-      }
+      const params: any[] = [academyId, userId];
+      if (classId) { query += ' AND s.class_id = ?'; params.push(classId); }
       query += ' ORDER BY s.name';
       students = await executeQuery<any>(context.env.DB, query, params);
     } else {
-      // admin은 전체 조회
-      let query = 'SELECT * FROM students WHERE academy_id = ? ORDER BY name';
-      let params: any[] = [academyId];
-      if (classId) {
-        query = 'SELECT * FROM students WHERE academy_id = ? AND class_id = ? ORDER BY name';
-        params = [academyId, classId];
-      }
+      // admin + scope=all
+      let query = 'SELECT * FROM students WHERE academy_id = ?';
+      const params: any[] = [academyId];
+      if (classId) { query += ' AND class_id = ?'; params.push(classId); }
+      query += ' ORDER BY name';
       students = await executeQuery<any>(context.env.DB, query, params);
     }
 
@@ -214,42 +232,60 @@ async function handleUpdateStudent(
       return unauthorizedResponse();
     }
 
-    const input = await parseStudentInput(request);
+    const body = await request.json() as any;
+    const input = UpdateStudentSchema.parse(body);
 
     const student = await executeFirst<any>(
       context.env.DB,
       'SELECT * FROM students WHERE id = ? AND academy_id = ?',
       [studentId, getAcademyId(context)]
     );
+    if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
 
-    if (!student) {
-      return errorResponse('학생을 찾을 수 없습니다', 404);
+    // instructor는 본인 담당 학생만 수정 가능 (admin은 전체)
+    if (context.auth!.role !== 'admin') {
+      if (!(await teacherOwnsStudent(context.env.DB, context.auth!.userId, studentId))) {
+        return errorResponse('담당 학생만 수정할 수 있습니다', 403);
+      }
     }
 
-    const now = new Date().toISOString();
-    const result = await executeUpdate(
+    const sets: string[] = [];
+    const params: any[] = [];
+    const mapField = (col: string, key: keyof UpdateStudentInput) => {
+      if (input[key] !== undefined) {
+        sets.push(`${col} = ?`);
+        const v = input[key] as any;
+        params.push(typeof v === 'string' ? (v.trim() || null) : v);
+      }
+    };
+    mapField('name', 'name');
+    mapField('grade', 'grade');
+    mapField('school', 'school');
+    mapField('class_id', 'class_id');
+    mapField('contact', 'contact');
+    mapField('guardian_contact', 'guardian_contact');
+    mapField('status', 'status');
+    if (input.subjects !== undefined) {
+      sets.push('subjects = ?');
+      params.push(JSON.stringify(input.subjects || []));
+    }
+    if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+
+    sets.push('updated_at = ?');
+    params.push(new Date().toISOString());
+    params.push(studentId);
+
+    await executeUpdate(
       context.env.DB,
-      `UPDATE students
-       SET name = ?, grade = ?, class_id = ?, contact = ?, guardian_contact = ?, status = ?, updated_at = ?
-       WHERE id = ?`,
-      [
-        input.name,
-        input.grade,
-        input.class_id || null,
-        input.contact || null,
-        input.guardian_contact || null,
-        input.status,
-        now,
-        studentId,
-      ]
+      `UPDATE students SET ${sets.join(', ')} WHERE id = ?`,
+      params
     );
-
-    if (!result) {
-      throw new Error('학생 정보 수정 실패');
-    }
 
     return successResponse({ id: studentId, ...input });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return errorResponse('입력 검증 오류: ' + error.errors.map(e => e.message).join(', '), 400);
+    }
     return handleRouteError(error, '학생 수정');
   }
 }
@@ -274,6 +310,13 @@ async function handleDeleteStudent(
 
     if (!student) {
       return errorResponse('학생을 찾을 수 없습니다', 404);
+    }
+
+    // instructor는 본인 담당 학생만 삭제 가능 (admin은 전체)
+    if (context.auth!.role !== 'admin') {
+      if (!(await teacherOwnsStudent(context.env.DB, context.auth!.userId, studentId))) {
+        return errorResponse('담당 학생만 삭제할 수 있습니다', 403);
+      }
     }
 
     // 관련 데이터 정리
@@ -493,6 +536,51 @@ async function handleGetStudentAttendance(
   }
 }
 
+// ==================== 담당 선생님 관리 ====================
+
+async function handleSetStudentTeachers(
+  request: Request,
+  context: RequestContext,
+  studentId: string
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const body = await request.json() as any;
+  const teacherIds: string[] = Array.isArray(body.teacher_ids) ? body.teacher_ids : [];
+
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+    [studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
+  // 선생님들이 같은 academy인지 검증
+  if (teacherIds.length > 0) {
+    const placeholders = teacherIds.map(() => '?').join(',');
+    const valid = await executeQuery<any>(
+      context.env.DB,
+      `SELECT id FROM users WHERE academy_id = ? AND id IN (${placeholders})`,
+      [academyId, ...teacherIds]
+    );
+    if (valid.length !== teacherIds.length) {
+      return errorResponse('유효하지 않은 선생님이 포함되어 있습니다', 400);
+    }
+  }
+
+  await executeDelete(context.env.DB, 'DELETE FROM student_teachers WHERE student_id = ?', [studentId]);
+  for (const tid of teacherIds) {
+    await executeInsert(
+      context.env.DB,
+      'INSERT OR IGNORE INTO student_teachers (student_id, teacher_id) VALUES (?, ?)',
+      [studentId, tid]
+    );
+  }
+  return successResponse({ student_id: studentId, teacher_ids: teacherIds });
+}
+
 // ==================== 메인 핸들러 ====================
 
 export async function handleStudent(
@@ -505,7 +593,14 @@ export async function handleStudent(
     // /api/student
     if (pathname === '/api/student') {
       if (method === 'POST') return await handleCreateStudent(request, context);
-      if (method === 'GET') return await handleGetStudents(context);
+      if (method === 'GET') return await handleGetStudents(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/teachers
+    const teachersMatch = pathname.match(/^\/api\/student\/([^/]+)\/teachers$/);
+    if (teachersMatch) {
+      if (method === 'PUT') return await handleSetStudentTeachers(request, context, teachersMatch[1]);
       return errorResponse('Method not allowed', 405);
     }
 

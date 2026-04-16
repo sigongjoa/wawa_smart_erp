@@ -390,6 +390,15 @@ async function handleUpdateAction(
   const body = await request.json() as any;
   const input = UpdateActionSchema.parse(body);
 
+  // 테넌트 격리: meetings JOIN으로 academy_id 검증
+  const action = await executeFirst<any>(context.env.DB,
+    `SELECT ma.id FROM meeting_actions ma
+     JOIN meetings m ON ma.meeting_id = m.id
+     WHERE ma.id = ? AND m.academy_id = ?`,
+    [actionId, context.tenantId]
+  );
+  if (!action) return errorResponse('액션을 찾을 수 없습니다', 404);
+
   await executeUpdate(context.env.DB,
     `UPDATE meeting_actions SET status = ? WHERE id = ?`,
     [input.status, actionId]
@@ -412,6 +421,11 @@ async function handlePublish(
   );
   if (!meeting) return errorResponse('회의를 찾을 수 없습니다', 404);
   if (!meeting.summary) return errorResponse('요약이 아직 생성되지 않았습니다', 400);
+
+  // 소유자 또는 admin만 게시 가능
+  const isOwner = meeting.created_by === context.auth!.userId;
+  const isAdmin = context.auth!.role === 'admin';
+  if (!isOwner && !isAdmin) return errorResponse('게시 권한이 없습니다', 403);
 
   const keyDecisions: string[] = meeting.key_decisions ? JSON.parse(meeting.key_decisions) : [];
   const decisionText = keyDecisions.length > 0
@@ -449,10 +463,15 @@ async function handleDeleteMeeting(id: string, context: RequestContext): Promise
 
   // R2 오디오 삭제
   const meeting = await executeFirst<any>(context.env.DB,
-    `SELECT audio_url FROM meetings WHERE id = ? AND academy_id = ?`,
+    `SELECT audio_url, created_by FROM meetings WHERE id = ? AND academy_id = ?`,
     [id, context.tenantId]);
 
   if (!meeting) return errorResponse('회의를 찾을 수 없습니다', 404);
+
+  // 소유자 또는 admin만 삭제 가능
+  const isOwner = meeting.created_by === context.auth!.userId;
+  const isAdmin = context.auth!.role === 'admin';
+  if (!isOwner && !isAdmin) return errorResponse('삭제 권한이 없습니다', 403);
 
   if (meeting.audio_url) {
     const r2Key = meeting.audio_url.replace('/api/file/', '');

@@ -94,8 +94,29 @@ export interface Student {
   subjects: string[];
   status: string;
   grade?: string;
-  guardian_contact?: string;
+  school?: string | null;
+  contact?: string | null;
+  guardian_contact?: string | null;
   enrollment_date?: string;
+}
+
+export interface StudentCreateInput {
+  name: string;
+  grade: string;
+  school?: string | null;
+  contact?: string | null;
+  guardian_contact?: string | null;
+  class_id?: string | null;
+  subjects?: string[];
+  status?: 'active' | 'inactive';
+}
+
+export type StudentUpdateInput = Partial<StudentCreateInput>;
+
+export interface TeacherOption {
+  id: string;
+  name: string;
+  role: 'admin' | 'instructor';
 }
 
 export interface StudentProfile extends Student {
@@ -253,14 +274,18 @@ export const api = {
     }),
 
   // Students — CRUD
-  getStudents: () =>
-    request<Student[]>('/api/student'),
-  createStudent: (data: { name: string; grade: string; subjects?: string[]; contact?: string; guardian_contact?: string }) =>
+  getStudents: (scope?: 'all' | 'mine') =>
+    request<Student[]>(scope === 'all' ? '/api/student?scope=all' : '/api/student'),
+  createStudent: (data: StudentCreateInput) =>
     request<Student>('/api/student', { method: 'POST', body: JSON.stringify(data) }),
-  updateStudent: (id: string, data: { name: string; grade: string; contact?: string; guardian_contact?: string; status?: string }) =>
+  updateStudent: (id: string, data: StudentUpdateInput) =>
     request<Student>(`/api/student/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteStudent: (id: string) =>
     request(`/api/student/${id}`, { method: 'DELETE' }),
+  setStudentTeachers: (id: string, teacher_ids: string[]) =>
+    request(`/api/student/${id}/teachers`, { method: 'PUT', body: JSON.stringify({ teacher_ids }) }),
+  getTeachers: () =>
+    request<TeacherOption[]>('/api/teachers'),
 
   // Exams — returns Exam[] directly
   getExams: (yearMonth?: string) =>
@@ -411,6 +436,7 @@ export const api = {
         grade?: string;
         subjects: string[];
         enrollments: Array<{ id: string; day: string; startTime: string; endTime: string; subject?: string | null }>;
+        makeups?: Array<{ id: string; absenceId: string; originalDate: string; classId: string; className: string; notes: string; status: string; scheduledStartTime: string | null; scheduledEndTime: string | null }>;
         activeSession: RealtimeSession | null;
         completedSession: RealtimeSession | null;
       }>;
@@ -428,7 +454,7 @@ export const api = {
     request(`/api/timer/enrollments/${id}`, { method: 'DELETE' }),
 
   // 세션 체크인/정지/재개/체크아웃
-  sessionCheckIn: (data: { studentId: string; enrollmentId?: string; scheduledStartTime?: string; scheduledEndTime?: string; subject?: string }) =>
+  sessionCheckIn: (data: { studentId: string; enrollmentId?: string; makeupId?: string; scheduledStartTime?: string; scheduledEndTime?: string; subject?: string }) =>
     request<RealtimeSession>('/api/timer/sessions/check-in', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -479,12 +505,17 @@ export const api = {
       `/api/absence/daily-summary?${new URLSearchParams({ date })}`
     ),
 
-  // 보강 목록 (상태 필터)
-  getMakeups: (status?: string) =>
-    request<any[]>(status ? `/api/makeup?${new URLSearchParams({ status })}` : '/api/makeup'),
+  // 보강 목록 (상태 필터 + admin scope)
+  getMakeups: (status?: string, scope?: 'all' | 'mine') => {
+    const p = new URLSearchParams();
+    if (status) p.set('status', status);
+    if (scope === 'all') p.set('scope', 'all');
+    const qs = p.toString();
+    return request<any[]>(qs ? `/api/makeup?${qs}` : '/api/makeup');
+  },
 
   // 보강일 지정
-  scheduleMakeup: (data: { absenceId: string; scheduledDate: string; notes?: string }) =>
+  scheduleMakeup: (data: { absenceId: string; scheduledDate: string; scheduledStartTime?: string; scheduledEndTime?: string; notes?: string }) =>
     request('/api/makeup', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -493,6 +524,50 @@ export const api = {
   // 보강 완료 처리
   completeMakeup: (makeupId: string) =>
     request(`/api/makeup/${makeupId}/complete`, { method: 'PATCH' }),
+
+  // ── 분할 보강 세션 ──
+  listMakeupSessions: (makeupId: string) =>
+    request(`/api/makeup/${makeupId}/sessions`),
+
+  addMakeupSession: (makeupId: string, data: {
+    scheduled_date: string;
+    scheduled_start_time: string;
+    scheduled_end_time: string;
+    notes?: string;
+  }) => request(`/api/makeup/${makeupId}/sessions`, {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+
+  updateMakeupSession: (makeupId: string, sessionId: string, data: {
+    scheduled_date?: string;
+    scheduled_start_time?: string;
+    scheduled_end_time?: string;
+    notes?: string;
+  }) => request(`/api/makeup/${makeupId}/sessions/${sessionId}`, {
+    method: 'PATCH', body: JSON.stringify(data),
+  }),
+
+  completeMakeupSession: (makeupId: string, sessionId: string) =>
+    request(`/api/makeup/${makeupId}/sessions/${sessionId}/complete`, { method: 'POST' }),
+
+  cancelMakeupSession: (makeupId: string, sessionId: string) =>
+    request(`/api/makeup/${makeupId}/sessions/${sessionId}`, { method: 'DELETE' }),
+
+  // 결석 수정
+  updateAbsence: (id: string, data: { absence_date?: string; reason?: string | null; class_id?: string; status?: string }) =>
+    request(`/api/absence/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // 결석 삭제 (보강 포함)
+  deleteAbsence: (id: string) =>
+    request(`/api/absence/${id}`, { method: 'DELETE' }),
+
+  // 보강 수정 (reschedule, notes, status)
+  updateMakeup: (id: string, data: { scheduled_date?: string | null; scheduled_start_time?: string | null; scheduled_end_time?: string | null; notes?: string; status?: 'pending' | 'scheduled' | 'completed'; completed_date?: string }) =>
+    request(`/api/makeup/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // 보강 삭제 (결석 유지)
+  deleteMakeup: (id: string) =>
+    request(`/api/makeup/${id}`, { method: 'DELETE' }),
 
   // 수업별 배정 학생 조회
   getClassStudents: (classId: string) =>
@@ -544,8 +619,12 @@ export const api = {
     request('/api/board/actions', { method: 'POST', body: JSON.stringify(data) }),
 
   // 액션 상태 변경
-  updateAction: (id: string, data: { status?: string; title?: string; description?: string; dueDate?: string }) =>
+  updateAction: (id: string, data: { status?: string; title?: string; description?: string; dueDate?: string; assignedTo?: string }) =>
     request(`/api/board/actions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // 액션 삭제
+  deleteAction: (id: string) =>
+    request(`/api/board/actions/${id}`, { method: 'DELETE' }),
 
   // 타임라인
   getTimeline: () =>
@@ -619,8 +698,8 @@ export const api = {
 
   // ── 가차 학생 관리 ──
 
-  getGachaStudents: () =>
-    request<GachaStudent[]>('/api/gacha/students'),
+  getGachaStudents: (scope?: 'all' | 'mine') =>
+    request<GachaStudent[]>(scope === 'all' ? '/api/gacha/students?scope=all' : '/api/gacha/students'),
 
   createGachaStudent: (data: { name: string; pin: string; grade?: string }) =>
     request<{ id: string; name: string; grade: string }>('/api/gacha/students', {
@@ -628,7 +707,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  updateGachaStudent: (id: string, data: { name?: string; grade?: string; status?: string }) =>
+  updateGachaStudent: (id: string, data: { name?: string; grade?: string; status?: string; school?: string | null }) =>
     request(`/api/gacha/students/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -832,13 +911,20 @@ export const api = {
 
   // ── 월 기반 간편 배정 ──
 
-  getExamByMonth: (month: string) =>
+  updateExamStudentSchool: (student_id: string, school: string) =>
+    request(`/api/exam-mgmt/student-school`, {
+      method: 'PATCH',
+      body: JSON.stringify({ student_id, school }),
+    }),
+
+  getExamByMonth: (month: string, scope?: 'all' | 'mine') =>
     request<{
       period: ExamPeriod;
       students: Array<{
         student_id: string;
         student_name: string;
         student_grade: string;
+        student_school: string | null;
         assignment_id: string | null;
         assigned: boolean;
         created_check: number;
@@ -848,13 +934,94 @@ export const api = {
         score: number | null;
         memo: string | null;
       }>;
-    }>(`/api/exam-mgmt/by-month?month=${encodeURIComponent(month)}`),
+    }>(`/api/exam-mgmt/by-month?month=${encodeURIComponent(month)}${scope === 'all' ? '&scope=all' : ''}`),
 
   toggleExamByMonth: (month: string, student_id: string) =>
     request<{ assigned: boolean; assignment_id?: string }>(`/api/exam-mgmt/by-month/toggle`, {
       method: 'POST',
       body: JSON.stringify({ month, student_id }),
     }),
+
+  // ── 시험지(유인물) 관리 ──
+  listExamPapers: (filters?: { examType?: string; school?: string; grade?: string; year?: string; semester?: string }) => {
+    const qs = new URLSearchParams();
+    if (filters?.examType) qs.set('examType', filters.examType);
+    if (filters?.school) qs.set('school', filters.school);
+    if (filters?.grade) qs.set('grade', filters.grade);
+    if (filters?.year) qs.set('year', filters.year);
+    if (filters?.semester) qs.set('semester', filters.semester);
+    const q = qs.toString();
+    return request<ExamPaperItem[]>(`/api/exam-papers${q ? '?' + q : ''}`);
+  },
+
+  getExamPaper: (id: string) =>
+    request<ExamPaperItem & { distributions: ExamPaperDistribution[] }>(`/api/exam-papers/${id}`),
+
+  previewExamPaperStudents: (school: string, grade: string) =>
+    request<Array<{ id: string; name: string; grade: string; school: string }>>(
+      `/api/exam-papers/preview-students?school=${encodeURIComponent(school)}&grade=${encodeURIComponent(grade)}`
+    ),
+
+  uploadExamPaperFile: async (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/api/exam-papers/upload`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: fd,
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.error || '파일 업로드 실패');
+    return json.data as { key: string; fileName: string; fileSize: number; contentType: string };
+  },
+
+  createExamPaperDoc: (data: {
+    title: string;
+    examType: 'midterm' | 'final' | 'performance';
+    subject?: string;
+    school?: string;
+    grade?: string;
+    examYear?: number;
+    semester?: number;
+    fileKey?: string;
+    fileName?: string;
+    fileSize?: number;
+    contentType?: string;
+    memo?: string;
+    autoDistribute?: boolean;
+    excludeStudentIds?: string[];
+  }) =>
+    request<{ id: string; distributed: number }>(`/api/exam-papers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateExamPaper: (id: string, data: Partial<{
+    title: string;
+    examType: 'midterm' | 'final' | 'performance';
+    subject: string;
+    school: string;
+    grade: string;
+    examYear: number;
+    semester: number;
+    memo: string;
+  }>) =>
+    request(`/api/exam-papers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteExamPaperDoc: (id: string) =>
+    request(`/api/exam-papers/${id}`, { method: 'DELETE' }),
+
+  redistributeExamPaper: (id: string, excludeStudentIds: string[] = []) =>
+    request<{ distributed: number }>(`/api/exam-papers/${id}/distribute`, {
+      method: 'POST',
+      body: JSON.stringify({ excludeStudentIds }),
+    }),
+
+  removeExamPaperDistribution: (paperId: string, studentId: string) =>
+    request(`/api/exam-papers/${paperId}/distributions/${studentId}`, { method: 'DELETE' }),
+
+  examPaperFileUrl: (key: string) => `${API_BASE}/api/exam-papers/file/${key}`,
 };
 
 // ── 가차/증명 타입 ──
@@ -976,6 +1143,40 @@ export interface ExamAssignmentUpdate {
   drive_link: string;
   score: number;
   memo: string;
+}
+
+export interface ExamPaperItem {
+  id: string;
+  academy_id: string;
+  title: string;
+  exam_type: 'midterm' | 'final' | 'performance';
+  subject: string | null;
+  school: string | null;
+  grade: string | null;
+  exam_year: number | null;
+  semester: number | null;
+  file_key: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  content_type: string | null;
+  memo: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  distribution_count?: number;
+}
+
+export interface ExamPaperDistribution {
+  id: string;
+  paper_id: string;
+  student_id: string;
+  academy_id: string;
+  source: 'auto' | 'manual';
+  distributed_at: string;
+  viewed_at: string | null;
+  student_name: string;
+  student_school: string | null;
+  student_grade: string | null;
 }
 
 export interface GachaStats {

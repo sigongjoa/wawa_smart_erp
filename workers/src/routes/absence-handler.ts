@@ -9,6 +9,7 @@ import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse 
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { getAcademyId } from '@/utils/context';
 import { logger } from '@/utils/logger';
+import { handleMakeupSession } from '@/routes/makeup-session-handler';
 
 export async function handleAbsence(
   method: string,
@@ -17,6 +18,11 @@ export async function handleAbsence(
   context: RequestContext
 ): Promise<Response> {
   try {
+    // 분할 보강 세션 라우트 우선 처리
+    if (/^\/api\/makeup\/[^/]+\/sessions(\/|$)/.test(pathname)) {
+      return await handleMakeupSession(method, pathname, request, context);
+    }
+
     // ── 결석 관련 ──
 
     // POST /api/absence — 결석 기록
@@ -140,16 +146,24 @@ export async function handleAbsence(
       }
 
       const academyId = getAcademyId(context);
-      const absences = await executeQuery<any>(
-        context.env.DB,
-        `SELECT a.*, s.name as student_name, c.name as class_name
-         FROM absences a
-         JOIN students s ON a.student_id = s.id
-         JOIN classes c ON a.class_id = c.id
-         WHERE a.absence_date = ? AND s.academy_id = ?
-         ORDER BY c.start_time, s.name`,
-        [date, academyId]
-      );
+      const userId = context.auth!.userId;
+      const isAdmin = context.auth!.role === 'admin';
+
+      let absenceQuery = `
+        SELECT a.*, s.name as student_name, c.name as class_name
+        FROM absences a
+        JOIN students s ON a.student_id = s.id
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.absence_date = ? AND s.academy_id = ?`;
+      const absenceParams: any[] = [date, academyId];
+
+      if (!isAdmin) {
+        absenceQuery += ' AND (c.instructor_id = ? OR c.instructor_id IS NULL)';
+        absenceParams.push(userId);
+      }
+
+      absenceQuery += ' ORDER BY c.start_time, s.name';
+      const absences = await executeQuery<any>(context.env.DB, absenceQuery, absenceParams);
 
       return successResponse(absences);
     }
@@ -252,50 +266,18 @@ export async function handleAbsence(
       });
     }
 
-    // PATCH /api/absence/:id — 결석 정보 수정
-    if (method === 'PATCH' && pathname.match(/^\/api\/absence\/[^/]+$/) && !pathname.includes('daily-summary') && !pathname.includes('unchecked') && !pathname.includes('batch')) {
-      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
-        return unauthorizedResponse();
-      }
-
-      const id = pathname.split('/').pop()!;
-      const updates = await request.json() as any;
-
-      const existing = await executeFirst<any>(
-        context.env.DB,
-        'SELECT * FROM absences WHERE id = ?',
-        [id]
-      );
-
-      if (!existing) return notFoundResponse();
-
-      const fields: string[] = [];
-      const values: any[] = [];
-
-      if (updates.reason !== undefined) { fields.push('reason = ?'); values.push(updates.reason); }
-      if (updates.notifiedBy !== undefined) { fields.push('notified_by = ?'); values.push(updates.notifiedBy); }
-      if (updates.status !== undefined) { fields.push('status = ?'); values.push(updates.status); }
-
-      if (fields.length === 0) return errorResponse('수정할 필드 없음', 400);
-
-      values.push(id);
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE absences SET ${fields.join(', ')} WHERE id = ?`,
-        values
-      );
-
-      return successResponse({ id });
-    }
-
     // ── 보강 관련 ──
 
-    // GET /api/makeup?status=pending|scheduled|completed — 보강 목록
+    // GET /api/makeup?status=pending|scheduled|completed&scope=all|mine — 보강 목록
     if (method === 'GET' && pathname === '/api/makeup') {
       if (!requireAuth(context)) return unauthorizedResponse();
 
       const url = new URL(request.url);
       const status = url.searchParams.get('status');
+      const scope = url.searchParams.get('scope');
+      const userId = context.auth!.userId;
+      const isAdmin = context.auth!.role === 'admin';
+      const showAll = isAdmin && scope === 'all';
 
       const academyId3 = getAcademyId(context);
       let query = `
@@ -308,6 +290,11 @@ export async function handleAbsence(
         WHERE s.academy_id = ?
       `;
       const params: any[] = [academyId3];
+
+      if (!showAll) {
+        query += ' AND (c.instructor_id = ? OR EXISTS (SELECT 1 FROM student_teachers st WHERE st.student_id = s.id AND st.teacher_id = ? AND c.instructor_id IS NULL))';
+        params.push(userId, userId);
+      }
 
       if (status) {
         query += ' AND m.status = ?';
@@ -326,7 +313,7 @@ export async function handleAbsence(
         return unauthorizedResponse();
       }
 
-      const { absenceId, scheduledDate, notes } = await request.json() as any;
+      const { absenceId, scheduledDate, scheduledStartTime, scheduledEndTime, notes } = await request.json() as any;
 
       if (!absenceId || !scheduledDate) {
         return errorResponse('absenceId, scheduledDate 필수', 400);
@@ -335,9 +322,9 @@ export async function handleAbsence(
       // 보강 레코드 업데이트
       await executeUpdate(
         context.env.DB,
-        `UPDATE makeups SET scheduled_date = ?, status = 'scheduled', notes = ?, updated_at = datetime('now')
+        `UPDATE makeups SET scheduled_date = ?, scheduled_start_time = ?, scheduled_end_time = ?, status = 'scheduled', notes = ?, updated_at = datetime('now')
          WHERE absence_id = ?`,
-        [scheduledDate, notes || '', absenceId]
+        [scheduledDate, scheduledStartTime || null, scheduledEndTime || null, notes || '', absenceId]
       );
 
       // 결석 상태도 업데이트
@@ -350,6 +337,170 @@ export async function handleAbsence(
       return successResponse({ absenceId, scheduledDate });
     }
 
+    // PATCH /api/absence/:id — 결석 정보 수정
+    const absenceIdReserved = ['batch', 'unchecked', 'daily-summary', 'class-students'];
+    const absencePatchMatch = pathname.match(/^\/api\/absence\/([^/]+)$/);
+    if (method === 'PATCH' && absencePatchMatch && !absenceIdReserved.includes(absencePatchMatch[1])) {
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
+      const id = absencePatchMatch[1];
+
+      // 테넌트 격리: students JOIN으로 academy_id 검증
+      const owned = await executeFirst<{ id: string }>(
+        context.env.DB,
+        `SELECT a.id FROM absences a
+         JOIN students s ON a.student_id = s.id
+         WHERE a.id = ? AND s.academy_id = ?`,
+        [id, getAcademyId(context)]
+      );
+      if (!owned) return errorResponse('결석 기록을 찾을 수 없습니다', 404);
+
+      const body = await request.json() as any;
+      const sets: string[] = [];
+      const params: any[] = [];
+      if (body.absence_date !== undefined) { sets.push('absence_date = ?'); params.push(body.absence_date); }
+      if (body.reason !== undefined) { sets.push('reason = ?'); params.push(body.reason || null); }
+      if (body.class_id !== undefined) { sets.push('class_id = ?'); params.push(body.class_id); }
+      if (body.notifiedBy !== undefined) { sets.push('notified_by = ?'); params.push(body.notifiedBy || ''); }
+      if (body.status !== undefined) { sets.push('status = ?'); params.push(body.status); }
+      if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+      params.push(id);
+      await executeUpdate(
+        context.env.DB,
+        `UPDATE absences SET ${sets.join(', ')} WHERE id = ?`,
+        params
+      );
+      return successResponse({ id, updated: true });
+    }
+
+    // DELETE /api/absence/:id — 결석+보강 삭제
+    if (method === 'DELETE' && absencePatchMatch && !absenceIdReserved.includes(absencePatchMatch[1])) {
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
+      const id = absencePatchMatch[1];
+
+      // 테넌트 격리: students JOIN으로 academy_id 검증
+      const owned = await executeFirst<{ id: string }>(
+        context.env.DB,
+        `SELECT a.id FROM absences a
+         JOIN students s ON a.student_id = s.id
+         WHERE a.id = ? AND s.academy_id = ?`,
+        [id, getAcademyId(context)]
+      );
+      if (!owned) return errorResponse('결석 기록을 찾을 수 없습니다', 404);
+
+      await executeUpdate(context.env.DB, 'DELETE FROM makeups WHERE absence_id = ?', [id]);
+      await executeUpdate(context.env.DB, 'DELETE FROM absences WHERE id = ?', [id]);
+      return successResponse({ id, deleted: true });
+    }
+
+    // PATCH /api/makeup/:id — 보강 정보 수정 (reschedule, notes, status)
+    const makeupPatchMatch = pathname.match(/^\/api\/makeup\/([^/]+)$/);
+    if (method === 'PATCH' && makeupPatchMatch) {
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
+      const id = makeupPatchMatch[1];
+      const body = await request.json() as any;
+
+      // 테넌트 격리: absences → students JOIN으로 academy_id 검증
+      const makeup = await executeFirst<any>(
+        context.env.DB,
+        `SELECT m.* FROM makeups m
+         JOIN absences a ON m.absence_id = a.id
+         JOIN students s ON a.student_id = s.id
+         WHERE m.id = ? AND s.academy_id = ?`,
+        [id, getAcademyId(context)]
+      );
+      if (!makeup) return notFoundResponse();
+
+      const sets: string[] = [];
+      const params: any[] = [];
+      if (body.scheduled_date !== undefined) {
+        sets.push('scheduled_date = ?');
+        params.push(body.scheduled_date || null);
+        // 자동 상태 전이: 날짜 세팅 시 scheduled로, null로 지우면 pending
+        if (body.status === undefined) {
+          sets.push('status = ?');
+          params.push(body.scheduled_date ? 'scheduled' : 'pending');
+        }
+      }
+      if (body.scheduled_start_time !== undefined) {
+        sets.push('scheduled_start_time = ?');
+        params.push(body.scheduled_start_time || null);
+      }
+      if (body.scheduled_end_time !== undefined) {
+        sets.push('scheduled_end_time = ?');
+        params.push(body.scheduled_end_time || null);
+      }
+      if (body.notes !== undefined) { sets.push('notes = ?'); params.push(body.notes || ''); }
+      if (body.status !== undefined) {
+        if (!['pending', 'scheduled', 'completed'].includes(body.status)) {
+          return errorResponse('유효하지 않은 상태입니다', 400);
+        }
+        sets.push('status = ?');
+        params.push(body.status);
+        if (body.status === 'completed') {
+          sets.push('completed_date = ?');
+          params.push(body.completed_date || new Date().toISOString().split('T')[0]);
+        } else if (body.status !== 'completed') {
+          sets.push('completed_date = ?');
+          params.push(null);
+        }
+      }
+      if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+      sets.push(`updated_at = datetime('now')`);
+      params.push(id);
+
+      await executeUpdate(
+        context.env.DB,
+        `UPDATE makeups SET ${sets.join(', ')} WHERE id = ?`,
+        params
+      );
+
+      // 결석 상태 동기화
+      const newStatus = body.status || (body.scheduled_date ? 'scheduled' : makeup.status);
+      const absenceStatus = newStatus === 'completed' ? 'makeup_done'
+        : newStatus === 'scheduled' ? 'makeup_scheduled'
+        : 'absent';
+      await executeUpdate(
+        context.env.DB,
+        'UPDATE absences SET status = ? WHERE id = ?',
+        [absenceStatus, makeup.absence_id]
+      );
+
+      return successResponse({ id, updated: true });
+    }
+
+    // DELETE /api/makeup/:id — 보강만 삭제 (결석 유지)
+    if (method === 'DELETE' && makeupPatchMatch) {
+      if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+        return unauthorizedResponse();
+      }
+      const id = makeupPatchMatch[1];
+
+      // 테넌트 격리: absences → students JOIN으로 academy_id 검증
+      const makeup = await executeFirst<any>(
+        context.env.DB,
+        `SELECT m.absence_id FROM makeups m
+         JOIN absences a ON m.absence_id = a.id
+         JOIN students s ON a.student_id = s.id
+         WHERE m.id = ? AND s.academy_id = ?`,
+        [id, getAcademyId(context)]
+      );
+      if (!makeup) return notFoundResponse();
+
+      await executeUpdate(context.env.DB, 'DELETE FROM makeups WHERE id = ?', [id]);
+      await executeUpdate(
+        context.env.DB,
+        `UPDATE absences SET status = 'absent' WHERE id = ?`,
+        [makeup.absence_id]
+      );
+      return successResponse({ id, deleted: true });
+    }
+
     // PATCH /api/makeup/:id/complete — 보강 완료
     if (method === 'PATCH' && pathname.match(/^\/api\/makeup\/[^/]+\/complete$/)) {
       if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
@@ -359,10 +510,14 @@ export async function handleAbsence(
       const parts = pathname.split('/');
       const makeupId = parts[3];
 
+      // 테넌트 격리: absences → students JOIN으로 academy_id 검증
       const makeup = await executeFirst<any>(
         context.env.DB,
-        'SELECT * FROM makeups WHERE id = ?',
-        [makeupId]
+        `SELECT m.* FROM makeups m
+         JOIN absences a ON m.absence_id = a.id
+         JOIN students s ON a.student_id = s.id
+         WHERE m.id = ? AND s.academy_id = ?`,
+        [makeupId, getAcademyId(context)]
       );
 
       if (!makeup) return notFoundResponse();

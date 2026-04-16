@@ -140,6 +140,11 @@ async function handleUpdateCard(request: Request, context: RequestContext, cardI
     return errorResponse('카드를 찾을 수 없습니다', 404);
   }
 
+  // 소유자 또는 admin만 수정 가능
+  if (card.teacher_id !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return errorResponse('수정 권한이 없습니다', 403);
+  }
+
   const body = await request.json() as any;
   const sets: string[] = [];
   const params: unknown[] = [];
@@ -175,6 +180,11 @@ async function handleDeleteCard(context: RequestContext, cardId: string): Promis
   );
   if (!card) {
     return errorResponse('카드를 찾을 수 없습니다', 404);
+  }
+
+  // 소유자 또는 admin만 삭제 가능
+  if (card.teacher_id !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return errorResponse('삭제 권한이 없습니다', 403);
   }
 
   // R2 이미지 정리

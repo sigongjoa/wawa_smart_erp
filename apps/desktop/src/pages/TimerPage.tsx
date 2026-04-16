@@ -21,6 +21,7 @@ interface StudentRow {
   grade?: string;
   subjects: string[];
   enrollments: Array<{ id: string; day: string; startTime: string; endTime: string; subject?: string | null }>;
+  makeups?: Array<{ id: string; absenceId: string; originalDate: string; classId: string; className: string; notes: string; status: string; scheduledStartTime: string | null; scheduledEndTime: string | null }>;
   activeSession: RealtimeSession | null;
   completedSession: RealtimeSession | null;
 }
@@ -32,6 +33,18 @@ function getTodayDay(): Day {
 
 function todayStr(): string {
   return new Date().toISOString().split('T')[0];
+}
+
+// 선택한 요일의 다음 발생일 (오늘 포함) — 보강 조회에 사용
+function dateForDay(targetDay: Day): string {
+  const dayToIdx: Record<Day, number> = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+  const today = new Date();
+  const todayIdx = today.getDay();
+  const targetIdx = dayToIdx[targetDay];
+  const diff = (targetIdx - todayIdx + 7) % 7;
+  const d = new Date(today);
+  d.setDate(today.getDate() + diff);
+  return d.toISOString().split('T')[0];
 }
 
 function calcPausedMinutes(history: PauseRecord[], now: Date): number {
@@ -202,7 +215,7 @@ export default function TimerPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.getRealtimeToday(selectedDay, todayStr());
+      const res = await api.getRealtimeToday(selectedDay, dateForDay(selectedDay));
       setStudents(res?.students || []);
     } catch (err) {
       toast.error('목록 조회 실패: ' + (err as Error).message);
@@ -252,6 +265,21 @@ export default function TimerPage() {
       await load();
     } catch (err) {
       toast.error('체크인 실패: ' + (err as Error).message);
+    }
+  };
+
+  const handleMakeupCheckIn = async (student: StudentRow, makeupId: string, subject?: string) => {
+    if (!isToday) return;
+    try {
+      await api.sessionCheckIn({
+        studentId: student.id,
+        makeupId,
+        subject: subject || undefined,
+      });
+      toast.success('보강 체크인 완료');
+      await load();
+    } catch (err) {
+      toast.error('보강 체크인 실패: ' + (err as Error).message);
     }
   };
 
@@ -456,30 +484,55 @@ export default function TimerPage() {
               ) : (
                 waiting.map((s) => {
                   const e = s.enrollments[0];
+                  const pendingMakeups = (s.makeups || []).filter(m => m.status === 'scheduled');
+                  const hasMakeup = pendingMakeups.length > 0;
                   return (
-                    <button
+                    <div
                       key={s.id}
-                      className={`rt-waiting-card rt-grade-${gradeClass(s.grade)} ${!isToday ? 'rt-waiting-card--disabled' : ''}`}
-                      onClick={isToday ? () => handleCheckIn(s) : undefined}
-                      disabled={!isToday}
-                      type="button"
+                      className={`rt-waiting-card rt-grade-${gradeClass(s.grade)} ${!isToday ? 'rt-waiting-card--disabled' : ''} ${hasMakeup ? 'rt-waiting-card--makeup' : ''}`}
                       data-testid={`waiting-card-${s.id}`}
                     >
-                      <div className="rt-waiting-card-top">
-                        <span className="rt-student-name">{s.name}</span>
-                        {s.grade && <span className={`grade-badge ${gradeClass(s.grade)}`}>{s.grade}</span>}
-                      </div>
-                      {e ? (
-                        <div className="rt-waiting-card-time">
-                          {e.startTime} — {e.endTime}
-                          {e.subject && <span className="rt-waiting-card-subject">({e.subject})</span>}
+                      <button
+                        className="rt-waiting-card-main"
+                        onClick={isToday ? () => handleCheckIn(s) : undefined}
+                        disabled={!isToday}
+                        type="button"
+                      >
+                        <div className="rt-waiting-card-top">
+                          <span className="rt-student-name">{s.name}</span>
+                          {s.grade && <span className={`grade-badge ${gradeClass(s.grade)}`}>{s.grade}</span>}
+                          {hasMakeup && <span className="rt-makeup-badge">보강 {pendingMakeups.length}</span>}
                         </div>
-                      ) : (
-                        <div className="rt-waiting-card-time rt-waiting-card-time--empty">
-                          수강일정 없음 (기본 90분)
-                        </div>
-                      )}
-                    </button>
+                        {e ? (
+                          <div className="rt-waiting-card-time">
+                            {e.startTime} — {e.endTime}
+                            {e.subject && <span className="rt-waiting-card-subject">({e.subject})</span>}
+                          </div>
+                        ) : (
+                          <div className="rt-waiting-card-time rt-waiting-card-time--empty">
+                            수강일정 없음 (기본 90분)
+                          </div>
+                        )}
+                      </button>
+                      {hasMakeup && pendingMakeups.map(mk => {
+                        const timeRange = mk.scheduledStartTime && mk.scheduledEndTime
+                          ? `${mk.scheduledStartTime}~${mk.scheduledEndTime}`
+                          : '기본 90분';
+                        return (
+                          <button
+                            key={mk.id}
+                            className="rt-makeup-checkin-btn"
+                            onClick={isToday ? () => handleMakeupCheckIn(s, mk.id, mk.className) : undefined}
+                            disabled={!isToday}
+                            type="button"
+                            aria-label={`${s.name} 보강 체크인 원결석 ${mk.originalDate}`}
+                          >
+                            <span aria-hidden="true">{isToday ? '▶ ' : '📅 '}</span>
+                            {isToday ? '보강 체크인' : '보강 예정'} · {mk.className} {timeRange} (원결석 {mk.originalDate})
+                          </button>
+                        );
+                      })}
+                    </div>
                   );
                 })
               )}

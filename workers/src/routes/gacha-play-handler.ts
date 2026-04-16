@@ -16,6 +16,28 @@ function safeParseBlanks(json: string): any[] {
   try { return JSON.parse(json); } catch { return []; }
 }
 
+// ── In-memory PIN rate limit (KV 무료한도 보호) ──
+// IP당 1분 5회 제한. isolate recycle 시 초기화되지만 봇/스크래퍼 방어로 충분.
+interface PinRateBucket { count: number; resetAt: number; }
+const pinRateStore: Map<string, PinRateBucket> = (globalThis as any).__pinRateStore ??= new Map();
+
+function checkPinRate(ip: string, max: number = 5, windowSec: number = 60): boolean {
+  const now = Date.now();
+  const key = `play-login:${ip}`;
+  const bucket = pinRateStore.get(key);
+  if (!bucket || bucket.resetAt < now) {
+    pinRateStore.set(key, { count: 1, resetAt: now + windowSec * 1000 });
+    return true;
+  }
+  if (bucket.count >= max) return false;
+  bucket.count++;
+  return true;
+}
+
+function clearPinRate(ip: string) {
+  pinRateStore.delete(`play-login:${ip}`);
+}
+
 // ── PIN 해싱 (gacha-student-handler와 동일) ──
 
 async function hashPin(pin: string, salt: string): Promise<string> {
@@ -72,14 +94,11 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
     return errorResponse('학원을 찾을 수 없습니다', 404);
   }
 
-  // 레이트 리밋: IP 기반 5회/60초
+  // 레이트 리밋: IP 기반 5회/60초 (in-memory — KV 무료한도 보호)
   const ip = context.request.headers.get('CF-Connecting-IP') || 'unknown';
-  const rateLimitKey = `play-login:${ip}`;
-  const attempts = parseInt(await context.env.KV.get(rateLimitKey) || '0');
-  if (attempts >= 5) {
+  if (!checkPinRate(ip)) {
     return errorResponse('로그인 시도 횟수 초과. 잠시 후 다시 시도해주세요.', 429);
   }
-  await context.env.KV.put(rateLimitKey, String(attempts + 1), { expirationTtl: 60 });
 
   // 학생 조회
   const student = await executeFirst<any>(
@@ -108,8 +127,8 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
   };
   await context.env.KV.put(`play:${token}`, JSON.stringify(playAuth), { expirationTtl: 86400 });
 
-  // 레이트 리밋 초기화
-  await context.env.KV.delete(rateLimitKey);
+  // 레이트 리밋 초기화 (in-memory)
+  clearPinRate(ip);
 
   logger.logSecurity('PLAY_LOGIN_SUCCESS', 'low', { studentId: student.id, name });
 

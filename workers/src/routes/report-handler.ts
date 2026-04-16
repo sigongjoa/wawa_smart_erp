@@ -349,7 +349,15 @@ async function handleGetScoreHistory(request: Request, context: RequestContext):
       return errorResponse('studentId 파라미터가 필수입니다', 400);
     }
 
-    const { executeQuery } = await import('@/utils/db');
+    const { executeQuery, executeFirst } = await import('@/utils/db');
+
+    // 테넌트 격리: 학생이 현재 학원 소속인지 검증
+    const student = await executeFirst<{ id: string }>(
+      context.env.DB,
+      'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+      [studentId, getAcademyId(context)]
+    );
+    if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
 
     // 최근 N개월의 성적을 과목별로 조회
     const grades = await executeQuery<any>(

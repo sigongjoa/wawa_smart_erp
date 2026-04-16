@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { toast } from '../components/Toast';
+import { useAuthStore } from '../store';
 
 type ByMonthStudent = {
   student_id: string;
   student_name: string;
   student_grade: string;
+  student_school: string | null;
   assignment_id: string | null;
   assigned: boolean;
   created_check: number;
@@ -43,6 +45,9 @@ export default function ExamManagementPage() {
     [thisMonth]
   );
 
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin';
+  const [scope, setScope] = useState<'mine' | 'all'>('mine');
   const [selectedMonth, setSelectedMonth] = useState<string>(thisMonth);
   const [students, setStudents] = useState<ByMonthStudent[]>([]);
   const [periodId, setPeriodId] = useState<string>('');
@@ -54,7 +59,7 @@ export default function ExamManagementPage() {
   const load = useCallback(async (month: string) => {
     setLoading(true);
     try {
-      const data = await api.getExamByMonth(month);
+      const data = await api.getExamByMonth(month, isAdmin && scope === 'all' ? 'all' : 'mine');
       setPeriodId(data.period.id);
       setStudents(data.students);
     } catch (err) {
@@ -63,7 +68,7 @@ export default function ExamManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, scope]);
 
   useEffect(() => { load(selectedMonth); }, [load, selectedMonth]);
 
@@ -77,6 +82,33 @@ export default function ExamManagementPage() {
       await load(selectedMonth);
     } catch (err) {
       toast.error('배정 변경 실패');
+      load(selectedMonth);
+    }
+  };
+
+  const handleLinkSave = async (s: ByMonthStudent, link: string) => {
+    if (!s.assignment_id) return;
+    if ((s.drive_link || '') === link) return;
+    setStudents(prev =>
+      prev.map(x => x.student_id === s.student_id ? { ...x, drive_link: link || null } : x)
+    );
+    try {
+      await api.updateExamAssignment(periodId, s.assignment_id, { drive_link: link } as any);
+    } catch {
+      toast.error('링크 저장 실패');
+      load(selectedMonth);
+    }
+  };
+
+  const handleSchoolSave = async (s: ByMonthStudent, school: string) => {
+    if ((s.student_school || '') === school) return;
+    setStudents(prev =>
+      prev.map(x => x.student_id === s.student_id ? { ...x, student_school: school || null } : x)
+    );
+    try {
+      await api.updateExamStudentSchool(s.student_id, school);
+    } catch {
+      toast.error('학교 저장 실패');
       load(selectedMonth);
     }
   };
@@ -114,10 +146,88 @@ export default function ExamManagementPage() {
     reviewed: students.filter(s => s.assigned && s.reviewed).length,
   };
 
+  const printCheckSheet = () => {
+    const assigned = filtered.filter(s => s.assigned);
+    if (assigned.length === 0) {
+      toast.error('배정된 학생이 없습니다');
+      return;
+    }
+
+    // 학년별 그룹핑
+    const byGrade = new Map<string, ByMonthStudent[]>();
+    for (const s of assigned) {
+      const g = s.student_grade || '미지정';
+      if (!byGrade.has(g)) byGrade.set(g, []);
+      byGrade.get(g)!.push(s);
+    }
+    const sortedGrades = [...byGrade.keys()].sort();
+
+    const [, mm] = selectedMonth.split('-');
+    const title = `${parseInt(mm)}월 정기고사 프린트 확인 시트`;
+
+    const rows = sortedGrades.map(grade => {
+      const list = byGrade.get(grade)!;
+      const header = `<tr class="grade-header"><td colspan="5">${grade} (${list.length}명)</td></tr>`;
+      const items = list.map((s, i) => `
+        <tr>
+          <td class="num">${i + 1}</td>
+          <td>${s.student_name}</td>
+          <td>${s.student_school || ''}</td>
+          <td class="status">${s.printed ? '✔' : ''}</td>
+          <td class="check-box"></td>
+        </tr>`).join('');
+      return header + items;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>
+  @page { margin: 15mm; size: A4; }
+  body { font-family: 'Malgun Gothic', sans-serif; font-size: 12px; color: #000; }
+  h1 { font-size: 16px; text-align: center; margin-bottom: 4px; }
+  .meta { text-align: center; font-size: 11px; color: #666; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #333; padding: 4px 8px; }
+  th { background: #eee; font-size: 11px; }
+  .grade-header td { background: #f5f5f5; font-weight: bold; font-size: 12px; border-bottom: 2px solid #333; }
+  .num { width: 30px; text-align: center; }
+  .status { width: 50px; text-align: center; }
+  .check-box { width: 50px; }
+  .check-box::after { content: '\\2610'; font-size: 16px; display: block; text-align: center; }
+  .summary { margin-top: 8px; font-size: 11px; color: #666; }
+</style></head><body>
+  <h1>${title}</h1>
+  <div class="meta">${new Date().toLocaleDateString('ko-KR')} 출력</div>
+  <table>
+    <thead><tr><th class="num">No</th><th>이름</th><th>학교</th><th>DB</th><th>확인</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="summary">배정 ${assigned.length}명 | 프린트 완료 ${assigned.filter(s => s.printed).length}명 | 미완료 ${assigned.filter(s => !s.printed).length}명</div>
+</body></html>`;
+
+    const w = window.open('', '_blank', 'width=800,height=600');
+    if (!w) { toast.error('팝업이 차단되었습니다'); return; }
+    w.document.write(html);
+    w.document.close();
+    w.onload = () => w.print();
+  };
+
   return (
     <div className="exam-page">
       <div className="exam-header">
         <h2 className="page-title">정기고사 관리</h2>
+        {isAdmin && (
+          <div className="scope-toggle" role="group">
+            <button
+              className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
+              onClick={() => setScope('mine')}
+            >내 학생</button>
+            <button
+              className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
+              onClick={() => setScope('all')}
+            >모두 보기</button>
+          </div>
+        )}
       </div>
 
       {/* 월 탭 */}
@@ -155,6 +265,9 @@ export default function ExamManagementPage() {
             <option value="incomplete">미완료</option>
             <option value="complete">완료</option>
           </select>
+          <button className="exam-print-btn" onClick={printCheckSheet} title="프린트 확인 시트 출력">
+            프린트 확인 시트
+          </button>
         </div>
       </div>
 
@@ -174,10 +287,12 @@ export default function ExamManagementPage() {
             <tr>
               <th style={{ width: 60 }}>배정</th>
               <th>이름</th>
-              <th>학년</th>
+              <th className="exam-th-grade">학년</th>
+              <th className="exam-th-school">학교</th>
               <th className="exam-th-check">제작</th>
               <th className="exam-th-check">프린트</th>
               <th className="exam-th-check">검토</th>
+              <th className="exam-th-link">링크</th>
               <th>상태</th>
             </tr>
           </thead>
@@ -196,6 +311,15 @@ export default function ExamManagementPage() {
                   </td>
                   <td className="exam-cell-name">{s.student_name}</td>
                   <td className="exam-cell-grade">{s.student_grade}</td>
+                  <td className="exam-cell-school">
+                    <input
+                      type="text"
+                      className="exam-school-input"
+                      defaultValue={s.student_school || ''}
+                      placeholder="학교명"
+                      onBlur={(e) => handleSchoolSave(s, e.target.value.trim())}
+                    />
+                  </td>
                   <td className="exam-cell-check">
                     <input
                       type="checkbox"
@@ -222,6 +346,24 @@ export default function ExamManagementPage() {
                       checked={!!s.reviewed}
                       onChange={() => handleCheck(s, 'reviewed')}
                     />
+                  </td>
+                  <td className="exam-cell-link">
+                    {s.assigned && s.assignment_id ? (
+                      <div className="exam-link-wrap">
+                        <input
+                          type="url"
+                          className="exam-link-input"
+                          defaultValue={s.drive_link || ''}
+                          placeholder="드라이브 URL"
+                          onBlur={(e) => handleLinkSave(s, e.target.value.trim())}
+                        />
+                        {s.drive_link && (
+                          <a href={s.drive_link} target="_blank" rel="noreferrer" className="exam-link-icon" title="열기">↗</a>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="exam-link-placeholder">—</span>
+                    )}
                   </td>
                   <td>
                     {!s.assigned ? (

@@ -1,108 +1,220 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api, Student } from '../api';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { api, Student, StudentCreateInput, TeacherOption } from '../api';
 import { useAuthStore } from '../store';
+import { toast, useConfirm } from '../components/Toast';
 
-const GRADE_OPTIONS = [
-  '초4', '초5', '초6',
-  '중1', '중2', '중3',
-  '고1', '고2', '고3',
-];
+const GRADE_OPTIONS = ['초4', '초5', '초6', '중1', '중2', '중3', '고1', '고2', '고3'];
+
+const emptyAdd: StudentCreateInput = {
+  name: '', grade: '', school: '', contact: '', guardian_contact: '',
+};
 
 export default function StudentListPage() {
-  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin';
 
+  const [scope, setScope] = useState<'mine' | 'all'>('mine');
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('');
   const [activeOnly, setActiveOnly] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // 학생 추가 모달
   const [showAdd, setShowAdd] = useState(false);
-  const [addName, setAddName] = useState('');
-  const [addGrade, setAddGrade] = useState('');
-  const [addContact, setAddContact] = useState('');
-  const [addGuardian, setAddGuardian] = useState('');
-  const [addSaving, setAddSaving] = useState(false);
+  const [addForm, setAddForm] = useState<StudentCreateInput>(emptyAdd);
+  const [saving, setSaving] = useState(false);
+
+  const [editTarget, setEditTarget] = useState<Student | null>(null);
+  const [editForm, setEditForm] = useState<StudentCreateInput>(emptyAdd);
+  const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [assignedTeacherIds, setAssignedTeacherIds] = useState<string[]>([]);
+
+  const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getStudents(isAdmin && scope === 'all' ? 'all' : 'mine');
+      setStudents(data);
+    } catch {
+      toast.error('학생 목록 조회 실패');
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin, scope]);
+
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    loadStudents();
-  }, []);
-
-  const loadStudents = () => {
-    setLoading(true);
-    api.getStudents().then((data) => {
-      setStudents(data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  };
+    if (isAdmin) {
+      api.getTeachers().then(setTeachers).catch(() => {});
+    }
+  }, [isAdmin]);
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
       if (activeOnly && s.status !== 'active') return false;
-      if (search && !s.name.includes(search)) return false;
+      if (gradeFilter && s.grade !== gradeFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!s.name.toLowerCase().includes(q) && !(s.school || '').toLowerCase().includes(q)) return false;
+      }
       return true;
     });
-  }, [students, search, activeOnly]);
+  }, [students, search, gradeFilter, activeOnly]);
 
   const handleAdd = async () => {
-    if (!addName.trim() || !addGrade) return;
-    setAddSaving(true);
+    if (!addForm.name?.trim() || !addForm.grade) return;
+    setSaving(true);
     try {
       await api.createStudent({
-        name: addName.trim(),
-        grade: addGrade,
-        contact: addContact.trim() || undefined,
-        guardian_contact: addGuardian.trim() || undefined,
+        ...addForm,
+        name: addForm.name.trim(),
+        school: addForm.school?.trim() || null,
+        contact: addForm.contact?.trim() || null,
+        guardian_contact: addForm.guardian_contact?.trim() || null,
       });
+      toast.success('학생 추가 완료');
       setShowAdd(false);
-      setAddName('');
-      setAddGrade('');
-      setAddContact('');
-      setAddGuardian('');
-      loadStudents();
+      setAddForm(emptyAdd);
+      load();
     } catch (err: any) {
-      alert(err.message || '학생 추가 실패');
+      toast.error(err.message || '추가 실패');
     } finally {
-      setAddSaving(false);
+      setSaving(false);
     }
   };
 
-  const closeModal = () => {
-    setShowAdd(false);
-    setAddName('');
-    setAddGrade('');
-    setAddContact('');
-    setAddGuardian('');
+  const openEdit = async (s: Student) => {
+    setEditTarget(s);
+    setEditForm({
+      name: s.name,
+      grade: s.grade || '',
+      school: s.school || '',
+      contact: s.contact || '',
+      guardian_contact: s.guardian_contact || '',
+      class_id: s.class_id || null,
+      status: (s.status as 'active' | 'inactive') || 'active',
+    });
+    if (isAdmin) {
+      try {
+        const profile = await api.getStudentProfile(s.id);
+        setAssignedTeacherIds((profile.teachers || []).map(t => t.id));
+      } catch {
+        setAssignedTeacherIds([]);
+      }
+    }
   };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    setSaving(true);
+    try {
+      await api.updateStudent(editTarget.id, {
+        name: editForm.name?.trim(),
+        grade: editForm.grade,
+        school: editForm.school?.trim() || null,
+        contact: editForm.contact?.trim() || null,
+        guardian_contact: editForm.guardian_contact?.trim() || null,
+        status: editForm.status,
+      });
+      if (isAdmin) {
+        await api.setStudentTeachers(editTarget.id, assignedTeacherIds);
+      }
+      toast.success('수정 완료');
+      setEditTarget(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message || '수정 실패');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (s: Student) => {
+    const ok = await confirmDialog(`${s.name} 학생을 비활성 처리할까요? 관련 출석/성적은 유지됩니다.`);
+    if (!ok) return;
+    try {
+      await api.updateStudent(s.id, { status: 'inactive' });
+      toast.success('비활성 처리됨');
+      load();
+    } catch (err: any) {
+      toast.error(err.message || '삭제 실패');
+    }
+  };
+
+  const handleHardDelete = async (s: Student) => {
+    const ok = await confirmDialog(`${s.name} 학생과 관련 매핑을 모두 삭제합니다. 복구할 수 없습니다.`);
+    if (!ok) return;
+    try {
+      await api.deleteStudent(s.id);
+      toast.success('삭제 완료');
+      setEditTarget(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message || '삭제 실패');
+    }
+  };
+
+  const handleInlineSave = async (id: string, field: 'school' | 'grade', value: string) => {
+    const original = students.find(s => s.id === id);
+    if (!original) return;
+    if ((original[field] || '') === value) return;
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, [field]: value || null } : s));
+    try {
+      await api.updateStudent(id, { [field]: value || null } as any);
+    } catch {
+      toast.error('저장 실패');
+      load();
+    }
+  };
+
+  const toggleAssigned = (teacherId: string) => {
+    setAssignedTeacherIds(prev =>
+      prev.includes(teacherId) ? prev.filter(id => id !== teacherId) : [...prev, teacherId]
+    );
+  };
+
+  const grades = [...new Set(students.map(s => s.grade).filter(Boolean))].sort();
 
   return (
     <div className="student-list-page">
+      {ConfirmDialog}
+
       <div className="student-list-header">
         <div className="student-list-title-row">
-          <h2>내 학생</h2>
+          <h2>학생 관리</h2>
           <span className="student-count">{filtered.length}명</span>
+          {isAdmin && (
+            <div className="scope-toggle" role="group">
+              <button
+                className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
+                onClick={() => setScope('mine')}
+              >내 학생</button>
+              <button
+                className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
+                onClick={() => setScope('all')}
+              >모두 보기</button>
+            </div>
+          )}
         </div>
         <div className="student-list-filters">
           <input
             type="text"
-            placeholder="이름 검색..."
+            placeholder="이름 / 학교 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="student-search-input"
           />
+          <select className="form-select" value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}>
+            <option value="">전체 학년</option>
+            {grades.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
           <label className="student-filter-toggle">
-            <input
-              type="checkbox"
-              checked={activeOnly}
-              onChange={(e) => setActiveOnly(e.target.checked)}
-            />
+            <input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} />
             활성만
           </label>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-            + 학생 추가
-          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ 학생 추가</button>
         </div>
       </div>
 
@@ -110,81 +222,142 @@ export default function StudentListPage() {
         <p className="student-list-empty">불러오는 중...</p>
       ) : filtered.length === 0 ? (
         <div className="student-list-empty-state">
-          <p className="student-list-empty-title">담당 학생이 없습니다</p>
-          <p className="student-list-empty-desc">학생을 추가하고 수업을 시작하세요</p>
-          <button className="btn btn-accent" onClick={() => setShowAdd(true)}>
-            첫 학생 추가하기
-          </button>
+          <p className="student-list-empty-title">학생이 없습니다</p>
+          <button className="btn btn-accent" onClick={() => setShowAdd(true)}>첫 학생 추가</button>
         </div>
       ) : (
-        <div className="student-list-grid">
-          {filtered.map((s) => (
-            <button
-              key={s.id}
-              className={`student-card ${s.status !== 'active' ? 'student-card--inactive' : ''}`}
-              onClick={() => navigate(`/student/${s.id}`)}
-            >
-              <div className="student-card-name">{s.name}</div>
-              <div className="student-card-meta">
-                {s.grade && <span className="student-card-grade">{s.grade}</span>}
-                {s.subjects.length > 0 && (
-                  <span className="student-card-subjects">
-                    {s.subjects.join(', ')}
+        <table className="student-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th style={{ width: 70 }}>학년</th>
+              <th style={{ width: 160 }}>학교</th>
+              <th>학생 연락처</th>
+              <th>보호자</th>
+              <th style={{ width: 70 }}>상태</th>
+              <th style={{ width: 140 }}>액션</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(s => (
+              <tr key={s.id} className={s.status !== 'active' ? 'student-row--inactive' : ''}>
+                <td className="student-cell-name">{s.name}</td>
+                <td>
+                  <select
+                    className="student-inline-select"
+                    defaultValue={s.grade || ''}
+                    onChange={(e) => handleInlineSave(s.id, 'grade', e.target.value)}
+                  >
+                    <option value="">-</option>
+                    {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    className="student-inline-input"
+                    defaultValue={s.school || ''}
+                    placeholder="학교명"
+                    onBlur={(e) => handleInlineSave(s.id, 'school', e.target.value.trim())}
+                  />
+                </td>
+                <td className="student-cell-contact">{s.contact || '-'}</td>
+                <td className="student-cell-contact">{s.guardian_contact || '-'}</td>
+                <td>
+                  <span className={`student-status student-status--${s.status}`}>
+                    {s.status === 'active' ? '활성' : '비활성'}
                   </span>
-                )}
-              </div>
-              {s.status !== 'active' && (
-                <span className="student-card-status">{s.status === 'inactive' ? '비활성' : s.status}</span>
-              )}
-            </button>
-          ))}
+                </td>
+                <td>
+                  <button className="btn btn-sm btn-ghost" onClick={() => openEdit(s)}>수정</button>
+                  {s.status === 'active' && (
+                    <button className="btn btn-sm btn-danger-ghost" onClick={() => handleDelete(s)}>비활성</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* 추가 모달 */}
+      {showAdd && (
+        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">학생 추가</h3>
+            <div className="modal-body">
+              <label className="form-label">이름 *</label>
+              <input className="form-input" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} autoFocus />
+              <label className="form-label">학년 *</label>
+              <select className="form-select" value={addForm.grade} onChange={e => setAddForm({ ...addForm, grade: e.target.value })}>
+                <option value="">학년 선택</option>
+                {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <label className="form-label">학교</label>
+              <input className="form-input" value={addForm.school || ''} onChange={e => setAddForm({ ...addForm, school: e.target.value })} />
+              <label className="form-label">학생 연락처</label>
+              <input className="form-input" value={addForm.contact || ''} onChange={e => setAddForm({ ...addForm, contact: e.target.value })} />
+              <label className="form-label">보호자 연락처</label>
+              <input className="form-input" value={addForm.guardian_contact || ''} onChange={e => setAddForm({ ...addForm, guardian_contact: e.target.value })} />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>취소</button>
+              <button className="btn btn-primary" onClick={handleAdd} disabled={saving || !addForm.name?.trim() || !addForm.grade}>
+                {saving ? '추가 중...' : '추가'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* 학생 추가 모달 */}
-      {showAdd && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-            <h3 className="modal-title">학생 추가</h3>
+      {/* 수정 모달 */}
+      {editTarget && (
+        <div className="modal-overlay" onClick={() => setEditTarget(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">{editTarget.name} 수정</h3>
             <div className="modal-body">
-              <input
-                className="form-input"
-                placeholder="학생 이름"
-                value={addName}
-                onChange={(e) => setAddName(e.target.value)}
-                autoFocus
-              />
-              <select
-                className="form-select"
-                value={addGrade}
-                onChange={(e) => setAddGrade(e.target.value)}
-              >
+              <label className="form-label">이름</label>
+              <input className="form-input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+              <label className="form-label">학년</label>
+              <select className="form-select" value={editForm.grade} onChange={e => setEditForm({ ...editForm, grade: e.target.value })}>
                 <option value="">학년 선택</option>
-                {GRADE_OPTIONS.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
+                {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <input
-                className="form-input"
-                placeholder="학생 연락처 (선택)"
-                value={addContact}
-                onChange={(e) => setAddContact(e.target.value)}
-              />
-              <input
-                className="form-input"
-                placeholder="학부모 연락처 (선택)"
-                value={addGuardian}
-                onChange={(e) => setAddGuardian(e.target.value)}
-              />
+              <label className="form-label">학교</label>
+              <input className="form-input" value={editForm.school || ''} onChange={e => setEditForm({ ...editForm, school: e.target.value })} />
+              <label className="form-label">학생 연락처</label>
+              <input className="form-input" value={editForm.contact || ''} onChange={e => setEditForm({ ...editForm, contact: e.target.value })} />
+              <label className="form-label">보호자 연락처</label>
+              <input className="form-input" value={editForm.guardian_contact || ''} onChange={e => setEditForm({ ...editForm, guardian_contact: e.target.value })} />
+              <label className="form-label">상태</label>
+              <select className="form-select" value={editForm.status || 'active'} onChange={e => setEditForm({ ...editForm, status: e.target.value as 'active' | 'inactive' })}>
+                <option value="active">활성</option>
+                <option value="inactive">비활성</option>
+              </select>
+              {isAdmin && teachers.length > 0 && (
+                <>
+                  <label className="form-label">담당 선생님</label>
+                  <div className="teacher-checkboxes">
+                    {teachers.map(t => (
+                      <label key={t.id} className="teacher-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={assignedTeacherIds.includes(t.id)}
+                          onChange={() => toggleAssigned(t.id)}
+                        />
+                        {t.name} <span className="teacher-role">({t.role === 'admin' ? '관리자' : '강사'})</span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={closeModal}>취소</button>
-              <button
-                className="btn btn-primary"
-                onClick={handleAdd}
-                disabled={addSaving || !addName.trim() || !addGrade}
-              >
-                {addSaving ? '추가 중...' : '추가'}
+              <button className="btn btn-danger-ghost" onClick={() => handleHardDelete(editTarget)}>완전 삭제</button>
+              <div style={{ flex: 1 }} />
+              <button className="btn btn-ghost" onClick={() => setEditTarget(null)}>취소</button>
+              <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
+                {saving ? '저장 중...' : '저장'}
               </button>
             </div>
           </div>

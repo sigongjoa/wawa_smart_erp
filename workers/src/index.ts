@@ -33,6 +33,7 @@ import { handleGachaCard } from '@/routes/gacha-card-handler';
 import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
+import { handleExamPaper } from '@/routes/exam-paper-handler';
 import { tenantMiddleware } from '@/middleware/tenant';
 
 /**
@@ -212,6 +213,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 정기고사 관리 (JWT 인증)
       if (pathname.startsWith('/api/exam-mgmt')) {
         return addCorsHeaders(await handleExamMgmt(method, pathname, request, context), env, origin);
+      }
+
+      // 시험지 관리 (중간/기말/수행평가 유인물)
+      if (pathname.startsWith('/api/exam-papers')) {
+        return addCorsHeaders(await handleExamPaper(method, pathname, request, context), env, origin);
       }
     }
 

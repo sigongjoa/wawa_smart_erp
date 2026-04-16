@@ -192,6 +192,23 @@ async function handleRealtimeToday(
     [userId, date]
   );
 
+  // 3-1) 해당 날짜의 예정된 보강 (담당 학생)
+  const makeupRows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT m.id, m.absence_id, m.notes, m.status as makeup_status,
+            m.scheduled_start_time, m.scheduled_end_time,
+            a.absence_date as original_date, a.class_id, a.student_id,
+            c.name as class_name
+       FROM makeups m
+       JOIN absences a ON m.absence_id = a.id
+       JOIN classes c ON a.class_id = c.id
+      WHERE m.scheduled_date = ?
+        AND m.status IN ('scheduled','completed')
+        AND a.student_id IN (${placeholders})
+        AND (c.instructor_id = ? OR c.instructor_id IS NULL)`,
+    [date, ...studentIds, userId]
+  );
+
   // 4) 조합
   const enrollmentsByStudent = new Map<string, any[]>();
   for (const e of enrollments) {
@@ -211,6 +228,22 @@ async function handleRealtimeToday(
     sessionsByStudent.get(s.student_id)!.push(s);
   }
 
+  const makeupsByStudent = new Map<string, any[]>();
+  for (const m of makeupRows) {
+    if (!makeupsByStudent.has(m.student_id)) makeupsByStudent.set(m.student_id, []);
+    makeupsByStudent.get(m.student_id)!.push({
+      id: m.id,
+      absenceId: m.absence_id,
+      originalDate: m.original_date,
+      classId: m.class_id,
+      className: m.class_name,
+      notes: m.notes || '',
+      status: m.makeup_status,
+      scheduledStartTime: m.scheduled_start_time || null,
+      scheduledEndTime: m.scheduled_end_time || null,
+    });
+  }
+
   const result: any[] = [];
   for (const s of students) {
     let subjects: string[] = [];
@@ -221,6 +254,7 @@ async function handleRealtimeToday(
     }
 
     const studentEnrollments = enrollmentsByStudent.get(s.id) || [];
+    const studentMakeups = makeupsByStudent.get(s.id) || [];
     const studentSessions = (sessionsByStudent.get(s.id) || []).map((row) => ({
       id: row.id,
       status: row.status,
@@ -232,6 +266,7 @@ async function handleRealtimeToday(
       scheduledEndTime: row.scheduled_end_time,
       pauseHistory: safeJsonParse<PauseRecord[]>(row.pause_history, []),
       subject: row.subject,
+      makeupId: (row as any).makeup_id || null,
     }));
 
     const activeSession = studentSessions.find(
@@ -239,9 +274,9 @@ async function handleRealtimeToday(
     ) || null;
     const completedSession = studentSessions.find((s) => s.status === 'completed') || null;
 
-    // 해당 요일에 수업이 없고 진행/완료 세션도 없으면 목록에서 제외
+    // 해당 요일에 수업이 없고 진행/완료 세션도 없고 보강도 없으면 목록에서 제외
     // 단, enrollment이 하나도 없는 학원(시간표 미설정)은 담당 학생 전원 표시
-    if (dayParam && hasAnyEnrollments && studentEnrollments.length === 0 && !activeSession && !completedSession) {
+    if (dayParam && hasAnyEnrollments && studentEnrollments.length === 0 && studentMakeups.length === 0 && !activeSession && !completedSession) {
       continue;
     }
 
@@ -251,6 +286,7 @@ async function handleRealtimeToday(
       grade: s.grade,
       subjects,
       enrollments: studentEnrollments,
+      makeups: studentMakeups,
       activeSession,
       completedSession,
     });
@@ -382,6 +418,7 @@ async function handleCheckIn(
   const body = (await request.json()) as {
     studentId?: string;
     enrollmentId?: string;
+    makeupId?: string;
     scheduledStartTime?: string;
     scheduledEndTime?: string;
     subject?: string;
@@ -430,6 +467,19 @@ async function handleCheckIn(
     }
   }
 
+  // 보강 체크인이면 makeups 의 scheduled_start/end_time 사용
+  if (body.makeupId) {
+    const m = await executeFirst<any>(
+      context.env.DB,
+      'SELECT scheduled_start_time, scheduled_end_time FROM makeups WHERE id = ?',
+      [body.makeupId]
+    );
+    if (m && m.scheduled_start_time && m.scheduled_end_time) {
+      startTime = m.scheduled_start_time;
+      endTime = m.scheduled_end_time;
+    }
+  }
+
   const scheduledMinutes = calcScheduledMinutes(startTime, endTime);
 
   const id = crypto.randomUUID();
@@ -441,9 +491,9 @@ async function handleCheckIn(
        id, student_id, teacher_id, academy_id, date,
        check_in_time, status, scheduled_minutes, added_minutes,
        scheduled_start_time, scheduled_end_time, pause_history, subject,
-       created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, 0, ?, ?, '[]', ?, datetime('now'), datetime('now'))`,
-    [id, body.studentId, userId, academyId, today, now, scheduledMinutes, startTime, endTime, subject]
+       makeup_id, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, 0, ?, ?, '[]', ?, ?, datetime('now'), datetime('now'))`,
+    [id, body.studentId, userId, academyId, today, now, scheduledMinutes, startTime, endTime, subject, body.makeupId || null]
   );
 
   logger.logRequest('POST', '/api/timer/sessions/check-in', userId);
@@ -460,6 +510,7 @@ async function handleCheckIn(
       scheduledEndTime: endTime,
       pauseHistory: [],
       subject,
+      makeupId: body.makeupId || null,
     },
     201
   );
@@ -619,6 +670,29 @@ async function handleCheckOut(
     ]
   );
 
+  // 보강 세션이면 makeups/absences 자동 완료 처리
+  const makeupId = (session as any).makeup_id as string | null;
+  if (makeupId) {
+    const today = session.date;
+    await executeUpdate(
+      context.env.DB,
+      `UPDATE makeups SET status = 'completed', completed_date = ?, updated_at = datetime('now') WHERE id = ?`,
+      [today, makeupId]
+    );
+    const mk = await executeFirst<{ absence_id: string }>(
+      context.env.DB,
+      'SELECT absence_id FROM makeups WHERE id = ?',
+      [makeupId]
+    );
+    if (mk) {
+      await executeUpdate(
+        context.env.DB,
+        `UPDATE absences SET status = 'makeup_done' WHERE id = ?`,
+        [mk.absence_id]
+      );
+    }
+  }
+
   logger.logRequest('POST', '/api/timer/sessions/check-out', context.auth!.userId);
 
   return successResponse({
@@ -630,5 +704,6 @@ async function handleCheckOut(
     totalPausedMinutes: pausedMins,
     pauseCount: history.length,
     wasOvertime,
+    makeupCompleted: !!makeupId,
   });
 }
