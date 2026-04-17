@@ -7,7 +7,7 @@
  * 서버가 세션의 원본 — 1초마다 now 만 React state 로 갱신, 카운트다운은 client-side 계산
  */
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { api, PauseRecord, RealtimeSession } from '../api';
+import { api, PauseRecord, RealtimeSession, AdhocSession, Student } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 
@@ -22,6 +22,7 @@ interface StudentRow {
   subjects: string[];
   enrollments: Array<{ id: string; day: string; startTime: string; endTime: string; subject?: string | null }>;
   makeups?: Array<{ id: string; absenceId: string; originalDate: string; classId: string; className: string; notes: string; status: string; scheduledStartTime: string | null; scheduledEndTime: string | null }>;
+  adhocs?: Array<{ id: string; date: string; startTime: string; endTime: string; subject?: string | null; reason?: string | null }>;
   activeSession: RealtimeSession | null;
   completedSession: RealtimeSession | null;
 }
@@ -95,6 +96,20 @@ const ActiveSessionCard = memo(function ActiveSessionCard({
   const isOvertime = remaining <= 0;
   const progress = session.scheduledMinutes > 0 ? Math.min(netMins / session.scheduledMinutes, 1) : 0;
 
+  // 시작/종료 시간 표시
+  const checkInHHMM = checkIn.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const expectedEnd = new Date(checkIn.getTime() + (session.scheduledMinutes + pausedMins) * 60000);
+  const expectedEndHHMM = expectedEnd.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  // 스케줄 대비 지연 표시 (scheduledEndTime이 있을 때)
+  let delayLabel = '';
+  if (session.scheduledEndTime) {
+    const [seh, sem] = session.scheduledEndTime.split(':').map(Number);
+    const schedEndMin = seh * 60 + sem;
+    const expectEndMin = expectedEnd.getHours() * 60 + expectedEnd.getMinutes();
+    const diff = expectEndMin - schedEndMin;
+    if (diff > 0) delayLabel = `(+${diff}분)`;
+  }
+
   return (
     <div className={`rt-session-card rt-grade-${gradeClass(student.grade)} ${isOvertime ? 'rt-session-card--overtime' : ''}`}>
       <div className="rt-session-top">
@@ -103,6 +118,13 @@ const ActiveSessionCard = memo(function ActiveSessionCard({
           {student.grade && <span className={`grade-badge ${gradeClass(student.grade)}`}>{student.grade}</span>}
         </div>
         {isOvertime && <span className="rt-status-tag overtime">초과</span>}
+      </div>
+
+      <div className="rt-session-times">
+        <span>시작 <strong>{checkInHHMM}</strong></span>
+        <span className="rt-meta-divider">→</span>
+        <span>예정종료 <strong>{expectedEndHHMM}</strong></span>
+        {delayLabel && <span className="rt-delay-label">{delayLabel}</span>}
       </div>
 
       <div className={`rt-timer-display ${isWarning ? 'warning' : ''} ${isOvertime ? 'overtime' : ''}`}>
@@ -166,6 +188,13 @@ const PausedSessionCard = memo(function PausedSessionCard({
   const s = secs % 60;
   const reason = last?.reason;
 
+  // 시작/종료 시간
+  const checkIn = new Date(session.checkInTime);
+  const checkInHHMM = checkIn.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const totalPausedMins = calcPausedMinutes(session.pauseHistory, now);
+  const expectedEnd = new Date(checkIn.getTime() + (session.scheduledMinutes + totalPausedMins) * 60000);
+  const expectedEndHHMM = expectedEnd.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
   return (
     <div className={`rt-session-card rt-session-card--paused rt-grade-${gradeClass(student.grade)}`}>
       <div className="rt-session-top">
@@ -174,6 +203,12 @@ const PausedSessionCard = memo(function PausedSessionCard({
           {student.grade && <span className={`grade-badge ${gradeClass(student.grade)}`}>{student.grade}</span>}
         </div>
         <span className="rt-status-tag paused">정지</span>
+      </div>
+
+      <div className="rt-session-times">
+        <span>시작 <strong>{checkInHHMM}</strong></span>
+        <span className="rt-meta-divider">→</span>
+        <span>예정종료 <strong>{expectedEndHHMM}</strong></span>
       </div>
 
       <div className="rt-pause-info">
@@ -280,6 +315,73 @@ export default function TimerPage() {
       await load();
     } catch (err) {
       toast.error('보강 체크인 실패: ' + (err as Error).message);
+    }
+  };
+
+  const handleAdhocCheckIn = async (student: StudentRow, adhocId: string, subject?: string | null) => {
+    if (!isToday) return;
+    try {
+      await api.sessionCheckIn({
+        studentId: student.id,
+        adhocId,
+        subject: subject || undefined,
+      });
+      toast.success('임시 수업 체크인 완료');
+      await load();
+    } catch (err) {
+      toast.error('임시 수업 체크인 실패: ' + (err as Error).message);
+    }
+  };
+
+  // ─── 임시 수업 추가 모달 ───────────────────
+  const [adhocOpen, setAdhocOpen] = useState(false);
+  const [adhocStudentList, setAdhocStudentList] = useState<Student[]>([]);
+  const [adhocForm, setAdhocForm] = useState({
+    studentId: '',
+    date: todayStr(),
+    startTime: '16:00',
+    endTime: '18:00',
+    subject: '',
+    reason: '시간표변경',
+  });
+  const [adhocSaving, setAdhocSaving] = useState(false);
+  const [adhocSearch, setAdhocSearch] = useState('');
+
+  const openAdhocModal = async () => {
+    try {
+      const list = await api.getStudents('mine');
+      setAdhocStudentList(list || []);
+    } catch { /* ignore */ }
+    setAdhocForm(f => ({ ...f, date: todayStr() }));
+    setAdhocOpen(true);
+  };
+
+  const filteredAdhocStudents = adhocStudentList.filter(s =>
+    !adhocSearch || s.name.includes(adhocSearch) || (s.grade || '').includes(adhocSearch)
+  );
+
+  const handleAdhocSubmit = async () => {
+    if (!adhocForm.studentId) { toast.error('학생을 선택해주세요'); return; }
+    if (!adhocForm.startTime || !adhocForm.endTime) { toast.error('시간을 입력해주세요'); return; }
+    setAdhocSaving(true);
+    try {
+      await api.createAdhocSession({
+        studentId: adhocForm.studentId,
+        date: adhocForm.date,
+        startTime: adhocForm.startTime,
+        endTime: adhocForm.endTime,
+        subject: adhocForm.subject || undefined,
+        reason: adhocForm.reason || undefined,
+      });
+      toast.success('임시 수업이 추가되었습니다');
+      setAdhocOpen(false);
+      setAdhocForm({ studentId: '', date: todayStr(), startTime: '16:00', endTime: '18:00', subject: '', reason: '시간표변경' });
+      setAdhocSearch('');
+      await load();
+    } catch (err) {
+      toast.error('임시 수업 추가 실패: ' + (err as Error).message);
+    } finally {
+      setAdhocSaving(false);
     }
   };
 
@@ -407,16 +509,27 @@ export default function TimerPage() {
           {paused.length > 0 && <span className="rt-pill paused">정지 <strong>{paused.length}</strong></span>}
           <span className="rt-pill completed">완료 <strong>{completed}</strong></span>
         </div>
-        {isToday && (
-          <button
-            className="rt-finish-day-btn"
-            onClick={handleFinishDay}
-            type="button"
-            data-testid="finish-day-btn"
-          >
-            퇴근
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isToday && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={openAdhocModal}
+              type="button"
+            >
+              + 임시 수업
+            </button>
+          )}
+          {isToday && (
+            <button
+              className="rt-finish-day-btn"
+              onClick={handleFinishDay}
+              type="button"
+              data-testid="finish-day-btn"
+            >
+              퇴근
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -486,10 +599,12 @@ export default function TimerPage() {
                   const e = s.enrollments[0];
                   const pendingMakeups = (s.makeups || []).filter(m => m.status === 'scheduled');
                   const hasMakeup = pendingMakeups.length > 0;
+                  const pendingAdhocs = (s.adhocs || []);
+                  const hasAdhoc = pendingAdhocs.length > 0;
                   return (
                     <div
                       key={s.id}
-                      className={`rt-waiting-card rt-grade-${gradeClass(s.grade)} ${!isToday ? 'rt-waiting-card--disabled' : ''} ${hasMakeup ? 'rt-waiting-card--makeup' : ''}`}
+                      className={`rt-waiting-card rt-grade-${gradeClass(s.grade)} ${!isToday ? 'rt-waiting-card--disabled' : ''} ${hasMakeup ? 'rt-waiting-card--makeup' : ''} ${hasAdhoc ? 'rt-waiting-card--adhoc' : ''}`}
                       data-testid={`waiting-card-${s.id}`}
                     >
                       <button
@@ -502,11 +617,18 @@ export default function TimerPage() {
                           <span className="rt-student-name">{s.name}</span>
                           {s.grade && <span className={`grade-badge ${gradeClass(s.grade)}`}>{s.grade}</span>}
                           {hasMakeup && <span className="rt-makeup-badge">보강 {pendingMakeups.length}</span>}
+                          {hasAdhoc && <span className="rt-adhoc-badge">임시</span>}
                         </div>
                         {e ? (
                           <div className="rt-waiting-card-time">
                             {e.startTime} — {e.endTime}
                             {e.subject && <span className="rt-waiting-card-subject">({e.subject})</span>}
+                          </div>
+                        ) : hasAdhoc ? (
+                          <div className="rt-waiting-card-time">
+                            {pendingAdhocs[0].startTime} — {pendingAdhocs[0].endTime}
+                            {pendingAdhocs[0].subject && <span className="rt-waiting-card-subject">({pendingAdhocs[0].subject})</span>}
+                            <span className="rt-waiting-card-reason">{pendingAdhocs[0].reason}</span>
                           </div>
                         ) : (
                           <div className="rt-waiting-card-time rt-waiting-card-time--empty">
@@ -514,6 +636,19 @@ export default function TimerPage() {
                           </div>
                         )}
                       </button>
+                      {hasAdhoc && pendingAdhocs.map(ad => (
+                        <button
+                          key={ad.id}
+                          className="rt-adhoc-checkin-btn"
+                          onClick={isToday ? () => handleAdhocCheckIn(s, ad.id, ad.subject) : undefined}
+                          disabled={!isToday}
+                          type="button"
+                        >
+                          <span aria-hidden="true">{isToday ? '▶ ' : '📅 '}</span>
+                          {isToday ? '임시 수업 체크인' : '임시 수업 예정'} · {ad.startTime}~{ad.endTime}
+                          {ad.reason && ` (${ad.reason})`}
+                        </button>
+                      ))}
                       {hasMakeup && pendingMakeups.map(mk => {
                         const timeRange = mk.scheduledStartTime && mk.scheduledEndTime
                           ? `${mk.scheduledStartTime}~${mk.scheduledEndTime}`
@@ -654,6 +789,140 @@ export default function TimerPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 임시 수업 추가 모달 */}
+      {adhocOpen && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="임시 수업 추가"
+          onClick={() => !adhocSaving && setAdhocOpen(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape' && !adhocSaving) setAdhocOpen(false); }}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 600 }}>임시 수업 추가</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* 학생 선택 */}
+              <label style={{ fontSize: 13, fontWeight: 500 }}>
+                학생
+                <input
+                  type="text"
+                  className="exam-input"
+                  placeholder="이름 검색..."
+                  value={adhocSearch}
+                  onChange={(e) => setAdhocSearch(e.target.value)}
+                  style={{ width: '100%', marginTop: 4 }}
+                />
+              </label>
+              <div style={{ maxHeight: 150, overflow: 'auto', border: '1px solid var(--border, #ddd)', borderRadius: 6, fontSize: 13 }}>
+                {filteredAdhocStudents.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => { setAdhocForm(f => ({ ...f, studentId: s.id })); setAdhocSearch(s.name); }}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left',
+                      padding: '6px 10px', border: 'none', cursor: 'pointer',
+                      background: adhocForm.studentId === s.id ? 'var(--primary-surface, #e8e5ff)' : 'transparent',
+                    }}
+                  >
+                    {s.name} <span style={{ color: '#888', fontSize: 12 }}>{s.grade}</span>
+                  </button>
+                ))}
+                {filteredAdhocStudents.length === 0 && (
+                  <div style={{ padding: '8px 10px', color: '#999' }}>결과 없음</div>
+                )}
+              </div>
+
+              {/* 날짜 */}
+              <label style={{ fontSize: 13, fontWeight: 500 }}>
+                날짜
+                <input
+                  type="date"
+                  className="exam-input"
+                  value={adhocForm.date}
+                  onChange={(e) => setAdhocForm(f => ({ ...f, date: e.target.value }))}
+                  style={{ width: '100%', marginTop: 4 }}
+                />
+              </label>
+
+              {/* 시간 */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <label style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
+                  시작
+                  <input
+                    type="time"
+                    className="exam-input"
+                    value={adhocForm.startTime}
+                    onChange={(e) => setAdhocForm(f => ({ ...f, startTime: e.target.value }))}
+                    style={{ width: '100%', marginTop: 4 }}
+                  />
+                </label>
+                <label style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
+                  종료
+                  <input
+                    type="time"
+                    className="exam-input"
+                    value={adhocForm.endTime}
+                    onChange={(e) => setAdhocForm(f => ({ ...f, endTime: e.target.value }))}
+                    style={{ width: '100%', marginTop: 4 }}
+                  />
+                </label>
+              </div>
+
+              {/* 과목 */}
+              <label style={{ fontSize: 13, fontWeight: 500 }}>
+                과목
+                <input
+                  type="text"
+                  className="exam-input"
+                  placeholder="수학"
+                  value={adhocForm.subject}
+                  onChange={(e) => setAdhocForm(f => ({ ...f, subject: e.target.value }))}
+                  style={{ width: '100%', marginTop: 4 }}
+                />
+              </label>
+
+              {/* 사유 */}
+              <label style={{ fontSize: 13, fontWeight: 500 }}>
+                사유
+                <select
+                  className="exam-filter-select"
+                  value={adhocForm.reason}
+                  onChange={(e) => setAdhocForm(f => ({ ...f, reason: e.target.value }))}
+                  style={{ width: '100%', marginTop: 4 }}
+                >
+                  <option value="시간표변경">시간표변경</option>
+                  <option value="보충수업">보충수업</option>
+                  <option value="시험대비">시험대비</option>
+                  <option value="대타">대타</option>
+                  <option value="기타">기타</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="modal-footer" style={{ marginTop: 16 }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setAdhocOpen(false)}
+                disabled={adhocSaving}
+                type="button"
+              >
+                취소
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAdhocSubmit}
+                disabled={adhocSaving}
+                type="button"
+              >
+                {adhocSaving ? '추가 중...' : '추가'}
+              </button>
+            </div>
           </div>
         </div>
       )}

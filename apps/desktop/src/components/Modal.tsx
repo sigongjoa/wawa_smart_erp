@@ -1,14 +1,19 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, type ReactNode } from 'react';
+
+type ModalContextValue = { titleId: string; onClose: () => void };
+const ModalContext = createContext<ModalContextValue | null>(null);
 
 interface ModalProps {
   children: ReactNode;
   onClose: () => void;
   className?: string;
+  labelledBy?: string;
 }
 
-export default function Modal({ children, onClose, className }: ModalProps) {
+function ModalRoot({ children, onClose, className, labelledBy }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -16,7 +21,6 @@ export default function Modal({ children, onClose, className }: ModalProps) {
         onClose();
         return;
       }
-      // 포커스 트랩
       if (e.key === 'Tab' && contentRef.current) {
         const focusable = contentRef.current.querySelectorAll<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -35,7 +39,6 @@ export default function Modal({ children, onClose, className }: ModalProps) {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    // 열릴 때 첫 포커스 가능 요소에 포커스
     const timer = setTimeout(() => {
       const first = contentRef.current?.querySelector<HTMLElement>(
         'button, input, select, textarea'
@@ -50,20 +53,66 @@ export default function Modal({ children, onClose, className }: ModalProps) {
   }, [onClose]);
 
   return (
-    <div
-      ref={overlayRef}
-      className="modal-overlay"
-      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-    >
+    <ModalContext.Provider value={{ titleId, onClose }}>
       <div
-        ref={contentRef}
-        className={`modal-content ${className || ''}`}
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
+        ref={overlayRef}
+        className="modal-overlay"
+        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       >
-        {children}
+        <div
+          ref={contentRef}
+          className={`modal-content ${className || ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={labelledBy || titleId}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
       </div>
+    </ModalContext.Provider>
+  );
+}
+
+interface ModalHeaderProps {
+  children: ReactNode;
+  showClose?: boolean;
+  closeDisabled?: boolean;
+}
+
+function ModalHeader({ children, showClose = true, closeDisabled = false }: ModalHeaderProps) {
+  const ctx = useContext(ModalContext);
+  if (!ctx) throw new Error('Modal.Header must be used inside Modal');
+  return (
+    <div className="modal-header">
+      <h3 id={ctx.titleId} className="modal-title">{children}</h3>
+      {showClose && (
+        <button
+          type="button"
+          className="modal-close"
+          onClick={ctx.onClose}
+          disabled={closeDisabled}
+          aria-label="닫기"
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }
+
+function ModalBody({ children }: { children: ReactNode }) {
+  return <div className="modal-body">{children}</div>;
+}
+
+function ModalFooter({ children }: { children: ReactNode }) {
+  return <div className="modal-footer">{children}</div>;
+}
+
+const Modal = Object.assign(ModalRoot, {
+  Header: ModalHeader,
+  Body: ModalBody,
+  Footer: ModalFooter,
+});
+
+export default Modal;

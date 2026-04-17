@@ -83,6 +83,23 @@ export async function handleExamPaper(
   request: Request,
   context: RequestContext
 ): Promise<Response> {
+  // 파일 서빙은 인증 없이 허용 (이미지 URL 직접 접근)
+  // academy 스코프는 R2 key prefix로 보장
+  if (method === 'GET' && pathname.startsWith('/api/exam-papers/file/')) {
+    const key = decodeURIComponent(pathname.replace('/api/exam-papers/file/', ''));
+    if (!key || key.includes('..') || key.startsWith('/')) return errorResponse('유효하지 않은 경로', 400);
+
+    const obj = await context.env.BUCKET.get(key);
+    if (!obj) return notFoundResponse();
+
+    return new Response(obj.body, {
+      headers: {
+        'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  }
+
   if (!requireAuth(context)) return unauthorizedResponse();
 
   const db = context.env.DB;
@@ -162,23 +179,6 @@ export async function handleExamPaper(
       fileSize: file.size,
       contentType: file.type,
     }, 201);
-  }
-
-  // GET /api/exam-papers/file/:key  (파일 다운로드, academy 스코프 체크)
-  if (method === 'GET' && pathname.startsWith('/api/exam-papers/file/')) {
-    const key = decodeURIComponent(pathname.replace('/api/exam-papers/file/', ''));
-    if (!key || key.includes('..') || key.startsWith('/')) return errorResponse('유효하지 않은 경로', 400);
-    if (!key.startsWith(`exam-papers/${academyId}/`)) return unauthorizedResponse();
-
-    const obj = await context.env.BUCKET.get(key);
-    if (!obj) return notFoundResponse();
-
-    return new Response(obj.body, {
-      headers: {
-        'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
-        'Cache-Control': 'private, max-age=300',
-      },
-    });
   }
 
   // POST /api/exam-papers — 메타 저장 + 자동 배포

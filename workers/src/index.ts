@@ -114,7 +114,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 인증 체크 (logout, 다른 protected routes)
       // 이미지 조회는 공개 (인증 필요 없음)
       // 선생님 이름 목록은 공개 (로그인 페이지에서 필요) — 이름만 반환
-      const isPublicImage = pathname.match(/^\/api\/report\/image\//) || pathname.match(/^\/api\/gacha\/image\//) || pathname.match(/^\/api\/proof\/image\//) || pathname === '/api/report/list';
+      const isPublicImage = pathname.match(/^\/api\/report\/image\//) || pathname.match(/^\/api\/gacha\/image\//) || pathname.match(/^\/api\/proof\/image\//) || pathname.startsWith('/api/exam-papers/file/') || pathname === '/api/report/list';
       const isPublicTeacherNames = pathname === '/api/teachers/names' && method === 'GET';
       if (!pathname.includes('/auth/login') && !pathname.includes('/auth/refresh') && !isPublicImage && !isPublicTeacherNames) {
         const authResult = await authMiddleware(context);

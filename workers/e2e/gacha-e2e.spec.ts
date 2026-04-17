@@ -23,8 +23,12 @@
 
 import { test, expect } from '@playwright/test';
 
-// ── 테스트 자격증명 ──
-const TEACHER = { name: '남현욱', pin: '1312' };
+// ── 테스트 자격증명 (환경변수 또는 기본값) ──
+const TEACHER = {
+  name: process.env.E2E_TEACHER_NAME || 'E2E관리자',
+  pin: process.env.E2E_TEACHER_PIN || '9999',
+  slug: process.env.E2E_SLUG || 'e2e-test',
+};
 const UNIQUE = Date.now().toString(36);
 
 // ── 공유 상태 ──
@@ -54,19 +58,18 @@ test.describe.serial('Concept Gacha E2E', () => {
   test('사전: 관리자 로그인 + 학원 slug 확인', async ({ request }) => {
     // slug 필수 — multi-tenant 로그인
     const res = await request.post('/api/auth/login', {
-      data: { slug: 'wawa', name: TEACHER.name, pin: TEACHER.pin },
+      data: { slug: TEACHER.slug, name: TEACHER.name, pin: TEACHER.pin },
     });
     if (!res.ok()) {
       const errBody = await res.text();
-      test.fail(true, `관리자 로그인 실패 (${res.status()}): ${errBody}. 019_concept_gacha 마이그레이션이 적용되었는지 확인하세요.`);
-      return;
+      throw new Error(`관리자 로그인 실패 (${res.status()}): ${errBody}. 019_concept_gacha 마이그레이션이 적용되었는지 확인하세요.`);
     }
     const body = await res.json();
     adminToken = body.data.accessToken;
     expect(adminToken).toBeTruthy();
 
     // 로그인 응답에서 slug 추출
-    academySlug = body.data.user?.academySlug || 'wawa';
+    academySlug = body.data.user?.academySlug || TEACHER.slug;
     expect(academySlug).toBeTruthy();
     console.log(`✅ 관리자 토큰 획득, slug: ${academySlug}`);
   });

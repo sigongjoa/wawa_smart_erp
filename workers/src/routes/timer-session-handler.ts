@@ -103,6 +103,23 @@ export async function handleTimerSession(
     return handleDeleteEnrollment(id, context);
   }
 
+  // ═══ 임시 수업 (adhoc) ═══
+  // GET /api/timer/adhoc?date=YYYY-MM-DD
+  if (method === 'GET' && pathname === '/api/timer/adhoc') {
+    return handleListAdhoc(request, context);
+  }
+
+  // POST /api/timer/adhoc
+  if (method === 'POST' && pathname === '/api/timer/adhoc') {
+    return handleCreateAdhoc(request, context);
+  }
+
+  // DELETE /api/timer/adhoc/:id
+  if (method === 'DELETE' && pathname.startsWith('/api/timer/adhoc/')) {
+    const id = pathname.split('/').pop()!;
+    return handleDeleteAdhoc(id, context);
+  }
+
   // POST /api/timer/sessions/check-in
   if (method === 'POST' && pathname === '/api/timer/sessions/check-in') {
     return handleCheckIn(request, context);
@@ -192,7 +209,16 @@ async function handleRealtimeToday(
     [userId, date]
   );
 
-  // 3-1) 해당 날짜의 예정된 보강 (담당 학생)
+  // 3-1) 해당 날짜의 임시 수업
+  const adhocRows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT id, student_id, teacher_id, date, start_time, end_time, subject, reason, status
+       FROM adhoc_sessions
+      WHERE teacher_id = ? AND date = ? AND academy_id = ? AND status = 'scheduled'`,
+    [userId, date, academyId]
+  );
+
+  // 3-2) 해당 날짜의 예정된 보강 (담당 학생)
   const makeupRows = await executeQuery<any>(
     context.env.DB,
     `SELECT m.id, m.absence_id, m.notes, m.status as makeup_status,
@@ -228,6 +254,19 @@ async function handleRealtimeToday(
     sessionsByStudent.get(s.student_id)!.push(s);
   }
 
+  const adhocsByStudent = new Map<string, any[]>();
+  for (const a of adhocRows) {
+    if (!adhocsByStudent.has(a.student_id)) adhocsByStudent.set(a.student_id, []);
+    adhocsByStudent.get(a.student_id)!.push({
+      id: a.id,
+      date: a.date,
+      startTime: a.start_time,
+      endTime: a.end_time,
+      subject: a.subject,
+      reason: a.reason,
+    });
+  }
+
   const makeupsByStudent = new Map<string, any[]>();
   for (const m of makeupRows) {
     if (!makeupsByStudent.has(m.student_id)) makeupsByStudent.set(m.student_id, []);
@@ -255,6 +294,7 @@ async function handleRealtimeToday(
 
     const studentEnrollments = enrollmentsByStudent.get(s.id) || [];
     const studentMakeups = makeupsByStudent.get(s.id) || [];
+    const studentAdhocs = adhocsByStudent.get(s.id) || [];
     const studentSessions = (sessionsByStudent.get(s.id) || []).map((row) => ({
       id: row.id,
       status: row.status,
@@ -274,9 +314,9 @@ async function handleRealtimeToday(
     ) || null;
     const completedSession = studentSessions.find((s) => s.status === 'completed') || null;
 
-    // 해당 요일에 수업이 없고 진행/완료 세션도 없고 보강도 없으면 목록에서 제외
+    // 해당 요일에 수업이 없고 진행/완료 세션도 없고 보강/임시도 없으면 목록에서 제외
     // 단, enrollment이 하나도 없는 학원(시간표 미설정)은 담당 학생 전원 표시
-    if (dayParam && hasAnyEnrollments && studentEnrollments.length === 0 && studentMakeups.length === 0 && !activeSession && !completedSession) {
+    if (dayParam && hasAnyEnrollments && studentEnrollments.length === 0 && studentMakeups.length === 0 && studentAdhocs.length === 0 && !activeSession && !completedSession) {
       continue;
     }
 
@@ -287,6 +327,7 @@ async function handleRealtimeToday(
       subjects,
       enrollments: studentEnrollments,
       makeups: studentMakeups,
+      adhocs: studentAdhocs,
       activeSession,
       completedSession,
     });
@@ -310,7 +351,8 @@ async function handleListEnrollments(
     return errorResponse('studentId 필요', 400);
   }
 
-  if (!(await assertTeacherOwnsStudent(context.env.DB, userId, studentId))) {
+  const isAdmin = context.auth!.role === 'admin';
+  if (!isAdmin && !(await assertTeacherOwnsStudent(context.env.DB, userId, studentId))) {
     return unauthorizedResponse();
   }
 
@@ -357,7 +399,8 @@ async function handleCreateEnrollment(
   }
 
   const userId = context.auth!.userId;
-  if (!(await assertTeacherOwnsStudent(context.env.DB, userId, body.studentId))) {
+  const isAdmin = context.auth!.role === 'admin';
+  if (!isAdmin && !(await assertTeacherOwnsStudent(context.env.DB, userId, body.studentId))) {
     return unauthorizedResponse();
   }
 
@@ -398,7 +441,8 @@ async function handleDeleteEnrollment(
   );
   if (!row) return notFoundResponse();
 
-  if (!(await assertTeacherOwnsStudent(context.env.DB, context.auth!.userId, row.student_id))) {
+  const isAdmin = context.auth!.role === 'admin';
+  if (!isAdmin && !(await assertTeacherOwnsStudent(context.env.DB, context.auth!.userId, row.student_id))) {
     return unauthorizedResponse();
   }
 
@@ -419,6 +463,7 @@ async function handleCheckIn(
     studentId?: string;
     enrollmentId?: string;
     makeupId?: string;
+    adhocId?: string;
     scheduledStartTime?: string;
     scheduledEndTime?: string;
     subject?: string;
@@ -430,8 +475,9 @@ async function handleCheckIn(
 
   const userId = context.auth!.userId;
   const academyId = context.auth!.academyId;
+  const isAdmin = context.auth!.role === 'admin';
 
-  if (!(await assertTeacherOwnsStudent(context.env.DB, userId, body.studentId))) {
+  if (!isAdmin && !(await assertTeacherOwnsStudent(context.env.DB, userId, body.studentId))) {
     return unauthorizedResponse();
   }
 
@@ -477,6 +523,20 @@ async function handleCheckIn(
     if (m && m.scheduled_start_time && m.scheduled_end_time) {
       startTime = m.scheduled_start_time;
       endTime = m.scheduled_end_time;
+    }
+  }
+
+  // 임시 수업 체크인이면 adhoc_sessions 의 start/end_time 사용
+  if (body.adhocId) {
+    const a = await executeFirst<any>(
+      context.env.DB,
+      'SELECT start_time, end_time, subject FROM adhoc_sessions WHERE id = ? AND student_id = ?',
+      [body.adhocId, body.studentId]
+    );
+    if (a) {
+      startTime = a.start_time;
+      endTime = a.end_time;
+      subject = subject || a.subject;
     }
   }
 
@@ -706,4 +766,133 @@ async function handleCheckOut(
     wasOvertime,
     makeupCompleted: !!makeupId,
   });
+}
+
+// ═══════════════════════════════════════════════════════
+// 임시 수업 (adhoc_sessions) CRUD
+// ═══════════════════════════════════════════════════════
+
+async function handleListAdhoc(
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+
+  const url = new URL(request.url);
+  const date = url.searchParams.get('date');
+  if (!date) return errorResponse('date 필요 (YYYY-MM-DD)', 400);
+
+  const userId = context.auth!.userId;
+  const academyId = context.auth!.academyId;
+
+  const rows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT a.*, s.name as student_name, s.grade as student_grade
+       FROM adhoc_sessions a
+       JOIN students s ON s.id = a.student_id
+      WHERE a.teacher_id = ? AND a.date = ? AND a.academy_id = ?
+      ORDER BY a.start_time`,
+    [userId, date, academyId]
+  );
+
+  return successResponse(rows.map(r => ({
+    id: r.id,
+    studentId: r.student_id,
+    studentName: r.student_name,
+    studentGrade: r.student_grade,
+    date: r.date,
+    startTime: r.start_time,
+    endTime: r.end_time,
+    subject: r.subject,
+    reason: r.reason,
+    status: r.status,
+  })));
+}
+
+async function handleCreateAdhoc(
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+
+  const body = (await request.json()) as {
+    studentId?: string;
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    subject?: string;
+    reason?: string;
+  };
+
+  if (!body.studentId || !body.date || !body.startTime || !body.endTime) {
+    return errorResponse('studentId, date, startTime, endTime 필수', 400);
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
+    return errorResponse('date는 YYYY-MM-DD 형식이어야 합니다', 400);
+  }
+
+  const userId = context.auth!.userId;
+  const academyId = context.auth!.academyId;
+
+  // 학생 존재 확인 (같은 학원)
+  const student = await executeFirst<{ id: string }>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ? AND status = ?',
+    [body.studentId, academyId, 'active']
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
+  const id = crypto.randomUUID();
+  await executeInsert(
+    context.env.DB,
+    `INSERT INTO adhoc_sessions (id, student_id, teacher_id, academy_id, date, start_time, end_time, subject, reason, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', datetime('now'))`,
+    [id, body.studentId, userId, academyId, body.date, body.startTime, body.endTime, body.subject || null, body.reason || null]
+  );
+
+  logger.logRequest('POST', '/api/timer/adhoc', userId);
+
+  return successResponse({
+    id,
+    studentId: body.studentId,
+    date: body.date,
+    startTime: body.startTime,
+    endTime: body.endTime,
+    subject: body.subject || null,
+    reason: body.reason || null,
+    status: 'scheduled',
+  }, 201);
+}
+
+async function handleDeleteAdhoc(
+  id: string,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+
+  const row = await executeFirst<{ id: string; teacher_id: string }>(
+    context.env.DB,
+    'SELECT id, teacher_id FROM adhoc_sessions WHERE id = ? AND academy_id = ?',
+    [id, context.auth!.academyId]
+  );
+  if (!row) return notFoundResponse();
+
+  if (row.teacher_id !== context.auth!.userId && context.auth!.role !== 'admin') {
+    return unauthorizedResponse();
+  }
+
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE adhoc_sessions SET status = 'cancelled' WHERE id = ?`,
+    [id]
+  );
+
+  return successResponse({ id, deleted: true });
 }

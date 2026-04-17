@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, ExamPaperItem, ExamPaperDistribution } from '../api';
 import { toast, useConfirm } from '../components/Toast';
+import Modal from '../components/Modal';
 
 type ExamType = 'midterm' | 'final' | 'performance';
 
@@ -46,18 +47,6 @@ const emptyUpload = (): UploadState => ({
   excludeIds: [],
 });
 
-// ESC + focus trap hook
-function useModalDismiss(open: boolean, onClose: () => void) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-}
-
 export default function ExamPapersPage() {
   const [papers, setPapers] = useState<ExamPaperItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +62,6 @@ export default function ExamPapersPage() {
   const [detailPaperId, setDetailPaperId] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<(ExamPaperItem & { distributions: ExamPaperDistribution[] }) | null>(null);
 
-  const uploadTitleRef = useRef<HTMLInputElement>(null);
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
 
   const load = useCallback(async () => {
@@ -111,11 +99,6 @@ export default function ExamPapersPage() {
     return () => { cancelled = true; clearTimeout(timer); };
   }, [showUpload, uploadState.school, uploadState.grade]);
 
-  // 업로드 모달 열림 시 첫 input 포커스
-  useEffect(() => {
-    if (showUpload) setTimeout(() => uploadTitleRef.current?.focus(), 50);
-  }, [showUpload]);
-
   const distributeTargets = useMemo(
     () => previewStudents.filter(s => !uploadState.excludeIds.includes(s.id)),
     [previewStudents, uploadState.excludeIds]
@@ -123,8 +106,6 @@ export default function ExamPapersPage() {
 
   const closeUpload = useCallback(() => { if (!uploading) setShowUpload(false); }, [uploading]);
   const closeDetail = useCallback(() => setDetailPaperId(null), []);
-  useModalDismiss(showUpload, closeUpload);
-  useModalDismiss(!!detailPaperId, closeDetail);
 
   const openUpload = () => {
     setUploadState(emptyUpload());
@@ -334,75 +315,127 @@ export default function ExamPapersPage() {
       )}
 
       {showUpload && (
-        <div className="modal-overlay" onClick={closeUpload}>
-          <div
-            className="modal-content modal-content--wide"
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="exam-upload-title"
-          >
-            <h2 id="exam-upload-title">시험지 업로드</h2>
-
+        <Modal onClose={closeUpload} className="modal-content--wide">
+          <Modal.Header closeDisabled={uploading}>시험지 업로드</Modal.Header>
+          <Modal.Body>
             <div className="form-grid">
-              <label>
-                <span>제목 <span className="required-mark" aria-hidden="true">*</span></span>
-                <input ref={uploadTitleRef} required value={uploadState.title} onChange={e => setUploadState(s => ({ ...s, title: e.target.value }))} placeholder="예: 2026 1학기 중간고사 수학" aria-required="true" />
-              </label>
-              <label>
-                <span>유형</span>
-                <select value={uploadState.examType} onChange={e => setUploadState(s => ({ ...s, examType: e.target.value as ExamType }))}>
+              <div>
+                <label className="form-label" htmlFor="exam-upload-title">
+                  제목 <span className="required-mark" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="exam-upload-title"
+                  className="form-input"
+                  required
+                  value={uploadState.title}
+                  onChange={e => setUploadState(s => ({ ...s, title: e.target.value }))}
+                  placeholder="예: 2026 1학기 중간고사 수학"
+                  aria-required="true"
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-upload-type">유형</label>
+                <select
+                  id="exam-upload-type"
+                  className="form-select"
+                  value={uploadState.examType}
+                  onChange={e => setUploadState(s => ({ ...s, examType: e.target.value as ExamType }))}
+                >
                   <option value="midterm">중간고사</option>
                   <option value="final">기말고사</option>
                   <option value="performance">수행평가</option>
                 </select>
-              </label>
-              <label>
-                <span>과목</span>
-                <input value={uploadState.subject} onChange={e => setUploadState(s => ({ ...s, subject: e.target.value }))} placeholder="수학, 영어 …" />
-              </label>
-              <label>
-                <span>학교 <span className="required-mark" aria-hidden="true">*</span></span>
-                <input value={uploadState.school} onChange={e => setUploadState(s => ({ ...s, school: e.target.value, excludeIds: [] }))} placeholder="이매고등학교" aria-required="true" />
-              </label>
-              <label>
-                <span>학년 <span className="required-mark" aria-hidden="true">*</span></span>
-                <select value={uploadState.grade} onChange={e => setUploadState(s => ({ ...s, grade: e.target.value, excludeIds: [] }))} aria-required="true">
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-upload-subject">과목</label>
+                <input
+                  id="exam-upload-subject"
+                  className="form-input"
+                  value={uploadState.subject}
+                  onChange={e => setUploadState(s => ({ ...s, subject: e.target.value }))}
+                  placeholder="수학, 영어 …"
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-upload-school">
+                  학교 <span className="required-mark" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="exam-upload-school"
+                  className="form-input"
+                  value={uploadState.school}
+                  onChange={e => setUploadState(s => ({ ...s, school: e.target.value, excludeIds: [] }))}
+                  placeholder="이매고등학교"
+                  aria-required="true"
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-upload-grade">
+                  학년 <span className="required-mark" aria-hidden="true">*</span>
+                </label>
+                <select
+                  id="exam-upload-grade"
+                  className="form-select"
+                  value={uploadState.grade}
+                  onChange={e => setUploadState(s => ({ ...s, grade: e.target.value, excludeIds: [] }))}
+                  aria-required="true"
+                >
                   <option value="">선택</option>
                   {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
-              </label>
-              <label>
-                <span>연도</span>
-                <input type="number" value={uploadState.examYear} onChange={e => setUploadState(s => ({ ...s, examYear: Number(e.target.value) }))} />
-              </label>
-              <label>
-                <span>학기</span>
-                <select value={uploadState.semester} onChange={e => setUploadState(s => ({ ...s, semester: Number(e.target.value) as 1 | 2 }))}>
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-upload-year">연도</label>
+                <input
+                  id="exam-upload-year"
+                  className="form-input"
+                  type="number"
+                  value={uploadState.examYear}
+                  onChange={e => setUploadState(s => ({ ...s, examYear: Number(e.target.value) }))}
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-upload-semester">학기</label>
+                <select
+                  id="exam-upload-semester"
+                  className="form-select"
+                  value={uploadState.semester}
+                  onChange={e => setUploadState(s => ({ ...s, semester: Number(e.target.value) as 1 | 2 }))}
+                >
                   <option value={1}>1학기</option>
                   <option value={2}>2학기</option>
                 </select>
-              </label>
-              <label className="form-full">
-                <span>메모</span>
-                <textarea rows={2} value={uploadState.memo} onChange={e => setUploadState(s => ({ ...s, memo: e.target.value }))} />
-              </label>
-              <label className="form-full">
-                <span>파일 (PDF / 이미지, 20MB 이하)</span>
+              </div>
+              <div className="form-full">
+                <label className="form-label" htmlFor="exam-upload-memo">메모</label>
+                <textarea
+                  id="exam-upload-memo"
+                  className="form-textarea"
+                  rows={2}
+                  value={uploadState.memo}
+                  onChange={e => setUploadState(s => ({ ...s, memo: e.target.value }))}
+                />
+              </div>
+              <div className="form-full">
+                <label className="form-label" htmlFor="exam-upload-file">파일</label>
                 <input
+                  id="exam-upload-file"
+                  className="form-input"
                   type="file"
                   accept="application/pdf,image/png,image/jpeg,image/webp"
                   onChange={e => setUploadState(s => ({ ...s, file: e.target.files?.[0] || null }))}
+                  aria-describedby="exam-upload-file-hint"
                 />
+                <p id="exam-upload-file-hint" className="form-hint">PDF 또는 이미지 · 20MB 이하</p>
                 {uploadState.file && (
                   <div className="file-preview">{uploadState.file.name} · {formatFileSize(uploadState.file.size)}</div>
                 )}
-              </label>
+              </div>
             </div>
 
             <div className="distribute-preview">
               <div className="distribute-preview-header">
-                <strong><span aria-hidden="true">📋</span> 자동 배포 대상</strong>
+                <strong>자동 배포 대상</strong>
                 <span aria-live="polite" aria-atomic="true">
                   {canPreview
                     ? `${distributeTargets.length}명 / ${previewStudents.length}명 매칭`
@@ -427,31 +460,34 @@ export default function ExamPapersPage() {
                 </div>
               )}
             </div>
-
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={closeUpload} disabled={uploading}>취소</button>
-              <button className="btn btn-primary" onClick={handleUploadSubmit} disabled={uploading} aria-label={uploading ? '업로드 중' : `업로드 및 ${distributeTargets.length}명에게 배포`}>
-                {uploading ? '업로드 중…' : <>업로드 <span aria-hidden="true">· {distributeTargets.length}명 배포</span></>}
-              </button>
-            </div>
-          </div>
-        </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <button className="btn btn-ghost" onClick={closeUpload} disabled={uploading}>취소</button>
+            <button
+              className="btn btn-primary"
+              onClick={handleUploadSubmit}
+              disabled={uploading}
+              aria-label={uploading ? '업로드 중' : `업로드 및 ${distributeTargets.length}명에게 배포`}
+            >
+              {uploading ? '업로드 중…' : <>업로드 <span aria-hidden="true">· {distributeTargets.length}명 배포</span></>}
+            </button>
+          </Modal.Footer>
+        </Modal>
       )}
 
       {detailPaperId && (
-        <div className="modal-overlay" onClick={closeDetail}>
-          <div
-            className="modal-content modal-content--wide"
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="exam-detail-title"
-          >
-            {!detailData ? (
-              <div className="loading-block" role="status">불러오는 중…</div>
-            ) : (
-              <>
-                <h2 id="exam-detail-title">{detailData.title}</h2>
+        <Modal onClose={closeDetail} className="modal-content--wide">
+          {!detailData ? (
+            <>
+              <Modal.Header>불러오는 중…</Modal.Header>
+              <Modal.Body>
+                <div className="loading-block" role="status">불러오는 중…</div>
+              </Modal.Body>
+            </>
+          ) : (
+            <>
+              <Modal.Header>{detailData.title}</Modal.Header>
+              <Modal.Body>
                 <div className="detail-meta">
                   <span className={`badge badge--${detailData.exam_type}`}>{EXAM_TYPE_LABEL[detailData.exam_type as ExamType]}</span>
                   <span>{detailData.school || '-'}</span>
@@ -463,7 +499,7 @@ export default function ExamPapersPage() {
                 {detailData.file_key && (
                   <div className="detail-file">
                     <a className="btn btn-ghost btn-sm" href={api.examPaperFileUrl(detailData.file_key)} target="_blank" rel="noreferrer">
-                      <span aria-hidden="true">📄</span> {detailData.file_name || '파일 열기'}
+                      {detailData.file_name || '파일 열기'}
                     </a>
                   </div>
                 )}
@@ -493,28 +529,28 @@ export default function ExamPapersPage() {
                     ))}
                   </ul>
                 )}
-                <div className="modal-footer">
-                  <button
-                    className="btn btn-ghost"
-                    onClick={async () => {
-                      try {
-                        const r = await api.redistributeExamPaper(detailData.id);
-                        toast.success(`재배포 · ${r.distributed}명 추가`);
-                        openDetail(detailData.id);
-                        load();
-                      } catch (err) {
-                        toast.error('재배포 실패: ' + (err as Error).message);
-                      }
-                    }}
-                  >
-                    <span aria-hidden="true">🔁</span> 재배포 (누락 학생 추가)
-                  </button>
-                  <button className="btn btn-primary" onClick={closeDetail}>닫기</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+              </Modal.Body>
+              <Modal.Footer>
+                <button
+                  className="btn btn-ghost"
+                  onClick={async () => {
+                    try {
+                      const r = await api.redistributeExamPaper(detailData.id);
+                      toast.success(`재배포 · ${r.distributed}명 추가`);
+                      openDetail(detailData.id);
+                      load();
+                    } catch (err) {
+                      toast.error('재배포 실패: ' + (err as Error).message);
+                    }
+                  }}
+                >
+                  재배포 (누락 학생 추가)
+                </button>
+                <button className="btn btn-primary" onClick={closeDetail}>닫기</button>
+              </Modal.Footer>
+            </>
+          )}
+        </Modal>
       )}
 
       {ConfirmDialog}

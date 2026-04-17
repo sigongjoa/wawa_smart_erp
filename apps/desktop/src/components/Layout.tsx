@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store';
 
@@ -74,8 +74,18 @@ export default function Layout() {
     NAV_GROUPS.forEach(g => { init[g.key] = isGroupActive(g, location.pathname); });
     return init;
   });
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const toggle = (key: string) => setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
+
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawerOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
 
   return (
     <div className="app-layout">
@@ -142,14 +152,90 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Mobile: Bottom Navigation — 핵심 5개 */}
+      {/* Mobile: Bottom Navigation — 핵심 4개 + 더보기 */}
       <nav className="app-bottom-nav" aria-label="모바일 내비게이션">
         <NavLink to="/timer"><span className="nav-icon nav-icon--timer" aria-hidden="true" />수업</NavLink>
         <NavLink to="/student"><span className="nav-icon nav-icon--student" aria-hidden="true" />학생</NavLink>
         <NavLink to="/exams"><span className="nav-icon nav-icon--exam" aria-hidden="true" />정기고사</NavLink>
-        <NavLink to="/materials"><span className="nav-icon nav-icon--materials" aria-hidden="true" />교재</NavLink>
         <NavLink to="/gacha"><span className="nav-icon nav-icon--gacha" aria-hidden="true" />학습</NavLink>
+        <button
+          type="button"
+          className={`app-bottom-nav-more ${drawerOpen ? 'active' : ''}`}
+          onClick={() => setDrawerOpen(v => !v)}
+          aria-expanded={drawerOpen}
+          aria-controls="app-drawer"
+          aria-label="더보기 메뉴 열기"
+        >
+          <span className="nav-icon nav-icon--more" aria-hidden="true" />더보기
+        </button>
       </nav>
+
+      {/* Mobile: Drawer for overflow nav items */}
+      {drawerOpen && (
+        <div
+          className="app-drawer-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setDrawerOpen(false); }}
+        >
+          <div
+            id="app-drawer"
+            className="app-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="전체 메뉴"
+          >
+            <div className="app-drawer-handle" aria-hidden="true" />
+            <div className="app-drawer-header">
+              <div className="app-drawer-user">
+                <div className="app-drawer-user-name">{user?.name || '사용자'}</div>
+                <div className="app-drawer-user-meta">
+                  {user?.academyName || 'WAWA'} · {user?.role === 'admin' ? '관리자' : '강사'}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="app-drawer-close"
+                onClick={() => setDrawerOpen(false)}
+                aria-label="메뉴 닫기"
+              >
+                ×
+              </button>
+            </div>
+
+            <nav className="app-drawer-nav" aria-label="전체 메뉴">
+              {NAV_GROUPS.map(group => (
+                <div key={group.key} className="app-drawer-group">
+                  <div className="app-drawer-group-label">
+                    <span className={`nav-icon ${group.iconClass}`} aria-hidden="true" />
+                    {group.label}
+                  </div>
+                  <div className="app-drawer-group-items">
+                    {group.items.map(it => (
+                      <NavLink key={it.to} to={it.to} end={it.exact}>
+                        {it.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="app-drawer-group">
+                <div className="app-drawer-group-items">
+                  <NavLink to="/settings">
+                    <span className="nav-icon nav-icon--settings" aria-hidden="true" />
+                    설정
+                  </NavLink>
+                  <button
+                    type="button"
+                    className="app-drawer-logout"
+                    onClick={() => { setDrawerOpen(false); logout(); }}
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              </div>
+            </nav>
+          </div>
+        </div>
+      )}
 
       <main className="app-content">
         <Outlet />

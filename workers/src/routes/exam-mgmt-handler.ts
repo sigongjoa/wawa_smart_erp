@@ -140,10 +140,59 @@ export async function handleExamMgmt(
         drive_link: a?.drive_link ?? null,
         score: a?.score ?? null,
         memo: a?.memo ?? null,
+        exam_date: (a as any)?.exam_date ?? null,
+        exam_status: (a as any)?.exam_status ?? 'scheduled',
+        absence_reason: (a as any)?.absence_reason ?? null,
+        rescheduled_date: (a as any)?.rescheduled_date ?? null,
+        rescheduled_memo: (a as any)?.rescheduled_memo ?? null,
       };
     });
 
     return successResponse({ period, students: rows });
+  }
+
+  // GET /api/exam-mgmt/absentees?month=YYYY-MM
+  // 해당 월의 absent/rescheduled 학생 + 재시험 일정 조회
+  if (method === 'GET' && pathname === '/api/exam-mgmt/absentees') {
+    const url = new URL(request.url);
+    const month = url.searchParams.get('month');
+    const scope = url.searchParams.get('scope');
+    const isAdmin = context.auth!.role === 'admin';
+    const showAll = isAdmin && scope === 'all';
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
+    }
+
+    const period = await executeFirst<ExamPeriodRow>(
+      db,
+      `SELECT * FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
+      [academyId, month]
+    );
+    if (!period) return successResponse({ period: null, absentees: [] });
+
+    const baseSql = `
+      SELECT a.id AS assignment_id, a.student_id, a.exam_status, a.absence_reason,
+             a.rescheduled_date, a.rescheduled_memo, a.adhoc_session_id, a.score,
+             s.name AS student_name, s.grade AS student_grade, s.school AS student_school,
+             ah.start_time AS rescheduled_start, ah.end_time AS rescheduled_end,
+             ah.status AS adhoc_status
+      FROM exam_assignments a
+      JOIN students s ON s.id = a.student_id
+      LEFT JOIN adhoc_sessions ah ON ah.id = a.adhoc_session_id
+      WHERE a.exam_period_id = ? AND a.academy_id = ?
+        AND a.exam_status IN ('absent', 'rescheduled')
+    `;
+    const rows = showAll
+      ? await executeQuery<any>(db, `${baseSql} ORDER BY s.grade, s.name`, [period.id, academyId])
+      : await executeQuery<any>(
+          db,
+          `${baseSql} AND a.student_id IN (
+             SELECT student_id FROM student_teachers WHERE teacher_id = ?
+           ) ORDER BY s.grade, s.name`,
+          [period.id, academyId, userId]
+        );
+
+    return successResponse({ period, absentees: rows });
   }
 
   // PATCH /api/exam-mgmt/student-school — 학생 학교명 수정 (inline edit)
@@ -504,8 +553,11 @@ export async function handleExamMgmt(
     const [, , assignId] = assignPatchMatch;
     const body = await request.json() as any;
 
-    const existing = await executeFirst<ExamAssignmentRow>(
-      db, 'SELECT id FROM exam_assignments WHERE id = ? AND academy_id = ?', [assignId, academyId]
+    const existing = await executeFirst<ExamAssignmentRow & { student_id: string; adhoc_session_id: string | null; rescheduled_date: string | null; exam_status: string }>(
+      db,
+      `SELECT id, student_id, adhoc_session_id, rescheduled_date, exam_status
+       FROM exam_assignments WHERE id = ? AND academy_id = ?`,
+      [assignId, academyId]
     );
     if (!existing) return errorResponse('배정을 찾을 수 없습니다', 404);
 
@@ -518,6 +570,63 @@ export async function handleExamMgmt(
     if (body.drive_link !== undefined) { updates.push('drive_link = ?'); params.push(body.drive_link || null); }
     if (body.score !== undefined) { updates.push('score = ?'); params.push(body.score); }
     if (body.memo !== undefined) { updates.push('memo = ?'); params.push(body.memo || null); }
+    if (body.exam_date !== undefined) { updates.push('exam_date = ?'); params.push(body.exam_date || null); }
+    const nextStatus = body.exam_status;
+    if (nextStatus !== undefined) {
+      const allowed = ['scheduled', 'absent', 'rescheduled', 'completed', 'exempted'];
+      if (!allowed.includes(nextStatus)) return errorResponse('exam_status 값이 올바르지 않습니다', 400);
+      updates.push('exam_status = ?'); params.push(nextStatus);
+    }
+    if (body.absence_reason !== undefined) { updates.push('absence_reason = ?'); params.push(body.absence_reason || null); }
+    if (body.rescheduled_date !== undefined) { updates.push('rescheduled_date = ?'); params.push(body.rescheduled_date || null); }
+    if (body.rescheduled_memo !== undefined) { updates.push('rescheduled_memo = ?'); params.push(body.rescheduled_memo || null); }
+
+    // ── 재시험 adhoc_sessions 연동 ─────────────────────────────
+    // rescheduled + date + start/end → adhoc_sessions 생성/갱신
+    // 다른 상태로 바뀌면 연결된 adhoc_sessions는 cancelled 처리
+    const effectiveStatus = nextStatus ?? existing.exam_status;
+    const effectiveDate = body.rescheduled_date !== undefined ? body.rescheduled_date : existing.rescheduled_date;
+    const start = body.rescheduled_start;
+    const end = body.rescheduled_end;
+    let adhocIdToWrite: string | null | undefined = undefined; // undefined = 변경 없음
+
+    if (effectiveStatus === 'rescheduled' && effectiveDate && start && end) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
+        return errorResponse('rescheduled_date는 YYYY-MM-DD 형식', 400);
+      }
+      if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) {
+        return errorResponse('rescheduled_start/end는 HH:mm 형식', 400);
+      }
+      const subject = body.rescheduled_subject || '정기고사 재시험';
+      if (existing.adhoc_session_id) {
+        // 기존 adhoc 갱신 (취소된 적 있을 수 있으니 status도 scheduled로)
+        await executeUpdate(db,
+          `UPDATE adhoc_sessions
+           SET date = ?, start_time = ?, end_time = ?, subject = ?, reason = '시험재시험', status = 'scheduled'
+           WHERE id = ? AND academy_id = ?`,
+          [effectiveDate, start, end, subject, existing.adhoc_session_id, academyId]
+        );
+      } else {
+        const adhocId = generatePrefixedId('adhoc');
+        await executeInsert(db,
+          `INSERT INTO adhoc_sessions (id, student_id, teacher_id, academy_id, date, start_time, end_time, subject, reason, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, '시험재시험', 'scheduled')`,
+          [adhocId, existing.student_id, userId, academyId, effectiveDate, start, end, subject]
+        );
+        adhocIdToWrite = adhocId;
+      }
+    } else if (nextStatus !== undefined && nextStatus !== 'rescheduled' && existing.adhoc_session_id) {
+      // 재시험 아닌 상태로 변경되면 기존 adhoc 취소
+      await executeUpdate(db,
+        `UPDATE adhoc_sessions SET status = 'cancelled' WHERE id = ? AND academy_id = ?`,
+        [existing.adhoc_session_id, academyId]
+      );
+      adhocIdToWrite = null;
+    }
+
+    if (adhocIdToWrite !== undefined) {
+      updates.push('adhoc_session_id = ?'); params.push(adhocIdToWrite);
+    }
 
     if (updates.length === 0) return errorResponse('변경할 필드가 없습니다', 400);
 
@@ -527,7 +636,7 @@ export async function handleExamMgmt(
       params
     );
 
-    return successResponse({ success: true });
+    return successResponse({ success: true, adhoc_session_id: adhocIdToWrite });
   }
 
   // POST /api/exam-mgmt/:periodId/bulk-check — 일괄 체크

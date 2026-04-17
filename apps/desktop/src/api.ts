@@ -437,6 +437,7 @@ export const api = {
         subjects: string[];
         enrollments: Array<{ id: string; day: string; startTime: string; endTime: string; subject?: string | null }>;
         makeups?: Array<{ id: string; absenceId: string; originalDate: string; classId: string; className: string; notes: string; status: string; scheduledStartTime: string | null; scheduledEndTime: string | null }>;
+        adhocs?: Array<{ id: string; date: string; startTime: string; endTime: string; subject?: string | null; reason?: string | null }>;
         activeSession: RealtimeSession | null;
         completedSession: RealtimeSession | null;
       }>;
@@ -453,8 +454,16 @@ export const api = {
   deleteEnrollment: (id: string) =>
     request(`/api/timer/enrollments/${id}`, { method: 'DELETE' }),
 
+  // 임시 수업 CRUD
+  listAdhocSessions: (date: string) =>
+    request<AdhocSession[]>(`/api/timer/adhoc?${new URLSearchParams({ date })}`),
+  createAdhocSession: (data: { studentId: string; date: string; startTime: string; endTime: string; subject?: string; reason?: string }) =>
+    request<AdhocSession>('/api/timer/adhoc', { method: 'POST', body: JSON.stringify(data) }),
+  deleteAdhocSession: (id: string) =>
+    request(`/api/timer/adhoc/${id}`, { method: 'DELETE' }),
+
   // 세션 체크인/정지/재개/체크아웃
-  sessionCheckIn: (data: { studentId: string; enrollmentId?: string; makeupId?: string; scheduledStartTime?: string; scheduledEndTime?: string; subject?: string }) =>
+  sessionCheckIn: (data: { studentId: string; enrollmentId?: string; makeupId?: string; adhocId?: string; scheduledStartTime?: string; scheduledEndTime?: string; subject?: string }) =>
     request<RealtimeSession>('/api/timer/sessions/check-in', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -933,6 +942,11 @@ export const api = {
         drive_link: string | null;
         score: number | null;
         memo: string | null;
+        exam_date: string | null;
+        exam_status: string;
+        absence_reason: string | null;
+        rescheduled_date: string | null;
+        rescheduled_memo: string | null;
       }>;
     }>(`/api/exam-mgmt/by-month?month=${encodeURIComponent(month)}${scope === 'all' ? '&scope=all' : ''}`),
 
@@ -941,6 +955,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ month, student_id }),
     }),
+
+  getExamAbsentees: (month: string, scope?: 'all' | 'mine') =>
+    request<{ period: ExamPeriod | null; absentees: ExamAbsentee[] }>(
+      `/api/exam-mgmt/absentees?month=${encodeURIComponent(month)}${scope === 'all' ? '&scope=all' : ''}`
+    ),
 
   // ── 시험지(유인물) 관리 ──
   listExamPapers: (filters?: { examType?: string; school?: string; grade?: string; year?: string; semester?: string }) => {
@@ -965,7 +984,7 @@ export const api = {
   uploadExamPaperFile: async (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const res = await fetch(`${API_BASE}/api/exam-papers/upload`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -1143,6 +1162,44 @@ export interface ExamAssignmentUpdate {
   drive_link: string;
   score: number;
   memo: string;
+  exam_date: string | null;
+  exam_status: 'scheduled' | 'absent' | 'rescheduled' | 'completed' | 'exempted';
+  absence_reason: string | null;
+  rescheduled_date: string | null;
+  rescheduled_memo: string | null;
+  rescheduled_start: string;  // 'HH:mm' — 재시험 일정 자동 등록 트리거
+  rescheduled_end: string;    // 'HH:mm'
+  rescheduled_subject: string;
+}
+
+export interface ExamAbsentee {
+  assignment_id: string;
+  student_id: string;
+  student_name: string;
+  student_grade: string;
+  student_school: string | null;
+  exam_status: 'absent' | 'rescheduled';
+  absence_reason: string | null;
+  rescheduled_date: string | null;
+  rescheduled_memo: string | null;
+  rescheduled_start: string | null;
+  rescheduled_end: string | null;
+  adhoc_session_id: string | null;
+  adhoc_status: 'scheduled' | 'completed' | 'cancelled' | null;
+  score: number | null;
+}
+
+export interface AdhocSession {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  studentGrade?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  subject: string | null;
+  reason: string | null;
+  status: 'scheduled' | 'completed' | 'cancelled';
 }
 
 export interface ExamPaperItem {
