@@ -34,6 +34,7 @@ import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
 import { handleExamPaper } from '@/routes/exam-paper-handler';
+import { handleParentReport } from '@/routes/parent-report-handler';
 import { tenantMiddleware } from '@/middleware/tenant';
 
 /**
@@ -109,6 +110,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학생 앱 (PIN 토큰 인증 — JWT 미들웨어 스킵)
       if (pathname.startsWith('/api/play/')) {
         return addCorsHeaders(await handleGachaPlay(method, pathname, request, context), env, origin);
+      }
+
+      // 학부모 리포트 조회 (HMAC 토큰 기반 공개 - GET만)
+      if (method === 'GET' && pathname.match(/^\/api\/parent-report\/[^/]+$/)) {
+        return addCorsHeaders(await handleParentReport(method, pathname, request, context), env, origin);
       }
 
       // 인증 체크 (logout, 다른 protected routes)
@@ -218,6 +224,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 시험지 관리 (중간/기말/수행평가 유인물)
       if (pathname.startsWith('/api/exam-papers')) {
         return addCorsHeaders(await handleExamPaper(method, pathname, request, context), env, origin);
+      }
+
+      // 학부모 리포트 링크 발급 (교사 JWT)
+      if (pathname.startsWith('/api/parent-report/')) {
+        return addCorsHeaders(await handleParentReport(method, pathname, request, context), env, origin);
       }
     }
 

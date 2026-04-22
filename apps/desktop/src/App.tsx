@@ -22,6 +22,7 @@ const ProofEditorPage = lazy(() => import('./pages/ProofEditorPage'));
 const GachaDashboardPage = lazy(() => import('./pages/GachaDashboardPage'));
 const ExamManagementPage = lazy(() => import('./pages/ExamManagementPage'));
 const ExamPapersPage = lazy(() => import('./pages/ExamPapersPage'));
+const ParentReportPage = lazy(() => import('./pages/ParentReportPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -48,6 +49,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/parent-report/:studentId" element={<ParentReportPage />} />
           <Route
             element={
               <ProtectedRoute>
