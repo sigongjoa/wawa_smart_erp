@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api, Student, StudentCreateInput, TeacherOption } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
@@ -303,7 +304,11 @@ export default function StudentListPage() {
           <tbody>
             {filtered.map(s => (
               <tr key={s.id} className={s.status !== 'active' ? 'student-row--inactive' : ''}>
-                <td className="student-cell-name">{s.name}</td>
+                <td className="student-cell-name">
+                  <Link to={`/student/${s.id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
+                    {s.name}
+                  </Link>
+                </td>
                 <td>
                   <select
                     className="student-inline-select"

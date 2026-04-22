@@ -185,32 +185,35 @@ export default function ParentReportPage() {
   return (
     <div style={pageStyle.wrap}>
       <div style={pageStyle.sheet}>
-        {/* 헤더 */}
+        {/* 헤더 — 인사 + 월 강조 */}
         <header
           style={pageStyle.header}
           aria-label={`${data.student.name} 학부모님께 보내는 ${fmtMonth(data.month)} 학습 리포트`}
         >
-          <div style={pageStyle.headerCaption}>{fmtMonth(data.month)} 학습 리포트</div>
-          <h1 style={pageStyle.name}>
-            {data.student.name}&nbsp;학부모님께
-          </h1>
+          <div style={pageStyle.headerEyebrow}>학습 리포트</div>
+          <h1 style={pageStyle.monthTitle}>{fmtMonth(data.month)}</h1>
+          <p style={pageStyle.greeting}>
+            <b>{data.student.name}</b> 학부모님, 이번 달{' '}
+            <b>{data.student.name}</b> 학생의 학습 현황을 전해 드립니다.
+          </p>
           <div style={pageStyle.meta}>
             {[data.student.grade, data.student.school].filter(Boolean).join(' · ') || ''}
           </div>
         </header>
 
-        {/* 이번 달 한눈에 */}
+        {/* 이번 달 한눈에 — 출석률 원형 + 숫자 3개 */}
         <Section title="이번 달 한눈에">
-          <div style={pageStyle.grid4}>
-            <Stat label="예정 수업" value={`${data.attendance.scheduled}회`} />
-            <Stat
-              label="출석"
-              value={`${data.attendance.attended}회`}
-              hint={`출석률 ${attendanceRate}%`}
-              accent={attendanceRate >= 90 ? 'success' : attendanceRate >= 70 ? 'warning' : 'danger'}
+          <div style={pageStyle.glanceRow}>
+            <AttendanceRing
+              rate={attendanceRate}
+              attended={data.attendance.attended}
+              scheduled={data.attendance.scheduled}
             />
-            <Stat label="지각" value={`${data.attendance.late}회`} />
-            <Stat label="총 수업시간" value={fmtHourMin(data.attendance.total_net_minutes)} />
+            <div style={pageStyle.glanceSide}>
+              <SideStat label="총 수업시간" value={fmtHourMin(data.attendance.total_net_minutes)} />
+              <SideStat label="지각" value={`${data.attendance.late}회`} muted={data.attendance.late === 0} />
+              <SideStat label="결석" value={`${data.attendance.absent}회`} muted={data.attendance.absent === 0} />
+            </div>
           </div>
           {data.attendance.by_subject.length > 0 && (
             <div style={pageStyle.subjectList}>
@@ -219,6 +222,36 @@ export default function ParentReportPage() {
                   {s.subject || '기타'} · {s.count}회 · {fmtHourMin(s.minutes)}
                 </span>
               ))}
+            </div>
+          )}
+        </Section>
+
+        {/* 선생님 코멘트 — 부모가 가장 보고 싶은 것, 앞쪽 배치 */}
+        <Section title="선생님 코멘트" accent>
+          {data.notes.length === 0 ? (
+            <div style={pageStyle.empty}>공유된 코멘트가 없습니다.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
+              {data.notes.map((n, i) => {
+                const s = sentimentMeta(n.sentiment);
+                return (
+                  <div key={i} style={{ ...pageStyle.note, borderLeftColor: s.color }}>
+                    <div style={pageStyle.noteHead}>
+                      <span
+                        style={{ ...pageStyle.sentimentTag, color: s.color, borderColor: s.color }}
+                        aria-label={`감정: ${s.label}`}
+                      >
+                        <span aria-hidden="true">{s.icon}</span> {s.label}
+                      </span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{n.subject}</span>
+                      <span style={pageStyle.rowMetaDate}>· {fmtDate(n.created_at)}</span>
+                    </div>
+                    <div style={{ color: 'var(--text-primary)', lineHeight: 1.65, whiteSpace: 'pre-wrap', fontSize: '0.9375rem' }}>
+                      {n.content}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </Section>
@@ -348,66 +381,62 @@ export default function ParentReportPage() {
           )}
         </Section>
 
-        {/* 선생님 코멘트 */}
-        <Section title="이번 달 선생님 코멘트">
-          {data.notes.length === 0 ? (
-            <div style={pageStyle.empty}>공유된 코멘트가 없습니다.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
-              {data.notes.map((n, i) => {
-                const s = sentimentMeta(n.sentiment);
-                return (
-                  <div key={i} style={pageStyle.note}>
-                    <div style={pageStyle.noteHead}>
-                      <span
-                        style={{ ...pageStyle.sentimentTag, color: s.color, borderColor: s.color }}
-                        aria-label={`감정: ${s.label}`}
-                      >
-                        <span aria-hidden="true">{s.icon}</span> {s.label}
-                      </span>
-                      <span style={{ fontWeight: 600 }}>{n.subject}</span>
-                      <span style={pageStyle.rowMetaDate}>· {fmtDate(n.created_at)}</span>
-                    </div>
-                    <div style={{ color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                      {n.content}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Section>
-
         <footer style={pageStyle.footer}>
           이 리포트는 담당 선생님이 공유한 링크로만 열람됩니다.
+          <br />지난 달 리포트가 필요하시면 선생님께 요청해 주세요.
         </footer>
       </div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, accent }: { title: string; children: React.ReactNode; accent?: boolean }) {
   return (
-    <section style={pageStyle.section}>
+    <section style={{ ...pageStyle.section, ...(accent ? pageStyle.sectionAccent : null) }}>
       <h2 style={pageStyle.sectionTitle}>{title}</h2>
       {children}
     </section>
   );
 }
 
-function Stat({
-  label, value, hint, accent,
-}: { label: string; value: string; hint?: string; accent?: 'success' | 'warning' | 'danger' }) {
-  const color =
-    accent === 'success' ? 'var(--success)' :
-    accent === 'warning' ? 'var(--warning)' :
-    accent === 'danger' ? 'var(--danger)' :
-    'var(--text-primary)';
+function SideStat({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div style={pageStyle.stat}>
-      <div style={pageStyle.statLabel}>{label}</div>
-      <div style={{ ...pageStyle.statValue, color }}>{value}</div>
-      {hint && <div style={pageStyle.statHint}>{hint}</div>}
+    <div style={pageStyle.sideStat}>
+      <div style={pageStyle.sideStatLabel}>{label}</div>
+      <div style={{ ...pageStyle.sideStatValue, color: muted ? 'var(--text-tertiary, var(--text-secondary))' : 'var(--text-primary)' }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function AttendanceRing({ rate, attended, scheduled }: { rate: number; attended: number; scheduled: number }) {
+  const color = rate >= 90 ? 'var(--success)' : rate >= 70 ? 'var(--warning)' : 'var(--danger)';
+  const label = rate >= 90 ? '매우 성실' : rate >= 70 ? '양호' : rate >= 50 ? '주의 필요' : '점검 필요';
+  const R = 56;
+  const C = 2 * Math.PI * R;
+  const dash = (C * rate) / 100;
+  return (
+    <div
+      style={pageStyle.ringWrap}
+      role="img"
+      aria-label={`출석률 ${rate}%, ${attended} / ${scheduled}회, ${label}`}
+    >
+      <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
+        <circle cx="70" cy="70" r={R} fill="none" stroke="var(--bg-tertiary)" strokeWidth="10" />
+        <circle
+          cx="70" cy="70" r={R}
+          fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
+          strokeDasharray={`${dash} ${C - dash}`}
+          transform="rotate(-90 70 70)"
+          style={{ transition: 'stroke-dasharray 500ms ease' }}
+        />
+      </svg>
+      <div style={pageStyle.ringCenter}>
+        <div style={{ ...pageStyle.ringPct, color }}>{rate}%</div>
+        <div style={pageStyle.ringCount}>{attended} / {scheduled}회</div>
+        <div style={{ ...pageStyle.ringLabel, color }}>{label}</div>
+      </div>
     </div>
   );
 }
@@ -429,14 +458,41 @@ const pageStyle: Record<string, React.CSSProperties> = {
     padding: 'var(--sp-8) var(--sp-6)',
   },
   header: {
-    paddingBottom: 'var(--sp-5)',
+    paddingBottom: 'var(--sp-6)',
     borderBottom: '1px solid var(--border-secondary)',
-    marginBottom: 'var(--sp-6)',
+    marginBottom: 'var(--sp-7)',
   },
-  name: { fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 },
-  headerCaption: { fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: 4, fontWeight: 500 },
-  meta: { fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: 6 },
-  section: { marginBottom: 'var(--sp-8)' },
+  headerEyebrow: {
+    fontSize: '0.6875rem',
+    color: 'var(--primary)',
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase' as const,
+    marginBottom: 6,
+  },
+  monthTitle: {
+    fontSize: '2.25rem',
+    fontWeight: 800,
+    color: 'var(--text-primary)',
+    margin: 0,
+    lineHeight: 1.1,
+    letterSpacing: '-0.02em',
+  },
+  greeting: {
+    fontSize: '0.9375rem',
+    color: 'var(--text-primary)',
+    lineHeight: 1.6,
+    marginTop: 'var(--sp-3)',
+    marginBottom: 0,
+  },
+  meta: { fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: 8 },
+  section: { marginBottom: 'var(--sp-7)' },
+  sectionAccent: {
+    padding: 'var(--sp-5) var(--sp-5)',
+    background: 'var(--primary-surface, color-mix(in srgb, var(--primary) 6%, transparent))',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid color-mix(in srgb, var(--primary) 20%, transparent)',
+  },
   sectionTitle: {
     fontSize: '0.9375rem',
     fontWeight: 700,
@@ -444,19 +500,45 @@ const pageStyle: Record<string, React.CSSProperties> = {
     marginBottom: 'var(--sp-4)',
     letterSpacing: '-0.01em',
   },
-  grid4: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-    gap: 'var(--sp-3)',
+  glanceRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--sp-5)',
+    flexWrap: 'wrap' as const,
   },
-  stat: {
-    padding: 'var(--sp-4)',
+  glanceSide: {
+    flex: '1 1 180px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 'var(--sp-2)',
+  },
+  sideStat: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    padding: '8px 12px',
     background: 'var(--bg-tertiary)',
-    borderRadius: 'var(--radius-md)',
+    borderRadius: 'var(--radius-sm)',
   },
-  statLabel: { fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 4, fontWeight: 500 },
-  statValue: { fontSize: '1.375rem', fontWeight: 700 },
-  statHint: { fontSize: '0.6875rem', color: 'var(--text-secondary)', marginTop: 2 },
+  sideStatLabel: { fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 500 },
+  sideStatValue: { fontSize: '1.0625rem', fontWeight: 700 },
+  ringWrap: {
+    position: 'relative' as const,
+    width: 140, height: 140,
+    flex: '0 0 140px',
+  },
+  ringCenter: {
+    position: 'absolute' as const,
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  ringPct: { fontSize: '1.75rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em' },
+  ringCount: { fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 },
+  ringLabel: { fontSize: '0.6875rem', fontWeight: 700, marginTop: 2 },
   subjectList: {
     marginTop: 'var(--sp-3)',
     display: 'flex',
@@ -521,9 +603,11 @@ const pageStyle: Record<string, React.CSSProperties> = {
     transition: 'width 300ms ease',
   },
   note: {
-    padding: 'var(--sp-3) var(--sp-4)',
-    background: 'var(--bg-tertiary)',
+    padding: 'var(--sp-4)',
+    background: 'var(--bg-secondary)',
     borderRadius: 'var(--radius-sm)',
+    borderLeft: '3px solid',
+    borderLeftColor: 'var(--primary)',
   },
   noteHead: {
     display: 'flex',

@@ -330,13 +330,16 @@ async function buildReport(
     subject: string; category: string; sentiment: string; content: string; created_at: string;
   }>(
     db,
-    `SELECT subject, category, sentiment, content, created_at
+    `SELECT subject, category, sentiment, content, created_at, period_tag
      FROM student_teacher_notes
      WHERE academy_id = ? AND student_id = ?
        AND visibility = 'parent_share'
-       AND created_at >= ? AND created_at < ?
-     ORDER BY created_at DESC`,
-    [academyId, studentId, range.start, range.endExclusive]
+       AND (
+         period_tag = ?
+         OR (period_tag IS NULL AND created_at >= ? AND created_at < ?)
+       )
+     ORDER BY COALESCE(period_tag, substr(created_at, 1, 7)) DESC, created_at DESC`,
+    [academyId, studentId, month, range.start, range.endExclusive]
   );
 
   return successResponse({
