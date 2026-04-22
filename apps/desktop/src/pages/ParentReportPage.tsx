@@ -23,7 +23,6 @@ interface ReportData {
     period_month: string;
     paper_title: string;
     status: 'assigned' | 'prepared' | 'printed' | 'reviewed';
-    drive_link: string | null;
     score: number | null;
   }>;
   progress: Array<{
@@ -489,9 +488,11 @@ const pageStyle: Record<string, React.CSSProperties> = {
   section: { marginBottom: 'var(--sp-7)' },
   sectionAccent: {
     padding: 'var(--sp-5) var(--sp-5)',
-    background: 'var(--primary-surface, color-mix(in srgb, var(--primary) 6%, transparent))',
+    // Safari 구버전(<16.2)은 color-mix 미지원 → 먼저 var(--primary-surface) 플랫 값으로 폴백, 지원 브라우저는 color-mix 값을 쓴다.
+    background: 'var(--primary-surface)',
+    backgroundImage: 'none',
     borderRadius: 'var(--radius-md)',
-    border: '1px solid color-mix(in srgb, var(--primary) 20%, transparent)',
+    border: '1px solid var(--primary-border, var(--border-primary))',
   },
   sectionTitle: {
     fontSize: '0.9375rem',
@@ -503,6 +504,7 @@ const pageStyle: Record<string, React.CSSProperties> = {
   glanceRow: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 'var(--sp-5)',
     flexWrap: 'wrap' as const,
   },

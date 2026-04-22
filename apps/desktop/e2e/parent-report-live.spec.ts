@@ -15,7 +15,8 @@ import { test, expect } from '@playwright/test';
 const API = process.env.E2E_API_URL || 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
 const SLUG = process.env.E2E_SLUG || 'alpha';
 const TEACHER_NAME = process.env.E2E_TEACHER_NAME || '서재용';
-const TEACHER_PIN = process.env.E2E_TEACHER_PIN || '1141';
+// 실 계정 자격증명은 하드코딩하지 않음. 실행: E2E_TEACHER_PIN=xxxx pnpm playwright test parent-report-live
+const TEACHER_PIN = process.env.E2E_TEACHER_PIN || '';
 
 test.setTimeout(120000);
 
@@ -39,6 +40,7 @@ async function req(
 
 test.describe('학부모 월간 리포트 E2E', () => {
   test.describe.configure({ mode: 'serial' });
+  test.skip(!TEACHER_PIN, 'E2E_TEACHER_PIN 환경변수가 필요합니다.');
 
   let token = '';
   let studentId = '';

@@ -8,6 +8,7 @@ export interface Env {
   FRONTEND_URL: string;
   JWT_SECRET?: string;
   JWT_REFRESH_SECRET?: string;
+  PARENT_REPORT_SECRET?: string;
   GEMINI_API_KEY?: string;
   CLOVA_INVOKE_URL?: string;
   CLOVA_SECRET_KEY?: string;

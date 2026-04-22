@@ -9,6 +9,7 @@
  *   - returns: { url, token, expires_at }
  *
  * 페이로드: `${studentId}|${month}|${expiresAtMs}` → base64url(payload).base64url(hmac)
+ * Secret: PARENT_REPORT_SECRET 우선, 없으면 JWT_SECRET. 둘 다 없으면 500.
  */
 
 import { RequestContext } from '@/types';
@@ -16,6 +17,26 @@ import { executeFirst, executeQuery } from '@/utils/db';
 import { errorResponse, successResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
 import { requireAuth } from '@/middleware/auth';
 import { getAcademyId, getUserId } from '@/utils/context';
+
+// ─────────────── Secret 해결 ───────────────
+
+function resolveSecret(env: RequestContext['env']): string | null {
+  return env.PARENT_REPORT_SECRET || env.JWT_SECRET || null;
+}
+
+// ─────────────── 공유 링크 레이트리밋 ───────────────
+
+const SHARE_RATE_LIMIT = 20;         // 시간당 링크 발급 상한 (계정당)
+const SHARE_RATE_WINDOW_SEC = 3600;
+
+async function checkShareRateLimit(kv: KVNamespace, userId: string): Promise<boolean> {
+  const key = `rate:parent-report-share:${userId}`;
+  const raw = await kv.get(key);
+  const count = raw ? Number(raw) || 0 : 0;
+  if (count >= SHARE_RATE_LIMIT) return false;
+  await kv.put(key, String(count + 1), { expirationTtl: SHARE_RATE_WINDOW_SEC });
+  return true;
+}
 
 // ─────────────── HMAC 토큰 ───────────────
 
@@ -121,12 +142,22 @@ export async function handleParentReport(
   const shareMatch = pathname.match(/^\/api\/parent-report\/([^/]+)\/share$/);
   const getMatch = pathname.match(/^\/api\/parent-report\/([^/]+)$/);
 
+  const secret = resolveSecret(context.env);
+  if (!secret) {
+    return errorResponse('서버 설정 오류: 공유 링크 비밀키가 설정되지 않았습니다', 500);
+  }
+
   // ─── 링크 발급 (교사 JWT 필요) ───
   if (method === 'POST' && shareMatch) {
     if (!requireAuth(context)) return unauthorizedResponse();
     const studentId = shareMatch[1];
     const academyId = getAcademyId(context);
     const userId = getUserId(context);
+
+    const allowed = await checkShareRateLimit(context.env.KV, userId);
+    if (!allowed) {
+      return errorResponse('공유 링크 발급 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.', 429);
+    }
 
     const student = await executeFirst<{ academy_id: string }>(
       db,
@@ -151,7 +182,6 @@ export async function handleParentReport(
     const days = Math.max(1, Math.min(90, Math.round(body.days ?? 14)));
     const expiresAtMs = Date.now() + days * 24 * 3600 * 1000;
 
-    const secret = context.env.JWT_SECRET!;
     const token = await signToken(studentId, month, expiresAtMs, secret);
 
     const origin = request.headers.get('origin') || '';
@@ -178,7 +208,6 @@ export async function handleParentReport(
     const range = monthRange(month);
     if (!range) return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
 
-    const secret = context.env.JWT_SECRET!;
     const verify = await verifyToken(token, studentId, month, secret);
     if (!verify.ok) {
       return errorResponse(
@@ -211,136 +240,150 @@ async function buildReport(
   if (!student) return notFoundResponse();
   const academyId = student.academy_id;
 
-  // ─ 1) 출석 ─
-  const attRows = await executeQuery<{
-    subject: string | null; cnt: number; minutes: number; late: number;
-  }>(
-    db,
-    `SELECT subject,
-            COUNT(*) AS cnt,
-            COALESCE(SUM(net_minutes), 0) AS minutes,
-            COALESCE(SUM(was_late), 0) AS late
-     FROM attendance_records
-     WHERE academy_id = ? AND student_id = ?
-       AND date >= ? AND date < ?
-     GROUP BY subject`,
-    [academyId, studentId, range.start, range.endExclusive]
-  );
+  // ─ 병렬 질의: 출석/등록/시험/진도-집계/진도-최근/과제/인쇄물/코멘트 ─
+  const [
+    attRows,
+    enrolls,
+    exams,
+    progressAgg,
+    progressRecent,
+    assignments,
+    printMaterials,
+    notes,
+  ] = await Promise.all([
+    executeQuery<{ subject: string | null; cnt: number; minutes: number; late: number }>(
+      db,
+      `SELECT subject,
+              COUNT(*) AS cnt,
+              COALESCE(SUM(net_minutes), 0) AS minutes,
+              COALESCE(SUM(was_late), 0) AS late
+       FROM attendance_records
+       WHERE academy_id = ? AND student_id = ?
+         AND date >= ? AND date < ?
+       GROUP BY subject`,
+      [academyId, studentId, range.start, range.endExclusive]
+    ),
+    executeQuery<{ day: string; subject: string | null }>(
+      db,
+      `SELECT day, subject FROM enrollments WHERE student_id = ?`,
+      [studentId]
+    ),
+    executeQuery<{
+      period_id: string; period_title: string; period_month: string;
+      paper_title: string; printed: number; reviewed: number; created_check: number;
+      score: number | null;
+    }>(
+      db,
+      `SELECT ep.id AS period_id, ep.title AS period_title, ep.period_month,
+              COALESCE(pap.title, '') AS paper_title,
+              ea.printed, ea.reviewed, ea.created_check, ea.score
+       FROM exam_assignments ea
+       JOIN exam_periods ep ON ep.id = ea.exam_period_id
+       LEFT JOIN exam_papers pap ON pap.id = ea.exam_paper_id
+       WHERE ea.academy_id = ? AND ea.student_id = ?
+         AND ep.period_month = ?
+       ORDER BY ep.period_month, pap.title`,
+      [academyId, studentId, month]
+    ),
+    executeQuery<{
+      textbook: string; total_units: number; completed: number; in_progress: number;
+      avg_understanding: number | null;
+    }>(
+      db,
+      `SELECT u.textbook,
+              COUNT(u.id) AS total_units,
+              SUM(CASE WHEN p.status = 'done' THEN 1 ELSE 0 END) AS completed,
+              SUM(CASE WHEN p.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress,
+              AVG(p.understanding) AS avg_understanding
+       FROM study_units u
+       LEFT JOIN student_study_progress p
+         ON p.unit_id = u.id AND p.student_id = ?
+       WHERE u.academy_id = ? AND u.kind = 'unit'
+       GROUP BY u.textbook
+       HAVING completed > 0 OR in_progress > 0
+       ORDER BY u.textbook`,
+      [studentId, academyId]
+    ),
+    executeQuery<{ textbook: string; recent_unit: string; recent_at: string }>(
+      db,
+      `SELECT u.textbook,
+              u.name AS recent_unit,
+              p.updated_at AS recent_at
+       FROM student_study_progress p
+       JOIN study_units u ON u.id = p.unit_id
+       WHERE p.student_id = ? AND u.academy_id = ? AND u.kind = 'unit'
+       ORDER BY u.textbook, p.updated_at DESC`,
+      [studentId, academyId]
+    ),
+    executeQuery<{
+      title: string; kind: string; status: string; due_at: string | null;
+      last_submitted_at: string | null; last_reviewed_at: string | null;
+      assigned_at: string;
+    }>(
+      db,
+      `SELECT a.title, a.kind, at.status, a.due_at,
+              at.last_submitted_at, at.last_reviewed_at, at.assigned_at
+       FROM assignment_targets at
+       JOIN assignments a ON a.id = at.assignment_id
+       WHERE at.academy_id = ? AND at.student_id = ?
+         AND (
+           (at.assigned_at >= ? AND at.assigned_at < ?) OR
+           (at.last_submitted_at >= ? AND at.last_submitted_at < ?) OR
+           (a.due_at >= ? AND a.due_at < ?)
+         )
+       ORDER BY at.assigned_at DESC`,
+      [
+        academyId, studentId,
+        range.start, range.endExclusive,
+        range.start, range.endExclusive,
+        range.start, range.endExclusive,
+      ]
+    ),
+    executeQuery<{
+      title: string; memo: string | null; status: string; file_url: string | null; created_at: string;
+    }>(
+      db,
+      `SELECT title, memo, status, file_url, created_at
+       FROM print_materials
+       WHERE student_id = ?
+         AND created_at >= ? AND created_at < ?
+       ORDER BY created_at DESC`,
+      [studentId, range.start, range.endExclusive]
+    ),
+    // 월 태그(YYYY-MM) 정확 매칭 또는 해당 월 중 작성된 주간 태그 모두 포함
+    executeQuery<{
+      subject: string; category: string; sentiment: string; content: string; created_at: string; period_tag: string;
+    }>(
+      db,
+      `SELECT subject, category, sentiment, content, created_at, period_tag
+       FROM student_teacher_notes
+       WHERE academy_id = ? AND student_id = ?
+         AND visibility = 'parent_share'
+         AND (
+           period_tag = ?
+           OR (created_at >= ? AND created_at < ?)
+         )
+       ORDER BY period_tag DESC, created_at DESC`,
+      [academyId, studentId, month, range.start, range.endExclusive]
+    ),
+  ]);
+
+  // ─ 출석 집계 ─
   const attended = attRows.reduce((s, r) => s + r.cnt, 0);
   const totalMinutes = attRows.reduce((s, r) => s + r.minutes, 0);
   const late = attRows.reduce((s, r) => s + r.late, 0);
 
-  // 예정 수업 수: enrollments의 day 분포를 해당 월 요일 수와 곱함
-  const enrolls = await executeQuery<{ day: string; subject: string | null }>(
-    db,
-    `SELECT day, subject FROM enrollments WHERE student_id = ?`,
-    [studentId]
-  );
+  // 예정 수업 수: enrollments의 day 분포 × 해당 월 요일 수
   let scheduled = 0;
   for (const e of enrolls) scheduled += countWeekdaysInRange(range.start, range.endExclusive, e.day);
 
-  // ─ 2) 시험 (학원 정기고사) ─
-  const exams = await executeQuery<{
-    period_id: string; period_title: string; period_month: string;
-    paper_title: string; printed: number; reviewed: number; created_check: number;
-    drive_link: string | null; score: number | null;
-  }>(
-    db,
-    `SELECT ep.id AS period_id, ep.title AS period_title, ep.period_month,
-            COALESCE(pap.title, '') AS paper_title,
-            ea.printed, ea.reviewed, ea.created_check, ea.drive_link, ea.score
-     FROM exam_assignments ea
-     JOIN exam_periods ep ON ep.id = ea.exam_period_id
-     LEFT JOIN exam_papers pap ON pap.id = ea.exam_paper_id
-     WHERE ea.academy_id = ? AND ea.student_id = ?
-       AND ep.period_month = ?
-     ORDER BY ep.period_month, pap.title`,
-    [academyId, studentId, month]
-  );
-
-  // ─ 3) 진도 (교재별) ─
-  const progress = await executeQuery<{
-    textbook: string; total_units: number; completed: number; in_progress: number;
-    avg_understanding: number | null; recent_unit: string | null; recent_at: string | null;
-  }>(
-    db,
-    `SELECT u.textbook,
-            COUNT(u.id) AS total_units,
-            SUM(CASE WHEN p.status = 'done' THEN 1 ELSE 0 END) AS completed,
-            SUM(CASE WHEN p.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress,
-            AVG(p.understanding) AS avg_understanding,
-            (SELECT u2.name FROM student_study_progress p2
-               JOIN study_units u2 ON u2.id = p2.unit_id
-              WHERE p2.student_id = ? AND u2.textbook = u.textbook
-              ORDER BY p2.updated_at DESC LIMIT 1) AS recent_unit,
-            (SELECT p2.updated_at FROM student_study_progress p2
-               JOIN study_units u2 ON u2.id = p2.unit_id
-              WHERE p2.student_id = ? AND u2.textbook = u.textbook
-              ORDER BY p2.updated_at DESC LIMIT 1) AS recent_at
-     FROM study_units u
-     LEFT JOIN student_study_progress p
-       ON p.unit_id = u.id AND p.student_id = ?
-     WHERE u.academy_id = ? AND u.kind = 'unit'
-     GROUP BY u.textbook
-     HAVING completed > 0 OR in_progress > 0
-     ORDER BY u.textbook`,
-    [studentId, studentId, studentId, academyId]
-  );
-
-  // ─ 4) 선생님이 준비한 자료 ─
-  const assignments = await executeQuery<{
-    title: string; kind: string; status: string; due_at: string | null;
-    last_submitted_at: string | null; last_reviewed_at: string | null;
-    assigned_at: string;
-  }>(
-    db,
-    `SELECT a.title, a.kind, at.status, a.due_at,
-            at.last_submitted_at, at.last_reviewed_at, at.assigned_at
-     FROM assignment_targets at
-     JOIN assignments a ON a.id = at.assignment_id
-     WHERE at.academy_id = ? AND at.student_id = ?
-       AND (
-         (at.assigned_at >= ? AND at.assigned_at < ?) OR
-         (at.last_submitted_at >= ? AND at.last_submitted_at < ?) OR
-         (a.due_at >= ? AND a.due_at < ?)
-       )
-     ORDER BY at.assigned_at DESC`,
-    [
-      academyId, studentId,
-      range.start, range.endExclusive,
-      range.start, range.endExclusive,
-      range.start, range.endExclusive,
-    ]
-  );
-
-  const printMaterials = await executeQuery<{
-    title: string; memo: string | null; status: string; file_url: string | null; created_at: string;
-  }>(
-    db,
-    `SELECT title, memo, status, file_url, created_at
-     FROM print_materials
-     WHERE student_id = ?
-       AND created_at >= ? AND created_at < ?
-     ORDER BY created_at DESC`,
-    [studentId, range.start, range.endExclusive]
-  );
-
-  // ─ 5) 학부모 공유 코멘트 ─
-  const notes = await executeQuery<{
-    subject: string; category: string; sentiment: string; content: string; created_at: string;
-  }>(
-    db,
-    `SELECT subject, category, sentiment, content, created_at, period_tag
-     FROM student_teacher_notes
-     WHERE academy_id = ? AND student_id = ?
-       AND visibility = 'parent_share'
-       AND (
-         period_tag = ?
-         OR (period_tag IS NULL AND created_at >= ? AND created_at < ?)
-       )
-     ORDER BY COALESCE(period_tag, substr(created_at, 1, 7)) DESC, created_at DESC`,
-    [academyId, studentId, month, range.start, range.endExclusive]
-  );
+  // ─ 진도: 교재별 최근 학습 1건만 추출하여 집계에 머지 ─
+  const recentByTextbook = new Map<string, { recent_unit: string; recent_at: string }>();
+  for (const r of progressRecent) {
+    if (!recentByTextbook.has(r.textbook)) {
+      recentByTextbook.set(r.textbook, { recent_unit: r.recent_unit, recent_at: r.recent_at });
+    }
+  }
 
   return successResponse({
     student: {
@@ -367,18 +410,20 @@ async function buildReport(
       period_month: e.period_month,
       paper_title: e.paper_title,
       status: e.reviewed ? 'reviewed' : e.printed ? 'printed' : e.created_check ? 'prepared' : 'assigned',
-      drive_link: e.drive_link,
       score: e.score,
     })),
-    progress: progress.map((p) => ({
-      textbook: p.textbook,
-      total_units: p.total_units,
-      completed: p.completed,
-      in_progress: p.in_progress,
-      avg_understanding: p.avg_understanding,
-      recent_unit: p.recent_unit,
-      recent_at: p.recent_at,
-    })),
+    progress: progressAgg.map((p) => {
+      const recent = recentByTextbook.get(p.textbook);
+      return {
+        textbook: p.textbook,
+        total_units: p.total_units,
+        completed: p.completed,
+        in_progress: p.in_progress,
+        avg_understanding: p.avg_understanding,
+        recent_unit: recent?.recent_unit ?? null,
+        recent_at: recent?.recent_at ?? null,
+      };
+    }),
     materials: {
       assignments: assignments.map((a) => ({
         title: a.title,
