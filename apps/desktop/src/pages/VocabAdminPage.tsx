@@ -12,7 +12,8 @@ export interface VocabOutletContext {
 }
 
 const SUB_TABS: Array<{ to: string; label: string; ready: boolean }> = [
-  { to: '/vocab', label: '단어 관리', ready: true },
+  { to: '/vocab',       label: '단어 관리', ready: true },
+  { to: '/vocab/wrong', label: '오답 현황', ready: true },
 ];
 
 export default function VocabAdminPage() {

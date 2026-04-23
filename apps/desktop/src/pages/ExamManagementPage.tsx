@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type ExamAbsentee, type ExamPaper } from '../api';
+import { api, type ExamAbsentee, type ExamPaper, type ExamAttemptByPeriod } from '../api';
 import { toast } from '../components/Toast';
 import Modal from '../components/Modal';
 import { useAuthStore } from '../store';
@@ -204,6 +204,7 @@ export default function ExamManagementPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>(thisMonth);
   const [students, setStudents] = useState<ByMonthStudent[]>([]);
   const [periodId, setPeriodId] = useState<string>('');
+  const [attemptsByStudent, setAttemptsByStudent] = useState<Map<string, ExamAttemptByPeriod>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const [gradeFilter, setGradeFilter] = useState('');
@@ -321,6 +322,29 @@ export default function ExamManagementPage() {
   }, [isAdmin, scope]);
 
   useEffect(() => { load(selectedMonth); }, [load, selectedMonth]);
+
+  // periodId 변경 시 응시 내역도 fetch (자동 채점 점수 표시용)
+  useEffect(() => {
+    if (!periodId) { setAttemptsByStudent(new Map()); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await api.getExamAttemptsByPeriod(periodId);
+        if (cancelled) return;
+        const map = new Map<string, ExamAttemptByPeriod>();
+        // 한 학생에 여러 attempt가 있으면 가장 최근 submitted/expired 우선
+        const priority: Record<string, number> = { submitted: 3, expired: 2, running: 1, paused: 1 };
+        for (const a of list) {
+          const existing = map.get(a.student_id);
+          if (!existing || (priority[a.status] ?? 0) > (priority[existing.status] ?? 0)) {
+            map.set(a.student_id, a);
+          }
+        }
+        setAttemptsByStudent(map);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [periodId]);
 
   const handleToggle = async (s: ByMonthStudent) => {
     // optimistic
@@ -591,6 +615,7 @@ export default function ExamManagementPage() {
               <th className="exam-th-link">링크</th>
               <th className="exam-th-exam-status">시험상태</th>
               <th className="exam-th-exam-date">시험일</th>
+              <th className="exam-th-score">점수</th>
               <th>상태</th>
             </tr>
           </thead>
@@ -728,6 +753,40 @@ export default function ExamManagementPage() {
                             : '날짜 변경 +'}
                       </button>
                     ) : <span className="exam-cell-empty">—</span>}
+                  </td>
+                  <td className="exam-cell-score">
+                    {(() => {
+                      const attempt = attemptsByStudent.get(s.student_id);
+                      if (!attempt) return <span className="exam-cell-empty">—</span>;
+                      const isDone = attempt.status === 'submitted' || attempt.status === 'expired';
+                      if (!isDone) {
+                        return (
+                          <span className="exam-score-inprogress" title="응시 중">
+                            <span className="exam-score-dot" /> 응시중
+                          </span>
+                        );
+                      }
+                      const total = attempt.auto_total ?? 0;
+                      const correct = attempt.auto_correct ?? 0;
+                      const pct = total > 0 ? Math.round((correct / total) * 100) : null;
+                      return (
+                        <button
+                          type="button"
+                          className="exam-score-btn"
+                          onClick={() => navigate(`/exam-result/${attempt.id}`)}
+                          title="문항별 응시 결과 보기"
+                        >
+                          <span className="exam-score-num">
+                            <strong>{correct}</strong>/<span>{total}</span>
+                          </span>
+                          {pct !== null && (
+                            <span className={`exam-score-pct exam-score-pct--${pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low'}`}>
+                              {pct}%
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })()}
                   </td>
                   <td className="exam-cell-summary">
                     <span className="exam-cell-summary__desktop">

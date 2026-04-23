@@ -1565,6 +1565,14 @@ export const api = {
   voidExamAttempt: (id: string) =>
     request<ExamAttempt>(`/api/exam-attempts/${id}/void`, { method: 'POST' }),
 
+  // 기간 내 모든 attempt (점수 + student) — ExamManagementPage에서 자동 채점 표시용
+  getExamAttemptsByPeriod: (periodId: string) =>
+    request<ExamAttemptByPeriod[]>(`/api/exam-attempts/by-period/${periodId}`),
+
+  // 문항별 응시 상세 — ExamResultPage
+  getExamAttemptDetail: (attemptId: string) =>
+    request<ExamAttemptDetail>(`/api/exam-attempts/${attemptId}/detail`),
+
   // ── Assignments (과제 회수·첨삭) ──
   getAssignments: (params?: { status?: string; kind?: string; mine?: boolean }) => {
     const qp = new URLSearchParams();
@@ -2004,6 +2012,46 @@ export interface ExamAttemptPauseEvent {
   resumedAt?: string;
   reason?: string;
   byUserId?: string;
+}
+
+export interface ExamAttemptByPeriod {
+  id: string;
+  exam_assignment_id: string;
+  student_id: string;
+  status: string;
+  auto_score: number | null;
+  auto_correct: number | null;
+  auto_total: number | null;
+  started_at: string | null;
+  ended_at: string | null;
+  submit_note: string | null;
+  student_name: string;
+}
+
+export interface ExamAttemptDetailBreakdown {
+  questionNo: number;
+  prompt: string;
+  choices: string[];
+  correctChoice: number;
+  points: number;
+  selectedChoice: number | null;
+  savedAt: string | null;
+  correct: boolean;
+}
+
+export interface ExamAttemptDetail {
+  id: string;
+  studentName: string;
+  paperTitle: string | null;
+  status: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationMinutes: number;
+  score: number | null;
+  correct: number | null;
+  total: number | null;
+  submitNote: string | null;
+  breakdown: ExamAttemptDetailBreakdown[];
 }
 
 export interface ExamAttempt {
