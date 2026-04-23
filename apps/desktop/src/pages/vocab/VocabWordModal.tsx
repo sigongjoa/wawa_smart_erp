@@ -15,7 +15,6 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
   const [studentId, setStudentId] = useState('');
   const [english, setEnglish] = useState('');
   const [korean, setKorean] = useState('');
-  const [blankType, setBlankType] = useState<'korean' | 'english' | 'both'>('korean');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +29,6 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
         student_id: studentId,
         english: english.trim(),
         korean: korean.trim(),
-        blank_type: blankType,
       });
       toast.success('단어가 추가되었습니다');
       onSaved();
@@ -47,7 +45,7 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
       <Modal.Body>
         <div className="vocab-modal-body">
           <label className="form-field">
-            <span className="form-label">학생 *</span>
+            <span className="form-label">학생<span className="form-required" aria-label="필수"> *</span></span>
             <select value={studentId} onChange={e => setStudentId(e.target.value)} className="form-input">
               <option value="">선택하세요</option>
               {students.map(s => (
@@ -56,7 +54,7 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
             </select>
           </label>
           <label className="form-field">
-            <span className="form-label">영어 *</span>
+            <span className="form-label">영어<span className="form-required" aria-label="필수"> *</span></span>
             <input
               className="form-input"
               value={english}
@@ -66,21 +64,13 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
             />
           </label>
           <label className="form-field">
-            <span className="form-label">한글 *</span>
+            <span className="form-label">한글<span className="form-required" aria-label="필수"> *</span></span>
             <input
               className="form-input"
               value={korean}
               onChange={e => setKorean(e.target.value)}
               placeholder="예: 사과"
             />
-          </label>
-          <label className="form-field">
-            <span className="form-label">빈칸 타입</span>
-            <select value={blankType} onChange={e => setBlankType(e.target.value as any)} className="form-input">
-              <option value="korean">한글 빈칸</option>
-              <option value="english">영어 빈칸</option>
-              <option value="both">둘 다 빈칸</option>
-            </select>
           </label>
           {error && <div className="form-error" role="alert">{error}</div>}
         </div>

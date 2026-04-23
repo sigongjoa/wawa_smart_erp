@@ -53,28 +53,31 @@ test('ERP 사이드바 네비 → /vocab React 페이지 정상 로드', async (
   await expect(page.locator('.app-sidebar')).toBeVisible();
   await expect(page.locator('.app-content')).toBeVisible();
 
-  // 서브 네비 + 페이지 타이틀
+  // 페이지 타이틀
   await expect(page.getByRole('heading', { name: '학습 (영단어)' })).toBeVisible();
-  await expect(page.locator('.vocab-subnav')).toBeVisible();
-  await expect(page.locator('.vocab-subtab--active', { hasText: '단어 관리' })).toBeVisible();
 
-  // 필터 바
+  // 메트릭 필터 3개
+  await expect(page.locator('.vocab-metric', { hasText: '전체' })).toBeVisible();
+  await expect(page.locator('.vocab-metric', { hasText: '대기' })).toBeVisible();
+  await expect(page.locator('.vocab-metric', { hasText: '승인' })).toBeVisible();
+
+  // 필터 바 (학생만) + 헤더의 primary action
   await expect(page.locator('.vocab-filter-bar select').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /새로고침/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /\+ 단어 추가/ })).toBeVisible();
+  await expect(page.locator('.vocab-header-action').getByRole('button', { name: /단어 추가/ })).toBeVisible();
 
-  // 테이블 헤더
+  // 테이블 헤더 (6열로 축약됨)
   await expect(page.locator('.vocab-table thead')).toBeVisible();
-  const headerCells = await page.locator('.vocab-table thead th').allTextContents();
-  expect(headerCells).toContain('학생');
-  expect(headerCells).toContain('영어');
-  expect(headerCells).toContain('품사');
-  expect(headerCells).toContain('제출자');
+  const headerCells = (await page.locator('.vocab-table thead th').allTextContents()).map(s => s.trim());
+  expect(headerCells).toContain('단어');
+  expect(headerCells).toContain('메타');
+  expect(headerCells).toContain('상태');
+  expect(headerCells).toContain('Box');
+  expect(headerCells).toContain('작업');
 
   // 단어 추가 모달
-  await page.getByRole('button', { name: /\+ 단어 추가/ }).click();
+  await page.locator('.vocab-header-action').getByRole('button', { name: /단어 추가/ }).click();
   await expect(page.locator('.modal-overlay')).toBeVisible();
-  await expect(page.getByText('단어 추가', { exact: true })).toBeVisible();
+  await expect(page.locator('.modal-overlay').getByText('단어 추가', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('.modal-overlay')).not.toBeVisible();
 
