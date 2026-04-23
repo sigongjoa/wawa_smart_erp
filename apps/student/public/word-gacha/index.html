@@ -3057,12 +3057,12 @@
 
 <div class="device" role="application" aria-label="Word Gacha">
 
-  <!-- HUD — 항상 보임 -->
-  <div class="hud">
-    <span class="hud-lv"><span class="t">LV</span><span class="n">12</span></span>
-    <div class="hud-exp" style="--exp: 72%"></div>
-    <span class="hud-stat streak"><svg><use href="#ic-flame"/></svg>92</span>
-    <span class="hud-stat coin"><svg><use href="#ic-coin"/></svg>250</span>
+  <!-- HUD — profile 값 기반, 초기값 0 -->
+  <div class="hud" id="hud">
+    <span class="hud-lv"><span class="t">LV</span><span class="n" id="hud-lv">1</span></span>
+    <div class="hud-exp" id="hud-exp" style="--exp: 0%"></div>
+    <span class="hud-stat streak"><svg><use href="#ic-flame"/></svg><span id="hud-streak">0</span></span>
+    <span class="hud-stat coin"><svg><use href="#ic-coin"/></svg><span id="hud-coin">0</span></span>
   </div>
 
   <main class="app">
@@ -3117,12 +3117,6 @@
         <button type="button" class="print-alert-btn" id="print-alert-btn">풀기 →</button>
       </div>
 
-      <div class="dialog">
-        <div class="speaker">WAWA · Lv 12</div>
-        <div class="line">오늘 복습 <b>12개</b>, 새 단어 <b>5개</b>. 문법 답변도 <b>2건</b> 도착했어. 어디부터 할까?</div>
-        <span class="arrow"></span>
-      </div>
-
       <div class="evo-panel" id="evo-panel" hidden aria-live="polite">
         <div class="evo-title">
           <span>진화까지</span> <b id="evo-stage-label">LV 1 → LV 2</b>
@@ -3142,78 +3136,6 @@
           <span class="lbl">연속일</span>
           <span class="track"><i style="--v:0%"></i></span>
           <span class="num">0/0</span>
-        </div>
-      </div>
-
-      <div class="quests">
-        <div class="quests-head">
-          <h2>오늘의 퀘스트</h2>
-          <span class="sub">4월 19일 일</span>
-        </div>
-        <div class="quest-list">
-          <button class="quest" onclick="goto('learn','quiz')">
-            <span class="q-marker" data-c="review">
-              <svg style="color: var(--t-noun)"><use href="#ic-review"/></svg>
-              <span class="mn">12</span>
-            </span>
-            <span class="q-text">
-              <span class="t">복습 세션</span>
-              <span class="s">BOX 2·3·5 · 권장 8분</span>
-            </span>
-            <span class="q-reward"><span class="xp">+60</span> EXP</span>
-            <span class="q-arr">›</span>
-          </button>
-
-          <button class="quest" onclick="goto('learn','textbook')">
-            <span class="q-marker" data-c="new">
-              <svg style="color: var(--t-adj)"><use href="#ic-plus"/></svg>
-              <span class="mn">5</span>
-            </span>
-            <span class="q-text">
-              <span class="t">새 단어 포획</span>
-              <span class="s">Unit 5 · Culture</span>
-            </span>
-            <span class="q-reward"><span class="xp">+80</span> EXP</span>
-            <span class="q-arr">›</span>
-          </button>
-
-          <button class="quest" onclick="goto('practice')">
-            <span class="q-marker" data-c="gram">
-              <svg style="color: var(--t-adv)"><use href="#ic-chat"/></svg>
-              <span class="mn">2</span>
-            </span>
-            <span class="q-text">
-              <span class="t">선생님 답변 확인</span>
-              <span class="s">현재완료 · 15분 전</span>
-            </span>
-            <span class="q-reward">—</span>
-            <span class="q-arr">›</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="pace">
-        <div class="pace-head">
-          <div>
-            <div class="ttl">이번 주 페이스</div>
-            <div class="avg">23<small>분 / 일</small></div>
-          </div>
-          <div style="text-align:right">
-            <div class="ttl" style="color: var(--t-adj)">+18%</div>
-            <div style="font: 500 10px/1 var(--body); color: var(--ink-3); margin-top: 4px; font-variant-numeric: tabular-nums;">지난주 대비</div>
-          </div>
-        </div>
-        <div class="chart">
-          <b class="hit" style="height:52%"></b>
-          <b class="hit" style="height:78%"></b>
-          <b class="hit" style="height:34%"></b>
-          <b class="hit" style="height:92%"></b>
-          <b class="hit" style="height:58%"></b>
-          <b style="height:22%"></b>
-          <b class="today" style="height:46%"></b>
-        </div>
-        <div class="chart-x">
-          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><b class="today">일</b>
         </div>
       </div>
 
@@ -3661,11 +3583,11 @@
             <svg class="mascot-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/><ellipse cx="40" cy="85" rx="7" ry="4" fill="#1438a8"/><ellipse cx="60" cy="85" rx="7" ry="4" fill="#1438a8"/><path class="m-antenna" d="M50 22v-8M50 14l-3-4M50 14l3-4" stroke="#14171f" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle class="m-antenna-ball" cx="50" cy="12" r="3" fill="#d4232c" stroke="#14171f" stroke-width="2"/><g class="m-body"><path d="M50 22c-16 0-25 10-25 24v14c0 12 10 21 25 21s25-9 25-21V46c0-14-9-24-25-24z" fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/><ellipse cx="50" cy="60" rx="14" ry="12" fill="#f6efe3"/><ellipse class="m-cheek" cx="33" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><ellipse class="m-cheek" cx="67" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><g class="m-eyes"><ellipse class="mascot-eye" cx="40" cy="44" rx="3" ry="4.5" fill="#14171f"/><ellipse class="mascot-eye" cx="60" cy="44" rx="3" ry="4.5" fill="#14171f"/><circle cx="41.4" cy="42.6" r="1.1" fill="#fff"/><circle cx="61.4" cy="42.6" r="1.1" fill="#fff"/></g><g class="m-mouth"><path class="m-mouth-neutral" d="M46 54q4 3 8 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-happy" d="M44 52q6 6 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-sad" d="M44 56q6 -4 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse class="m-mouth-eat" cx="50" cy="55" rx="4" ry="3" fill="#14171f"/></g><ellipse class="m-arm m-arm-l" cx="26" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/><ellipse class="m-arm m-arm-r" cx="74" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/></g></svg>
           </div>
           <div>
-            <h2 class="tc-name">와와 트레이너</h2>
-            <span class="tc-lv">LV <span class="n">12</span></span>
+            <h2 class="tc-name" id="me-name">와와 트레이너</h2>
+            <span class="tc-lv">LV <span class="n" id="me-lv">1</span></span>
             <div class="tc-streak">
               <svg><use href="#ic-flame"/></svg>
-              92일 연속 · 최장 17일
+              <span id="me-streak">0</span>일 연속
             </div>
           </div>
         </div>
@@ -3674,60 +3596,16 @@
       <div class="stats-row">
         <div class="stat-box">
           <div class="lbl">외운 단어</div>
-          <div class="v">342</div>
+          <div class="v" id="me-stat-box5">0</div>
         </div>
         <div class="stat-box">
-          <div class="lbl">학습 시간</div>
-          <div class="v">1,284<span class="u">분</span></div>
+          <div class="lbl">단어 수</div>
+          <div class="v" id="me-stat-total">0</div>
         </div>
         <div class="stat-box">
           <div class="lbl">정답률</div>
-          <div class="v">86<span class="u">%</span></div>
+          <div class="v" id="me-stat-acc">—</div>
         </div>
-      </div>
-
-      <div class="section-head">
-        <h2>이번 주</h2>
-        <span class="more" style="color: var(--t-adj); font-weight: 800;">+18%</span>
-      </div>
-      <div class="pace" style="margin-top: 0;">
-        <div class="pace-head">
-          <div>
-            <div class="ttl">목표 달성</div>
-            <div class="avg">5<small>/ 7일</small></div>
-          </div>
-          <div style="text-align:right">
-            <div class="ttl">평균</div>
-            <div class="avg" style="font-size: 16px;">23<small>분</small></div>
-          </div>
-        </div>
-        <div class="chart">
-          <b class="hit" style="height:52%"></b>
-          <b class="hit" style="height:78%"></b>
-          <b class="hit" style="height:34%"></b>
-          <b class="hit" style="height:92%"></b>
-          <b class="hit" style="height:58%"></b>
-          <b style="height:22%"></b>
-          <b class="today" style="height:46%"></b>
-        </div>
-        <div class="chart-x">
-          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><b class="today">일</b>
-        </div>
-      </div>
-
-      <div class="section-head">
-        <h2>배지</h2>
-        <span class="more">6 / 12</span>
-      </div>
-      <div class="badges-grid">
-        <div class="badge" data-earned="true"><svg><use href="#badge-star"/></svg></div>
-        <div class="badge" data-earned="true"><svg><use href="#badge-flame"/></svg></div>
-        <div class="badge" data-earned="true"><svg><use href="#badge-book"/></svg></div>
-        <div class="badge" data-earned="true"><svg><use href="#badge-chart"/></svg></div>
-        <div class="badge" data-earned="true"><svg><use href="#badge-medal"/></svg></div>
-        <div class="badge" data-earned="true"><svg><use href="#badge-crown"/></svg></div>
-        <div class="badge" data-locked="true"><svg><use href="#badge-lock"/></svg></div>
-        <div class="badge" data-locked="true"><svg><use href="#badge-lock"/></svg></div>
       </div>
 
       <div style="height: 24px"></div>
@@ -5435,9 +5313,67 @@
     document.body.dataset.screen = 'home';
   });
 
+  // ── HUD 갱신 — profile 기반 ──
+  function renderHud() {
+    const p = store.get(KEYS.profile) || { lv: 1, exp: 0, coin: 0, streak: 0 };
+    const lvEl = document.getElementById('hud-lv');
+    const expEl = document.getElementById('hud-exp');
+    const streakEl = document.getElementById('hud-streak');
+    const coinEl = document.getElementById('hud-coin');
+    if (lvEl) lvEl.textContent = String(p.lv ?? 1);
+    if (streakEl) streakEl.textContent = String(p.streak ?? 0);
+    if (coinEl) coinEl.textContent = String(p.coin ?? 0);
+    if (expEl) {
+      const lvExp = (p.exp ?? 0) % 100;
+      expEl.style.setProperty('--exp', lvExp + '%');
+    }
+  }
+  queueMicrotask(renderHud);
+
+  // ── ME(기록) 화면 갱신 ──
+  function renderMe() {
+    const p = store.get(KEYS.profile) || { lv: 1, streak: 0 };
+    const words = store.get(KEYS.words) ?? [];
+    const history = store.get(KEYS.quizHistory) ?? [];
+    const student = (() => {
+      try { return JSON.parse(localStorage.getItem('play_student') || 'null'); } catch { return null; }
+    })();
+
+    const nameEl = document.getElementById('me-name');
+    if (nameEl && student?.name) nameEl.textContent = student.name;
+
+    const lvEl = document.getElementById('me-lv');
+    if (lvEl) lvEl.textContent = String(p.lv ?? 1);
+
+    const streakEl = document.getElementById('me-streak');
+    if (streakEl) streakEl.textContent = String(p.streak ?? 0);
+
+    const box5 = words.filter(w => (w.box ?? 1) >= 5).length;
+    const box5El = document.getElementById('me-stat-box5');
+    if (box5El) box5El.textContent = String(box5);
+
+    const totalEl = document.getElementById('me-stat-total');
+    if (totalEl) totalEl.textContent = String(words.length);
+
+    const accEl = document.getElementById('me-stat-acc');
+    if (accEl) {
+      if (history.length === 0) accEl.textContent = '—';
+      else {
+        const correct = history.filter(h => h.correct).length;
+        const pct = Math.round((correct / history.length) * 100);
+        accEl.textContent = `${pct}%`;
+      }
+    }
+  }
+  queueMicrotask(renderMe);
+  new MutationObserver(() => {
+    if (document.body.dataset.screen === 'me') renderMe();
+  }).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+
   // 초기 로드 + 주기 폴링
   queueMicrotask(refreshPrintAlert);
   setInterval(refreshPrintAlert, 15000);
+  setInterval(renderHud, 2000);
 
   // Expose minimal API for E2E tests
   window.__wg = { readCreature, writeCreature, renderWordList, store, KEYS, refreshPlayroom, openCardDetail, enterPrintTake };
