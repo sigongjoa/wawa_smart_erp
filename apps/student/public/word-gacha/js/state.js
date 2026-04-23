@@ -36,12 +36,33 @@ export const SEED_WORDS = [
   { id: 'w012', word: 'technology', meaning: '기술',         pos: 'noun', example: 'Modern technology.',          box: 1, wrongCount: 0, addedAt: null },
 ];
 
+// 키별 기대 스키마 — parsed 값이 shape에 맞지 않으면 null 로 처리해 기본값 fallback 유도
+const VALIDATORS = {
+  [`${P}profile`]:     v => v && typeof v === 'object' && typeof v.lv === 'number' && typeof v.exp === 'number' && typeof v.coin === 'number',
+  [`${P}words`]:       v => Array.isArray(v),
+  [`${P}quizHistory`]: v => Array.isArray(v),
+  [`${P}badges`]:      v => Array.isArray(v),
+  [`${P}seen`]:        v => Array.isArray(v),
+};
+
 export function createStore(storage) {
   return {
     get(key) {
       const raw = storage.getItem(key);
       if (raw === null || raw === undefined) return null;
-      try { return JSON.parse(raw); } catch { return null; }
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch {
+        console.warn('[state] JSON parse failed — dropping corrupt key', key);
+        try { storage.removeItem(key); } catch {}
+        return null;
+      }
+      const validator = VALIDATORS[key];
+      if (validator && !validator(parsed)) {
+        console.warn('[state] schema mismatch — dropping', key);
+        try { storage.removeItem(key); } catch {}
+        return null;
+      }
+      return parsed;
     },
     set(key, value) { storage.setItem(key, JSON.stringify(value)); },
     remove(key) { storage.removeItem(key); },

@@ -22,6 +22,28 @@ async function getPlayAuth(context: RequestContext): Promise<PlayAuth | null> {
   return await context.env.KV.get(`play:${token}`, 'json') as PlayAuth | null;
 }
 
+// 쓰기 요청에 대해 Origin 제한 — 정식 학생 앱 또는 same-site 요청만 허용 (defense-in-depth)
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const ALLOWED_ORIGIN_HOSTS = new Set([
+  'wawa-learn.pages.dev',
+  'learn.wawa.app',
+]);
+function isAllowedOrigin(request: Request): boolean {
+  if (!WRITE_METHODS.has(request.method)) return true;
+  const site = request.headers.get('Sec-Fetch-Site');
+  if (site === 'same-origin' || site === 'same-site') return true;
+  const origin = request.headers.get('Origin') || request.headers.get('Referer') || '';
+  try {
+    const host = new URL(origin).hostname;
+    if (ALLOWED_ORIGIN_HOSTS.has(host)) return true;
+    if (host.endsWith('.wawa-learn.pages.dev')) return true; // preview deploys
+  } catch {
+    // fetch 없는 서버-서버 호출 (테스트 등) — Origin 없어도 허용
+    if (!origin) return true;
+  }
+  return false;
+}
+
 // ── 학생 단어장 ──
 
 async function handleGetMyWords(context: RequestContext, auth: PlayAuth): Promise<Response> {
@@ -211,19 +233,22 @@ async function handleSelfStartPrintJob(
   // 4지선다 오답은 학원 전체 풀에서 뽑으니 본인 단어가 1~3개여도 진행 가능
 
   // 가중치 샘플링 (box 1→5x, 2→3x, 3→2x, 4→1x)
+  // Fisher-Yates: 가중치 확장 pool을 섞고 앞에서부터 고유 단어 maxWords개 추출 (O(n))
   const weightMap: Record<number, number> = { 1: 5, 2: 3, 3: 2, 4: 1 };
   const pool: any[] = [];
   for (const w of candidates) {
     const weight = weightMap[w.box] || 1;
     for (let i = 0; i < weight; i++) pool.push(w);
   }
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
   const seen = new Set<string>();
   const selected: any[] = [];
-  while (selected.length < maxWords && pool.length > 0) {
-    const idx = Math.floor(Math.random() * pool.length);
-    const w = pool[idx];
+  for (const w of pool) {
+    if (selected.length >= maxWords) break;
     if (!seen.has(w.id)) { seen.add(w.id); selected.push(w); }
-    pool.splice(idx, 1);
   }
 
   // job 생성 — created_by 는 학생 자신 (self-start 구분용)
@@ -238,21 +263,22 @@ async function handleSelfStartPrintJob(
      `student:${auth.studentId}`]
   );
 
-  // choices snapshot 생성 (start 로직과 동일)
+  // choices snapshot 생성 (start 로직과 동일). pool LIMIT 제거 — 전체 approved에서 distractor 샘플링
   const allPool = await executeQuery<any>(
     db,
     `SELECT id, english, korean FROM vocab_words
-      WHERE academy_id = ? AND status = 'approved' LIMIT 500`,
+      WHERE academy_id = ? AND status = 'approved'`,
     [auth.academyId]
   );
-  for (const t of selected) {
+  const stmts = selected.map(t => {
     const q = buildQuestion(t, allPool);
-    await db.prepare(
+    return db.prepare(
       `INSERT INTO vocab_print_answers (print_job_id, word_id, correct_index, choices_json)
        VALUES (?, ?, ?, ?)
        ON CONFLICT(print_job_id, word_id) DO NOTHING`
-    ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices)).run();
-  }
+    ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices));
+  });
+  if (stmts.length > 0) await db.batch(stmts);
 
   // 생성된 job의 문제 목록 그대로 반환 — 클라는 enterPrintTake 로 이어 받기
   return handleGetPrintJob(jobId, context, auth);
@@ -286,10 +312,15 @@ function buildQuestion(target: any, pool: any[]): { prompt: string; choices: str
     .sort(() => Math.random() - 0.5)
     .slice(0, 3);
   const choices = distractors.map(w => String(w.korean || ''));
-  const insertAt = Math.floor(Math.random() * 4);
-  choices.splice(insertAt, 0, String(target.korean || ''));
-  // 혹시 부족하면 빈 문자열 채움 (fallback)
-  while (choices.length < 4) choices.push('—');
+  // 정답을 먼저 랜덤 위치에 삽입 (삽입 가능한 최대 index = 오답 개수)
+  const targetKor = String(target.korean || '');
+  const insertAt = Math.floor(Math.random() * (choices.length + 1));
+  choices.splice(insertAt, 0, targetKor);
+  // distractor가 부족하면 correctIndex 이외 슬롯만 '—'로 패딩
+  while (choices.length < 4) {
+    const pos = choices.length;
+    choices.push(pos === insertAt ? targetKor : '—');
+  }
   return { prompt: String(target.english || ''), choices: choices.slice(0, 4), correctIndex: insertAt };
 }
 
@@ -311,28 +342,29 @@ async function handleStartPrintJob(jobId: string, context: RequestContext, auth:
     [jobId]
   );
   if (existing.length === 0) {
-    // 대상 단어 + 학원 전체 단어 pool (오답 후보)
+    // 대상 단어 + 학원 전체 단어 pool (오답 후보) — 학원 소유 검증 포함
     const targets = await executeQuery<any>(
       db,
-      `SELECT * FROM vocab_words WHERE id IN (${wordIds.map(() => '?').join(',')})`,
-      wordIds
+      `SELECT * FROM vocab_words
+        WHERE academy_id = ? AND id IN (${wordIds.map(() => '?').join(',')})`,
+      [auth.academyId, ...wordIds]
     );
     const pool = await executeQuery<any>(
       db,
       `SELECT id, english, korean FROM vocab_words
-        WHERE academy_id = ? AND status = 'approved'
-        LIMIT 500`,
+        WHERE academy_id = ? AND status = 'approved'`,
       [auth.academyId]
     );
 
-    for (const t of targets) {
+    const stmts = targets.map(t => {
       const q = buildQuestion(t, pool);
-      await db.prepare(
+      return db.prepare(
         `INSERT INTO vocab_print_answers (print_job_id, word_id, correct_index, choices_json)
          VALUES (?, ?, ?, ?)
          ON CONFLICT(print_job_id, word_id) DO NOTHING`
-      ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices)).run();
-    }
+      ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices));
+    });
+    if (stmts.length > 0) await db.batch(stmts);
   }
 
   const now = new Date().toISOString();
@@ -414,85 +446,113 @@ async function handleSaveAnswer(
     (Number.isInteger(sel) && sel >= 0 && sel <= 3) ? sel : undefined;
   if (selected === undefined) return errorResponse('selected_index는 0..3 또는 null', 400);
 
+  // word_id가 이 잡의 소유 문항인지 명시 검증 — URL 변조 방지
+  const owned = await executeFirst<any>(
+    db,
+    `SELECT 1 AS ok FROM vocab_print_answers WHERE print_job_id = ? AND word_id = ?`,
+    [jobId, wordId]
+  );
+  if (!owned) return errorResponse('이 시험지의 문항이 아닙니다', 404);
+
   const result = await db.prepare(
     `UPDATE vocab_print_answers
         SET selected_index = ?, saved_at = datetime('now')
       WHERE print_job_id = ? AND word_id = ?`
   ).bind(selected, jobId, wordId).run();
-  if (!result.success || (result.meta?.changes ?? 0) === 0) {
-    return errorResponse('문항을 찾을 수 없습니다', 404);
-  }
+  if (!result.success) return errorResponse('문항 저장 실패', 500);
   return successResponse({ savedAt: new Date().toISOString() });
 }
 
 async function handleSubmitPrintJob(jobId: string, context: RequestContext, auth: PlayAuth): Promise<Response> {
   const db = context.env.DB;
-  const job = await loadOwnPrintJob(jobId, auth, db);
-  if (!job) return notFoundResponse();
-  // 이미 제출된 시험지면 저장된 결과를 그대로 반환 (idempotent) — 학생은 리워드 페이지로 진입
-  if (job.status === 'submitted') {
-    return successResponse({
-      correct: job.auto_correct ?? 0,
-      total: job.auto_total ?? 0,
-      submittedAt: job.submitted_at,
-      alreadySubmitted: true,
-    });
-  }
-  if (job.status !== 'in_progress' && job.status !== 'pending') {
+  // 낙관적 락: 소유권 + 상태 체크를 UPDATE 한 방으로 — 동시 제출에서 한 요청만 성공
+  const now = new Date().toISOString();
+  const lockRes = await db.prepare(
+    `UPDATE vocab_print_jobs
+        SET status = 'submitting', submitted_at = ?
+      WHERE id = ? AND student_id = ? AND academy_id = ?
+        AND status IN ('in_progress','pending')`
+  ).bind(now, jobId, auth.studentId, auth.academyId).run();
+
+  if (!lockRes.success) return errorResponse('제출 처리 실패', 500);
+  const locked = (lockRes.meta?.changes ?? 0) > 0;
+
+  // 락 실패 → 이미 제출됐거나 존재하지 않음. 현재 상태 조회 후 idempotent 응답 or 404
+  if (!locked) {
+    const job = await loadOwnPrintJob(jobId, auth, db);
+    if (!job) return notFoundResponse();
+    if (job.status === 'submitted' || job.status === 'submitting') {
+      return successResponse({
+        correct: job.auto_correct ?? 0,
+        total: job.auto_total ?? 0,
+        submittedAt: job.submitted_at,
+        alreadySubmitted: true,
+      });
+    }
     return errorResponse(`이미 종료된 시험지입니다 (${job.status})`, 409);
   }
 
+  // ── 채점 ── 이 시점부터 이 요청만이 해당 job을 처리
   const answers = await executeQuery<any>(
     db,
     `SELECT word_id, selected_index, correct_index FROM vocab_print_answers
       WHERE print_job_id = ?`,
     [jobId]
   );
-
-  let correct = 0;
   const total = answers.length;
+
+  // 관련 단어 일괄 SELECT (N+1 제거)
+  const wordIds = answers.map(a => a.word_id);
+  const wordMap = new Map<string, { box: number; wrong_count: number }>();
+  if (wordIds.length > 0) {
+    const placeholders = wordIds.map(() => '?').join(',');
+    const words = await executeQuery<any>(
+      db,
+      `SELECT id, box, wrong_count FROM vocab_words
+        WHERE academy_id = ? AND id IN (${placeholders})`,
+      [auth.academyId, ...wordIds]
+    );
+    for (const w of words) wordMap.set(w.id, { box: w.box ?? 1, wrong_count: w.wrong_count ?? 0 });
+  }
+
+  // 채점 + 업데이트 배치 구성
+  const updateStmts: any[] = [];
+  const insertStmts: any[] = [];
+  let correct = 0;
   for (const a of answers) {
     const isCorrect = a.selected_index !== null && a.selected_index === a.correct_index;
     if (isCorrect) correct++;
-
-    // 기존 vocab_words.box/wrong_count 업데이트 로직 재사용
-    const word = await executeFirst<any>(
-      db,
-      `SELECT box, wrong_count FROM vocab_words WHERE id = ? AND academy_id = ?`,
-      [a.word_id, auth.academyId]
-    );
-    if (!word) continue;
-    const boxBefore = word.box || 1;
+    const w = wordMap.get(a.word_id);
+    if (!w) continue;
+    const boxBefore = w.box || 1;
     const boxAfter = isCorrect ? Math.min(5, boxBefore + 1) : 1;
-    await executeUpdate(
-      db,
-      `UPDATE vocab_words
-          SET box = ?, review_count = review_count + 1,
-              wrong_count = wrong_count + ?,
-              updated_at = datetime('now')
-        WHERE id = ?`,
-      [boxAfter, isCorrect ? 0 : 1, a.word_id]
+    updateStmts.push(
+      db.prepare(
+        `UPDATE vocab_words
+            SET box = ?, review_count = review_count + 1,
+                wrong_count = wrong_count + ?,
+                updated_at = datetime('now')
+          WHERE id = ?`
+      ).bind(boxAfter, isCorrect ? 0 : 1, a.word_id)
     );
-
-    // 결과 이력도 남김 (수기 O/X와 동일 포맷)
-    const rid = generatePrefixedId('vgr');
-    await executeInsert(
-      db,
-      `INSERT INTO vocab_grade_results (id, print_job_id, word_id, correct, box_before, box_after)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [rid, jobId, a.word_id, isCorrect ? 1 : 0, boxBefore, boxAfter]
+    insertStmts.push(
+      db.prepare(
+        `INSERT INTO vocab_grade_results (id, print_job_id, word_id, correct, box_before, box_after)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(generatePrefixedId('vgr'), jobId, a.word_id, isCorrect ? 1 : 0, boxBefore, boxAfter)
     );
   }
 
-  const now = new Date().toISOString();
-  await executeUpdate(
-    db,
+  // 최종 job 상태 업데이트 + 배치 실행 (D1 batch는 순차 원자 실행)
+  const finalizeStmt = db.prepare(
     `UPDATE vocab_print_jobs
         SET status = 'submitted', submitted_at = ?,
             auto_correct = ?, auto_total = ?
-      WHERE id = ?`,
-    [now, correct, total, jobId]
-  );
+      WHERE id = ?`
+  ).bind(now, correct, total, jobId);
+
+  const batch = [...updateStmts, ...insertStmts, finalizeStmt];
+  if (batch.length > 0) await db.batch(batch);
 
   return successResponse({ correct, total, submittedAt: now });
 }
@@ -506,6 +566,7 @@ export async function handleVocabPlay(
   context: RequestContext
 ): Promise<Response> {
   try {
+    if (!isAllowedOrigin(request)) return errorResponse('origin not allowed', 403);
     const auth = await getPlayAuth(context);
     if (!auth) return unauthorizedResponse();
 

@@ -3,8 +3,23 @@
 // 클라 shape(words):         { id, word,    meaning, pos, example, box, wrongCount, addedAt }
 
 const API_BASE = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
+// 토큰 수명 상한 (서버 KV TTL과 관계없이 클라 만료) — 7일
+const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-function getToken() { return localStorage.getItem('play_token'); }
+function getToken() {
+  const token = localStorage.getItem('play_token');
+  if (!token) return null;
+  const createdAt = Number(localStorage.getItem('play_token_created_at') || 0);
+  if (createdAt && Date.now() - createdAt > TOKEN_MAX_AGE_MS) {
+    // 만료 — 토큰 제거 → 다음 요청부터 자연스럽게 재로그인 유도
+    try {
+      localStorage.removeItem('play_token');
+      localStorage.removeItem('play_token_created_at');
+    } catch {}
+    return null;
+  }
+  return token;
+}
 
 /**
  * 로그인/동기화 상태를 노출해서 UI에서 "로그인하면 저장됩니다" 배너를 보여줄 수 있게 함.

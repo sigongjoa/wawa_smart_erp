@@ -5183,7 +5183,8 @@
   });
 
   async function enterPrintTake(jobId) {
-    if (!jobId) return;
+    // jobId 포맷 검증 — 서버가 사용하는 prefixed id (예: vpj-abc123) 또는 uuid 형태만
+    if (!jobId || typeof jobId !== 'string' || !/^[a-zA-Z0-9_-]{6,64}$/.test(jobId)) return;
     try {
       const started = await startPrintJob(jobId);
       if (!started) { toast('시험지를 불러오지 못했어요'); return; }
@@ -5204,6 +5205,24 @@
     }
   }
 
+  // 이벤트 위임: 버튼별 리스너 누수 방지 — 한 번만 바인딩
+  (function bindPrintTakeDelegation() {
+    const choicesHost = document.getElementById('print-take-choices');
+    const dotsHost = document.getElementById('print-take-dots');
+    choicesHost?.addEventListener('click', (e) => {
+      const btn = e.target?.closest?.('.print-take-choice');
+      if (!btn || !choicesHost.contains(btn)) return;
+      const idx = Array.from(choicesHost.querySelectorAll('.print-take-choice')).indexOf(btn);
+      if (idx >= 0) pickAnswer(idx);
+    });
+    dotsHost?.addEventListener('click', (e) => {
+      const d = e.target?.closest?.('.print-take-dot');
+      if (!d || !dotsHost.contains(d)) return;
+      const i = Number(d.dataset.idx);
+      if (Number.isInteger(i)) { printState.idx = i; renderPrintTake(); }
+    });
+  })();
+
   function renderPrintTake() {
     const total = printState.questions.length;
     const q = printState.questions[printState.idx];
@@ -5214,7 +5233,7 @@
     const pct = total > 0 ? Math.round((printState.idx / total) * 100) : 0;
     document.getElementById('print-take-bar-fill').style.setProperty('--p', pct + '%');
 
-    // choices
+    // choices — 리스너는 위임으로 이미 바인딩됨. DOM만 교체
     const list = document.getElementById('print-take-choices');
     list.innerHTML = '';
     q.choices.forEach((c, i) => {
@@ -5222,9 +5241,14 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'print-take-choice' + (q.selectedIndex === i ? ' is-selected' : '');
-      btn.innerHTML = `<span class="print-take-choice-num">${i + 1}</span><span class="print-take-choice-text"></span>`;
-      btn.querySelector('.print-take-choice-text').textContent = c;
-      btn.addEventListener('click', () => pickAnswer(i));
+      const num = document.createElement('span');
+      num.className = 'print-take-choice-num';
+      num.textContent = String(i + 1);
+      const txt = document.createElement('span');
+      txt.className = 'print-take-choice-text';
+      txt.textContent = c;
+      btn.appendChild(num);
+      btn.appendChild(txt);
       li.appendChild(btn);
       list.appendChild(li);
     });
@@ -5242,10 +5266,10 @@
       const d = document.createElement('button');
       d.type = 'button';
       d.className = 'print-take-dot';
+      d.dataset.idx = String(i);
       if (i === printState.idx) d.classList.add('is-current');
       else if (qq.selectedIndex !== null && qq.selectedIndex !== undefined) d.classList.add('is-answered');
       d.textContent = String(i + 1);
-      d.addEventListener('click', () => { printState.idx = i; renderPrintTake(); });
       dots.appendChild(d);
     });
   }
@@ -5288,14 +5312,18 @@
       return;
     }
     // 마지막 문제 → 제출
+    if (printState.submitting) return;
+    const nextBtn = document.getElementById('print-take-next');
     const answered = printState.questions.filter(x => x.selectedIndex !== null && x.selectedIndex !== undefined).length;
     if (answered < total) {
       if (!confirm(`${total - answered}문항이 비어있어요. 그래도 제출할까요?`)) return;
     } else {
       if (!confirm('제출하시겠어요? 제출 후에는 수정할 수 없어요.')) return;
     }
+    // 재확인 (confirm 중 중복 진입 방지)
     if (printState.submitting) return;
     printState.submitting = true;
+    if (nextBtn) nextBtn.disabled = true;
     try {
       await flushPendingAnswers();
       const result = await submitPrintJob(printState.jobId);
@@ -5318,6 +5346,8 @@
       toast('제출 실패 · ' + (e?.message || ''));
     } finally {
       printState.submitting = false;
+      const nextBtn2 = document.getElementById('print-take-next');
+      if (nextBtn2) nextBtn2.disabled = false;
     }
   });
 
@@ -5488,10 +5518,18 @@
     if (document.body.dataset.screen === 'me') renderMe();
   }).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
 
-  // 초기 로드 + 주기 폴링
+  // 초기 로드 + 주기 폴링 — 페이지 가시 상태에서만 돌도록 가드
   queueMicrotask(refreshPrintAlert);
-  setInterval(refreshPrintAlert, 15000);
-  setInterval(renderHud, 2000);
+  const _intervals = [];
+  _intervals.push(setInterval(() => {
+    if (document.visibilityState === 'visible') refreshPrintAlert();
+  }, 15000));
+  _intervals.push(setInterval(() => {
+    if (document.visibilityState === 'visible') renderHud();
+  }, 2000));
+  window.addEventListener('pagehide', () => {
+    _intervals.forEach(id => clearInterval(id));
+  });
 
   // Expose minimal API for E2E tests
   window.__wg = { readCreature, writeCreature, renderWordList, store, KEYS, refreshPlayroom, openCardDetail, enterPrintTake };
