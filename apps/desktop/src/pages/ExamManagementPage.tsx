@@ -205,6 +205,8 @@ export default function ExamManagementPage() {
   const [students, setStudents] = useState<ByMonthStudent[]>([]);
   const [periodId, setPeriodId] = useState<string>('');
   const [attemptsByStudent, setAttemptsByStudent] = useState<Map<string, ExamAttemptByPeriod>>(new Map());
+  const [reportSends, setReportSends] = useState<Record<string, { shareUrl: string; sentAt: string }>>({});
+  const [reviewType, setReviewType] = useState<'midterm' | 'final'>('final');
   const [loading, setLoading] = useState(true);
 
   const [gradeFilter, setGradeFilter] = useState('');
@@ -322,6 +324,33 @@ export default function ExamManagementPage() {
   }, [isAdmin, scope]);
 
   useEffect(() => { load(selectedMonth); }, [load, selectedMonth]);
+
+  // selectedMonth + reviewType → 정기고사 리뷰 리포트 send-status
+  // month 1~6 → term=YYYY-1 (1학기), month 7~12 → term=YYYY-2 (2학기)
+  const reviewTerm = useMemo(() => {
+    const [y, mStr] = selectedMonth.split('-');
+    const m = Number(mStr);
+    const half = m >= 7 ? 2 : 1;
+    return `${y}-${half}`;
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const map = await api.getSendStatus({ reportType: reviewType, term: reviewTerm });
+        if (cancelled) return;
+        const out: Record<string, { shareUrl: string; sentAt: string }> = {};
+        for (const [sid, v] of Object.entries(map || {})) {
+          out[sid] = { shareUrl: (v as any).shareUrl, sentAt: (v as any).sentAt };
+        }
+        setReportSends(out);
+      } catch {
+        if (!cancelled) setReportSends({});
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [reviewType, reviewTerm]);
 
   // periodId 변경 시 응시 내역도 fetch (자동 채점 점수 표시용)
   useEffect(() => {
@@ -565,6 +594,23 @@ export default function ExamManagementPage() {
         <span className="exam-stat">검토: {stats.reviewed}/{stats.assigned}</span>
         {stats.absent > 0 && <span className="exam-stat exam-stat--absent">결시: {stats.absent}</span>}
         {stats.rescheduled > 0 && <span className="exam-stat exam-stat--rescheduled">재시험: {stats.rescheduled}</span>}
+        <span className="exam-stat" title={`${reviewTerm} ${reviewType === 'midterm' ? '중간' : '기말'}`}>
+          리포트: {Object.keys(reportSends).length}/{students.length}
+        </span>
+        <div className="exam-review-toggle" role="group" aria-label="리포트 유형">
+          <button
+            type="button"
+            aria-pressed={reviewType === 'midterm'}
+            className={`exam-review-toggle-btn ${reviewType === 'midterm' ? 'is-active' : ''}`}
+            onClick={() => setReviewType('midterm')}
+          >중간</button>
+          <button
+            type="button"
+            aria-pressed={reviewType === 'final'}
+            className={`exam-review-toggle-btn ${reviewType === 'final' ? 'is-active' : ''}`}
+            onClick={() => setReviewType('final')}
+          >기말</button>
+        </div>
         <div className="exam-filters">
           <select className="exam-filter-select" aria-label="학년 필터" value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}>
             <option value="">전체 학년</option>
@@ -616,6 +662,7 @@ export default function ExamManagementPage() {
               <th className="exam-th-exam-status">시험상태</th>
               <th className="exam-th-exam-date">시험일</th>
               <th className="exam-th-score">점수</th>
+              <th className="exam-th-report">리포트</th>
               <th>상태</th>
             </tr>
           </thead>
@@ -785,6 +832,33 @@ export default function ExamManagementPage() {
                             </span>
                           )}
                         </button>
+                      );
+                    })()}
+                  </td>
+                  <td className="exam-cell-report">
+                    {(() => {
+                      const rep = reportSends[s.student_id];
+                      if (rep) {
+                        return (
+                          <a
+                            href={rep.shareUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="exam-report-link"
+                            title={`작성: ${new Date(rep.sentAt).toLocaleDateString('ko-KR')}`}
+                          >
+                            ✓ 작성됨
+                          </a>
+                        );
+                      }
+                      return (
+                        <a
+                          href={`#/parent-report/${s.student_id}?type=${reviewType}&term=${reviewTerm}`}
+                          className="exam-report-pending"
+                          title="리포트 작성하러 가기"
+                        >
+                          — 미작성
+                        </a>
                       );
                     })()}
                   </td>
