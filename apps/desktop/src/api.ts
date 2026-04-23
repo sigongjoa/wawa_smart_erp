@@ -1527,6 +1527,24 @@ export const api = {
 
   pickVocabPrint: (data: { student_id: string; max_words?: number }) =>
     request<VocabPrintPickResult>('/api/vocab/print/pick', { method: 'POST', body: JSON.stringify(data) }),
+  assignVocabPrint: (data: { student_ids: string[]; max_words?: number }) =>
+    request<{
+      created: Array<{ job_id: string; student_id: string; student_name: string; word_count: number }>;
+      skipped: Array<{ student_id: string; reason: string }>;
+    }>('/api/vocab/print/assign', { method: 'POST', body: JSON.stringify(data) }),
+  listVocabPrintJobs: (params?: { status?: string; days?: number }) => {
+    const qp = new URLSearchParams();
+    if (params?.status) qp.set('status', params.status);
+    if (params?.days) qp.set('days', String(params.days));
+    const q = qp.toString();
+    return request<VocabPrintJobSummary[]>(`/api/vocab/print/jobs${q ? '?' + q : ''}`);
+  },
+  getVocabPrintJobAnswers: (jobId: string) =>
+    request<VocabPrintJobDetail>(`/api/vocab/print/jobs/${jobId}/answers`),
+  voidVocabPrintJob: (jobId: string) =>
+    request(`/api/vocab/print/jobs/${jobId}/void`, { method: 'POST', body: JSON.stringify({}) }),
+  deleteVocabPrintJob: (jobId: string) =>
+    request(`/api/vocab/print/jobs/${jobId}`, { method: 'DELETE' }),
   gradeVocabPrint: (data: { job_id: string; results: { word_id: string; correct: 0 | 1 }[] }) =>
     request<{ job_id: string; correct: number; wrong: number }>('/api/vocab/print/grade', {
       method: 'POST',
@@ -1801,6 +1819,46 @@ export interface VocabPrintPickResult {
   student: { id: string; name: string };
   words: VocabWord[];
   grammar: VocabGrammarQA[];
+}
+
+export interface VocabPrintJobSummary {
+  job_id: string;
+  student_id: string;
+  student_name: string;
+  status: 'pending' | 'in_progress' | 'submitted' | 'voided';
+  auto_correct: number | null;
+  auto_total: number | null;
+  started_at: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  word_count: number;
+}
+
+export interface VocabPrintJobAnswerRow {
+  word_id: string;
+  english: string;
+  korean: string;
+  pos: string | null;
+  selected_index: number | null;
+  correct_index: number;
+  choices: string[];
+  correct: boolean;
+  saved_at: string | null;
+}
+
+export interface VocabPrintJobDetail {
+  job: {
+    id: string;
+    status: string;
+    student_id: string;
+    student_name: string;
+    auto_correct: number | null;
+    auto_total: number | null;
+    started_at: string | null;
+    submitted_at: string | null;
+    created_at: string;
+  };
+  answers: VocabPrintJobAnswerRow[];
 }
 
 // ── 가차/증명 타입 ──

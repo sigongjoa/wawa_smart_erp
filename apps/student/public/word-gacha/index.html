@@ -214,6 +214,10 @@
   body[data-screen="dex"]      .screen[data-s="dex"]      { display: block; }
   body[data-screen="me"]       .screen[data-s="me"]       { display: block; }
   body[data-screen="playroom"] .screen[data-s="playroom"] { display: block; }
+  body[data-screen="print"]    .screen[data-s="print"]    { display: block; }
+  body[data-screen="print"]    nav.tabbar,
+  body[data-screen="print"]    .dialog,
+  body[data-screen="print"]    .evo-panel { display: none !important; }
 
   @keyframes screen-in {
     from { opacity: 0; transform: translateY(6px); }
@@ -2506,6 +2510,256 @@
     opacity: .5;
     cursor: not-allowed;
   }
+
+  /* ── Phase 3b: 시험지 알림 카드 ── */
+  .print-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 14px;
+    padding: 12px 14px;
+    background: linear-gradient(90deg, var(--pri-soft), #fff);
+    border: 2px solid var(--pri);
+    border-radius: 12px;
+    box-shadow: 0 3px 0 rgba(45, 58, 140, 0.15);
+  }
+  .print-alert-icon { font-size: 22px; flex-shrink: 0; }
+  .print-alert-body { flex: 1; min-width: 0; }
+  .print-alert-title {
+    font: 800 14px/1.2 var(--display);
+    color: var(--pri);
+    margin-bottom: 3px;
+  }
+  .print-alert-desc {
+    font: 500 12px/1.3 var(--body);
+    color: var(--ink-3);
+  }
+  .print-alert-btn {
+    padding: 8px 14px;
+    background: var(--pri);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font: 700 13px/1 var(--body);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .print-alert-btn:active { transform: translateY(1px); }
+
+  /* ── Phase 3b: 시험지 응시 화면 ── */
+  .screen[data-s="print"] {
+    padding: 12px 14px 60px;
+  }
+  .print-take-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .print-take-back {
+    background: transparent;
+    border: 0;
+    color: var(--ink-3);
+    font: 500 13px var(--body);
+    cursor: pointer;
+    padding: 6px 4px;
+  }
+  .print-take-progress {
+    font: 700 13px/1 var(--body);
+    color: var(--pri);
+    font-variant-numeric: tabular-nums;
+  }
+  .print-take-bar {
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .print-take-bar i {
+    display: block;
+    height: 100%;
+    width: var(--p, 0%);
+    background: var(--pri);
+    transition: width .2s ease-out;
+  }
+  .print-take-stage {
+    background: #f7fafc;
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    padding: 24px 18px;
+    margin-bottom: 16px;
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .print-take-prompt {
+    font: 800 28px/1.2 var(--display);
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    text-align: center;
+    word-break: break-word;
+  }
+  .print-take-choices {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .print-take-choice {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    text-align: left;
+    font: 500 15px/1.3 var(--body);
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .print-take-choice:hover { border-color: var(--pri); }
+  .print-take-choice.is-selected {
+    background: var(--pri-soft);
+    border-color: var(--pri);
+    font-weight: 700;
+  }
+  .print-take-choice-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: var(--ink-3);
+    font: 700 12px/1 var(--body);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .print-take-choice.is-selected .print-take-choice-num {
+    background: var(--pri);
+    color: #fff;
+  }
+  .print-take-choice-text { flex: 1; }
+  .print-take-footer {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .print-take-prev,
+  .print-take-next {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font: 700 15px var(--body);
+    cursor: pointer;
+    border: 2px solid var(--ink);
+  }
+  .print-take-prev {
+    background: #fff;
+    color: var(--ink);
+  }
+  .print-take-prev:disabled { opacity: 0.4; cursor: not-allowed; }
+  .print-take-next {
+    background: var(--pri);
+    color: #fff;
+    flex: 2;
+  }
+  .print-take-next:active { transform: translateY(1px); }
+
+  .print-take-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+  .print-take-dot {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #a0aec0;
+    font: 700 11px/1 var(--body);
+    cursor: pointer;
+  }
+  .print-take-dot.is-answered {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+  }
+  .print-take-dot.is-current {
+    background: var(--pri);
+    color: #fff;
+    border-color: var(--pri);
+  }
+
+  /* 결과 */
+  .print-take-result {
+    margin-top: 20px;
+    padding: 24px 20px;
+    background: #f7fafc;
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    text-align: center;
+  }
+  .print-take-result-icon { font-size: 52px; margin-bottom: 8px; }
+  .print-take-result-score {
+    font: 800 40px/1 var(--display);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+  }
+  .print-take-result-score .sep { color: var(--ink-3); font-weight: 400; margin: 0 4px; }
+  .print-take-result-pct {
+    display: inline-block;
+    font: 700 16px/1 var(--body);
+    padding: 6px 16px;
+    border-radius: 99px;
+    margin-bottom: 20px;
+  }
+  .print-take-result-pct[data-level="high"] { background: #d1fae5; color: #065f46; }
+  .print-take-result-pct[data-level="mid"]  { background: #fef3c7; color: #92400e; }
+  .print-take-result-pct[data-level="low"]  { background: #fee2e2; color: #991b1b; }
+  .print-take-result-wrong { text-align: left; margin-bottom: 20px; }
+  .print-take-result-wrong-title {
+    font: 700 13px/1 var(--body);
+    color: var(--ink-3);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .print-take-result-wrong-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .print-take-result-wrong-en { font-weight: 800; color: var(--ink); }
+  .print-take-result-wrong-arrow { color: var(--ink-3); }
+  .print-take-result-wrong-ko { color: var(--pri); font-weight: 600; }
+  .print-take-result-none {
+    padding: 20px; color: var(--ink-3); font-size: 14px; text-align: center;
+  }
+  .print-take-result-home {
+    width: 100%;
+    padding: 12px;
+    background: var(--pri);
+    color: #fff;
+    border: 0;
+    border-radius: 10px;
+    font: 700 15px var(--body);
+    cursor: pointer;
+  }
 </style>
 </head>
 
@@ -2851,6 +3105,16 @@
             <svg class="mascot-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/><ellipse cx="40" cy="85" rx="7" ry="4" fill="#1438a8"/><ellipse cx="60" cy="85" rx="7" ry="4" fill="#1438a8"/><path class="m-antenna" d="M50 22v-8M50 14l-3-4M50 14l3-4" stroke="#14171f" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle class="m-antenna-ball" cx="50" cy="12" r="3" fill="#d4232c" stroke="#14171f" stroke-width="2"/><g class="m-body"><path d="M50 22c-16 0-25 10-25 24v14c0 12 10 21 25 21s25-9 25-21V46c0-14-9-24-25-24z" fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/><ellipse cx="50" cy="60" rx="14" ry="12" fill="#f6efe3"/><ellipse class="m-cheek" cx="33" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><ellipse class="m-cheek" cx="67" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><g class="m-eyes"><ellipse class="mascot-eye" cx="40" cy="44" rx="3" ry="4.5" fill="#14171f"/><ellipse class="mascot-eye" cx="60" cy="44" rx="3" ry="4.5" fill="#14171f"/><circle cx="41.4" cy="42.6" r="1.1" fill="#fff"/><circle cx="61.4" cy="42.6" r="1.1" fill="#fff"/></g><g class="m-mouth"><path class="m-mouth-neutral" d="M46 54q4 3 8 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-happy" d="M44 52q6 6 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-sad" d="M44 56q6 -4 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse class="m-mouth-eat" cx="50" cy="55" rx="4" ry="3" fill="#14171f"/></g><ellipse class="m-arm m-arm-l" cx="26" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/><ellipse class="m-arm m-arm-r" cx="74" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/></g></svg>
           </div>
         </div>
+      </div>
+
+      <!-- 단어 시험지 알림 (Phase 3b) -->
+      <div class="print-alert" id="print-alert" hidden role="status" aria-live="polite">
+        <div class="print-alert-icon">🔔</div>
+        <div class="print-alert-body">
+          <div class="print-alert-title">새 단어 시험지가 왔어요</div>
+          <div class="print-alert-desc" id="print-alert-desc">— 문항 · 선생님이 출제</div>
+        </div>
+        <button type="button" class="print-alert-btn" id="print-alert-btn">풀기 →</button>
       </div>
 
       <div class="dialog">
@@ -3509,6 +3773,44 @@
       <div style="height: 24px"></div>
     </section>
 
+    <!-- ============================================================
+         PRINT-TAKE — 단어 시험지 응시 (Phase 3b)
+         ============================================================ -->
+    <section class="screen" data-s="print" aria-labelledby="h-print">
+      <h1 id="h-print" class="vh">단어 시험지</h1>
+
+      <header class="print-take-header">
+        <button type="button" class="print-take-back" id="print-take-back">← 나가기</button>
+        <span class="print-take-progress" id="print-take-progress">— / —</span>
+      </header>
+      <div class="print-take-bar" aria-hidden="true"><i id="print-take-bar-fill" style="--p:0%"></i></div>
+
+      <div class="print-take-stage" id="print-take-stage">
+        <div class="print-take-prompt" id="print-take-prompt">—</div>
+      </div>
+
+      <ol class="print-take-choices" id="print-take-choices"></ol>
+
+      <div class="print-take-footer">
+        <button type="button" class="print-take-prev" id="print-take-prev">이전</button>
+        <button type="button" class="print-take-next" id="print-take-next">다음 →</button>
+      </div>
+      <div class="print-take-dots" id="print-take-dots" aria-hidden="true"></div>
+
+      <!-- 결과 오버레이 -->
+      <div class="print-take-result" id="print-take-result" hidden>
+        <div class="print-take-result-icon" id="print-take-result-icon">🎉</div>
+        <div class="print-take-result-score">
+          <span id="print-take-result-correct">0</span>
+          <span class="sep">/</span>
+          <span id="print-take-result-total">0</span>
+        </div>
+        <div class="print-take-result-pct" id="print-take-result-pct">0%</div>
+        <div class="print-take-result-wrong" id="print-take-result-wrong"></div>
+        <button type="button" class="print-take-result-home" id="print-take-result-home">홈으로</button>
+      </div>
+    </section>
+
   </main>
 
   <nav class="tabbar" aria-label="주 메뉴">
@@ -3752,6 +4054,7 @@
     loadGrammarQA, submitGrammarQuestion,
     loadServerTextbooks, loadTextbookWords,
     isSyncDisabled,
+    loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob,
   } from './js/wawa-bridge.js';
 
   // 서버 sync 꺼졌을 때 배너 표시
@@ -4918,8 +5221,226 @@
   // 초기 부팅 시 현재 탭이 learn/quiz면 바로 시작
   queueMicrotask(maybeStartQuiz);
 
+  // ============================================================
+  // Phase 3b — 단어 시험지 응시 (학생)
+  // ============================================================
+  const printState = {
+    jobId: null,
+    questions: [],    // [{ wordId, prompt, choices[4], selectedIndex }]
+    idx: 0,
+    saveTimers: new Map(),
+    submitting: false,
+  };
+
+  async function refreshPrintAlert() {
+    const alert = document.getElementById('print-alert');
+    if (!alert || isSyncDisabled()) return;
+    try {
+      const list = await loadPrintPending();
+      if (!list || list.length === 0) {
+        alert.hidden = true;
+        return;
+      }
+      const job = list[0]; // 가장 최근
+      alert.hidden = false;
+      const desc = document.getElementById('print-alert-desc');
+      if (desc) {
+        const status = job.status === 'in_progress' ? '이어 풀기' : '선생님이 출제';
+        desc.textContent = `${job.word_count}문항 · ${status}`;
+      }
+      alert.dataset.jobId = job.job_id;
+    } catch (e) {
+      console.warn('[print] alert refresh failed', e);
+    }
+  }
+
+  document.getElementById('print-alert-btn')?.addEventListener('click', () => {
+    const alert = document.getElementById('print-alert');
+    const jobId = alert?.dataset.jobId;
+    if (jobId) enterPrintTake(jobId);
+  });
+
+  async function enterPrintTake(jobId) {
+    if (!jobId) return;
+    try {
+      const started = await startPrintJob(jobId);
+      if (!started) { toast('시험지를 불러오지 못했어요'); return; }
+      printState.jobId = jobId;
+      printState.questions = (started.questions || []).map(q => ({
+        wordId: q.wordId,
+        prompt: q.prompt,
+        choices: q.choices || [],
+        selectedIndex: q.selectedIndex,
+      }));
+      printState.idx = 0;
+      document.getElementById('print-take-result').hidden = true;
+      document.body.dataset.screen = 'print';
+      renderPrintTake();
+    } catch (e) {
+      console.warn('[print] enter failed', e);
+      toast('시험지를 시작하지 못했어요');
+    }
+  }
+
+  function renderPrintTake() {
+    const total = printState.questions.length;
+    const q = printState.questions[printState.idx];
+    if (!q) return;
+
+    document.getElementById('print-take-prompt').textContent = q.prompt;
+    document.getElementById('print-take-progress').textContent = `${printState.idx + 1} / ${total}`;
+    const pct = total > 0 ? Math.round((printState.idx / total) * 100) : 0;
+    document.getElementById('print-take-bar-fill').style.setProperty('--p', pct + '%');
+
+    // choices
+    const list = document.getElementById('print-take-choices');
+    list.innerHTML = '';
+    q.choices.forEach((c, i) => {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'print-take-choice' + (q.selectedIndex === i ? ' is-selected' : '');
+      btn.innerHTML = `<span class="print-take-choice-num">${i + 1}</span><span class="print-take-choice-text"></span>`;
+      btn.querySelector('.print-take-choice-text').textContent = c;
+      btn.addEventListener('click', () => pickAnswer(i));
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+
+    // nav
+    const prev = document.getElementById('print-take-prev');
+    const next = document.getElementById('print-take-next');
+    prev.disabled = printState.idx === 0;
+    next.textContent = printState.idx === total - 1 ? '제출' : '다음 →';
+
+    // dots
+    const dots = document.getElementById('print-take-dots');
+    dots.innerHTML = '';
+    printState.questions.forEach((qq, i) => {
+      const d = document.createElement('button');
+      d.type = 'button';
+      d.className = 'print-take-dot';
+      if (i === printState.idx) d.classList.add('is-current');
+      else if (qq.selectedIndex !== null && qq.selectedIndex !== undefined) d.classList.add('is-answered');
+      d.textContent = String(i + 1);
+      d.addEventListener('click', () => { printState.idx = i; renderPrintTake(); });
+      dots.appendChild(d);
+    });
+  }
+
+  function pickAnswer(idx) {
+    const q = printState.questions[printState.idx];
+    if (!q) return;
+    q.selectedIndex = idx;
+    const existing = printState.saveTimers.get(q.wordId);
+    if (existing) clearTimeout(existing);
+    const tid = setTimeout(() => {
+      savePrintAnswer(printState.jobId, q.wordId, idx).catch(() => {});
+      printState.saveTimers.delete(q.wordId);
+    }, 250);
+    printState.saveTimers.set(q.wordId, tid);
+    // 시각 업데이트
+    renderPrintTake();
+  }
+
+  async function flushPendingAnswers() {
+    const promises = [];
+    for (const [wordId, tid] of printState.saveTimers) {
+      clearTimeout(tid);
+      const q = printState.questions.find(x => x.wordId === wordId);
+      if (q) promises.push(savePrintAnswer(printState.jobId, wordId, q.selectedIndex).catch(() => {}));
+    }
+    printState.saveTimers.clear();
+    await Promise.all(promises);
+  }
+
+  document.getElementById('print-take-prev')?.addEventListener('click', () => {
+    if (printState.idx > 0) { printState.idx -= 1; renderPrintTake(); }
+  });
+
+  document.getElementById('print-take-next')?.addEventListener('click', async () => {
+    const total = printState.questions.length;
+    if (printState.idx < total - 1) {
+      printState.idx += 1;
+      renderPrintTake();
+      return;
+    }
+    // 마지막 문제 → 제출
+    const answered = printState.questions.filter(x => x.selectedIndex !== null && x.selectedIndex !== undefined).length;
+    if (answered < total) {
+      if (!confirm(`${total - answered}문항이 비어있어요. 그래도 제출할까요?`)) return;
+    } else {
+      if (!confirm('제출하시겠어요? 제출 후에는 수정할 수 없어요.')) return;
+    }
+    if (printState.submitting) return;
+    printState.submitting = true;
+    try {
+      await flushPendingAnswers();
+      const res = await submitPrintJob(printState.jobId);
+      if (!res) { toast('제출 실패'); return; }
+      // 최종 breakdown 은 별도 GET으로 받을 수도 있지만 submit 응답 + local 상태로 즉시 표시
+      const job = await loadPrintJob(printState.jobId);
+      showPrintResult(res, job?.breakdown || []);
+    } catch (e) {
+      console.warn('[print] submit failed', e);
+      toast('제출 실패');
+    } finally {
+      printState.submitting = false;
+    }
+  });
+
+  function showPrintResult(summary, breakdown) {
+    const box = document.getElementById('print-take-result');
+    document.getElementById('print-take-result-correct').textContent = String(summary.correct ?? 0);
+    document.getElementById('print-take-result-total').textContent = String(summary.total ?? 0);
+    const pct = summary.total > 0 ? Math.round((summary.correct / summary.total) * 100) : 0;
+    const pctEl = document.getElementById('print-take-result-pct');
+    pctEl.textContent = `${pct}%`;
+    pctEl.dataset.level = pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low';
+    const icon = document.getElementById('print-take-result-icon');
+    icon.textContent = pct >= 80 ? '🎉' : pct >= 60 ? '👍' : '📘';
+
+    const wrongBox = document.getElementById('print-take-result-wrong');
+    wrongBox.innerHTML = '';
+    const wrongs = (breakdown || []).filter(b => !b.correct);
+    if (wrongs.length === 0) {
+      wrongBox.innerHTML = '<div class="print-take-result-none">모두 맞았어요!</div>';
+    } else {
+      const title = document.createElement('div');
+      title.className = 'print-take-result-wrong-title';
+      title.textContent = `오답 ${wrongs.length}개`;
+      wrongBox.appendChild(title);
+      wrongs.forEach(b => {
+        const row = document.createElement('div');
+        row.className = 'print-take-result-wrong-row';
+        const correctAns = (b.choices && b.correctIndex !== undefined) ? b.choices[b.correctIndex] : '';
+        row.innerHTML = `<span class="print-take-result-wrong-en"></span><span class="print-take-result-wrong-arrow">→</span><span class="print-take-result-wrong-ko"></span>`;
+        row.querySelector('.print-take-result-wrong-en').textContent = b.prompt || '';
+        row.querySelector('.print-take-result-wrong-ko').textContent = correctAns;
+        wrongBox.appendChild(row);
+      });
+    }
+
+    box.hidden = false;
+    refreshPrintAlert();  // 목록 새로고침
+  }
+
+  document.getElementById('print-take-back')?.addEventListener('click', async () => {
+    await flushPendingAnswers();
+    document.body.dataset.screen = 'home';
+    refreshPrintAlert();
+  });
+  document.getElementById('print-take-result-home')?.addEventListener('click', () => {
+    document.getElementById('print-take-result').hidden = true;
+    document.body.dataset.screen = 'home';
+  });
+
+  // 초기 로드 + 주기 폴링
+  queueMicrotask(refreshPrintAlert);
+  setInterval(refreshPrintAlert, 15000);
+
   // Expose minimal API for E2E tests
-  window.__wg = { readCreature, writeCreature, renderWordList, store, KEYS, refreshPlayroom, openCardDetail };
+  window.__wg = { readCreature, writeCreature, renderWordList, store, KEYS, refreshPlayroom, openCardDetail, enterPrintTake };
 </script>
 
 </body>

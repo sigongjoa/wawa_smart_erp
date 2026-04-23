@@ -8365,3 +8365,102 @@ input[type="number"] {
   .vocab-grade-save { width: 100%; min-width: 0; }
   .vocab-grade-savebar { padding: var(--sp-3); }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   VocabGradeTab Phase 3b — 서버 잡 리스트 + 상세 모달
+   ══════════════════════════════════════════════════════════════ */
+.vocab-score-inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.vocab-score-inline strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.vocab-score-pct {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.vocab-score-pct--high { background: var(--success-surface); color: var(--success); }
+.vocab-score-pct--mid  { background: var(--warning-surface); color: #92400e; }
+.vocab-score-pct--low  { background: var(--danger-surface);  color: var(--danger); }
+
+/* 상세 모달 */
+.vocab-grade-detail-modal .modal-content { max-width: 680px; max-height: 85vh; }
+.vocab-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--sp-3) 0 var(--sp-4);
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: var(--sp-4);
+}
+.vocab-detail-score {
+  font-variant-numeric: tabular-nums;
+}
+.vocab-detail-score .vocab-detail-num {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.vocab-detail-score span { color: var(--text-tertiary); }
+.vocab-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 56vh;
+  overflow-y: auto;
+}
+.vocab-detail-item {
+  display: grid;
+  grid-template-columns: 28px 1fr 28px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  border-left-width: 3px;
+}
+.vocab-detail-item.is-ok { border-left-color: var(--success); }
+.vocab-detail-item.is-ng { border-left-color: var(--danger); background: color-mix(in srgb, var(--danger-surface) 50%, var(--bg-secondary)); }
+.vocab-detail-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.vocab-detail-body { min-width: 0; }
+.vocab-detail-english {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.vocab-detail-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.vocab-detail-correct-ans { color: var(--success); font-weight: 600; }
+.vocab-detail-mark {
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+.vocab-detail-mark.is-ok { color: var(--success); }
+.vocab-detail-mark.is-ng { color: var(--danger); }

@@ -5,7 +5,7 @@
 import { RequestContext } from '@/types';
 import { generatePrefixedId } from '@/utils/id';
 import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/utils/db';
-import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
+import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
 import { handleRouteError } from '@/utils/error-handler';
 
 interface PlayAuth {
@@ -178,6 +178,242 @@ async function handlePatchWordProgress(
   return successResponse({ ok: true });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Phase 3b — 시험지 응시 (학생)
+// ═══════════════════════════════════════════════════════════════
+
+const PRINT_ACTIVE = ['pending', 'in_progress'];
+
+async function handleListPendingPrintJobs(context: RequestContext, auth: PlayAuth): Promise<Response> {
+  const rows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT id AS job_id, status, created_at, started_at,
+            (SELECT COUNT(*) FROM json_each(word_ids_json)) AS word_count
+       FROM vocab_print_jobs
+      WHERE student_id = ? AND academy_id = ? AND status IN ('pending','in_progress')
+      ORDER BY created_at DESC`,
+    [auth.studentId, auth.academyId]
+  );
+  return successResponse(rows);
+}
+
+async function loadOwnPrintJob(jobId: string, auth: PlayAuth, db: D1Database) {
+  return executeFirst<any>(
+    db,
+    `SELECT * FROM vocab_print_jobs
+      WHERE id = ? AND student_id = ? AND academy_id = ?`,
+    [jobId, auth.studentId, auth.academyId]
+  );
+}
+
+function buildQuestion(target: any, pool: any[]): { prompt: string; choices: string[]; correctIndex: number } {
+  const distractors = pool
+    .filter(w => w.id !== target.id && w.korean !== target.korean)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+  const choices = distractors.map(w => String(w.korean || ''));
+  const insertAt = Math.floor(Math.random() * 4);
+  choices.splice(insertAt, 0, String(target.korean || ''));
+  // 혹시 부족하면 빈 문자열 채움 (fallback)
+  while (choices.length < 4) choices.push('—');
+  return { prompt: String(target.english || ''), choices: choices.slice(0, 4), correctIndex: insertAt };
+}
+
+async function handleStartPrintJob(jobId: string, context: RequestContext, auth: PlayAuth): Promise<Response> {
+  const db = context.env.DB;
+  const job = await loadOwnPrintJob(jobId, auth, db);
+  if (!job) return notFoundResponse();
+  if (!PRINT_ACTIVE.includes(job.status)) {
+    return errorResponse(`이미 종료된 시험지입니다 (${job.status})`, 409);
+  }
+
+  const wordIds: string[] = JSON.parse(job.word_ids_json || '[]');
+  if (wordIds.length === 0) return errorResponse('출제된 단어가 없습니다', 409);
+
+  // 기존 answers 있으면 그대로, 없으면 새로 snapshot 생성
+  const existing = await executeQuery<any>(
+    db,
+    `SELECT word_id FROM vocab_print_answers WHERE print_job_id = ?`,
+    [jobId]
+  );
+  if (existing.length === 0) {
+    // 대상 단어 + 학원 전체 단어 pool (오답 후보)
+    const targets = await executeQuery<any>(
+      db,
+      `SELECT * FROM vocab_words WHERE id IN (${wordIds.map(() => '?').join(',')})`,
+      wordIds
+    );
+    const pool = await executeQuery<any>(
+      db,
+      `SELECT id, english, korean FROM vocab_words
+        WHERE academy_id = ? AND status = 'approved'
+        LIMIT 500`,
+      [auth.academyId]
+    );
+
+    for (const t of targets) {
+      const q = buildQuestion(t, pool);
+      await db.prepare(
+        `INSERT INTO vocab_print_answers (print_job_id, word_id, correct_index, choices_json)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(print_job_id, word_id) DO NOTHING`
+      ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices)).run();
+    }
+  }
+
+  const now = new Date().toISOString();
+  if (job.status === 'pending') {
+    await executeUpdate(
+      db,
+      `UPDATE vocab_print_jobs SET status='in_progress', started_at=? WHERE id=?`,
+      [now, jobId]
+    );
+  }
+
+  return handleGetPrintJob(jobId, context, auth);
+}
+
+async function handleGetPrintJob(jobId: string, context: RequestContext, auth: PlayAuth): Promise<Response> {
+  const db = context.env.DB;
+  const job = await loadOwnPrintJob(jobId, auth, db);
+  if (!job) return notFoundResponse();
+
+  const rows = await executeQuery<any>(
+    db,
+    `SELECT a.word_id, a.selected_index, a.correct_index, a.choices_json,
+            w.english
+       FROM vocab_print_answers a
+       JOIN vocab_words w ON w.id = a.word_id
+      WHERE a.print_job_id = ?
+      ORDER BY w.id`,
+    [jobId]
+  );
+  const questions = rows.map((r: any) => {
+    let choices: string[] = [];
+    try { choices = JSON.parse(r.choices_json); } catch {}
+    return {
+      wordId: r.word_id,
+      prompt: r.english,
+      choices,
+      selectedIndex: r.selected_index,
+    };
+  });
+
+  return successResponse({
+    id: job.id,
+    status: job.status,
+    startedAt: job.started_at,
+    submittedAt: job.submitted_at,
+    questions,
+    total: questions.length,
+    ...(job.status === 'submitted' ? {
+      autoCorrect: job.auto_correct,
+      autoTotal: job.auto_total,
+      // 제출 후에는 정답도 공개
+      breakdown: rows.map((r: any) => ({
+        wordId: r.word_id,
+        prompt: r.english,
+        choices: (() => { try { return JSON.parse(r.choices_json); } catch { return []; } })(),
+        selectedIndex: r.selected_index,
+        correctIndex: r.correct_index,
+        correct: r.selected_index === r.correct_index,
+      })),
+    } : {}),
+  });
+}
+
+async function handleSaveAnswer(
+  jobId: string,
+  wordId: string,
+  request: Request,
+  context: RequestContext,
+  auth: PlayAuth
+): Promise<Response> {
+  const db = context.env.DB;
+  const job = await loadOwnPrintJob(jobId, auth, db);
+  if (!job) return notFoundResponse();
+  if (job.status !== 'in_progress') return errorResponse('진행 중인 시험지가 아닙니다', 409);
+
+  const body = (await request.json().catch(() => ({}))) as any;
+  const sel = body.selected_index;
+  const selected = sel === null ? null :
+    (Number.isInteger(sel) && sel >= 0 && sel <= 3) ? sel : undefined;
+  if (selected === undefined) return errorResponse('selected_index는 0..3 또는 null', 400);
+
+  const result = await db.prepare(
+    `UPDATE vocab_print_answers
+        SET selected_index = ?, saved_at = datetime('now')
+      WHERE print_job_id = ? AND word_id = ?`
+  ).bind(selected, jobId, wordId).run();
+  if (!result.success || (result.meta?.changes ?? 0) === 0) {
+    return errorResponse('문항을 찾을 수 없습니다', 404);
+  }
+  return successResponse({ savedAt: new Date().toISOString() });
+}
+
+async function handleSubmitPrintJob(jobId: string, context: RequestContext, auth: PlayAuth): Promise<Response> {
+  const db = context.env.DB;
+  const job = await loadOwnPrintJob(jobId, auth, db);
+  if (!job) return notFoundResponse();
+  if (job.status !== 'in_progress' && job.status !== 'pending') {
+    return errorResponse(`이미 종료된 시험지입니다 (${job.status})`, 409);
+  }
+
+  const answers = await executeQuery<any>(
+    db,
+    `SELECT word_id, selected_index, correct_index FROM vocab_print_answers
+      WHERE print_job_id = ?`,
+    [jobId]
+  );
+
+  let correct = 0;
+  const total = answers.length;
+  for (const a of answers) {
+    const isCorrect = a.selected_index !== null && a.selected_index === a.correct_index;
+    if (isCorrect) correct++;
+
+    // 기존 vocab_words.box/wrong_count 업데이트 로직 재사용
+    const word = await executeFirst<any>(
+      db,
+      `SELECT box, wrong_count FROM vocab_words WHERE id = ? AND academy_id = ?`,
+      [a.word_id, auth.academyId]
+    );
+    if (!word) continue;
+    const boxBefore = word.box || 1;
+    const boxAfter = isCorrect ? Math.min(5, boxBefore + 1) : 1;
+    await executeUpdate(
+      db,
+      `UPDATE vocab_words
+          SET box = ?, review_count = review_count + 1,
+              wrong_count = wrong_count + ?,
+              updated_at = datetime('now')
+        WHERE id = ?`,
+      [boxAfter, isCorrect ? 0 : 1, a.word_id]
+    );
+
+    // 결과 이력도 남김 (수기 O/X와 동일 포맷)
+    const rid = generatePrefixedId('vgr');
+    await executeInsert(
+      db,
+      `INSERT INTO vocab_grade_results (id, print_job_id, word_id, correct, box_before, box_after)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [rid, jobId, a.word_id, isCorrect ? 1 : 0, boxBefore, boxAfter]
+    );
+  }
+
+  const now = new Date().toISOString();
+  await executeUpdate(
+    db,
+    `UPDATE vocab_print_jobs
+        SET status = 'submitted', submitted_at = ?,
+            auto_correct = ?, auto_total = ?
+      WHERE id = ?`,
+    [now, correct, total, jobId]
+  );
+
+  return successResponse({ correct, total, submittedAt: now });
+}
+
 // ── 메인 라우터 ──
 
 export async function handleVocabPlay(
@@ -222,6 +458,32 @@ export async function handleVocabPlay(
     const tbMatch = pathname.match(/^\/api\/play\/vocab\/textbooks\/([^/]+)\/words$/);
     if (tbMatch) {
       if (method === 'GET') return await handleGetTextbookWords(context, auth, tbMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // ── Phase 3b: 시험지 응시 ──
+    if (pathname === '/api/play/vocab/print/pending') {
+      if (method === 'GET') return await handleListPendingPrintJobs(context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    const startMatch = pathname.match(/^\/api\/play\/vocab\/print\/([^/]+)\/start$/);
+    if (startMatch) {
+      if (method === 'POST') return await handleStartPrintJob(startMatch[1], context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    const submitMatch = pathname.match(/^\/api\/play\/vocab\/print\/([^/]+)\/submit$/);
+    if (submitMatch) {
+      if (method === 'POST') return await handleSubmitPrintJob(submitMatch[1], context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    const saveMatch = pathname.match(/^\/api\/play\/vocab\/print\/([^/]+)\/answers\/([^/]+)$/);
+    if (saveMatch) {
+      if (method === 'PUT') return await handleSaveAnswer(saveMatch[1], saveMatch[2], request, context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    const jobMatch = pathname.match(/^\/api\/play\/vocab\/print\/([^/]+)$/);
+    if (jobMatch) {
+      if (method === 'GET') return await handleGetPrintJob(jobMatch[1], context, auth);
       return errorResponse('Method not allowed', 405);
     }
 

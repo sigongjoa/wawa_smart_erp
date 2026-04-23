@@ -224,3 +224,49 @@ window.addEventListener('pagehide', flushOnHide);
 export function flushServerState(stateObj) {
   if (stateObj) saveServerState(stateObj, { immediate: true });
 }
+
+// ── 단어 시험지 응시 (Phase 3b) ────────────────────────────
+export async function loadPrintPending() {
+  const res = await authedFetch('/api/play/vocab/print/pending');
+  if (!res || !res.ok) return [];
+  const json = await res.json().catch(() => ({}));
+  return json?.data ?? [];
+}
+
+export async function loadPrintJob(jobId) {
+  if (!jobId) return null;
+  const res = await authedFetch(`/api/play/vocab/print/${encodeURIComponent(jobId)}`);
+  if (!res || !res.ok) return null;
+  const json = await res.json().catch(() => ({}));
+  return json?.data ?? null;
+}
+
+export async function startPrintJob(jobId) {
+  const res = await authedFetch(`/api/play/vocab/print/${encodeURIComponent(jobId)}/start`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  if (!res || !res.ok) return null;
+  const json = await res.json().catch(() => ({}));
+  return json?.data ?? null;
+}
+
+export async function savePrintAnswer(jobId, wordId, selectedIndex) {
+  if (!jobId || !wordId) return null;
+  const res = await authedFetch(
+    `/api/play/vocab/print/${encodeURIComponent(jobId)}/answers/${encodeURIComponent(wordId)}`,
+    { method: 'PUT', body: JSON.stringify({ selected_index: selectedIndex }) }
+  );
+  if (!res) return null;
+  return res.ok;
+}
+
+export async function submitPrintJob(jobId) {
+  const res = await authedFetch(`/api/play/vocab/print/${encodeURIComponent(jobId)}/submit`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  if (!res || !res.ok) return null;
+  const json = await res.json().catch(() => ({}));
+  return json?.data ?? null;
+}

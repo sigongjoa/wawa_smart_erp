@@ -550,6 +550,212 @@ async function handleGetPrintJob(context: RequestContext, jobId: string): Promis
   return successResponse({ job, words, grammar });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Phase 3b — 학생 셀프 응시 루프
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * 여러 학생에게 시험지 일괄 배정
+ * body: { student_ids: string[], max_words?: number }
+ * → 각 학생별 pickVocabPrint 로직 재사용, status='pending' 저장
+ */
+async function handlePrintAssign(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const body = (await request.json().catch(() => ({}))) as any;
+  const ids: string[] = Array.isArray(body.student_ids) ? body.student_ids : [];
+  const maxWords = Math.min(40, Math.max(1, parseInt(body.max_words) || 20));
+  if (ids.length === 0) return errorResponse('student_ids는 필수입니다', 400);
+
+  const academyId = getAcademyId(context);
+  const userId = getUserId(context);
+  const created: Array<{ job_id: string; student_id: string; student_name: string; word_count: number }> = [];
+  const skipped: Array<{ student_id: string; reason: string }> = [];
+
+  for (const sid of ids) {
+    const student = await executeFirst<any>(
+      context.env.DB,
+      'SELECT id, name FROM gacha_students WHERE id = ? AND academy_id = ?',
+      [sid, academyId]
+    );
+    if (!student) { skipped.push({ student_id: sid, reason: 'not_found' }); continue; }
+
+    const candidates = await executeQuery<any>(
+      context.env.DB,
+      `SELECT * FROM vocab_words
+       WHERE academy_id = ? AND student_id = ? AND status = 'approved' AND box < 5`,
+      [academyId, sid]
+    );
+    if (candidates.length === 0) { skipped.push({ student_id: sid, reason: 'no_words' }); continue; }
+
+    // 가중치 샘플링
+    const weightMap: Record<number, number> = { 1: 5, 2: 3, 3: 2, 4: 1 };
+    const pool: any[] = [];
+    for (const w of candidates) {
+      const weight = weightMap[w.box] || 1;
+      for (let i = 0; i < weight; i++) pool.push(w);
+    }
+    const seen = new Set<string>();
+    const selected: any[] = [];
+    while (selected.length < maxWords && pool.length > 0) {
+      const idx = Math.floor(Math.random() * pool.length);
+      const w = pool[idx];
+      if (!seen.has(w.id)) { seen.add(w.id); selected.push(w); }
+      pool.splice(idx, 1);
+    }
+    if (selected.length === 0) { skipped.push({ student_id: sid, reason: 'pick_failed' }); continue; }
+
+    const jobId = generatePrefixedId('vpj');
+    await executeInsert(
+      context.env.DB,
+      `INSERT INTO vocab_print_jobs (id, academy_id, student_id, word_ids_json, created_by, status)
+       VALUES (?, ?, ?, ?, ?, 'pending')`,
+      [jobId, academyId, sid, JSON.stringify(selected.map(w => w.id)), userId]
+    );
+    created.push({ job_id: jobId, student_id: sid, student_name: student.name, word_count: selected.length });
+  }
+
+  return successResponse({ created, skipped });
+}
+
+/**
+ * 학원 시험지 목록 — VocabGradeTab 메인 뷰
+ * query: ?status=pending|in_progress|submitted|voided|all&days=7
+ */
+async function handleListPrintJobs(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status') || 'all';
+  const days = Math.min(90, Math.max(1, parseInt(url.searchParams.get('days') || '14')));
+
+  const params: any[] = [academyId];
+  let statusClause = '';
+  if (status && status !== 'all') {
+    statusClause = ' AND j.status = ?';
+    params.push(status);
+  }
+  const sinceClause = ` AND datetime(j.created_at) >= datetime('now', '-${days} days')`;
+
+  const rows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT j.id AS job_id, j.student_id, j.status, j.auto_correct, j.auto_total,
+            j.started_at, j.submitted_at, j.created_at,
+            s.name AS student_name,
+            (SELECT COUNT(*) FROM json_each(j.word_ids_json)) AS word_count
+       FROM vocab_print_jobs j
+       JOIN gacha_students s ON s.id = j.student_id
+      WHERE j.academy_id = ?${statusClause}${sinceClause}
+      ORDER BY j.created_at DESC
+      LIMIT 200`,
+    params
+  );
+  return successResponse(rows);
+}
+
+/**
+ * 문항별 답안 상세 (선생님 뷰용)
+ */
+async function handleGetPrintJobAnswers(context: RequestContext, jobId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const job = await executeFirst<any>(
+    context.env.DB,
+    `SELECT j.*, s.name AS student_name
+       FROM vocab_print_jobs j
+       JOIN gacha_students s ON s.id = j.student_id
+      WHERE j.id = ? AND j.academy_id = ?`,
+    [jobId, academyId]
+  );
+  if (!job) return errorResponse('시험지를 찾을 수 없습니다', 404);
+
+  const answers = await executeQuery<any>(
+    context.env.DB,
+    `SELECT a.word_id, a.selected_index, a.correct_index, a.choices_json, a.saved_at,
+            w.english, w.korean, w.pos
+       FROM vocab_print_answers a
+       JOIN vocab_words w ON w.id = a.word_id
+      WHERE a.print_job_id = ?
+      ORDER BY a.saved_at`,
+    [jobId]
+  );
+
+  return successResponse({
+    job: {
+      id: job.id,
+      status: job.status,
+      student_id: job.student_id,
+      student_name: job.student_name,
+      auto_correct: job.auto_correct,
+      auto_total: job.auto_total,
+      started_at: job.started_at,
+      submitted_at: job.submitted_at,
+      created_at: job.created_at,
+    },
+    answers: answers.map((a: any) => {
+      let choices: string[] = [];
+      try { choices = JSON.parse(a.choices_json); } catch {}
+      return {
+        word_id: a.word_id,
+        english: a.english,
+        korean: a.korean,
+        pos: a.pos,
+        selected_index: a.selected_index,
+        correct_index: a.correct_index,
+        choices,
+        correct: a.selected_index === a.correct_index,
+        saved_at: a.saved_at,
+      };
+    }),
+  });
+}
+
+/**
+ * 무효 처리 — 아직 제출 전 시험지 취소
+ */
+async function handleVoidPrintJob(context: RequestContext, jobId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const job = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id, status FROM vocab_print_jobs WHERE id = ? AND academy_id = ?',
+    [jobId, academyId]
+  );
+  if (!job) return errorResponse('시험지를 찾을 수 없습니다', 404);
+  if (job.status === 'submitted') return errorResponse('이미 제출된 시험지는 무효화할 수 없습니다', 409);
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE vocab_print_jobs SET status='voided' WHERE id=?`,
+    [jobId]
+  );
+  return successResponse({ id: jobId, status: 'voided' });
+}
+
+/**
+ * 시험지 삭제
+ */
+async function handleDeletePrintJob(context: RequestContext, jobId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const job = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_print_jobs WHERE id = ? AND academy_id = ?',
+    [jobId, academyId]
+  );
+  if (!job) return errorResponse('시험지를 찾을 수 없습니다', 404);
+  await executeUpdate(context.env.DB, `DELETE FROM vocab_print_jobs WHERE id=?`, [jobId]);
+  return successResponse({ id: jobId, deleted: true });
+}
+
 // ── 메인 라우터 ──
 
 export async function handleVocab(
@@ -633,10 +839,37 @@ export async function handleVocab(
       return errorResponse('Method not allowed', 405);
     }
 
+    // /api/vocab/print/assign — 여러 학생 일괄 배정
+    if (pathname === '/api/vocab/print/assign') {
+      if (method === 'POST') return await handlePrintAssign(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/print/jobs — 학원 시험지 목록
+    if (pathname === '/api/vocab/print/jobs') {
+      if (method === 'GET') return await handleListPrintJobs(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/print/jobs/:id/answers — 문항별 답안 상세
+    const answersMatch = pathname.match(/^\/api\/vocab\/print\/jobs\/([^/]+)\/answers$/);
+    if (answersMatch) {
+      if (method === 'GET') return await handleGetPrintJobAnswers(context, answersMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/print/jobs/:id/void
+    const voidMatch = pathname.match(/^\/api\/vocab\/print\/jobs\/([^/]+)\/void$/);
+    if (voidMatch) {
+      if (method === 'POST') return await handleVoidPrintJob(context, voidMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
     // /api/vocab/print/jobs/:id
     const jobMatch = pathname.match(/^\/api\/vocab\/print\/jobs\/([^/]+)$/);
     if (jobMatch) {
       if (method === 'GET') return await handleGetPrintJob(context, jobMatch[1]);
+      if (method === 'DELETE') return await handleDeletePrintJob(context, jobMatch[1]);
       return errorResponse('Method not allowed', 405);
     }
 
