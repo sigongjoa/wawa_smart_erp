@@ -60,8 +60,9 @@ const NAV_GROUPS: NavGroup[] = [
     iconClass: 'nav-icon--gacha',
     paths: ['/vocab'],
     items: [
-      { to: '/vocab/admin.html', label: '단어/문법/교재', external: true },
-      { to: '/vocab/grade.html', label: '출제·채점', external: true },
+      { to: '/vocab',             label: '단어 관리',       exact: true },
+      { to: '/vocab/admin.html',  label: '전체 관리 (구)',  external: true },
+      { to: '/vocab/grade.html',  label: '출제·채점',       external: true },
     ],
   },
   {

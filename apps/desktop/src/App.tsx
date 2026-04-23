@@ -24,6 +24,8 @@ const GachaDashboardPage = lazy(() => import('./pages/GachaDashboardPage'));
 const ExamManagementPage = lazy(() => import('./pages/ExamManagementPage'));
 const ExamPapersPage = lazy(() => import('./pages/ExamPapersPage'));
 const ExamQuestionEditorPage = lazy(() => import('./pages/ExamQuestionEditorPage'));
+const VocabAdminPage = lazy(() => import('./pages/VocabAdminPage'));
+const VocabWordsTab = lazy(() => import('./pages/vocab/VocabWordsTab'));
 const ExamTimerPage = lazy(() => import('./pages/ExamTimerPage'));
 const ProgressPage = lazy(() => import('./pages/ProgressPage'));
 const AcademyPage = lazy(() => import('./pages/AcademyPage'));
@@ -90,6 +92,9 @@ export default function App() {
             <Route path="/exams" element={<ExamManagementPage />} />
             <Route path="/exam-papers" element={<ExamPapersPage />} />
             <Route path="/exam-questions/:paperId" element={<ExamQuestionEditorPage />} />
+            <Route path="/vocab" element={<VocabAdminPage />}>
+              <Route index element={<VocabWordsTab />} />
+            </Route>
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/assignments" element={<AssignmentsPage />} />
             <Route path="/homeroom" element={<HomeroomPage />} />

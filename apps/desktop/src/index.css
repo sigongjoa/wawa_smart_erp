@@ -3675,10 +3675,15 @@ input, select, textarea {
   .report-page,
   .board-page,
   .student-profile-page,
-  .settings-page {
-    padding: var(--sp-6) var(--sp-4);
+  .settings-page,
+  .progress-page,
+  .page-container {
+    padding: var(--sp-5) var(--sp-4);
   }
 
+  .page-header {
+    margin-bottom: var(--sp-5);
+  }
   .page-title {
     font-size: 22px;
   }
@@ -5510,6 +5515,105 @@ input[type="number"] {
 
 .exam-page { padding: 24px 32px; max-width: 1400px; }
 
+/* ─────────────── Exam Timer ─────────────── */
+.exam-timer-root { padding: 20px 24px; max-width: 1600px; }
+.exam-timer-filter {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; background: var(--bg-secondary, #f8f9fa);
+  border-radius: 8px; margin-bottom: 16px;
+}
+.exam-timer-duration { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--text-secondary, #555); }
+.exam-timer-columns { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start; }
+@media (max-width: 960px) { .exam-timer-columns { grid-template-columns: 1fr; } }
+.exam-timer-col {
+  background: var(--bg-primary, #fff); border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;
+  min-height: 200px;
+}
+.exam-timer-col-label {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; font-size: 13px; font-weight: 600;
+  background: var(--bg-secondary, #f9fafb);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  color: var(--text-secondary, #4b5563);
+}
+.exam-timer-col-count {
+  background: var(--primary, #4f46e5); color: #fff;
+  padding: 1px 8px; border-radius: 999px; font-size: 12px; min-width: 22px; text-align: center;
+}
+.exam-timer-col-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; max-height: 72vh; overflow-y: auto; }
+.exam-timer-empty { padding: 24px 12px; text-align: center; color: var(--text-tertiary, #9ca3af); font-size: 14px; }
+
+.exam-timer-pending-card {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px; cursor: pointer; background: var(--bg-primary, #fff);
+  transition: border-color 0.15s, background 0.15s;
+}
+.exam-timer-pending-card:hover { border-color: var(--primary, #4f46e5); }
+.exam-timer-pending-card.is-checked { background: #eef2ff; border-color: var(--primary, #4f46e5); }
+.exam-timer-pending-card input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--primary, #4f46e5); }
+.exam-timer-pending-info { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.exam-timer-pending-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.exam-timer-pending-name { font-weight: 600; font-size: 14px; }
+.exam-timer-pending-status { font-size: 11px; padding: 1px 6px; border-radius: 4px; font-weight: 500; }
+.exam-timer-pending-status--absent { background: #fef3c7; color: #92400e; }
+.exam-timer-pending-status--makeup { background: #dbeafe; color: #1e40af; }
+.exam-timer-pending-meta { font-size: 12px; color: var(--text-tertiary, #6b7280); overflow: hidden; text-overflow: ellipsis; }
+
+.exam-timer-grid {
+  padding: 12px; display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.exam-timer-card {
+  border: 2px solid var(--border, #e5e7eb); border-radius: 10px;
+  padding: 14px; background: var(--bg-primary, #fff);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.exam-timer-card--ready { border-color: #9ca3af; }
+.exam-timer-card--running { border-color: #10b981; box-shadow: 0 0 0 1px rgba(16,185,129,0.15); }
+.exam-timer-card--paused { border-color: #f59e0b; background: #fffbeb; }
+.exam-timer-card--expired { border-color: #ef4444; background: #fef2f2; }
+.exam-timer-card--submitted { border-color: #6366f1; background: #f5f3ff; opacity: 0.85; }
+.exam-timer-card--voided { border-color: #9ca3af; opacity: 0.6; }
+.exam-timer-card--warning { animation: examTimerPulse 1s ease-in-out infinite; border-color: #dc2626; }
+@keyframes examTimerPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.35); } 50% { box-shadow: 0 0 0 6px rgba(220,38,38,0); } }
+
+.exam-timer-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.exam-timer-card__identity { display: flex; flex-direction: column; min-width: 0; }
+.exam-timer-card__name { font-weight: 700; font-size: 16px; }
+.exam-timer-card__paper { font-size: 12px; color: var(--text-secondary, #6b7280); }
+.exam-timer-card__status { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+.exam-timer-card__status--ready { background: #f3f4f6; color: #4b5563; }
+.exam-timer-card__status--running { background: #d1fae5; color: #065f46; }
+.exam-timer-card__status--paused { background: #fef3c7; color: #92400e; }
+.exam-timer-card__status--expired { background: #fee2e2; color: #991b1b; }
+.exam-timer-card__status--submitted { background: #ede9fe; color: #5b21b6; }
+.exam-timer-card__status--voided { background: #f3f4f6; color: #6b7280; }
+
+.exam-timer-card__display {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 16px 8px; background: var(--bg-secondary, #f9fafb); border-radius: 8px;
+}
+.exam-timer-card__display-value {
+  font-size: 38px; font-weight: 700; font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em; color: var(--text, #111827);
+}
+.exam-timer-card--warning .exam-timer-card__display-value { color: #dc2626; }
+.exam-timer-card--expired .exam-timer-card__display-value { color: #b91c1c; }
+.exam-timer-card__display-label { font-size: 12px; color: var(--text-tertiary, #6b7280); margin-top: 2px; }
+
+.exam-timer-card__meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary, #6b7280); flex-wrap: wrap; }
+.exam-timer-card__meta-divider { color: var(--border, #d1d5db); }
+
+.exam-timer-card__actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.exam-timer-card__actions .btn { flex: 1; min-width: 80px; }
+.exam-timer-card__hint { font-size: 12px; color: var(--text-tertiary, #9ca3af); padding: 6px 0; }
+
+.grade-badge { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--bg-secondary, #f3f4f6); color: var(--text-secondary, #4b5563); }
+
+
 .exam-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 .exam-header-actions { display: flex; align-items: center; gap: 8px; }
 .exam-period-select { padding: 6px 12px; border: 1px solid var(--border, #ddd); border-radius: 6px; font-size: 14px; min-width: 200px; }
@@ -6290,4 +6394,840 @@ input[type="number"] {
 
   /* Month tabs scroll horizontally if tight */
   .exam-month-tabs { overflow-x: auto; }
+}
+
+/* =========================================================
+   Progress (진도/이해도) Page
+   ========================================================= */
+.progress-page { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+/* Control bar: desktop = 3 columns, mobile = stacked. No card box. */
+.progress-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) auto;
+  gap: var(--sp-3) var(--sp-4);
+  align-items: end;
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+.progress-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+.progress-field-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.progress-field-row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  min-width: 0;
+}
+.progress-field-row .form-select { flex: 1 1 auto; min-width: 0; }
+.progress-field-search { flex: 0 0 120px; }
+
+/* Overflow menu for admin actions */
+.progress-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+.progress-menu-trigger {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: border-color 150ms, color 150ms;
+}
+.progress-menu-trigger:hover { border-color: var(--primary); color: var(--text-primary); }
+.progress-menu-trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.progress-menu-trigger[aria-expanded="true"] { border-color: var(--primary); color: var(--text-primary); }
+.progress-menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--text-primary) 10%, transparent);
+}
+.progress-menu-panel button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 36px;
+}
+.progress-menu-panel button:hover:not(:disabled) { background: var(--bg-secondary); }
+.progress-menu-panel button:disabled { color: var(--text-tertiary); cursor: not-allowed; }
+.progress-menu-panel button.danger { color: var(--danger); }
+.progress-menu-panel button.danger:hover:not(:disabled) { background: color-mix(in oklab, var(--danger) 10%, transparent); }
+
+/* Kind toggle: occupies its own grid cell on desktop, full width on mobile */
+.progress-kind-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-primary);
+  align-self: end;
+  height: 40px;
+}
+.progress-kind-toggle button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0 var(--sp-4);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-width: 72px;
+  transition: background 180ms cubic-bezier(0.25, 1, 0.5, 1), color 180ms;
+}
+.progress-kind-toggle button.active {
+  background: var(--primary);
+  color: #fff;
+}
+.progress-kind-toggle button:not(.active):hover { color: var(--text-primary); }
+.progress-kind-toggle button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.progress-empty {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.progress-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0;
+}
+.progress-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+.progress-chart-head strong { font-size: 15px; color: var(--text-primary); font-weight: 600; }
+.progress-chart-sub {
+  margin-left: var(--sp-2);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.progress-chart-stat {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+}
+.progress-chart-stat strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent, var(--text-primary));
+}
+
+.progress-list-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+.progress-list-title {
+  margin: 0 0 var(--sp-2) 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.progress-chart {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: var(--sp-2);
+  min-height: 240px;
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.progress-chart.is-loading { opacity: 0.55; }
+.progress-chart-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  padding: 4px 0 24px;
+  font-variant-numeric: tabular-nums;
+}
+.progress-chart-bars {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(28px, 1fr);
+  gap: var(--sp-1);
+  align-items: end;
+  padding: 4px 0 24px;
+  background:
+    linear-gradient(to top,
+      var(--border) 0, var(--border) 1px, transparent 1px),
+    linear-gradient(to top,
+      transparent 0, transparent 25%,
+      var(--border) 25%, var(--border) calc(25% + 1px), transparent calc(25% + 1px),
+      transparent 50%,
+      var(--border) 50%, var(--border) calc(50% + 1px), transparent calc(50% + 1px),
+      transparent 75%,
+      var(--border) 75%, var(--border) calc(75% + 1px), transparent calc(75% + 1px));
+  background-size: 100% 100%;
+  overflow-x: auto;
+}
+.progress-chart-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  gap: 4px;
+  position: relative;
+}
+.progress-chart-bar {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  position: relative;
+  background: transparent;
+}
+.progress-chart-bar-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--bar-bg, transparent);
+  border-radius: inherit;
+  transform: scaleY(var(--bar-scale, 0));
+  transform-origin: bottom;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.progress-chart-bar.empty .progress-chart-bar-fill {
+  inset: auto 0 0 0;
+  height: 6px;
+  transform: none;
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: 2px;
+}
+.progress-chart-bar-value {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bar-scale, 0) * 100%);
+  transform: translate(-50%, -4px);
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: bottom 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.progress-chart-xlabel {
+  position: absolute;
+  bottom: -18px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  text-align: center;
+}
+.progress-chart-xlabel-idx { display: inline; font-weight: 500; }
+.progress-chart-xlabel-name { display: none; }
+
+.progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.progress-list-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'head    actions'
+    'slider  slider';
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+.progress-list-item:last-child { border-bottom: 0; }
+.progress-list-item-head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.progress-list-item-order {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  flex: 0 0 auto;
+}
+.progress-list-item-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.progress-list-status {
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: transparent;
+}
+.progress-list-status--done {
+  color: var(--success);
+  background: color-mix(in oklab, var(--success) 12%, transparent);
+}
+.progress-list-status--in_progress {
+  color: var(--warning);
+  background: color-mix(in oklab, var(--warning) 12%, transparent);
+}
+.progress-list-status--not_started {
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+}
+
+.progress-list-item-slider {
+  grid-area: slider;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.progress-slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: var(--accent, var(--primary));
+  height: 24px;
+}
+.progress-slider.is-empty { opacity: 0.55; }
+.progress-input-num {
+  flex: 0 0 56px;
+  width: 56px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  padding: 4px 8px;
+  min-height: 36px;
+}
+
+.progress-list-item-actions {
+  grid-area: actions;
+  display: flex;
+  gap: var(--sp-1);
+  align-items: center;
+}
+.progress-list-action {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 32px;
+  transition: color 150ms, background 150ms;
+}
+.progress-list-action:hover { color: var(--text-primary); background: var(--bg-secondary); }
+.progress-list-action:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.progress-list-action.has-note { color: var(--primary); }
+
+.progress-unit-add {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.progress-unit-add .form-input { flex: 1; }
+
+.progress-unit-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.progress-unit-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.progress-unit-idx {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.form-input--sm { padding: 4px 8px; font-size: 13px; min-height: 32px; }
+
+@media (max-width: 768px) {
+  .progress-controls {
+    grid-template-columns: 1fr;
+    padding: var(--sp-3);
+    gap: var(--sp-3);
+  }
+  .progress-field-search { flex: 0 0 88px; }
+
+  /* Admin overflow menu: promote to 44px touch targets on mobile */
+  .progress-menu-trigger { width: 44px; height: 44px; }
+  .progress-menu-panel {
+    min-width: 220px;
+    padding: var(--sp-1);
+    gap: 2px;
+  }
+  .progress-menu-panel button {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  /* Kind toggle full-width 2-col, larger touch targets */
+  .progress-kind-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    height: 44px;
+  }
+  .progress-kind-toggle button { min-width: 0; min-height: 44px; font-size: 14px; }
+
+  /* Mobile list row: stack head → slider → actions */
+  .progress-list-item {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'head' 'slider' 'actions';
+    gap: var(--sp-2);
+  }
+  .progress-list-item-name { white-space: normal; line-height: 1.3; }
+  .progress-list-item-actions {
+    justify-content: flex-end;
+    margin-top: -4px;
+  }
+  .progress-list-action { min-height: 44px; padding: 10px 12px; }
+  .progress-slider { height: 44px; }
+  .progress-input-num {
+    min-height: 44px;
+    font-size: 14px;
+    flex: 0 0 64px;
+    width: 64px;
+  }
+
+  /* Switch chart to horizontal row layout (rows of [label][bar][value]) */
+  .progress-chart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    min-height: 0;
+    /* No nested scroll — follow natural page scroll */
+    overflow: visible;
+  }
+  .progress-chart-yaxis { display: none; }
+  .progress-chart-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding: 0;
+    background: none;
+    overflow: visible;
+  }
+  .progress-chart-col {
+    flex-direction: row;
+    align-items: center;
+    height: auto;
+    gap: var(--sp-2);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .progress-chart-col:last-child { border-bottom: 0; }
+  .progress-chart-bar {
+    flex: 1;
+    min-width: 0;
+    height: 10px !important;
+    min-height: 10px;
+    border-radius: 999px;
+    order: 2;
+    width: 100%;
+    overflow: hidden;
+  }
+  .progress-chart-bar-fill {
+    position: absolute;
+    inset: 0;
+    transform: scaleX(var(--bar-scale, 0));
+    transform-origin: left;
+  }
+  .progress-chart-bar.empty {
+    opacity: 0.4;
+  }
+  .progress-chart-bar.empty .progress-chart-bar-fill {
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    border: 0;
+    background: var(--border);
+    transform: scaleX(1);
+    border-radius: 999px;
+  }
+  .progress-chart-bar-value {
+    position: static;
+    transform: none;
+    transition: none;
+    bottom: auto;
+    left: auto;
+    order: 3;
+    flex: 0 0 auto;
+    min-width: 26px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+  .progress-chart-xlabel {
+    position: static;
+    order: 1;
+    flex: 0 0 38%;
+    max-width: 38%;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .progress-chart-xlabel-idx {
+    display: inline-block;
+    color: var(--text-tertiary);
+    margin-right: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .progress-chart-xlabel-name { display: inline; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-chart,
+  .progress-chart-bar,
+  .progress-chart-bar-fill,
+  .progress-chart-bar-value,
+  .progress-kind-toggle button { transition: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Vocab Admin (React 포팅 — ERP 레이아웃 안에서 동작)
+   ══════════════════════════════════════════════════════════════ */
+
+.vocab-admin {
+  padding: var(--sp-4);
+  max-width: 1400px;
+}
+.vocab-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+}
+
+/* 서브 탭 네비 — exam-subtabs 패턴 + 약간의 개선 */
+.vocab-subnav {
+  display: flex;
+  gap: 2px;
+  margin-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border-primary);
+  overflow-x: auto;
+}
+.vocab-subtab {
+  padding: 10px 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.vocab-subtab:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+.vocab-subtab--active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 700;
+}
+.vocab-subtab--pending {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+.vocab-subtab--pending:hover {
+  background: transparent;
+  color: var(--text-tertiary);
+}
+.vocab-subtab__badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  vertical-align: middle;
+}
+
+/* 필터 바 */
+.vocab-filter-bar {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-end;
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+.vocab-filter-bar .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vocab-filter-bar .filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vocab-filter-bar .filter-select {
+  min-width: 140px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.vocab-filter-bar .filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-surface);
+}
+.vocab-filter-spacer { flex: 1; }
+
+/* 대기중 배너 */
+.vocab-pending-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 10px 16px;
+  margin-bottom: var(--sp-3);
+  background: linear-gradient(90deg, var(--warning-surface), transparent 80%);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.vocab-pending-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: vocab-pulse 1.6s ease-in-out infinite;
+}
+@keyframes vocab-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.vocab-pending-banner__text { flex: 1; }
+.vocab-pending-banner__text strong {
+  color: var(--warning);
+  font-weight: 800;
+}
+.vocab-pending-banner__btn {
+  font-size: 13px;
+}
+
+/* 테이블 */
+.vocab-table-wrap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+.vocab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.vocab-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.vocab-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-secondary);
+  vertical-align: middle;
+}
+.vocab-table tbody tr:hover td {
+  background: var(--primary-surface);
+}
+.vocab-table tbody tr:last-child td { border-bottom: 0; }
+.vocab-table .muted { color: var(--text-tertiary); }
+
+.vocab-td-example {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Box 인라인 셀렉트 */
+.vocab-box-select {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xs);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.vocab-box-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vocab-row-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Pill (뱃지) — ERP 공통으로 쓸 만한 컴포넌트 */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.pill--primary  { background: var(--primary-surface); color: var(--primary); }
+.pill--accent   { background: var(--accent-surface);  color: #0a6e5e; }
+.pill--success  { background: var(--success-surface); color: var(--success); }
+.pill--warning  { background: var(--warning-surface); color: #92400e; }
+.pill--danger   { background: var(--danger-surface);  color: var(--danger); }
+
+/* btn-sm — 혹시 없으면 */
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Modal polish for vocab */
+.vocab-modal .modal-content {
+  max-width: 420px;
+}
+.vocab-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.form-input {
+  padding: 9px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-surface);
+}
+.form-error {
+  padding: 8px 12px;
+  background: var(--danger-surface);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
 }
