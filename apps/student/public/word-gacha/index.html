@@ -2511,6 +2511,44 @@
     cursor: not-allowed;
   }
 
+  /* ── 내 단어장 상단 "시험 치기" 버튼 ── */
+  .mywords-actions {
+    padding: 12px 16px 0;
+  }
+  .mywords-exam-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, var(--pri), #3a4aae);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    cursor: pointer;
+    font: inherit;
+    transition: transform .1s var(--e-out);
+  }
+  .mywords-exam-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+  .mywords-exam-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .mywords-exam-btn > span[aria-hidden] { font-size: 22px; }
+  .mywords-exam-btn .lbl {
+    flex: 1;
+    font: 800 15px/1 var(--disp);
+    text-align: left;
+  }
+  .mywords-exam-btn .sub {
+    font: 600 11px/1 var(--body);
+    opacity: 0.85;
+  }
+
   /* ── Phase 3b: 시험지 알림 카드 ── */
   .print-alert {
     display: flex;
@@ -3233,6 +3271,14 @@
 
       <!-- MY WORDS -->
       <div class="subpane" data-sub="mywords" role="tabpanel" id="pane-learn-mywords" aria-labelledby="tab-learn-mywords">
+        <div class="mywords-actions">
+          <button type="button" class="mywords-exam-btn" id="btn-self-exam">
+            <span aria-hidden="true">📝</span>
+            <span class="lbl">시험 치기</span>
+            <span class="sub">내 단어 10문제</span>
+          </button>
+        </div>
+
         <div class="filter-bar" role="group" aria-label="단어 상태 필터" id="mywords-filter">
           <button type="button" class="filter" data-f="all"       aria-pressed="true"  onclick="toggleFilter(this)">전체<span class="n" data-count="all">0</span></button>
           <button type="button" class="filter" data-f="new"       aria-pressed="false" onclick="toggleFilter(this)">NEW<span class="n" data-count="new">0</span></button>
@@ -3816,7 +3862,7 @@
     loadGrammarQA, submitGrammarQuestion,
     loadServerTextbooks, loadTextbookWords,
     isSyncDisabled,
-    loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob,
+    loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob, selfStartPrintJob,
   } from './js/wawa-bridge.js';
 
   // sync-banner 제거됨: 로컬 모드 여부는 내부 _syncDisabled 플래그로만 관리
@@ -5071,6 +5117,44 @@
     const alert = document.getElementById('print-alert');
     const jobId = alert?.dataset.jobId;
     if (jobId) enterPrintTake(jobId);
+  });
+
+  // 내 단어장 상단 "시험 치기" — self-start
+  document.getElementById('btn-self-exam')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-self-exam');
+    if (!btn) return;
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="lbl">생성 중…</span>';
+    try {
+      const res = await selfStartPrintJob(10);
+      if (res.error) {
+        toast(res.error);
+        return;
+      }
+      const data = res.data;
+      if (!data?.id || !data?.questions?.length) {
+        toast('시험지 생성 실패');
+        return;
+      }
+      printState.jobId = data.id;
+      printState.questions = (data.questions || []).map(q => ({
+        wordId: q.wordId,
+        prompt: q.prompt,
+        choices: q.choices || [],
+        selectedIndex: q.selectedIndex,
+      }));
+      printState.idx = 0;
+      document.getElementById('print-take-result').hidden = true;
+      document.body.dataset.screen = 'print';
+      renderPrintTake();
+    } catch (e) {
+      console.warn('[self-exam] failed', e);
+      toast('시험지 생성 실패');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
   });
 
   async function enterPrintTake(jobId) {

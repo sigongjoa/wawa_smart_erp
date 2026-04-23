@@ -275,6 +275,19 @@ export async function savePrintAnswer(jobId, wordId, selectedIndex) {
   return res.ok;
 }
 
+export async function selfStartPrintJob(maxWords = 10) {
+  const res = await authedFetch('/api/play/vocab/print/self-start', {
+    method: 'POST',
+    body: JSON.stringify({ max_words: maxWords }),
+  });
+  if (!res) return { error: 'offline' };
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.success === false) {
+    return { error: json?.error || '시험지 생성 실패' };
+  }
+  return { ok: true, data: json?.data ?? null };
+}
+
 export async function submitPrintJob(jobId) {
   const res = await authedFetch(`/api/play/vocab/print/${encodeURIComponent(jobId)}/submit`, {
     method: 'POST',

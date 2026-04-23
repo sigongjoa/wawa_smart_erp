@@ -184,6 +184,79 @@ async function handlePatchWordProgress(
 
 const PRINT_ACTIVE = ['pending', 'in_progress'];
 
+/**
+ * 학생이 직접 시험지 생성 + 시작 — 선생님 배정 없이 스스로 응시
+ * body: { max_words?: number }
+ * 선생님 assign 플로우와 동일한 pick 로직 (box 가중치) 재사용.
+ */
+async function handleSelfStartPrintJob(
+  request: Request,
+  context: RequestContext,
+  auth: PlayAuth
+): Promise<Response> {
+  const db = context.env.DB;
+  const body = (await request.json().catch(() => ({}))) as any;
+  const maxWords = Math.min(30, Math.max(4, parseInt(body.max_words) || 10));
+
+  // 본인 approved 단어 중 box < 5
+  const candidates = await executeQuery<any>(
+    db,
+    `SELECT * FROM vocab_words
+      WHERE academy_id = ? AND student_id = ? AND status = 'approved' AND box < 5`,
+    [auth.academyId, auth.studentId]
+  );
+  if (candidates.length < 4) {
+    return errorResponse('시험을 치려면 승인된 단어가 최소 4개 필요해요', 409);
+  }
+
+  // 가중치 샘플링 (box 1→5x, 2→3x, 3→2x, 4→1x)
+  const weightMap: Record<number, number> = { 1: 5, 2: 3, 3: 2, 4: 1 };
+  const pool: any[] = [];
+  for (const w of candidates) {
+    const weight = weightMap[w.box] || 1;
+    for (let i = 0; i < weight; i++) pool.push(w);
+  }
+  const seen = new Set<string>();
+  const selected: any[] = [];
+  while (selected.length < maxWords && pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const w = pool[idx];
+    if (!seen.has(w.id)) { seen.add(w.id); selected.push(w); }
+    pool.splice(idx, 1);
+  }
+
+  // job 생성 — created_by 는 학생 자신 (self-start 구분용)
+  const jobId = generatePrefixedId('vpj');
+  await executeInsert(
+    db,
+    `INSERT INTO vocab_print_jobs
+       (id, academy_id, student_id, word_ids_json, created_by, status, started_at)
+     VALUES (?, ?, ?, ?, ?, 'in_progress', datetime('now'))`,
+    [jobId, auth.academyId, auth.studentId,
+     JSON.stringify(selected.map(w => w.id)),
+     `student:${auth.studentId}`]
+  );
+
+  // choices snapshot 생성 (start 로직과 동일)
+  const allPool = await executeQuery<any>(
+    db,
+    `SELECT id, english, korean FROM vocab_words
+      WHERE academy_id = ? AND status = 'approved' LIMIT 500`,
+    [auth.academyId]
+  );
+  for (const t of selected) {
+    const q = buildQuestion(t, allPool);
+    await db.prepare(
+      `INSERT INTO vocab_print_answers (print_job_id, word_id, correct_index, choices_json)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(print_job_id, word_id) DO NOTHING`
+    ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices)).run();
+  }
+
+  // 생성된 job의 문제 목록 그대로 반환 — 클라는 enterPrintTake 로 이어 받기
+  return handleGetPrintJob(jobId, context, auth);
+}
+
 async function handleListPendingPrintJobs(context: RequestContext, auth: PlayAuth): Promise<Response> {
   const rows = await executeQuery<any>(
     context.env.DB,
@@ -464,6 +537,10 @@ export async function handleVocabPlay(
     // ── Phase 3b: 시험지 응시 ──
     if (pathname === '/api/play/vocab/print/pending') {
       if (method === 'GET') return await handleListPendingPrintJobs(context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    if (pathname === '/api/play/vocab/print/self-start') {
+      if (method === 'POST') return await handleSelfStartPrintJob(request, context, auth);
       return errorResponse('Method not allowed', 405);
     }
     const startMatch = pathname.match(/^\/api\/play\/vocab\/print\/([^/]+)\/start$/);
