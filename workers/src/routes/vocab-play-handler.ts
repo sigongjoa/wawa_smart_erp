@@ -205,9 +205,10 @@ async function handleSelfStartPrintJob(
       WHERE academy_id = ? AND student_id = ? AND status = 'approved' AND box < 5`,
     [auth.academyId, auth.studentId]
   );
-  if (candidates.length < 4) {
-    return errorResponse('시험을 치려면 승인된 단어가 최소 4개 필요해요', 409);
+  if (candidates.length < 1) {
+    return errorResponse('시험을 치려면 승인된 단어가 최소 1개 필요해요', 409);
   }
+  // 4지선다 오답은 학원 전체 풀에서 뽑으니 본인 단어가 1~3개여도 진행 가능
 
   // 가중치 샘플링 (box 1→5x, 2→3x, 3→2x, 4→1x)
   const weightMap: Record<number, number> = { 1: 5, 2: 3, 3: 2, 4: 1 };
