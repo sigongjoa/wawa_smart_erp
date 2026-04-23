@@ -37,6 +37,7 @@ import { handleExamPaper } from '@/routes/exam-paper-handler';
 import { handleProgress } from '@/routes/progress-handler';
 import { handleVocab } from '@/routes/vocab-handler';
 import { handleVocabPlay } from '@/routes/vocab-play-handler';
+import { handleExamPlay } from '@/routes/exam-play-handler';
 import { handleExamAttempt } from '@/routes/exam-attempt-handler';
 import { handleAssignments } from '@/routes/assignments-handler';
 import { handlePlayAssignments } from '@/routes/play-assignments-handler';
@@ -122,6 +123,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       }
       if (pathname.startsWith('/api/play/exam-attempts')) {
         return addCorsHeaders(await handleExamAttempt(method, pathname, request, context), env, origin);
+      }
+      if (pathname === '/api/play/exams' || pathname.startsWith('/api/play/exams/') || pathname.startsWith('/api/play/attempts/')) {
+        return addCorsHeaders(await handleExamPlay(method, pathname, request, context), env, origin);
       }
       if (pathname.startsWith('/api/play/assignments')) {
         return addCorsHeaders(await handlePlayAssignments(method, pathname, request, context), env, origin);

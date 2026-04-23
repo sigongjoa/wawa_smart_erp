@@ -193,6 +193,25 @@ export const api = {
       }
     ),
 
+  // ── 영어 시험 응시 (PIN 인증) ──
+  listExams: () => request<ExamListItem[]>('/api/play/exams'),
+  startExam: (assignmentId: string) =>
+    request<{ id: string; status: string; durationMinutes: number; startedAt: string }>(
+      `/api/play/exams/${assignmentId}/start`,
+      { method: 'POST' }
+    ),
+  getExamAttemptFull: (id: string) => request<ExamAttemptFull>(`/api/play/attempts/${id}`),
+  saveExamAnswer: (attemptId: string, questionNo: number, choice: number | null) =>
+    request<{ savedAt: string }>(`/api/play/attempts/${attemptId}/answer`, {
+      method: 'PUT',
+      body: JSON.stringify({ questionNo, choice }),
+    }),
+  submitExam: (attemptId: string) =>
+    request<{ id: string; status: string; endedAt: string; score: number; correct: number; total: number }>(
+      `/api/play/attempts/${attemptId}/submit`,
+      { method: 'POST' }
+    ),
+
   // ── 과제 (PIN 인증) ──
   getAssignments: () => request<AssignmentListItem[]>('/api/play/assignments'),
   getAssignmentDetail: (targetId: string) =>
@@ -313,6 +332,54 @@ export interface AssignmentDetail {
     created_at: string;
     teacher_name: string | null;
   }>;
+}
+
+export interface ExamListItem {
+  assignmentId: string;
+  paperId: string;
+  title: string;
+  durationMinutes: number;
+  examDate: string | null;
+  examStatus: string;
+  questionCount: number;
+  attemptId: string | null;
+  attemptStatus: string | null;
+}
+
+export interface ExamQuestionDto {
+  questionNo: number;
+  prompt: string;
+  choices: string[];
+  points: number;
+}
+
+export interface ExamAnswerDto {
+  questionNo: number;
+  selectedChoice: number | null;
+}
+
+export interface ExamBreakdownItem {
+  questionNo: number;
+  correct: boolean;
+  selected: number | null;
+  correctChoice: number;
+}
+
+export interface ExamAttemptFull {
+  id: string;
+  status: 'ready' | 'running' | 'paused' | 'submitted' | 'expired' | 'voided';
+  title: string;
+  durationMinutes: number;
+  startedAt: string | null;
+  endedAt?: string | null;
+  remainingSeconds: number;
+  questions: ExamQuestionDto[] | null;
+  answers: ExamAnswerDto[] | null;
+  // 종료 후
+  score?: number;
+  correct?: number;
+  total?: number;
+  breakdown?: ExamBreakdownItem[];
 }
 
 export interface ExamAttemptDto {

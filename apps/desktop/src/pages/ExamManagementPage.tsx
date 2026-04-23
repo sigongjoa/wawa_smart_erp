@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, type ExamAbsentee } from '../api';
+import { useNavigate } from 'react-router-dom';
+import { api, type ExamAbsentee, type ExamPaper } from '../api';
 import { toast } from '../components/Toast';
 import Modal from '../components/Modal';
 import { useAuthStore } from '../store';
@@ -474,6 +475,7 @@ export default function ExamManagementPage() {
             >모두 보기</button>
           </div>
         )}
+        <EnglishExamPaperPicker periodId={periodId} />
       </div>
 
       {/* 월 탭 */}
@@ -806,6 +808,84 @@ export default function ExamManagementPage() {
             </button>
           </Modal.Footer>
         </Modal>
+      )}
+    </div>
+  );
+}
+
+// ── 영어 시험 문제 편집 진입 드롭다운 ──
+function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [papers, setPapers] = useState<ExamPaper[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next && periodId && papers.length === 0) {
+      setLoading(true);
+      try {
+        const list = await api.getExamPapers(periodId);
+        setPapers(list || []);
+      } catch {
+        setPapers([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  if (!periodId) return null;
+
+  return (
+    <div style={{ position: 'relative', marginLeft: 'auto' }}>
+      <button
+        type="button"
+        onClick={toggle}
+        style={{
+          padding: '8px 14px', borderRadius: 8,
+          background: '#eef0f8', color: '#2d3a8c', border: '1px solid #2d3a8c',
+          cursor: 'pointer', fontWeight: 600, fontSize: 13,
+        }}
+      >📝 영어 문제 입력 {open ? '▴' : '▾'}</button>
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: '110%', zIndex: 20,
+          background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+          minWidth: 280, maxHeight: 400, overflowY: 'auto',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)', padding: 8,
+        }}>
+          {loading && <div style={{ padding: 12, color: '#4a5568', fontSize: 13 }}>불러오는 중...</div>}
+          {!loading && papers.length === 0 && (
+            <div style={{ padding: 12, color: '#4a5568', fontSize: 13 }}>
+              이 기간에 시험지가 없습니다.
+            </div>
+          )}
+          {!loading && papers.map(p => (
+            <button
+              key={p.id}
+              onClick={() => {
+                setOpen(false);
+                navigate(`/exam-questions/${p.id}?back=/exams&title=${encodeURIComponent(p.title)}`);
+              }}
+              style={{
+                display: 'block', width: '100%',
+                padding: '10px 12px', textAlign: 'left',
+                background: 'transparent', border: 'none',
+                borderRadius: 6, cursor: 'pointer',
+                fontSize: 13, color: '#1a202c',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#f7fafc')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <div style={{ fontWeight: 600 }}>{p.title}</div>
+              {p.grade_filter && (
+                <div style={{ fontSize: 11, color: '#4a5568', marginTop: 2 }}>{p.grade_filter}</div>
+              )}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

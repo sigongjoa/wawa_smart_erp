@@ -164,6 +164,19 @@ async function handleCreateStudent(request: Request, context: RequestContext): P
     [studentId, academyId, teacherId, input.name, pinHash, salt, input.grade, now]
   );
 
+  // 시험 배정/과제 등에서 FK가 students(id)를 참조하므로 동일 id로 students에도 insert
+  try {
+    await executeInsert(
+      context.env.DB,
+      `INSERT INTO students (id, academy_id, name, grade, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?)`,
+      [studentId, academyId, input.name, input.grade, now, now]
+    );
+  } catch (e) {
+    // 이미 있으면 무시
+    logger.warn('students 동기화 실패 (이미 존재 가능)', e instanceof Error ? e : new Error(String(e)));
+  }
+
   logger.logAudit('GACHA_STUDENT_CREATE', 'GachaStudent', studentId, teacherId, { name: input.name });
 
   return successResponse({ id: studentId, name: input.name, grade: input.grade }, 201);
@@ -226,6 +239,8 @@ async function handleDeleteStudent(context: RequestContext, studentId: string): 
 
   // CASCADE로 관련 데이터 자동 삭제 (sessions, results, assignments)
   await executeDelete(context.env.DB, 'DELETE FROM gacha_students WHERE id = ?', [studentId]);
+  // 동기화된 students 레코드도 정리 (존재하지 않을 수 있음)
+  try { await executeDelete(context.env.DB, 'DELETE FROM students WHERE id = ?', [studentId]); } catch {}
 
   logger.logAudit('GACHA_STUDENT_DELETE', 'GachaStudent', studentId, getUserId(context), { name: student.name });
 

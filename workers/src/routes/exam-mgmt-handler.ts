@@ -9,6 +9,11 @@ import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/re
 import { requireAuth } from '@/middleware/auth';
 import { generatePrefixedId } from '@/utils/id';
 
+function safeParseChoices(s: string | null): string[] {
+  if (!s) return [];
+  try { const v = JSON.parse(s); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+
 interface ExamPeriodRow {
   id: string;
   academy_id: string;
@@ -250,8 +255,8 @@ export async function handleExamMgmt(
     // 기존 배정 조회
     const existing = await executeFirst<ExamAssignmentRow>(
       db,
-      `SELECT id FROM exam_assignments WHERE exam_period_id = ? AND student_id = ?`,
-      [period.id, student_id]
+      `SELECT id FROM exam_assignments WHERE exam_period_id = ? AND student_id = ? AND academy_id = ?`,
+      [period.id, student_id, academyId]
     );
 
     if (existing) {
@@ -262,8 +267,8 @@ export async function handleExamMgmt(
     // 학년 기반 시험지 찾거나 생성
     let paper = await executeFirst<ExamPaperRow>(
       db,
-      `SELECT * FROM exam_papers WHERE exam_period_id = ? AND grade_filter = ? AND is_custom = 0`,
-      [period.id, student.grade]
+      `SELECT * FROM exam_papers WHERE exam_period_id = ? AND academy_id = ? AND grade_filter = ? AND is_custom = 0`,
+      [period.id, academyId, student.grade]
     );
     if (!paper) {
       const paperId = generatePrefixedId('epaper');
@@ -422,6 +427,110 @@ export async function handleExamMgmt(
 
     await executeUpdate(db, 'DELETE FROM exam_papers WHERE id = ?', [paperId]);
     return successResponse({ success: true });
+  }
+
+  // ── 시험지 메타/문제 CRUD (영어 응시 MVP) ──
+
+  // PATCH /api/exam-mgmt/papers/:id  — subject, duration_minutes 편집
+  const paperMetaMatch = pathname.match(/^\/api\/exam-mgmt\/papers\/([^/]+)$/);
+  if (method === 'PATCH' && paperMetaMatch) {
+    const paperId = paperMetaMatch[1];
+    const body = (await request.json().catch(() => ({}))) as any;
+    const exists = await executeFirst<any>(
+      db, 'SELECT id FROM exam_papers WHERE id = ? AND academy_id = ?',
+      [paperId, academyId]
+    );
+    if (!exists) return errorResponse('시험지를 찾을 수 없습니다', 404);
+    const sets: string[] = [];
+    const params: any[] = [];
+    if (typeof body.subject === 'string') { sets.push('subject = ?'); params.push(body.subject); }
+    if (Number.isInteger(body.durationMinutes)) { sets.push('duration_minutes = ?'); params.push(body.durationMinutes); }
+    if (typeof body.title === 'string' && body.title.trim()) { sets.push('title = ?'); params.push(body.title.trim()); }
+    if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+    params.push(paperId);
+    await executeUpdate(db, `UPDATE exam_papers SET ${sets.join(', ')} WHERE id = ?`, params);
+    return successResponse({ id: paperId, updated: true });
+  }
+
+  // GET /api/exam-mgmt/papers/:id/questions — 문제 목록
+  const questionsGetMatch = pathname.match(/^\/api\/exam-mgmt\/papers\/([^/]+)\/questions$/);
+  if (method === 'GET' && questionsGetMatch) {
+    const paperId = questionsGetMatch[1];
+    const paper = await executeFirst<any>(
+      db, 'SELECT id FROM exam_papers WHERE id = ? AND academy_id = ?',
+      [paperId, academyId]
+    );
+    if (!paper) return errorResponse('시험지를 찾을 수 없습니다', 404);
+    const rows = await executeQuery<any>(
+      db,
+      `SELECT id, question_no, prompt, choices, correct_choice, points
+         FROM exam_questions WHERE exam_paper_id = ? ORDER BY question_no`,
+      [paperId]
+    );
+    return successResponse(rows.map(r => ({
+      id: r.id,
+      questionNo: r.question_no,
+      prompt: r.prompt,
+      choices: safeParseChoices(r.choices),
+      correctChoice: r.correct_choice,
+      points: r.points,
+    })));
+  }
+
+  // PUT /api/exam-mgmt/papers/:id/questions — 문제 bulk 덮어쓰기
+  //   body: { questions: [{ questionNo, prompt, choices:[..5..], correctChoice, points? }] }
+  if (method === 'PUT' && questionsGetMatch) {
+    const paperId = questionsGetMatch[1];
+    const paper = await executeFirst<any>(
+      db, 'SELECT id FROM exam_papers WHERE id = ? AND academy_id = ?',
+      [paperId, academyId]
+    );
+    if (!paper) return errorResponse('시험지를 찾을 수 없습니다', 404);
+
+    const body = (await request.json().catch(() => ({}))) as any;
+    const list: any[] = Array.isArray(body.questions) ? body.questions : [];
+    if (list.length === 0) return errorResponse('questions 필수', 400);
+
+    // 검증
+    for (const q of list) {
+      if (!Number.isInteger(q.questionNo) || q.questionNo < 1) {
+        return errorResponse(`questionNo 유효하지 않음: ${q.questionNo}`, 400);
+      }
+      if (typeof q.prompt !== 'string' || !q.prompt.trim()) {
+        return errorResponse(`${q.questionNo}: prompt 필수`, 400);
+      }
+      if (!Array.isArray(q.choices) || q.choices.length !== 5) {
+        return errorResponse(`${q.questionNo}: choices 5개 필수`, 400);
+      }
+      if (q.choices.some((c: any) => typeof c !== 'string' || !c.trim())) {
+        return errorResponse(`${q.questionNo}: 빈 보기 불가`, 400);
+      }
+      if (!Number.isInteger(q.correctChoice) || q.correctChoice < 1 || q.correctChoice > 5) {
+        return errorResponse(`${q.questionNo}: correctChoice 1~5`, 400);
+      }
+    }
+
+    // 기존 문제 전체 삭제 후 재삽입 (단순/원자적)
+    await executeUpdate(db, 'DELETE FROM exam_questions WHERE exam_paper_id = ?', [paperId]);
+    for (const q of list) {
+      const id = generatePrefixedId('eq');
+      await executeInsert(
+        db,
+        `INSERT INTO exam_questions
+           (id, exam_paper_id, question_no, prompt, choices, correct_choice, points)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          paperId,
+          q.questionNo,
+          q.prompt.trim(),
+          JSON.stringify(q.choices.map((c: string) => c.trim())),
+          q.correctChoice,
+          Number.isFinite(Number(q.points)) ? Number(q.points) : 1,
+        ]
+      );
+    }
+    return successResponse({ saved: list.length });
   }
 
   // ═══════════════════════════════════════════

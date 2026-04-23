@@ -8,6 +8,7 @@ const GachaPage = lazy(() => import('./pages/GachaPage'));
 const ProofOrderingPage = lazy(() => import('./pages/ProofOrderingPage'));
 const ProofFillBlankPage = lazy(() => import('./pages/ProofFillBlankPage'));
 const ExamTimerPage = lazy(() => import('./pages/ExamTimerPage'));
+const ExamPage = lazy(() => import('./pages/ExamPage'));
 const AssignmentsPage = lazy(() => import('./pages/AssignmentsPage'));
 const AssignmentDetailPage = lazy(() => import('./pages/AssignmentDetailPage'));
 const LiveSessionPage = lazy(() => import('./pages/LiveSessionPage'));
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/proof/:proofId/ordering" element={<ProtectedRoute><ProofOrderingPage /></ProtectedRoute>} />
           <Route path="/proof/:proofId/fillblank" element={<ProtectedRoute><ProofFillBlankPage /></ProtectedRoute>} />
           <Route path="/exam-timer" element={<ProtectedRoute><ExamTimerPage /></ProtectedRoute>} />
+          <Route path="/exam/:assignmentId" element={<ProtectedRoute><ExamPage /></ProtectedRoute>} />
           <Route path="/assignments" element={<ProtectedRoute><AssignmentsPage /></ProtectedRoute>} />
           <Route path="/assignments/:targetId" element={<ProtectedRoute><AssignmentDetailPage /></ProtectedRoute>} />
           <Route path="/live/:id" element={<ProtectedRoute><LiveSessionPage /></ProtectedRoute>} />

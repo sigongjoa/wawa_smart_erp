@@ -1326,6 +1326,17 @@ export const api = {
   deleteExamPaper: (periodId: string, paperId: string) =>
     request(`/api/exam-mgmt/${periodId}/papers/${paperId}`, { method: 'DELETE' }),
 
+  // 영어 시험 응시 MVP — 시험지 메타 + 문제 입력
+  patchExamPaperMeta: (paperId: string, data: { subject?: string; durationMinutes?: number; title?: string }) =>
+    request(`/api/exam-mgmt/papers/${paperId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  getExamPaperQuestions: (paperId: string) =>
+    request<ExamQuestionDto[]>(`/api/exam-mgmt/papers/${paperId}/questions`),
+  putExamPaperQuestions: (paperId: string, questions: ExamQuestionDto[]) =>
+    request<{ saved: number }>(`/api/exam-mgmt/papers/${paperId}/questions`, {
+      method: 'PUT',
+      body: JSON.stringify({ questions }),
+    }),
+
   getExamAssignments: (periodId: string) =>
     request<ExamAssignment[]>(`/api/exam-mgmt/${periodId}/assignments`),
 
@@ -1876,6 +1887,17 @@ export interface ExamPaper {
   grade_filter: string | null;
   is_custom: number;
   created_at: string;
+  subject?: string | null;
+  duration_minutes?: number | null;
+}
+
+export interface ExamQuestionDto {
+  id?: string;
+  questionNo: number;
+  prompt: string;
+  choices: string[];        // 5개
+  correctChoice: number;    // 1..5
+  points?: number;
 }
 
 export interface ExamAssignment {
