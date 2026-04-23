@@ -293,7 +293,10 @@ export async function submitPrintJob(jobId) {
     method: 'POST',
     body: JSON.stringify({}),
   });
-  if (!res || !res.ok) return null;
+  if (!res) return { error: '오프라인 상태예요' };
   const json = await res.json().catch(() => ({}));
-  return json?.data ?? null;
+  if (!res.ok || json?.success === false) {
+    return { error: json?.error || `제출 오류 (${res.status})` };
+  }
+  return { ok: true, data: json?.data ?? null };
 }

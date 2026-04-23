@@ -2798,6 +2798,31 @@
     font: 700 15px var(--body);
     cursor: pointer;
   }
+  .print-take-result-reward {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 99px;
+    margin: 0 auto 16px;
+    font: 600 13px var(--body);
+    color: #78350f;
+  }
+  .print-take-result-reward strong {
+    color: #b45309;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .print-take-result-reward .rwd-sep { color: #d97706; opacity: 0.5; }
+  .print-take-result-reward .rwd-bonus {
+    padding: 2px 8px;
+    background: var(--pri);
+    color: #fff;
+    border-radius: 99px;
+    font: 700 11px var(--body);
+  }
 </style>
 </head>
 
@@ -5273,18 +5298,71 @@
     printState.submitting = true;
     try {
       await flushPendingAnswers();
-      const res = await submitPrintJob(printState.jobId);
-      if (!res) { toast('제출 실패'); return; }
-      // 최종 breakdown 은 별도 GET으로 받을 수도 있지만 submit 응답 + local 상태로 즉시 표시
+      const result = await submitPrintJob(printState.jobId);
+      if (!result?.ok) {
+        toast(result?.error || '제출 실패');
+        return;
+      }
+      const summary = result.data;  // { correct, total, submittedAt }
+
+      // ── 리워드 지급 ──
+      grantExamReward(summary.correct ?? 0, summary.total ?? 0);
+
+      // 결과 화면 (breakdown은 별도 GET)
       const job = await loadPrintJob(printState.jobId);
-      showPrintResult(res, job?.breakdown || []);
+      showPrintResult(summary, job?.breakdown || []);
     } catch (e) {
       console.warn('[print] submit failed', e);
-      toast('제출 실패');
+      toast('제출 실패 · ' + (e?.message || ''));
     } finally {
       printState.submitting = false;
     }
   });
+
+  // ── 시험 완료 리워드: 정답 1개당 EXP 10, COIN 3 + 완주 보너스 ──
+  const REWARD_EXP_PER_CORRECT = 10;
+  const REWARD_COIN_PER_CORRECT = 3;
+  const REWARD_PERFECT_BONUS_EXP = 30;
+  const REWARD_COMPLETE_BONUS_EXP = 10;  // 문항 수 적어도 완주 자체 보너스
+
+  function grantExamReward(correct, total) {
+    if (total <= 0) return;
+    const p = store.get(KEYS.profile) || { lv: 1, exp: 0, coin: 0, streak: 0 };
+    const baseExp = correct * REWARD_EXP_PER_CORRECT;
+    const baseCoin = correct * REWARD_COIN_PER_CORRECT;
+    const bonus = correct === total ? REWARD_PERFECT_BONUS_EXP : REWARD_COMPLETE_BONUS_EXP;
+    const gainedExp = baseExp + bonus;
+    const gainedCoin = baseCoin;
+
+    let newExp = (p.exp ?? 0) + gainedExp;
+    let newLv = p.lv ?? 1;
+    let levelUp = false;
+    // 간단 레벨 스케일: 100 EXP마다 +1 LV
+    while (newExp >= 100) {
+      newExp -= 100;
+      newLv += 1;
+      levelUp = true;
+    }
+    const newProfile = {
+      ...p,
+      lv: newLv,
+      exp: newExp,
+      coin: (p.coin ?? 0) + gainedCoin,
+      lastActiveDate: new Date().toISOString().slice(0, 10),
+    };
+    store.set(KEYS.profile, newProfile);
+    renderHud?.();
+
+    // 교감 상승 — 시험 완료 = 큰 노력
+    const c = readCreature();
+    if (c) writeCreature(interact(c, 'answer', new Date().toISOString()));
+
+    // 리워드 안내 토스트
+    const rewardMsg = levelUp
+      ? `🎉 레벨 업 LV ${newLv} · EXP +${gainedExp} · 코인 +${gainedCoin}`
+      : `EXP +${gainedExp} · 코인 +${gainedCoin}${correct === total ? ' · 🌟 전체 정답!' : ''}`;
+    toast(rewardMsg);
+  }
 
   function showPrintResult(summary, breakdown) {
     const box = document.getElementById('print-take-result');
@@ -5296,6 +5374,25 @@
     pctEl.dataset.level = pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low';
     const icon = document.getElementById('print-take-result-icon');
     icon.textContent = pct >= 80 ? '🎉' : pct >= 60 ? '👍' : '📘';
+
+    // 리워드 영역 주입
+    let rewardEl = document.getElementById('print-take-result-reward');
+    if (!rewardEl) {
+      rewardEl = document.createElement('div');
+      rewardEl.id = 'print-take-result-reward';
+      rewardEl.className = 'print-take-result-reward';
+      pctEl.insertAdjacentElement('afterend', rewardEl);
+    }
+    const correct = summary.correct ?? 0;
+    const total = summary.total ?? 0;
+    const exp = correct * REWARD_EXP_PER_CORRECT + (correct === total ? REWARD_PERFECT_BONUS_EXP : REWARD_COMPLETE_BONUS_EXP);
+    const coin = correct * REWARD_COIN_PER_CORRECT;
+    rewardEl.innerHTML = `
+      <span class="rwd-item">EXP <strong>+${exp}</strong></span>
+      <span class="rwd-sep">·</span>
+      <span class="rwd-item">코인 <strong>+${coin}</strong></span>
+      ${correct === total && total > 0 ? '<span class="rwd-bonus">🌟 전체 정답 보너스</span>' : ''}
+    `;
 
     const wrongBox = document.getElementById('print-take-result-wrong');
     wrongBox.innerHTML = '';
