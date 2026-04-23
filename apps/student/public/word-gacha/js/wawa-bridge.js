@@ -6,24 +6,54 @@ const API_BASE = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
 
 function getToken() { return localStorage.getItem('play_token'); }
 
+/**
+ * 로그인/동기화 상태를 노출해서 UI에서 "로그인하면 저장됩니다" 배너를 보여줄 수 있게 함.
+ * word-gacha는 본래 localStorage 기반 독립 동작 — 서버 sync는 옵셔널 보조.
+ * 토큰 없음 / 만료(401) 어느 쪽이든 UI는 그대로 동작, 서버 호출만 생략.
+ */
+let _syncDisabled = !getToken();
+
+export function isSyncDisabled() { return _syncDisabled; }
+export function getSyncStatus() {
+  if (!getToken()) return 'no-token';
+  if (_syncDisabled) return 'unauthorized';
+  return 'ok';
+}
+
+function disableSync(reason) {
+  if (_syncDisabled) return;
+  _syncDisabled = true;
+  console.warn(`[wawa-bridge] server sync disabled: ${reason} — 로컬 데이터로만 동작`);
+  // UI에 배너를 띄울 수 있는 커스텀 이벤트
+  try {
+    window.dispatchEvent(new CustomEvent('wawa:sync-disabled', { detail: { reason } }));
+  } catch {}
+}
+
 async function authedFetch(path, init = {}) {
+  if (_syncDisabled) return null;
   const token = getToken();
-  if (!token) return null;
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(init.headers || {}),
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (res.status === 401) {
-    localStorage.removeItem('play_token');
-    localStorage.removeItem('play_student');
-    window.location.href = '/#/login';
-    return null;
+  if (!token) { disableSync('no-token'); return null; }
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(init.headers || {}),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (res.status === 401) {
+      // 토큰은 유지 (사용자가 의도적으로 로그인 페이지로 갈 수도 있음).
+      // 단지 이번 세션에서 서버 동기화를 꺼서 다른 API 호출도 무시.
+      disableSync('unauthorized');
+      return null;
+    }
+    return res;
+  } catch (e) {
+    console.warn('[wawa-bridge] fetch error, sync 보류', e);
+    return null;  // 네트워크 에러에도 로컬 동작 유지
   }
-  return res;
 }
 
 function toClient(row) {
