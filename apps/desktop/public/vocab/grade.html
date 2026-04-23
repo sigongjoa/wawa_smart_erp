@@ -106,10 +106,11 @@ function showToast(msg, type = 'ok') {
   toastTimer = setTimeout(() => { t.classList.remove('show') }, 3000)
 }
 
-// WAWA ERP 통합 로그인 체크
-if (!localStorage.getItem('accessToken')) {
-  window.location.href = '/#/login'
-}
+// WAWA ERP 통합 로그인 체크 — 토큰 또는 쿠키 중 하나라도 있으면 통과
+;(async () => {
+  const { isAdmin } = await API.checkAuth()
+  if (!isAdmin) window.location.href = '/#/login'
+})()
 
 const data = JSON.parse(
   localStorage.getItem('printJob') || sessionStorage.getItem('printJob') || 'null'

@@ -1,7 +1,13 @@
 // WAWA ERP 통합 — 원본 admin.html / grade.html / print.html 의 API.* 호출을
 // 우리 Workers 엔드포인트로 어댑트
 const API = {
-  _token() { return localStorage.getItem('accessToken'); },
+  // ERP React 앱은 'auth_access_token'에 저장, 구버전 호환으로 'accessToken'도 체크.
+  // 쿠키만 있는 경우도 credentials: 'include'로 보내면 서버가 인증 처리.
+  _token() {
+    return localStorage.getItem('auth_access_token')
+        || localStorage.getItem('accessToken')
+        || null;
+  },
 
   async _fetch(path, options = {}) { return this._req(path, options); },
 
@@ -9,6 +15,7 @@ const API = {
     const token = this._token();
     const { headers: extra, ...rest } = options;
     const res = await fetch(CONFIG.WORKERS_BASE + path, {
+      credentials: 'include',  // httpOnly 쿠키 사용 — ERP React와 동일한 세션
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -18,6 +25,7 @@ const API = {
     });
     const json = await res.json().catch(() => ({}));
     if (res.status === 401) {
+      localStorage.removeItem('auth_access_token');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       window.location.href = '/#/login';
@@ -30,8 +38,23 @@ const API = {
   },
 
   // ── 인증 ────────────────────────────────────────────
-  async checkAuth() { return { isAdmin: !!this._token() }; },
-  async logout() { localStorage.removeItem('accessToken'); localStorage.removeItem('user'); return { success: true }; },
+  // token이 없어도 쿠키 인증이 가능하므로 실제 서버 호출로 확인
+  async checkAuth() {
+    if (this._token()) return { isAdmin: true };  // 토큰 있으면 빠르게 통과
+    try {
+      // 쿠키만 있는 경우 — 가벼운 인증 요구 엔드포인트 호출
+      await this._req('/api/gacha/students');
+      return { isAdmin: true };
+    } catch {
+      return { isAdmin: false };
+    }
+  },
+  async logout() {
+    localStorage.removeItem('auth_access_token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+    return { success: true };
+  },
 
   // ── 학생 (gacha_students) ──────────────────────────
   async getStudents() {
