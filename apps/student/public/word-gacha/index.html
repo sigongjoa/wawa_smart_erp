@@ -347,16 +347,9 @@
       );
     border-top: 2px solid var(--ink);
   }
-  /* 뒷벽 장식 — 창문 */
+  /* 뒷벽 장식 — 창문 (놀아주기 버튼이 같은 자리를 차지하므로 숨김) */
   .room .window {
-    position: absolute;
-    top: 10%;
-    right: 8%;
-    width: 26%;
-    height: 24%;
-    background: #cfe0f7;
-    border: 1.5px solid var(--ink);
-    border-radius: var(--r-1);
+    display: none;
   }
   .room .window::before,
   .room .window::after {
@@ -1867,16 +1860,23 @@
      Home entry tile — 놀아주기 (playroom entry)
      ================================================================== */
   .item.playroom-entry {
-    right: 16px;
-    bottom: 92px;
+    /* 창문(.window) 위치에 맞춤 — 창문을 덮어 놀아주기 진입 버튼으로 사용 */
+    position: absolute;
+    top: 10%;
+    right: 8%;
+    width: 26%;
+    height: 24%;
     background: var(--pri-soft);
     border: 2px solid var(--ink);
-    border-radius: var(--r-2);
+    border-radius: var(--r-1);
     box-shadow: 3px 3px 0 var(--ink);
-    padding: 10px 12px 8px;
-    display: grid; gap: 4px; place-items: center;
-    position: absolute;
+    padding: 8px;
+    display: grid;
+    gap: 4px;
+    place-items: center;
+    align-content: center;
     color: var(--ink);
+    z-index: 4;  /* 창문 위에 */
   }
   .item.playroom-entry .pr-icon { font-size: 24px; line-height: 1; }
   .item.playroom-entry .lbl {
