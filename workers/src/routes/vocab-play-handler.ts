@@ -429,6 +429,15 @@ async function handleSubmitPrintJob(jobId: string, context: RequestContext, auth
   const db = context.env.DB;
   const job = await loadOwnPrintJob(jobId, auth, db);
   if (!job) return notFoundResponse();
+  // 이미 제출된 시험지면 저장된 결과를 그대로 반환 (idempotent) — 학생은 리워드 페이지로 진입
+  if (job.status === 'submitted') {
+    return successResponse({
+      correct: job.auto_correct ?? 0,
+      total: job.auto_total ?? 0,
+      submittedAt: job.submitted_at,
+      alreadySubmitted: true,
+    });
+  }
   if (job.status !== 'in_progress' && job.status !== 'pending') {
     return errorResponse(`이미 종료된 시험지입니다 (${job.status})`, 409);
   }

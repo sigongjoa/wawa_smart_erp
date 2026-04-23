@@ -5303,10 +5303,12 @@
         toast(result?.error || '제출 실패');
         return;
       }
-      const summary = result.data;  // { correct, total, submittedAt }
+      const summary = result.data;  // { correct, total, submittedAt, alreadySubmitted? }
 
-      // ── 리워드 지급 ──
-      grantExamReward(summary.correct ?? 0, summary.total ?? 0);
+      // ── 리워드 지급 (중복 제출은 지급 생략, 결과 화면은 표시) ──
+      if (!summary.alreadySubmitted) {
+        grantExamReward(summary.correct ?? 0, summary.total ?? 0);
+      }
 
       // 결과 화면 (breakdown은 별도 GET)
       const job = await loadPrintJob(printState.jobId);
