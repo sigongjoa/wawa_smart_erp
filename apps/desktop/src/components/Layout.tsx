@@ -61,8 +61,9 @@ const NAV_GROUPS: NavGroup[] = [
     paths: ['/vocab'],
     items: [
       { to: '/vocab',             label: '단어 관리',       exact: true },
+      { to: '/vocab/wrong',       label: '오답 현황' },
+      { to: '/vocab/grade',       label: '출제·채점' },
       { to: '/vocab/admin.html',  label: '전체 관리 (구)',  external: true },
-      { to: '/vocab/grade.html',  label: '출제·채점',       external: true },
     ],
   },
   {
