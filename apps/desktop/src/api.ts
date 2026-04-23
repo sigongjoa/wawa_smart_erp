@@ -1,33 +1,62 @@
 // Vite dev/preview에서는 proxy가 /api → localhost:8787으로 중계
 // 배포 시에는 VITE_API_URL 환경변수 사용
+// 인증: 1차는 httpOnly 쿠키(access_token/refresh_token) — 브라우저가 자동 전송.
+// 모바일 Safari ITP / 3rd-party cookie 차단으로 쿠키가 드롭되는 환경을 위해
+// 로그인/리프레시 응답 body의 토큰을 localStorage에 보관하고 Authorization
+// 헤더로 폴백 전송. 서버는 쿠키 우선, Bearer 헤더 폴백을 모두 받는다.
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-// 토큰 갱신 중복 방지 — 동시 401 여러 개가 와도 refresh는 1번만
-let refreshPromise: Promise<string | null> | null = null;
+const ACCESS_KEY = 'auth_access_token';
+const REFRESH_KEY = 'auth_refresh_token';
 
-async function tryRefreshToken(): Promise<string | null> {
+export function setAuthTokens(tokens: { accessToken?: string; refreshToken?: string }) {
+  if (tokens.accessToken) localStorage.setItem(ACCESS_KEY, tokens.accessToken);
+  if (tokens.refreshToken) localStorage.setItem(REFRESH_KEY, tokens.refreshToken);
+}
+
+export function clearAuthTokens() {
+  localStorage.removeItem(ACCESS_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(ACCESS_KEY);
+}
+
+function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_KEY);
+}
+
+function authHeader(): Record<string, string> {
+  const t = getAccessToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+// refresh 동시성 제어 — 동시 401 여러 개가 와도 refresh는 1번만
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefreshToken(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return null;
     try {
+      const stored = getRefreshToken();
       const res = await fetch(`${API_BASE}/api/auth/refresh`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        // 쿠키가 막혀 있을 때 body로 refresh 토큰 전달 (서버 측 레거시 폴백 활용)
+        body: stored ? JSON.stringify({ refreshToken: stored }) : undefined,
       });
-      if (!res.ok) return null;
-      const json = await res.json();
+      if (!res.ok) return false;
+      const json = await res.json().catch(() => null);
       const data = json?.data ?? json;
-      if (data?.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-        if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-        return data.accessToken;
+      if (data?.accessToken || data?.refreshToken) {
+        setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
       }
-      return null;
+      return true;
     } catch {
-      return null;
+      return false;
     } finally {
       refreshPromise = null;
     }
@@ -37,33 +66,40 @@ async function tryRefreshToken(): Promise<string | null> {
 }
 
 function forceLogout() {
+  // user 프로필은 localStorage에 남지만 토큰 쿠키는 서버가 clear
+  localStorage.removeItem('user');
+  // 과거 버전 호환 — 잔존 토큰 제거
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
+  clearAuthTokens();
   window.location.href = '/';
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('accessToken');
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...authHeader(),
       ...options?.headers,
     },
   });
 
-  // 401 → refresh token으로 재시도 (로그인/리프레시 자체는 제외 — 에러를 호출자에 그대로 전달)
-  const isAuthEndpoint = path.startsWith('/api/auth/login') || path.startsWith('/api/auth/refresh');
+  // 로그인 응답에 토큰이 있으면 저장 (모바일 쿠키 차단 폴백)
+  const isLoginEndpoint = path.startsWith('/api/auth/login');
+
+  // 401 → refresh로 재시도 (로그인/리프레시 자체는 제외)
+  const isAuthEndpoint = isLoginEndpoint || path.startsWith('/api/auth/refresh');
   if (res.status === 401 && !isAuthEndpoint) {
-    const newToken = await tryRefreshToken();
-    if (newToken) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
       const retry = await fetch(`${API_BASE}${path}`, {
         ...options,
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${newToken}`,
+          ...authHeader(),
           ...options?.headers,
         },
       });
@@ -74,7 +110,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       }
       return retryJson?.data ?? retryJson;
     }
-    // refresh도 실패 → 로그인 페이지로
     forceLogout();
     throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.');
   }
@@ -83,8 +118,34 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     throw new Error(json?.error || res.statusText);
   }
-  // API wraps responses as { success, data, ... } — unwrap
-  return json?.data ?? json;
+  const payload = json?.data ?? json;
+  if (isLoginEndpoint && res.ok && payload && (payload.accessToken || payload.refreshToken)) {
+    setAuthTokens({ accessToken: payload.accessToken, refreshToken: payload.refreshToken });
+  }
+  return payload;
+}
+
+/** 파일 업로드용 fetch — Content-Type 자동(boundary), 쿠키 자동 전송, 401 시 refresh 재시도 */
+async function uploadRequest<T>(path: string, formData: FormData): Promise<T> {
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { ...authHeader() },
+      body: formData,
+    });
+  let res = await doFetch();
+  if (res.status === 401) {
+    const refreshed = await tryRefreshToken();
+    if (!refreshed) {
+      forceLogout();
+      throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.');
+    }
+    res = await doFetch();
+  }
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(json?.error || res.statusText);
+  return (json?.data ?? json) as T;
 }
 
 export interface Student {
@@ -117,10 +178,130 @@ export interface TeacherOption {
   id: string;
   name: string;
   role: 'admin' | 'instructor';
+  email?: string;
+  status?: 'active' | 'disabled';
+  subjects?: string[];
+  last_login_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TeacherCreateInput {
+  name: string;
+  pin: string;
+  subjects: string[];
+  isAdmin?: boolean;
+}
+
+export interface TeacherUpdateInput {
+  name?: string;
+  role?: 'instructor' | 'admin';
+  subjects?: string[];
+  status?: 'active' | 'disabled';
 }
 
 export interface StudentProfile extends Student {
-  teachers: { id: string; name: string }[];
+  teachers: { id: string; name: string; is_homeroom?: number }[];
+  homeroom_teacher?: { id: string; name: string } | null;
+}
+
+export interface Consultation {
+  id: string;
+  student_id: string;
+  author_id: string;
+  author_name?: string;
+  channel: 'phone' | 'sms' | 'kakao' | 'in_person' | 'other';
+  category: 'monthly' | 'pre_exam' | 'post_exam' | 'ad_hoc';
+  consulted_at: string;
+  subjects?: string[];
+  summary: string;
+  parent_sentiment?: 'positive' | 'neutral' | 'concerned' | null;
+  follow_up?: string | null;
+  follow_up_due?: string | null;
+  created_at: string;
+}
+
+export interface TeacherNote {
+  id: string;
+  academy_id: string;
+  student_id: string;
+  author_id: string;
+  author_name: string | null;
+  subject: string;
+  category: 'attitude' | 'understanding' | 'homework' | 'exam' | 'etc';
+  sentiment: 'positive' | 'neutral' | 'concern';
+  tags: string[];
+  content: string;
+  source: 'manual' | 'post_class' | 'post_exam' | 'post_assignment' | 'live_session';
+  source_ref_id: string | null;
+  visibility: 'staff' | 'homeroom_only' | 'parent_share';
+  period_tag: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeacherNoteInput {
+  subject: string;
+  category: TeacherNote['category'];
+  sentiment: TeacherNote['sentiment'];
+  tags?: string[];
+  content: string;
+  source?: TeacherNote['source'];
+  source_ref_id?: string | null;
+  visibility?: TeacherNote['visibility'];
+}
+
+export interface LiveSessionRow {
+  id: string;
+  academy_id: string;
+  teacher_id: string;
+  student_id: string;
+  subject: string;
+  status: 'active' | 'ended' | 'abandoned';
+  started_at: string;
+  ended_at: string | null;
+  duration_sec: number | null;
+  problem_text: string | null;
+  problem_r2_key: string | null;
+  teacher_solution_text: string | null;
+  teacher_solution_r2_key: string | null;
+  student_answer_text: string | null;
+  student_answer_r2_key: string | null;
+  note_id: string | null;
+}
+
+export interface LiveSessionState {
+  problem: { text?: string; image_data_url?: string; updated_at: number };
+  teacher: { text?: string; strokes?: Stroke[]; updated_at: number };
+  student: {
+    text?: string;
+    strokes?: Stroke[];
+    photo_data_urls?: string[];
+    updated_at: number;
+  };
+  pulse: number;
+  status?: 'active' | 'ended';
+}
+
+export interface Stroke {
+  color: string;
+  width: number;
+  points: [number, number][];
+}
+
+export interface ExternalSchedule {
+  id: string;
+  student_id: string;
+  author_id: string;
+  author_name?: string;
+  kind: 'other_subject' | 'other_academy' | 'exam' | 'event';
+  title: string;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  recurrence?: string | null;
+  location?: string | null;
+  note?: string | null;
+  created_at: string;
 }
 
 export interface CommentHistoryEntry {
@@ -206,9 +387,10 @@ export interface MaterialItem {
 }
 
 export const api = {
-  // Auth
+  // Auth — 1차는 httpOnly 쿠키, 폴백으로 body의 accessToken/refreshToken을
+  // localStorage에 저장하고 Authorization 헤더로 전송 (모바일 쿠키 차단 대응)
   login: (slug: string, name: string, pin: string) =>
-    request<{ accessToken: string; refreshToken: string; user: any }>('/api/auth/login', {
+    request<{ user: any; accessToken?: string; refreshToken?: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ slug, name, pin }),
     }),
@@ -254,6 +436,24 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getInvites: () => request<any[]>('/api/academy/invites'),
+  cancelInvite: (id: string) =>
+    request(`/api/academy/invites/${id}`, { method: 'DELETE' }),
+
+  // 선생님 CRUD (admin only)
+  createTeacher: (data: TeacherCreateInput) =>
+    request<{ id: string; pin: string; name: string }>('/api/teachers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateTeacher: (id: string, data: TeacherUpdateInput) =>
+    request<TeacherOption>(`/api/teachers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteTeacher: (id: string) =>
+    request(`/api/teachers/${id}`, { method: 'DELETE' }),
+  resetTeacherPin: (id: string) =>
+    request<{ tempPin: string }>(`/api/teachers/${id}/reset-pin`, { method: 'POST' }),
 
   // Settings — returns { activeExamMonth, ... }
   getActiveMonth: () =>
@@ -378,6 +578,202 @@ export const api = {
 
   getStudentAttendance: (id: string, months?: number) =>
     request<AttendanceSummary>(`/api/student/${id}/attendance?${new URLSearchParams({ months: String(months || 6) })}`),
+
+  // ── 담임 / 상담 / 외부 일정 (합의서 4-5, 4-1, 4-2) ──
+
+  setHomeroom: (studentId: string, teacherId: string | null) =>
+    request<{ student_id: string; homeroom_teacher_id: string | null }>(
+      `/api/student/${studentId}/homeroom`,
+      { method: 'PUT', body: JSON.stringify({ teacher_id: teacherId }) }
+    ),
+
+  listConsultations: (studentId: string, limit = 50) =>
+    request<Consultation[]>(
+      `/api/student/${studentId}/consultations?${new URLSearchParams({ limit: String(limit) })}`
+    ),
+
+  createConsultation: (
+    studentId: string,
+    data: Omit<Consultation, 'id' | 'student_id' | 'author_id' | 'author_name' | 'created_at'>
+  ) =>
+    request<{ id: string }>(`/api/student/${studentId}/consultations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteConsultation: (studentId: string, consultationId: string) =>
+    request<{ id: string; deleted: boolean }>(
+      `/api/student/${studentId}/consultations/${consultationId}`,
+      { method: 'DELETE' }
+    ),
+
+  listSchedules: (studentId: string) =>
+    request<ExternalSchedule[]>(`/api/student/${studentId}/schedules`),
+
+  createSchedule: (
+    studentId: string,
+    data: Omit<ExternalSchedule, 'id' | 'student_id' | 'author_id' | 'author_name' | 'created_at'>
+  ) =>
+    request<{ id: string }>(`/api/student/${studentId}/schedules`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteSchedule: (studentId: string, scheduleId: string) =>
+    request<{ id: string; deleted: boolean }>(
+      `/api/student/${studentId}/schedules/${scheduleId}`,
+      { method: 'DELETE' }
+    ),
+
+  importExamPeriodToSchedule: (studentId: string, periodId: string) =>
+    request<{ id: string; imported: boolean }>(
+      `/api/student/${studentId}/schedules/from-exam-period/${periodId}`,
+      { method: 'POST' }
+    ),
+
+  getHomeroomSummary: () =>
+    request<{
+      homeroom_count: number;
+      this_month_consulted: { id: string; name: string; grade: string }[];
+      this_month_pending: { id: string; name: string; grade: string }[];
+      follow_ups_due: {
+        id: string;
+        student_id: string;
+        student_name: string;
+        follow_up: string;
+        follow_up_due: string;
+      }[];
+      upcoming_exams: {
+        id: string;
+        student_id: string;
+        student_name: string;
+        title: string;
+        starts_at: string;
+      }[];
+    }>('/api/homeroom/summary'),
+
+  getHomeroomCalendar: (month?: string) =>
+    request<{
+      month: string;
+      students: { id: string; name: string; grade: string }[];
+      consultations: {
+        id: string;
+        student_id: string;
+        category: Consultation['category'];
+        channel: Consultation['channel'];
+        consulted_at: string;
+        summary: string;
+      }[];
+    }>(`/api/homeroom/calendar${month ? `?month=${month}` : ''}`),
+
+  // ── 학부모 월간 리포트 공유 링크 ──
+  createParentReportLink: (
+    studentId: string,
+    data: { month: string; days?: number }
+  ) =>
+    request<{ url: string; path: string; token: string; month: string; expires_at: string }>(
+      `/api/parent-report/${studentId}/share`,
+      { method: 'POST', body: JSON.stringify(data) }
+    ),
+
+  // ── 교과 선생님 메모 (student_teacher_notes) ──
+  listTeacherNotes: (
+    studentId: string,
+    opts?: { subject?: string; period?: string; limit?: number }
+  ) => {
+    const qs = new URLSearchParams();
+    if (opts?.subject) qs.set('subject', opts.subject);
+    if (opts?.period) qs.set('period', opts.period);
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    const q = qs.toString();
+    return request<TeacherNote[]>(
+      `/api/student/${studentId}/notes${q ? `?${q}` : ''}`
+    );
+  },
+  createTeacherNote: (
+    studentId: string,
+    data: TeacherNoteInput
+  ) =>
+    request<{ id: string }>(`/api/student/${studentId}/notes`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateTeacherNote: (
+    studentId: string,
+    noteId: string,
+    data: Partial<TeacherNoteInput>
+  ) =>
+    request<{ id: string; updated: boolean }>(
+      `/api/student/${studentId}/notes/${noteId}`,
+      { method: 'PATCH', body: JSON.stringify(data) }
+    ),
+  deleteTeacherNote: (studentId: string, noteId: string) =>
+    request<{ id: string; deleted: boolean }>(
+      `/api/student/${studentId}/notes/${noteId}`,
+      { method: 'DELETE' }
+    ),
+  getHomeroomNotesOverview: (period?: string) =>
+    request<{
+      period: string;
+      students: {
+        id: string;
+        name: string;
+        grade: string;
+        by_subject: {
+          subject: string;
+          count: number;
+          sentiment_counts: { positive: number; neutral: number; concern: number };
+        }[];
+        concern_count: number;
+        total_notes: number;
+      }[];
+    }>(`/api/homeroom/notes-overview${period ? `?period=${period}` : ''}`),
+
+  // ── 라이브 문제 세션 ──
+  startLiveSession: (data: { student_id: string; subject: string; problem_text?: string }) =>
+    request<{ id: string; started_at: string }>('/api/live/sessions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getLiveSession: (id: string) =>
+    request<LiveSessionRow>(`/api/live/sessions/${id}`),
+  getLiveState: (id: string) =>
+    request<LiveSessionState>(`/api/live/sessions/${id}/state`),
+  patchLiveState: (
+    id: string,
+    data: {
+      side: 'teacher' | 'problem';
+      text?: string;
+      strokes?: any[];
+      image_data_url?: string;
+    }
+  ) =>
+    request<{ pulse: number }>(`/api/live/sessions/${id}/state`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  endLiveSession: (
+    id: string,
+    data: {
+      teacher_solution_image?: string;
+      student_answer_image?: string;
+      create_note?: {
+        sentiment: 'positive' | 'neutral' | 'concern';
+        summary: string;
+        category?: 'attitude' | 'understanding' | 'homework' | 'exam' | 'etc';
+      };
+    }
+  ) =>
+    request<{ id: string; note_id: string | null }>(
+      `/api/live/sessions/${id}/end`,
+      { method: 'POST', body: JSON.stringify(data) }
+    ),
+
+  // 정기고사 (달력 연계용)
+  getExamPeriodsByMonth: (month: string) =>
+    request<{ periods: { id: string; title: string; period_month: string }[] }>(
+      `/api/exam-mgmt/by-month?${new URLSearchParams({ month })}`
+    ),
 
   // ── 시간표/수업 ──
 
@@ -705,6 +1101,63 @@ export const api = {
   deleteMaterial: (id: string) =>
     request('/api/materials/' + id, { method: 'DELETE' }),
 
+  // ── 진도/이해도 관리 ──
+  progressTextbooks: () =>
+    request<Array<{ textbook: string; unit_count: number }>>('/api/progress/textbooks'),
+
+  deleteProgressTextbook: (name: string) =>
+    request(`/api/progress/textbooks?name=${encodeURIComponent(name)}`, { method: 'DELETE' }),
+
+  progressUnits: (textbook: string, kind: 'unit' | 'type' = 'unit') =>
+    request<Array<{ id: string; textbook: string; name: string; kind: string; order_idx: number }>>(
+      `/api/progress/units?textbook=${encodeURIComponent(textbook)}&kind=${kind}`
+    ),
+
+  createProgressUnit: (data: { textbook: string; name: string; kind?: 'unit' | 'type' }) =>
+    request<{ id: string }>('/api/progress/units', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateProgressUnit: (id: string, data: { name?: string; order_idx?: number }) =>
+    request(`/api/progress/units/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteProgressUnit: (id: string) =>
+    request(`/api/progress/units/${id}`, { method: 'DELETE' }),
+
+  reorderProgressUnits: (ids: string[]) =>
+    request('/api/progress/units/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
+
+  getStudentProgress: (studentId: string, textbook: string, kind: 'unit' | 'type' = 'unit') =>
+    request<Array<{
+      unit_id: string;
+      name: string;
+      order_idx: number;
+      kind: string;
+      understanding: number | null;
+      status: string | null;
+      note: string | null;
+      updated_at: string | null;
+    }>>(
+      `/api/progress/students/${studentId}?textbook=${encodeURIComponent(textbook)}&kind=${kind}`
+    ),
+
+  patchStudentProgress: (
+    studentId: string,
+    unitId: string,
+    data: { understanding?: number | null; status?: string; note?: string | null }
+  ) =>
+    request(`/api/progress/students/${studentId}/units/${unitId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
   // ── 가차 학생 관리 ──
 
   getGachaStudents: (scope?: 'all' | 'mine') =>
@@ -764,17 +1217,9 @@ export const api = {
     request(`/api/gacha/cards/${id}`, { method: 'DELETE' }),
 
   uploadGachaCardImage: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const token = localStorage.getItem('accessToken');
-    const res = await fetch(`${API_BASE}/api/gacha/cards/upload-image`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
-    const json = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(json?.error || res.statusText);
-    return (json?.data ?? json) as { key: string; url: string };
+    const fd = new FormData();
+    fd.append('file', file);
+    return uploadRequest<{ key: string; url: string }>('/api/gacha/cards/upload-image', fd);
   },
 
   // ── 증명 관리 ──
@@ -812,17 +1257,9 @@ export const api = {
     }),
 
   uploadProofImage: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const token = localStorage.getItem('accessToken');
-    const res = await fetch(`${API_BASE}/api/proof/upload-image`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
-    const json = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(json?.error || res.statusText);
-    return (json?.data ?? json) as { key: string; url: string };
+    const fd = new FormData();
+    fd.append('file', file);
+    return uploadRequest<{ key: string; url: string }>('/api/proof/upload-image', fd);
   },
 
   // 공유 마켓
@@ -984,15 +1421,9 @@ export const api = {
   uploadExamPaperFile: async (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
-    const token = localStorage.getItem('accessToken');
-    const res = await fetch(`${API_BASE}/api/exam-papers/upload`, {
-      method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: fd,
-    });
-    const json = await res.json();
-    if (!res.ok || !json.success) throw new Error(json.error || '파일 업로드 실패');
-    return json.data as { key: string; fileName: string; fileSize: number; contentType: string };
+    return uploadRequest<{ key: string; fileName: string; fileSize: number; contentType: string }>(
+      '/api/exam-papers/upload', fd,
+    );
   },
 
   createExamPaperDoc: (data: {
@@ -1041,7 +1472,317 @@ export const api = {
     request(`/api/exam-papers/${paperId}/distributions/${studentId}`, { method: 'DELETE' }),
 
   examPaperFileUrl: (key: string) => `${API_BASE}/api/exam-papers/file/${key}`,
+
+  // ── Vocab Gacha (영단어 학습) ──
+
+  getVocabWords: (params?: { student_id?: string; status?: string }) => {
+    const qp = new URLSearchParams();
+    if (params?.student_id) qp.set('student_id', params.student_id);
+    if (params?.status) qp.set('status', params.status);
+    const qs = qp.toString();
+    return request<VocabWord[]>(`/api/vocab/words${qs ? '?' + qs : ''}`);
+  },
+  createVocabWord: (data: { student_id: string; english: string; korean: string; blank_type?: string }) =>
+    request<{ id: string }>('/api/vocab/words', { method: 'POST', body: JSON.stringify(data) }),
+  updateVocabWord: (id: string, data: Partial<{ english: string; korean: string; blank_type: string; status: string; box: number }>) =>
+    request(`/api/vocab/words/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteVocabWord: (id: string) =>
+    request(`/api/vocab/words/${id}`, { method: 'DELETE' }),
+
+  getVocabGrammar: (status?: string) =>
+    request<VocabGrammarQA[]>(`/api/vocab/grammar${status ? '?status=' + status : ''}`),
+  createVocabGrammar: (data: { question: string; answer?: string; student_id?: string }) =>
+    request<{ id: string }>('/api/vocab/grammar', { method: 'POST', body: JSON.stringify(data) }),
+  updateVocabGrammar: (id: string, data: { question?: string; answer?: string; include_in_print?: boolean }) =>
+    request(`/api/vocab/grammar/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteVocabGrammar: (id: string) =>
+    request(`/api/vocab/grammar/${id}`, { method: 'DELETE' }),
+  generateVocabGrammarAnswer: (id: string) =>
+    request<{ id: string; answer: string }>(`/api/vocab/grammar/${id}/ai-answer`, { method: 'POST' }),
+
+  getVocabTextbooks: () =>
+    request<VocabTextbook[]>('/api/vocab/textbooks'),
+  createVocabTextbook: (data: { title: string; school?: string; grade?: string; semester?: string }) =>
+    request<{ id: string }>('/api/vocab/textbooks', { method: 'POST', body: JSON.stringify(data) }),
+  deleteVocabTextbook: (id: string) =>
+    request(`/api/vocab/textbooks/${id}`, { method: 'DELETE' }),
+  getVocabTextbookWords: (textbookId: string) =>
+    request<VocabTextbookWord[]>(`/api/vocab/textbooks/${textbookId}/words`),
+  addVocabTextbookWords: (textbookId: string, words: { english: string; korean: string; unit?: string; sentence?: string }[]) =>
+    request<{ created: number }>(`/api/vocab/textbooks/${textbookId}/words`, {
+      method: 'POST',
+      body: JSON.stringify({ words }),
+    }),
+
+  pickVocabPrint: (data: { student_id: string; max_words?: number }) =>
+    request<VocabPrintPickResult>('/api/vocab/print/pick', { method: 'POST', body: JSON.stringify(data) }),
+  gradeVocabPrint: (data: { job_id: string; results: { word_id: string; correct: 0 | 1 }[] }) =>
+    request<{ job_id: string; correct: number; wrong: number }>('/api/vocab/print/grade', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // ── 시험 결시 개별 타이머 (exam_attempts) ──
+
+  getExamAttemptsToday: () =>
+    request<{
+      attempts: ExamAttempt[];
+      pendingAssignments: ExamAttemptPendingAssignment[];
+    }>('/api/exam-attempts/today'),
+
+  startExamAttempt: (data: { examAssignmentId: string; durationMinutes: number; realtimeSessionId?: string }) =>
+    request<ExamAttempt>('/api/exam-attempts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  pauseExamAttempt: (id: string, reason: string) =>
+    request<ExamAttempt>(`/api/exam-attempts/${id}/pause`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  resumeExamAttempt: (id: string) =>
+    request<ExamAttempt>(`/api/exam-attempts/${id}/resume`, { method: 'POST' }),
+
+  submitExamAttempt: (id: string, note?: string) =>
+    request<ExamAttempt>(`/api/exam-attempts/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(note ? { note } : {}),
+    }),
+
+  voidExamAttempt: (id: string) =>
+    request<ExamAttempt>(`/api/exam-attempts/${id}/void`, { method: 'POST' }),
+
+  // ── Assignments (과제 회수·첨삭) ──
+  getAssignments: (params?: { status?: string; kind?: string; mine?: boolean }) => {
+    const qp = new URLSearchParams();
+    if (params?.status) qp.set('status', params.status);
+    if (params?.kind) qp.set('kind', params.kind);
+    if (params?.mine) qp.set('mine', '1');
+    const q = qp.toString();
+    return request<any[]>(`/api/assignments${q ? `?${q}` : ''}`);
+  },
+  getAssignmentInbox: () => request<any[]>('/api/assignments/inbox'),
+  getAssignmentStats: () => request<any>('/api/assignments/stats'),
+  getAssignment: (id: string) => request<any>(`/api/assignments/${id}`),
+  createAssignment: (data: {
+    title: string;
+    instructions?: string;
+    kind: 'perf_eval' | 'exam_paper' | 'general';
+    due_at?: string | null;
+    attached_file_key?: string | null;
+    attached_file_name?: string | null;
+    student_ids: string[];
+  }) => request<{ id: string; target_count: number }>('/api/assignments', { method: 'POST', body: JSON.stringify(data) }),
+  updateAssignment: (id: string, data: { title?: string; instructions?: string; due_at?: string | null; status?: 'published' | 'closed' }) =>
+    request<any>(`/api/assignments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  closeAssignment: (id: string) => request(`/api/assignments/${id}`, { method: 'DELETE' }),
+  getAssignmentTarget: (targetId: string) =>
+    request<{ target: any; submissions: any[]; responses: any[] }>(`/api/assignments/targets/${targetId}`),
+  respondToTarget: (targetId: string, data: {
+    submission_id?: string | null;
+    comment?: string | null;
+    file_key?: string | null;
+    file_name?: string | null;
+    action: 'accept' | 'needs_resubmit';
+  }) => request<{ id: string; target_status: string }>(`/api/assignments/targets/${targetId}/respond`, {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+  setTargetStatus: (targetId: string, status: string) =>
+    request(`/api/assignments/targets/${targetId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  uploadAssignmentFile: async (file: File, purpose: 'attachment' | 'response') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('purpose', purpose);
+    return uploadRequest<{ key: string; fileName: string; fileSize: number; contentType: string }>(
+      '/api/assignments/upload', fd,
+    );
+  },
+  assignmentFileUrl: (key: string) => `${API_BASE}/api/assignments/file/${encodeURIComponent(key)}`,
+
+  // ── 학습자료 아카이브 ──
+  listArchives: (params?: { subject?: string; grade?: string; purpose?: string; q?: string; includeArchived?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params?.subject) qs.set('subject', params.subject);
+    if (params?.grade) qs.set('grade', params.grade);
+    if (params?.purpose) qs.set('purpose', params.purpose);
+    if (params?.q) qs.set('q', params.q);
+    if (params?.includeArchived) qs.set('includeArchived', '1');
+    const q = qs.toString();
+    return request<ArchiveListItem[]>(`/api/archives${q ? '?' + q : ''}`);
+  },
+  getArchive: (id: string) => request<ArchiveDetail>(`/api/archives/${id}`),
+  createArchive: (data: ArchiveCreateInput) =>
+    request<{ id: string }>('/api/archives', { method: 'POST', body: JSON.stringify(data) }),
+  updateArchive: (id: string, patch: Partial<ArchiveCreateInput>) =>
+    request<{ ok: boolean }>(`/api/archives/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  archiveArchive: (id: string) =>
+    request<{ ok: boolean }>(`/api/archives/${id}`, { method: 'DELETE' }),
+  uploadArchiveFile: (archiveId: string, file: File, role: ArchiveFileRole) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('role', role);
+    return uploadRequest<ArchiveFileItem>(`/api/archives/${archiveId}/files`, fd);
+  },
+  deleteArchiveFile: (archiveId: string, fileId: string) =>
+    request<{ ok: boolean }>(`/api/archives/${archiveId}/files/${fileId}`, { method: 'DELETE' }),
+  distributeArchive: (archiveId: string, data: ArchiveDistributeInput) =>
+    request<{ id: string }>(`/api/archives/${archiveId}/distribute`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  revokeArchiveDistribution: (archiveId: string, distId: string) =>
+    request<{ ok: boolean }>(`/api/archives/${archiveId}/distributions/${distId}`, { method: 'DELETE' }),
+  getArchiveLog: (archiveId: string) =>
+    request<ArchiveAccessLogItem[]>(`/api/archives/${archiveId}/log`),
+  createArchiveParentShare: (archiveId: string, studentId: string, days?: number) =>
+    request<{ url: string; path: string; token: string; expires_at: string }>(
+      `/api/archives/${archiveId}/share`,
+      { method: 'POST', body: JSON.stringify({ studentId, days }) }
+    ),
+  archiveFileDownloadUrl: (fileId: string) =>
+    `${API_BASE}/api/archives/download/${encodeURIComponent(fileId)}`,
 };
+
+// ── 학습자료 아카이브 타입 ──
+
+export type ArchiveFileRole = 'main' | 'answer' | 'solution' | 'extra';
+export type ArchiveScope = 'student' | 'class' | 'academy';
+
+export interface ArchiveListItem {
+  id: string;
+  academy_id: string;
+  title: string;
+  subject: string | null;
+  grade: string | null;
+  topic: string | null;
+  purpose: string;
+  description: string | null;
+  tags: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+  file_count: number;
+  dist_count: number;
+  download_count: number;
+}
+
+export interface ArchiveCreateInput {
+  title: string;
+  purpose: string;
+  subject?: string | null;
+  grade?: string | null;
+  topic?: string | null;
+  description?: string | null;
+  tags?: string[];
+}
+
+export interface ArchiveFileItem {
+  id: string;
+  archive_id: string;
+  file_name: string;
+  file_role: ArchiveFileRole;
+  mime_type: string | null;
+  size_bytes: number;
+  version: number;
+  uploaded_at?: string;
+  uploaded_by?: string;
+  r2_key?: string;
+}
+
+export interface ArchiveDistributionItem {
+  id: string;
+  archive_id: string;
+  academy_id: string;
+  scope: ArchiveScope;
+  scope_id: string | null;
+  can_download: number;
+  distributed_by: string;
+  distributed_at: string;
+  expires_at: string | null;
+  target_name: string | null;
+}
+
+export interface ArchiveDetail extends ArchiveListItem {
+  files: ArchiveFileItem[];
+  distributions: ArchiveDistributionItem[];
+}
+
+export interface ArchiveDistributeInput {
+  scope: ArchiveScope;
+  scope_id?: string | null;
+  can_download?: boolean;
+  expires_at?: string | null;
+}
+
+export interface ArchiveAccessLogItem {
+  id: string;
+  archive_id: string;
+  file_id: string | null;
+  accessor_type: 'student' | 'parent' | 'staff';
+  accessor_id: string | null;
+  accessor_name: string | null;
+  action: 'view' | 'download';
+  accessed_at: string;
+}
+
+// ── Vocab Gacha 타입 ──
+
+export interface VocabWord {
+  id: string;
+  academy_id: string;
+  student_id: string;
+  english: string;
+  korean: string;
+  box: number;
+  blank_type: 'korean' | 'english' | 'both';
+  status: 'pending' | 'approved';
+  added_by: 'teacher' | 'student';
+  review_count: number;
+  wrong_count: number;
+  created_at: string;
+}
+
+export interface VocabGrammarQA {
+  id: string;
+  academy_id: string;
+  student_id: string | null;
+  student_name?: string | null;
+  question: string;
+  answer: string | null;
+  status: 'pending' | 'answered';
+  answered_by: 'teacher' | 'ai' | null;
+  include_in_print: number;
+  created_at: string;
+  answered_at: string | null;
+}
+
+export interface VocabTextbook {
+  id: string;
+  academy_id: string;
+  school: string | null;
+  grade: string | null;
+  semester: string | null;
+  title: string;
+}
+
+export interface VocabTextbookWord {
+  id: string;
+  textbook_id: string;
+  unit: string | null;
+  english: string;
+  korean: string;
+  sentence: string | null;
+}
+
+export interface VocabPrintPickResult {
+  job_id: string;
+  student: { id: string; name: string };
+  words: VocabWord[];
+  grammar: VocabGrammarQA[];
+}
 
 // ── 가차/증명 타입 ──
 
@@ -1234,6 +1975,47 @@ export interface ExamPaperDistribution {
   student_name: string;
   student_school: string | null;
   student_grade: string | null;
+}
+
+export interface ExamAttemptPauseEvent {
+  pausedAt: string;
+  resumedAt?: string;
+  reason?: string;
+  byUserId?: string;
+}
+
+export interface ExamAttempt {
+  id: string;
+  examAssignmentId: string;
+  studentId: string;
+  durationMinutes: number;
+  status: 'ready' | 'running' | 'paused' | 'submitted' | 'expired' | 'voided';
+  startedAt: string | null;
+  endedAt: string | null;
+  deadlineAt: string | null;
+  pausedSeconds: number;
+  isPaused: boolean;
+  remainingSeconds: number;
+  pauseHistory: ExamAttemptPauseEvent[];
+  proctorUserId: string | null;
+  submitNote: string | null;
+  studentName?: string;
+  periodTitle?: string | null;
+  paperTitle?: string | null;
+}
+
+export interface ExamAttemptPendingAssignment {
+  assignment_id: string;
+  student_id: string;
+  exam_status: 'absent' | 'rescheduled';
+  absence_reason: string | null;
+  rescheduled_date: string | null;
+  exam_period_id: string;
+  exam_paper_id: string;
+  student_name: string;
+  student_grade: string;
+  period_title: string | null;
+  paper_title: string | null;
 }
 
 export interface GachaStats {

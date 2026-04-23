@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store';
 
-type NavLeaf = { to: string; label: string; iconClass?: string; exact?: boolean };
+type NavLeaf = { to: string; label: string; iconClass?: string; exact?: boolean; external?: boolean };
 type NavGroup = { key: string; label: string; iconClass: string; paths: string[]; items: NavLeaf[] };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -10,9 +10,10 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'class',
     label: '수업',
     iconClass: 'nav-icon--timer',
-    paths: ['/timer', '/absence'],
+    paths: ['/timer', '/exam-timer', '/absence'],
     items: [
       { to: '/timer', label: '수업 타이머' },
+      { to: '/exam-timer', label: '시험 타이머' },
       { to: '/absence', label: '보강 관리' },
     ],
   },
@@ -20,11 +21,25 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'student',
     label: '학생',
     iconClass: 'nav-icon--student',
-    paths: ['/student', '/exams', '/report'],
+    paths: ['/student', '/progress', '/exams', '/report', '/assignments'],
     items: [
       { to: '/student', label: '학생 관리' },
+      { to: '/progress', label: '진도 관리' },
       { to: '/exams', label: '정기고사' },
+      { to: '/assignments', label: '과제 회수·첨삭' },
       { to: '/report', label: '평가/리포트' },
+    ],
+  },
+  {
+    key: 'homeroom',
+    label: '담임',
+    iconClass: 'nav-icon--student',
+    paths: ['/homeroom'],
+    items: [
+      { to: '/homeroom', label: '대시보드', exact: true },
+      { to: '/homeroom/consultations', label: '학부모 상담' },
+      { to: '/homeroom/follow-ups', label: '후속 상담' },
+      { to: '/homeroom/exams', label: '시험 전후 상담' },
     ],
   },
   {
@@ -40,13 +55,24 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: 'vocab',
+    label: '학습 (영단어)',
+    iconClass: 'nav-icon--gacha',
+    paths: ['/vocab'],
+    items: [
+      { to: '/vocab/admin.html', label: '단어/문법/교재', external: true },
+      { to: '/vocab/grade.html', label: '출제·채점', external: true },
+    ],
+  },
+  {
     key: 'content',
     label: '자료',
     iconClass: 'nav-icon--materials',
-    paths: ['/materials', '/exam-papers'],
+    paths: ['/materials', '/exam-papers', '/archives'],
     items: [
       { to: '/materials', label: '교재' },
       { to: '/exam-papers', label: '시험지' },
+      { to: '/archives', label: '자료 아카이브' },
     ],
   },
   {
@@ -103,6 +129,14 @@ export default function Layout() {
             // 단일 항목인 경우 NavLink로 바로
             if (group.items.length === 1) {
               const it = group.items[0];
+              if (it.external) {
+                return (
+                  <a key={it.to} href={it.to}>
+                    <span className={`nav-icon ${group.iconClass}`} aria-hidden="true" />
+                    {group.label}
+                  </a>
+                );
+              }
               return (
                 <NavLink key={it.to} to={it.to} end={it.exact}>
                   <span className={`nav-icon ${group.iconClass}`} aria-hidden="true" />
@@ -123,9 +157,13 @@ export default function Layout() {
                 {open && (
                   <div className="sidebar-nav-sub">
                     {group.items.map(it => (
-                      <NavLink key={it.to} to={it.to} end={it.exact}>
-                        {it.label}
-                      </NavLink>
+                      it.external ? (
+                        <a key={it.to} href={it.to}>{it.label}</a>
+                      ) : (
+                        <NavLink key={it.to} to={it.to} end={it.exact}>
+                          {it.label}
+                        </NavLink>
+                      )
                     ))}
                   </div>
                 )}
@@ -133,6 +171,12 @@ export default function Layout() {
             );
           })}
 
+          {user?.role === 'admin' && (
+            <NavLink to="/academy">
+              <span className="nav-icon nav-icon--settings" aria-hidden="true" />
+              학원 관리
+            </NavLink>
+          )}
           <NavLink to="/settings">
             <span className="nav-icon nav-icon--settings" aria-hidden="true" />
             설정
@@ -210,15 +254,25 @@ export default function Layout() {
                   </div>
                   <div className="app-drawer-group-items">
                     {group.items.map(it => (
-                      <NavLink key={it.to} to={it.to} end={it.exact}>
-                        {it.label}
-                      </NavLink>
+                      it.external ? (
+                        <a key={it.to} href={it.to}>{it.label}</a>
+                      ) : (
+                        <NavLink key={it.to} to={it.to} end={it.exact}>
+                          {it.label}
+                        </NavLink>
+                      )
                     ))}
                   </div>
                 </div>
               ))}
               <div className="app-drawer-group">
                 <div className="app-drawer-group-items">
+                  {user?.role === 'admin' && (
+                    <NavLink to="/academy">
+                      <span className="nav-icon nav-icon--settings" aria-hidden="true" />
+                      학원 관리
+                    </NavLink>
+                  )}
                   <NavLink to="/settings">
                     <span className="nav-icon nav-icon--settings" aria-hidden="true" />
                     설정

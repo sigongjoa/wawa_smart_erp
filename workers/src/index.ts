@@ -34,7 +34,16 @@ import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
 import { handleExamPaper } from '@/routes/exam-paper-handler';
+import { handleProgress } from '@/routes/progress-handler';
+import { handleVocab } from '@/routes/vocab-handler';
+import { handleVocabPlay } from '@/routes/vocab-play-handler';
+import { handleExamAttempt } from '@/routes/exam-attempt-handler';
+import { handleAssignments } from '@/routes/assignments-handler';
+import { handlePlayAssignments } from '@/routes/play-assignments-handler';
+import { handleLive, handlePlayLive } from '@/routes/live-handler';
 import { handleParentReport } from '@/routes/parent-report-handler';
+import { handleArchive } from '@/routes/archive-handler';
+import { expireExpiredAttempts } from '@/cron/expire-exam-attempts';
 import { tenantMiddleware } from '@/middleware/tenant';
 
 /**
@@ -108,6 +117,21 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       }
 
       // 학생 앱 (PIN 토큰 인증 — JWT 미들웨어 스킵)
+      if (pathname.startsWith('/api/play/vocab/')) {
+        return addCorsHeaders(await handleVocabPlay(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/play/exam-attempts')) {
+        return addCorsHeaders(await handleExamAttempt(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/play/assignments')) {
+        return addCorsHeaders(await handlePlayAssignments(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/play/live')) {
+        return addCorsHeaders(await handlePlayLive(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/play/archives')) {
+        return addCorsHeaders(await handleArchive(method, pathname, request, context), env, origin);
+      }
       if (pathname.startsWith('/api/play/')) {
         return addCorsHeaders(await handleGachaPlay(method, pathname, request, context), env, origin);
       }
@@ -115,6 +139,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학부모 리포트 조회 (HMAC 토큰 기반 공개 - GET만)
       if (method === 'GET' && pathname.match(/^\/api\/parent-report\/[^/]+$/)) {
         return addCorsHeaders(await handleParentReport(method, pathname, request, context), env, origin);
+      }
+
+      // 학부모 자료 아카이브 조회/다운로드 (HMAC 토큰 기반 공개)
+      if (pathname.startsWith('/api/parent-archives/')) {
+        return addCorsHeaders(await handleArchive(method, pathname, request, context), env, origin);
       }
 
       // 인증 체크 (logout, 다른 protected routes)
@@ -170,7 +199,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleReport(method, pathname, request, context), env, origin);
       }
 
-      if (pathname.startsWith('/api/student')) {
+      if (pathname.startsWith('/api/student') || pathname.startsWith('/api/homeroom')) {
         return addCorsHeaders(await handleStudent(method, pathname, request, context), env, origin);
       }
 
@@ -202,6 +231,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleMaterials(method, pathname, request, context), env, origin);
       }
 
+      // 학습자료 아카이브 (교재 제작/배포 이력)
+      if (pathname.startsWith('/api/archives')) {
+        return addCorsHeaders(await handleArchive(method, pathname, request, context), env, origin);
+      }
+
       // 가차 학생/카드 관리 (JWT 인증)
       if (pathname.startsWith('/api/gacha/')) {
         if (pathname.startsWith('/api/gacha/students')) {
@@ -221,9 +255,34 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleExamMgmt(method, pathname, request, context), env, origin);
       }
 
+      // 시험 결시 학생 개별 타이머 (JWT 인증)
+      if (pathname.startsWith('/api/exam-attempts')) {
+        return addCorsHeaders(await handleExamAttempt(method, pathname, request, context), env, origin);
+      }
+
       // 시험지 관리 (중간/기말/수행평가 유인물)
       if (pathname.startsWith('/api/exam-papers')) {
         return addCorsHeaders(await handleExamPaper(method, pathname, request, context), env, origin);
+      }
+
+      // 진도/이해도 관리
+      if (pathname.startsWith('/api/progress')) {
+        return addCorsHeaders(await handleProgress(method, pathname, request, context), env, origin);
+      }
+
+      // Vocab Gacha (영단어 학습)
+      if (pathname.startsWith('/api/vocab/')) {
+        return addCorsHeaders(await handleVocab(method, pathname, request, context), env, origin);
+      }
+
+      // 과제 회수·첨삭 (선생님/admin)
+      if (pathname.startsWith('/api/assignments')) {
+        return addCorsHeaders(await handleAssignments(method, pathname, request, context), env, origin);
+      }
+
+      // 라이브 문제 세션 (교사 JWT)
+      if (pathname.startsWith('/api/live/')) {
+        return addCorsHeaders(await handleLive(method, pathname, request, context), env, origin);
       }
 
       // 학부모 리포트 링크 발급 (교사 JWT)
@@ -250,5 +309,17 @@ export default {
     // Rate Limit Headers
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     return await setRateLimitHeaders(response, ip, env.KV);
+  },
+
+  // Cloudflare Cron Trigger — wrangler.toml triggers.crons 기준
+  scheduled: async (_event: any, env: Env, _ctx: any): Promise<void> => {
+    try {
+      const result = await expireExpiredAttempts(env);
+      if (result.expired > 0) {
+        logger.info(`[cron] expire-exam-attempts: ${result.expired} attempt(s) expired`);
+      }
+    } catch (error) {
+      logger.error('[cron] expire-exam-attempts failed', error instanceof Error ? error : new Error(String(error)));
+    }
   },
 };

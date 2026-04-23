@@ -153,7 +153,222 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // ── Vocab (영단어 학습) ──
+
+  getVocabWords: () =>
+    request<VocabWord[]>('/api/play/vocab/words'),
+  addVocabWord: (data: { english: string; korean: string }) =>
+    request<{ id: string }>('/api/play/vocab/words', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getVocabGrammar: () =>
+    request<VocabGrammarItem[]>('/api/play/vocab/grammar'),
+  addVocabGrammar: (question: string) =>
+    request<{ id: string }>('/api/play/vocab/grammar', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    }),
+  getVocabTextbooks: () =>
+    request<VocabTextbookItem[]>('/api/play/vocab/textbooks'),
+  getVocabTextbookWords: (id: string) =>
+    request<VocabTextbookWordItem[]>(`/api/play/vocab/textbooks/${id}/words`),
+
+  // ── 시험 응시 타이머 (PIN 인증) ──
+
+  getActiveExamAttempt: () =>
+    request<{ active: ExamAttemptDto | null }>('/api/play/exam-attempts/active')
+      .then((r) => r?.active ?? null),
+
+  getExamAttempt: (id: string) =>
+    request<ExamAttemptDto>(`/api/play/exam-attempts/${id}`),
+
+  submitExamAttempt: (id: string, note?: string) =>
+    request<{ id: string; status: string; endedAt: string | null; remainingSeconds: number }>(
+      `/api/play/exam-attempts/${id}/submit`,
+      {
+        method: 'POST',
+        body: JSON.stringify(note ? { note } : {}),
+      }
+    ),
+
+  // ── 과제 (PIN 인증) ──
+  getAssignments: () => request<AssignmentListItem[]>('/api/play/assignments'),
+  getAssignmentDetail: (targetId: string) =>
+    request<AssignmentDetail>(`/api/play/assignments/${targetId}`),
+  submitAssignment: (targetId: string, data: { note?: string | null; files: Array<{ key: string; name: string; size: number; mime?: string | null }> }) =>
+    request<{ id: string; status: string }>(`/api/play/assignments/${targetId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  uploadAssignmentFile: async (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/api/play/assignments/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || '업로드 실패');
+    return (json?.data ?? json) as { key: string; fileName: string; fileSize: number; contentType: string };
+  },
+  assignmentFileUrl: (key: string) => `${API_BASE}/api/play/assignments/file/${encodeURIComponent(key)}`,
+
+  // ── 라이브 문제 세션 ──
+  getActiveLiveSession: () =>
+    request<{ session: { id: string; subject: string; teacher_name: string | null; started_at: string } | null }>(
+      '/api/play/live/active'
+    ),
+  getLiveState: (id: string) =>
+    request<LiveSessionState>(`/api/play/live/sessions/${id}/state`),
+  patchLiveStudent: (
+    id: string,
+    data: { text?: string; strokes?: any[]; append_photo_data_url?: string }
+  ) =>
+    request<{ pulse: number }>(`/api/play/live/sessions/${id}/state`, {
+      method: 'PATCH',
+      body: JSON.stringify({ side: 'student', ...data }),
+    }),
+
+  // ── 학습자료 아카이브 ──
+  listArchives: () => request<StudentArchiveItem[]>('/api/play/archives'),
+  archiveDownloadUrl: (archiveId: string, fileId: string) =>
+    `${API_BASE}/api/play/archives/${encodeURIComponent(archiveId)}/download/${encodeURIComponent(fileId)}`,
 };
+
+export interface StudentArchiveItem {
+  id: string;
+  title: string;
+  subject: string | null;
+  grade: string | null;
+  topic: string | null;
+  purpose: string;
+  description: string | null;
+  tags: string[];
+  can_download: boolean;
+  distributed_at: string;
+  created_at: string;
+  files: Array<{
+    id: string;
+    file_name: string;
+    file_role: 'main' | 'answer' | 'solution' | 'extra';
+    size_bytes: number;
+    version: number;
+  }>;
+}
+
+export interface LiveStroke {
+  color: string;
+  width: number;
+  points: [number, number][];
+}
+export interface LiveSessionState {
+  problem: { text?: string; image_data_url?: string; updated_at: number };
+  teacher: { text?: string; strokes?: LiveStroke[]; updated_at: number };
+  student: {
+    text?: string;
+    strokes?: LiveStroke[];
+    photo_data_urls?: string[];
+    updated_at: number;
+  };
+  pulse: number;
+  status?: 'active' | 'ended';
+}
+
+export interface AssignmentListItem {
+  target_id: string;
+  assignment_id: string;
+  status: 'assigned' | 'submitted' | 'reviewed' | 'needs_resubmit' | 'completed';
+  assigned_at: string;
+  last_submitted_at: string | null;
+  last_reviewed_at: string | null;
+  title: string;
+  kind: 'perf_eval' | 'exam_paper' | 'general';
+  due_at: string | null;
+  instructions: string | null;
+  attached_file_key: string | null;
+  attached_file_name: string | null;
+  assignment_status: string;
+  response_count: number;
+  latest_response_at: string | null;
+}
+
+export interface AssignmentDetail {
+  target: AssignmentListItem & { [k: string]: any };
+  submissions: Array<{
+    id: string;
+    note: string | null;
+    files: Array<{ key: string; name: string; size: number; mime?: string }>;
+    submitted_at: string;
+  }>;
+  responses: Array<{
+    id: string;
+    comment: string | null;
+    file_key: string | null;
+    file_name: string | null;
+    action: 'accept' | 'needs_resubmit';
+    created_at: string;
+    teacher_name: string | null;
+  }>;
+}
+
+export interface ExamAttemptDto {
+  id: string;
+  status: 'ready' | 'running' | 'paused' | 'submitted' | 'expired' | 'voided';
+  durationMinutes: number;
+  remainingSeconds: number;
+  isPaused: boolean;
+  startedAt: string | null;
+  endedAt?: string | null;
+  deadlineAt: string | null;
+  studentName?: string;
+  examTitle?: string;
+  paperTitle?: string;
+  periodTitle?: string;
+  pauseReason?: string;
+}
+
+export interface VocabWord {
+  id: string;
+  english: string;
+  korean: string;
+  box: number;
+  blank_type: 'korean' | 'english' | 'both';
+  status: 'pending' | 'approved';
+  review_count: number;
+  wrong_count: number;
+  created_at: string;
+}
+
+export interface VocabGrammarItem {
+  id: string;
+  question: string;
+  answer: string | null;
+  status: 'pending' | 'answered';
+  answered_by: 'teacher' | 'ai' | null;
+  student_id: string | null;
+  created_at: string;
+  answered_at: string | null;
+}
+
+export interface VocabTextbookItem {
+  id: string;
+  school: string | null;
+  grade: string | null;
+  semester: string | null;
+  title: string;
+}
+
+export interface VocabTextbookWordItem {
+  id: string;
+  unit: string | null;
+  english: string;
+  korean: string;
+  sentence: string | null;
+}
 
 export function getImageUrl(key: string): string {
   return `${API_BASE}/api/proof/image/${key}`;
