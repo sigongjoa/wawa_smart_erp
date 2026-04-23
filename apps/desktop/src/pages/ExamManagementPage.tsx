@@ -205,8 +205,7 @@ export default function ExamManagementPage() {
   const [students, setStudents] = useState<ByMonthStudent[]>([]);
   const [periodId, setPeriodId] = useState<string>('');
   const [attemptsByStudent, setAttemptsByStudent] = useState<Map<string, ExamAttemptByPeriod>>(new Map());
-  const [reportSends, setReportSends] = useState<Record<string, { shareUrl: string; sentAt: string }>>({});
-  const [reviewType, setReviewType] = useState<'midterm' | 'final'>('final');
+  const [reportSends, setReportSends] = useState<Record<string, { shareUrl: string; sentAt: string; type: 'midterm' | 'final' }>>({});
   const [loading, setLoading] = useState(true);
 
   const [gradeFilter, setGradeFilter] = useState('');
@@ -325,8 +324,7 @@ export default function ExamManagementPage() {
 
   useEffect(() => { load(selectedMonth); }, [load, selectedMonth]);
 
-  // selectedMonth + reviewType → 정기고사 리뷰 리포트 send-status
-  // month 1~6 → term=YYYY-1 (1학기), month 7~12 → term=YYYY-2 (2학기)
+  // selectedMonth → term (1학기/2학기 자동) + 중간/기말 둘 다 fetch해서 병합
   const reviewTerm = useMemo(() => {
     const [y, mStr] = selectedMonth.split('-');
     const m = Number(mStr);
@@ -338,11 +336,18 @@ export default function ExamManagementPage() {
     let cancelled = false;
     (async () => {
       try {
-        const map = await api.getSendStatus({ reportType: reviewType, term: reviewTerm });
+        const [midMap, finalMap] = await Promise.all([
+          api.getSendStatus({ reportType: 'midterm', term: reviewTerm }).catch(() => ({})),
+          api.getSendStatus({ reportType: 'final', term: reviewTerm }).catch(() => ({})),
+        ]);
         if (cancelled) return;
-        const out: Record<string, { shareUrl: string; sentAt: string }> = {};
-        for (const [sid, v] of Object.entries(map || {})) {
-          out[sid] = { shareUrl: (v as any).shareUrl, sentAt: (v as any).sentAt };
+        const out: Record<string, { shareUrl: string; sentAt: string; type: 'midterm' | 'final' }> = {};
+        // 중간 먼저 넣고, 기말이 있으면 기말로 덮어쓰기 (더 최신)
+        for (const [sid, v] of Object.entries(midMap || {})) {
+          out[sid] = { shareUrl: (v as any).shareUrl, sentAt: (v as any).sentAt, type: 'midterm' };
+        }
+        for (const [sid, v] of Object.entries(finalMap || {})) {
+          out[sid] = { shareUrl: (v as any).shareUrl, sentAt: (v as any).sentAt, type: 'final' };
         }
         setReportSends(out);
       } catch {
@@ -350,7 +355,7 @@ export default function ExamManagementPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [reviewType, reviewTerm]);
+  }, [reviewTerm]);
 
   // periodId 변경 시 응시 내역도 fetch (자동 채점 점수 표시용)
   useEffect(() => {
@@ -594,23 +599,9 @@ export default function ExamManagementPage() {
         <span className="exam-stat">검토: {stats.reviewed}/{stats.assigned}</span>
         {stats.absent > 0 && <span className="exam-stat exam-stat--absent">결시: {stats.absent}</span>}
         {stats.rescheduled > 0 && <span className="exam-stat exam-stat--rescheduled">재시험: {stats.rescheduled}</span>}
-        <span className="exam-stat" title={`${reviewTerm} ${reviewType === 'midterm' ? '중간' : '기말'}`}>
+        <span className="exam-stat" title={`${reviewTerm} 중간/기말 합산`}>
           리포트: {Object.keys(reportSends).length}/{students.length}
         </span>
-        <div className="exam-review-toggle" role="group" aria-label="리포트 유형">
-          <button
-            type="button"
-            aria-pressed={reviewType === 'midterm'}
-            className={`exam-review-toggle-btn ${reviewType === 'midterm' ? 'is-active' : ''}`}
-            onClick={() => setReviewType('midterm')}
-          >중간</button>
-          <button
-            type="button"
-            aria-pressed={reviewType === 'final'}
-            className={`exam-review-toggle-btn ${reviewType === 'final' ? 'is-active' : ''}`}
-            onClick={() => setReviewType('final')}
-          >기말</button>
-        </div>
         <div className="exam-filters">
           <select className="exam-filter-select" aria-label="학년 필터" value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}>
             <option value="">전체 학년</option>
@@ -838,27 +829,17 @@ export default function ExamManagementPage() {
                   <td className="exam-cell-report">
                     {(() => {
                       const rep = reportSends[s.student_id];
-                      if (rep) {
-                        return (
-                          <a
-                            href={rep.shareUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="exam-report-link"
-                            title={`작성: ${new Date(rep.sentAt).toLocaleDateString('ko-KR')}`}
-                          >
-                            ✓ 작성됨
-                          </a>
-                        );
-                      }
+                      if (!rep) return null;  // 미작성은 빈 칸
+                      const typeLabel = rep.type === 'midterm' ? '중간' : '기말';
                       return (
                         <a
-                          href={`#/parent-report/${s.student_id}?type=${reviewType}&term=${reviewTerm}`}
-                          className="exam-report-pending"
-                          title="리포트 작성하러 가기"
-                        >
-                          — 미작성
-                        </a>
+                          href={rep.shareUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="exam-report-check"
+                          title={`${typeLabel} · ${new Date(rep.sentAt).toLocaleDateString('ko-KR')}`}
+                          aria-label={`${typeLabel} 리포트 보기`}
+                        >✓</a>
                       );
                     })()}
                   </td>

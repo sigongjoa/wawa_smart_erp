@@ -8465,53 +8465,21 @@ input[type="number"] {
 .vocab-detail-mark.is-ok { color: var(--success); }
 .vocab-detail-mark.is-ng { color: var(--danger); }
 
-/* ExamMgmt 정기고사 리뷰 리포트 컬럼 */
-.exam-th-report { width: 110px; }
-.exam-cell-report { font-size: 13px; }
-.exam-report-link {
+/* ExamMgmt 정기고사 리뷰 리포트 컬럼 — 작성됨만 ✓ 표시, 미작성은 빈칸 */
+.exam-th-report { width: 70px; text-align: center; }
+.exam-cell-report { text-align: center; }
+.exam-report-check {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: var(--success-surface);
-  color: var(--success);
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 12px;
-  text-decoration: none;
-  transition: background .12s ease;
-}
-.exam-report-link:hover { background: color-mix(in srgb, var(--success) 20%, var(--success-surface)); }
-.exam-report-pending {
-  color: var(--text-tertiary);
-  font-size: 12px;
-  text-decoration: none;
-  border-bottom: 1px dashed var(--text-tertiary);
-}
-.exam-report-pending:hover {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-}
-
-/* 리뷰 유형 토글 (중간/기말) */
-.exam-review-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  margin-left: auto;
-  background: var(--bg-secondary);
-}
-.exam-review-toggle-btn {
-  padding: 6px 12px;
-  background: transparent;
-  border: 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.exam-review-toggle-btn.is-active {
-  background: var(--primary);
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--success);
   color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform .12s ease;
 }
+.exam-report-check:hover { transform: scale(1.08); }

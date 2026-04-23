@@ -37,6 +37,9 @@ test('ExamManagementPage에 정기고사 리포트 컬럼 + 토글 동작', asyn
   // 리포트 stat 라인 (테이블 empty여도 렌더됨)
   await expect(page.locator('.exam-stat').filter({ hasText: /리포트:/ })).toBeVisible({ timeout: 10_000 });
 
+  // 토글은 더 이상 존재하지 않음 (자동 중간/기말 병합)
+  await expect(page.locator('.exam-review-toggle')).toHaveCount(0);
+
   // 테이블이 있으면 헤더에 "리포트" 컬럼 포함
   const headerCount = await page.locator('.exam-table thead th').count();
   if (headerCount > 0) {
@@ -44,30 +47,13 @@ test('ExamManagementPage에 정기고사 리포트 컬럼 + 토글 동작', asyn
     expect(headerCells, '리포트 컬럼 헤더 노출').toContain('리포트');
   }
 
-  // 리뷰 유형 토글
-  const toggle = page.locator('.exam-review-toggle');
-  await expect(toggle).toBeVisible();
-  await expect(toggle.locator('.exam-review-toggle-btn').filter({ hasText: '중간' })).toBeVisible();
-  await expect(toggle.locator('.exam-review-toggle-btn').filter({ hasText: '기말' })).toBeVisible();
-
-  // 기본 "기말" active
-  await expect(toggle.locator('.exam-review-toggle-btn.is-active')).toHaveText('기말');
-
-  // 중간으로 토글
-  await toggle.locator('.exam-review-toggle-btn').filter({ hasText: '중간' }).click();
-  await expect(toggle.locator('.exam-review-toggle-btn.is-active')).toHaveText('중간');
-
-  // 리포트 stat 표시
-  await expect(page.locator('.exam-stat').filter({ hasText: /리포트:/ })).toBeVisible();
-
-  // 데이터 행에 리포트 셀 존재 (데이터 있으면 검증)
+  // 리포트 셀 — 작성된 row는 ✓만 노출, 아니면 빈칸
   const reportCells = page.locator('.exam-cell-report');
   const hasRows = await reportCells.count();
-  if (hasRows > 0) {
-    // 최소 "작성됨" or "미작성" 중 하나는 렌더
-    const any = page.locator('.exam-report-link, .exam-report-pending').first();
-    await expect(any).toBeVisible();
+  const checks = await page.locator('.exam-report-check').count();
+  console.log(`✅ 리포트 컬럼 통과 — cells=${hasRows}, 작성완료=${checks}`);
+  // 작성이 있으면 ✓ 문자 포함
+  if (checks > 0) {
+    await expect(page.locator('.exam-report-check').first()).toContainText('✓');
   }
-
-  console.log(`✅ 리포트 컬럼 통과 — cells=${hasRows}`);
 });
