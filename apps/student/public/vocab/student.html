@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>내 단어장 — Word Gacha</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f0f4f8; min-height: 100dvh; }
+.material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+
+/* ── TopBar ── */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 60%, #3a6fa5 100%);
+  height: 64px; display: flex; align-items: center; padding: 0 12px; gap: 4px;
+}
+.topbar-back { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 22px; color: rgba(255,255,255,.8); text-decoration: none; }
+.topbar-back:active { background: rgba(255,255,255,.1); }
+.topbar-title { flex: 1; text-align: center; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 1rem; color: #fff; }
+.topbar-avatar { width: 34px; height: 34px; border-radius: 17px; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: .88rem; color: #fff; font-weight: 700; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,.3); }
+
+/* ── Pages ── */
+.page { display: none; padding: 16px 16px 96px; max-width: 600px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* ── Bottom Nav ── */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #fff; border-top: 1px solid #e4eaf0; display: flex; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -4px 20px rgba(30,58,95,.06); }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px 6px; gap: 3px; background: none; border: none; cursor: pointer; color: #9aafc4; transition: color .15s; min-height: 56px; position: relative; font-family: inherit; }
+.nav-item.active { color: #1e3a5f; }
+.nav-item .nav-icon { font-size: 1.35rem; line-height: 1; }
+.nav-item .nav-label { font-size: .6rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.nav-item.active::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 32px; height: 3px; background: #1e3a5f; border-radius: 0 0 3px 3px; }
+
+/* ── FAB ── */
+.fab { position: fixed; right: 20px; bottom: calc(68px + env(safe-area-inset-bottom)); z-index: 45; width: 54px; height: 54px; border-radius: 16px; background: #1e3a5f; color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px rgba(30,58,95,.35); transition: transform .12s, box-shadow .12s; }
+.fab:active { transform: scale(.93); }
+.fab.hidden { display: none; }
+
+/* ── Bottom Sheet ── */
+.sheet-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .25s; }
+.sheet-overlay.open { opacity: 1; pointer-events: all; }
+.bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 61; background: #fff; border-radius: 20px 20px 0 0; padding: 0 20px calc(20px + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform .28s cubic-bezier(.32,1.1,.64,1); max-width: 600px; margin: 0 auto; }
+.bottom-sheet.open { transform: translateY(0); }
+.sheet-handle { width: 40px; height: 4px; background: #d1d9e3; border-radius: 2px; margin: 12px auto 20px; }
+.sheet-title { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.1rem; color: #1e3a5f; margin-bottom: 16px; }
+
+/* ── Common ── */
+.section-label { font-size: .68rem; font-weight: 700; color: #9aafc4; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 10px; }
+.card { background: #fff; border-radius: 14px; box-shadow: 0 1px 8px rgba(0,0,0,.05); padding: 16px; }
+.divider { height: 1px; background: #e4eaf0; margin: 20px 0; }
+.empty-msg { text-align: center; color: #9aafc4; padding: 36px 0; font-size: .88rem; }
+.msg { font-size: .82rem; margin-top: 8px; min-height: 18px; }
+.msg.ok  { color: #276749; }
+.msg.err { color: #c53030; }
+
+/* ── Inputs ── */
+.input-field { width: 100%; padding: 13px 14px; border: 1.5px solid #d1d9e3; border-radius: 12px; font-size: 1rem; font-family: inherit; outline: none; transition: border-color .18s; background: #f8fbff; color: #1e3a5f; }
+.input-field:focus { border-color: #4a6fa5; background: #fff; }
+.input-field::placeholder { color: #b0bec5; }
+textarea.input-field { resize: vertical; min-height: 88px; line-height: 1.6; font-size: 1rem; }
+
+/* ── Buttons ── */
+.btn-primary { width: 100%; padding: 14px; background: #1e3a5f; color: #fff; border: none; border-radius: 12px; font-size: .95rem; font-weight: 700; cursor: pointer; transition: background .15s; font-family: inherit; }
+.btn-primary:active { background: #142b47; }
+.btn-primary:disabled { background: #9aafc4; cursor: not-allowed; }
+.btn-outline { padding: 11px 16px; background: #fff; border: 1.5px solid #d1d9e3; color: #374151; border-radius: 12px; font-size: .88rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+/* ── Word Items ── */
+.word-list { display: flex; flex-direction: column; gap: 8px; }
+.word-item { background: #fff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.05); border-left: 3px solid #d1e4ff; }
+.word-en { font-weight: 700; color: #1e3a5f; font-size: .95rem; flex: 1; }
+.word-ko { color: #5a6878; font-size: .88rem; flex: 1; }
+.badge { font-size: .68rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; white-space: nowrap; }
+.badge.pending  { background: #fef3c7; color: #92400e; }
+.badge.approved { background: #d1fae5; color: #065f46; }
+.badge.answered { background: #d1fae5; color: #065f46; }
+
+/* ── Grammar Q&A ── */
+.qa-list { display: flex; flex-direction: column; gap: 8px; }
+.qa-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+.qa-q { font-weight: 700; color: #1e3a5f; font-size: .92rem; margin-bottom: 8px; }
+.qa-a { color: #374151; font-size: .88rem; line-height: 1.7; padding: 10px 12px; background: #f0f7ff; border-radius: 8px; }
+.qa-pending { color: #92400e; font-size: .85rem; padding: 8px 12px; background: #fef3c7; border-radius: 8px; }
+.qa-footer { display: flex; align-items: center; margin-top: 10px; }
+.qa-mine-badge { font-size: .68rem; padding: 2px 8px; border-radius: 20px; background: #dbeafe; color: #1e40af; font-weight: 700; }
+
+/* ── Unit Selector ── */
+.unit-selector { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; scrollbar-width: none; }
+.unit-selector::-webkit-scrollbar { display: none; }
+.unit-btn { flex-shrink: 0; padding: 7px 15px; border-radius: 20px; border: 1.5px solid #d1d9e3; background: #fff; font-size: .82rem; font-weight: 600; color: #5a6878; cursor: pointer; transition: all .15s; font-family: inherit; }
+.unit-btn.active { border-color: #1e3a5f; background: #1e3a5f; color: #fff; }
+
+/* ── Textbook Cards ── */
+.tb-card-list { display: flex; flex-direction: column; gap: 10px; }
+.tb-card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.05); border-left: 4px solid #4a6fa5; }
+.tb-tags { display: flex; gap: 6px; margin-bottom: 8px; }
+.tb-unit-tag { font-size: .68rem; font-weight: 700; background: #dbeafe; color: #1e40af; padding: 3px 9px; border-radius: 20px; }
+.tb-pos-tag  { font-size: .68rem; font-weight: 600; background: #d1fae5; color: #065f46; padding: 3px 9px; border-radius: 20px; }
+.tb-english { font-size: 1.25rem; font-weight: 800; color: #1e3a5f; font-family: 'Manrope', sans-serif; margin-bottom: 3px; }
+.tb-korean  { font-size: .95rem; color: #374151; margin-bottom: 8px; }
+.tb-example { font-size: .8rem; color: #6b7280; line-height: 1.6; background: #f8faff; padding: 9px 12px; border-radius: 8px; margin-bottom: 12px; font-style: italic; }
+.tb-actions { display: flex; gap: 8px; }
+.btn-know     { flex: 1; padding: 11px; border-radius: 10px; border: 1.5px solid #6ee7b7; background: #f0fdf4; color: #065f46; font-weight: 700; font-size: .85rem; cursor: pointer; font-family: inherit; }
+.btn-dontknow { flex: 2; padding: 11px; border-radius: 10px; border: 1.5px solid #fca5a5; background: #fff5f5; color: #991b1b; font-weight: 700; font-size: .85rem; cursor: pointer; font-family: inherit; }
+.btn-added    { flex: 1; padding: 11px; border-radius: 10px; border: 1.5px solid #d1d9e3; background: #f8faff; color: #9aafc4; font-weight: 700; font-size: .85rem; cursor: default; font-family: inherit; }
+.tb-progress { background: #f0f7ff; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.tb-progress-text { font-size: .83rem; color: #374151; flex: 1; }
+.tb-progress-text strong { color: #1e3a5f; }
+.tb-reload-btn { padding: 7px 14px; border-radius: 8px; border: none; background: #1e3a5f; color: #fff; font-size: .78rem; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit; }
+
+/* ── Textbook Grammar ── */
+.tb-grammar-list { display: flex; flex-direction: column; gap: 10px; }
+.tb-grammar-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.04); border-left: 4px solid #a78bfa; }
+.tb-grammar-point { font-size: .7rem; font-weight: 700; color: #6d28d9; background: #f5f3ff; padding: 3px 9px; border-radius: 20px; display: inline-block; margin-bottom: 8px; }
+.tb-grammar-sentence { font-size: .85rem; color: #374151; font-style: italic; margin-bottom: 8px; padding: 8px 12px; background: #fffbf0; border-radius: 6px; }
+.tb-grammar-explanation { font-size: .82rem; color: #5a6878; line-height: 1.6; margin-bottom: 6px; }
+.tb-grammar-pattern { font-size: .78rem; color: #5a6878; background: #f3f4f6; padding: 6px 10px; border-radius: 6px; font-family: monospace; margin-bottom: 8px; }
+.tb-grammar-q { font-weight: 700; color: #1e3a5f; font-size: .88rem; margin-bottom: 6px; }
+.tb-grammar-toggle { font-size: .78rem; color: #4a6fa5; cursor: pointer; font-weight: 600; border: none; background: none; padding: 0; font-family: inherit; }
+.tb-grammar-answer { display: none; margin-top: 8px; padding: 10px 12px; background: #f0fdf4; border-radius: 8px; font-size: .85rem; color: #065f46; line-height: 1.6; }
+#tbInfoHeader { background: #eef5ff; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: .83rem; color: #1e3a5f; display: none; }
+
+/* ── Writing Practice ── */
+.wp-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.wp-type-btn { padding: 16px 12px; border-radius: 14px; border: 2px solid #d1d9e3; background: #fff; font-size: .85rem; font-weight: 600; color: #374151; cursor: pointer; transition: all .15s; text-align: center; font-family: inherit; }
+.wp-type-btn .wp-type-icon { font-size: 1.4rem; display: block; margin-bottom: 5px; }
+.wp-type-btn.selected { border-color: #1e3a5f; background: #ebf4ff; color: #1e3a5f; }
+.wp-hint-box { background: #f0f7ff; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.wp-hint-label { font-size: .7rem; font-weight: 700; color: #5a6878; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+.wp-hint-words { display: flex; flex-wrap: wrap; gap: 6px; }
+.wp-hint-word { padding: 4px 12px; border-radius: 20px; background: #fff; border: 1.5px solid #d1d9e3; font-size: .8rem; font-weight: 600; color: #1e3a5f; }
+.wp-hint-word span { color: #5a6878; font-weight: 400; }
+.wp-generate-btn { width: 100%; padding: 14px; background: #1e3a5f; color: #fff; border: none; border-radius: 12px; font-size: .95rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+.wp-generate-btn:disabled { background: #9aafc4; cursor: not-allowed; }
+.wp-problem-card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+.wp-problem-tag { display: inline-block; font-size: .68rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: #dbeafe; color: #1e40af; margin-bottom: 10px; }
+.wp-problem-instruction { font-size: .93rem; font-weight: 700; color: #1e3a5f; margin-bottom: 10px; line-height: 1.6; }
+.wp-problem-prompt { font-size: .86rem; color: #374151; background: #f8faff; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; line-height: 1.8; font-style: italic; }
+.wp-conditions { margin-bottom: 12px; }
+.wp-conditions-title { font-size: .75rem; font-weight: 700; color: #5a6878; margin-bottom: 6px; }
+.wp-condition-item { font-size: .86rem; color: #374151; padding: 3px 0; display: flex; gap: 6px; }
+.wp-condition-num { font-weight: 700; color: #4a6fa5; min-width: 18px; }
+.wp-answer-area { width: 100%; min-height: 140px; padding: 14px; border: 2px solid #d1d9e3; border-radius: 12px; font-size: 1rem; font-family: inherit; resize: none; outline: none; transition: border-color .18s; line-height: 1.7; scroll-margin-bottom: 200px; }
+.wp-answer-area:focus { border-color: #4a6fa5; }
+.wp-answer-area::placeholder { color: #b0bec5; }
+.wp-char-count { font-size: .72rem; color: #9aafc4; text-align: right; margin-top: 4px; }
+.wp-submit-row { display: flex; gap: 8px; margin-top: 12px; }
+.wp-submit-btn { flex: 1; padding: 14px; background: #1e3a5f; color: #fff; border: none; border-radius: 12px; font-size: .92rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+.wp-submit-btn:disabled { background: #9aafc4; }
+.wp-new-btn { padding: 14px 16px; background: #fff; border: 1.5px solid #d1d9e3; color: #374151; border-radius: 12px; font-size: .85rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+.wp-score-header { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.05); text-align: center; }
+.wp-total-score { font-size: 2.4rem; font-weight: 800; font-family: 'Manrope', sans-serif; }
+.wp-total-denom { font-size: 1.1rem; color: #9aafc4; font-weight: 400; }
+.wp-score-bar-wrap { background: #e4eaf0; border-radius: 20px; height: 8px; margin: 12px 0 4px; overflow: hidden; }
+.wp-score-bar { height: 100%; border-radius: 20px; background: linear-gradient(90deg,#4a6fa5,#6d28d9); transition: width .7s ease; }
+.wp-rubric-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+.wp-rubric-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.wp-rubric-name { font-weight: 700; color: #1e3a5f; font-size: .9rem; flex: 1; }
+.wp-rubric-score { font-size: 1rem; font-weight: 800; }
+.wp-rubric-score.s0 { color: #dc2626; } .wp-rubric-score.s1 { color: #d97706; }
+.wp-rubric-score.s2 { color: #ca8a04; } .wp-rubric-score.s3 { color: #16a34a; }
+.wp-rubric-dots { display: flex; gap: 4px; }
+.wp-dot { width: 9px; height: 9px; border-radius: 50%; background: #e4eaf0; }
+.wp-dot.on { background: #4a6fa5; }
+.wp-rubric-comment { font-size: .85rem; color: #374151; line-height: 1.6; margin-bottom: 6px; }
+.wp-rubric-improve { font-size: .82rem; color: #5a6878; line-height: 1.6; padding: 8px 12px; background: #fffbeb; border-radius: 8px; border-left: 3px solid #f59e0b; display: none; }
+.wp-improve-toggle { font-size: .78rem; color: #4a6fa5; border: none; background: none; cursor: pointer; font-weight: 600; padding: 0; font-family: inherit; }
+.wp-model-card { background: #f8faff; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.wp-model-title { font-size: .78rem; font-weight: 700; color: #5a6878; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.wp-model-body { font-size: .88rem; color: #1e3a5f; line-height: 1.8; display: none; margin-top: 10px; }
+.wp-word-results { display: flex; flex-wrap: wrap; gap: 6px; }
+.wp-word-tag { font-size: .78rem; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+.wp-word-tag.used   { background: #d1fae5; color: #065f46; }
+.wp-word-tag.unused { background: #fee2e2; color: #991b1b; }
+.wp-retry-btn { width: 100%; padding: 14px; background: #fff; border: 2px solid #1e3a5f; color: #1e3a5f; border-radius: 12px; font-size: .93rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+.wp-loading { text-align: center; padding: 40px 0; color: #9aafc4; font-size: .9rem; }
+.wp-loading-spinner { font-size: 1.8rem; animation: spin 1s linear infinite; display: block; margin-bottom: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- TopBar -->
+<header class="topbar">
+  <a href="/#/" class="topbar-back">
+    <span class="material-symbols-outlined">arrow_back_ios</span>
+  </a>
+  <h1 class="topbar-title" id="studentName">단어장</h1>
+  <div class="topbar-avatar" id="topbarAvatar">?</div>
+</header>
+
+<!-- 단어장 -->
+<section class="page active" id="page-words">
+  <p class="section-label">내 단어 목록</p>
+  <div class="word-list" id="wordList">
+    <div class="empty-msg">단어를 추가해보세요 📝</div>
+  </div>
+</section>
+
+<!-- 교재 단어 -->
+<section class="page" id="page-textbook">
+  <div id="tbInfoHeader"></div>
+  <div class="unit-selector" id="unitSelector">
+    <button class="unit-btn active" data-unit="">전체</button>
+  </div>
+  <div class="tb-progress">
+    <div class="tb-progress-text" id="tbProgressText">교재 단어를 불러오는 중...</div>
+    <button class="tb-reload-btn" id="tbReloadBtn">🔄 새 단어</button>
+  </div>
+  <div class="tb-card-list" id="tbWordList">
+    <div class="empty-msg">불러오는 중... ⏳</div>
+  </div>
+  <div class="divider"></div>
+  <p class="section-label">교재 핵심 문법</p>
+  <div class="tb-grammar-list" id="tbGrammarList">
+    <div class="empty-msg">불러오는 중... ⏳</div>
+  </div>
+</section>
+
+<!-- 문법 질문 -->
+<section class="page" id="page-grammar">
+  <div class="card" style="margin-bottom:16px">
+    <p class="section-label" style="margin-bottom:12px">❓ 문법 질문하기</p>
+    <textarea class="input-field" id="grammarInput" placeholder="궁금한 영어 문법을 질문해주세요&#10;예) 현재완료와 과거시제의 차이가 무엇인가요?"></textarea>
+    <button class="btn-primary" id="addGrammarBtn" style="margin-top:10px">질문 올리기</button>
+    <div class="msg" id="grammarMsg"></div>
+  </div>
+  <p class="section-label">내 질문</p>
+  <div class="qa-list" id="myGrammarList">
+    <div class="empty-msg">아직 질문이 없어요 ✏️</div>
+  </div>
+  <div class="divider"></div>
+  <p class="section-label">선생님 문법 자료</p>
+  <div class="qa-list" id="teacherGrammarList">
+    <div class="empty-msg">등록된 문법 자료가 없어요</div>
+  </div>
+</section>
+
+<!-- 수행평가 -->
+<section class="page" id="page-writing">
+  <div id="wp-app"></div>
+</section>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" aria-label="단어 추가">
+  <span class="material-symbols-outlined" style="font-size:1.6rem">add</span>
+</button>
+
+<!-- Bottom Sheet (단어 추가) -->
+<div class="sheet-overlay" id="sheetOverlay"></div>
+<div class="bottom-sheet" id="addWordSheet">
+  <div class="sheet-handle"></div>
+  <p class="sheet-title">새 단어 추가</p>
+  <input class="input-field" id="enInput" type="text" placeholder="영어 단어 (예: ambiguous)" style="margin-bottom:10px">
+  <input class="input-field" id="koInput" type="text" placeholder="한국어 뜻 (예: 모호한)" style="margin-bottom:12px">
+  <button class="btn-primary" id="addBtn">추가하기</button>
+  <div class="msg" id="wordMsg"></div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-item active" data-page="words">
+    <span class="nav-icon">📚</span>
+    <span class="nav-label">단어장</span>
+  </button>
+  <button class="nav-item" data-page="textbook">
+    <span class="nav-icon">📖</span>
+    <span class="nav-label">교재</span>
+  </button>
+  <button class="nav-item" data-page="grammar">
+    <span class="nav-icon">❓</span>
+    <span class="nav-label">문법</span>
+  </button>
+  <button class="nav-item" data-page="writing">
+    <span class="nav-icon">✍️</span>
+    <span class="nav-label">수행평가</span>
+  </button>
+</nav>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>
+  // WAWA 통합: play 토큰 기반 인증
+  const playToken   = localStorage.getItem('play_token');
+  const playStudent = JSON.parse(localStorage.getItem('play_student') || 'null');
+  if (!playToken || !playStudent) { window.location.href = '/#/login'; }
+  const studentId   = playStudent?.id;
+  const studentName = playStudent?.name;
+  document.getElementById('studentName').textContent = studentName + '님의 단어장';
+  const av = document.getElementById('topbarAvatar');
+  if (studentName) av.textContent = studentName.charAt(0);
+
+  // ── Bottom Nav ────────────────────────────────────────────────
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('page-' + btn.dataset.page).classList.add('active');
+      document.getElementById('fabBtn').classList.toggle('hidden', btn.dataset.page !== 'words');
+      if (btn.dataset.page === 'grammar')  loadGrammar();
+      if (btn.dataset.page === 'textbook') loadTextbook();
+      if (btn.dataset.page === 'writing')  wpInit();
+    };
+  });
+
+  // ── FAB / Bottom Sheet ────────────────────────────────────────
+  const sheet   = document.getElementById('addWordSheet');
+  const overlay = document.getElementById('sheetOverlay');
+  function openSheet()  { sheet.classList.add('open'); overlay.classList.add('open'); setTimeout(() => document.getElementById('enInput').focus(), 320); }
+  function closeSheet() { sheet.classList.remove('open'); overlay.classList.remove('open'); }
+  document.getElementById('fabBtn').onclick = openSheet;
+  overlay.onclick = closeSheet;
+
+  // ── 단어 ──────────────────────────────────────────────────────
+  async function loadWords() {
+    try {
+      const words = await API.getMyWords(studentId);
+      const list  = document.getElementById('wordList');
+      if (!words.length) { list.innerHTML = '<div class="empty-msg">단어를 추가해보세요 📝</div>'; return; }
+      list.innerHTML = words.map(w => `
+        <div class="word-item">
+          <span class="word-en">${w.english}</span>
+          <span class="word-ko">${w.korean}</span>
+          <span class="badge ${w.status}">${w.status === 'pending' ? '⏳ 대기중' : '✅ 승인됨'}</span>
+        </div>`).join('');
+    } catch {}
+  }
+
+  async function addWord() {
+    const en  = document.getElementById('enInput').value.trim();
+    const ko  = document.getElementById('koInput').value.trim();
+    const msg = document.getElementById('wordMsg');
+    msg.className = 'msg'; msg.textContent = '';
+    if (!en || !ko) { msg.className = 'msg err'; msg.textContent = '영어 단어와 뜻을 모두 입력하세요.'; return; }
+    const addBtn = document.getElementById('addBtn');
+    addBtn.disabled = true; addBtn.textContent = '추가 중...';
+    try {
+      await API.addWord(studentId, { english: en, korean: ko });
+      document.getElementById('enInput').value = '';
+      document.getElementById('koInput').value = '';
+      msg.className = 'msg ok'; msg.textContent = '추가됐어요! 선생님이 확인 후 승인합니다.';
+      loadWords();
+      setTimeout(closeSheet, 1400);
+    } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
+    finally { addBtn.disabled = false; addBtn.textContent = '추가하기'; }
+  }
+  document.getElementById('addBtn').onclick = addWord;
+  document.getElementById('koInput').addEventListener('keydown', e => { if (e.key === 'Enter') addWord(); });
+
+  // ── 문법 Q&A ──────────────────────────────────────────────────
+  async function loadGrammar() {
+    try {
+      const all     = await API.getGrammar();
+      const mine    = all.filter(g => g.student_id === studentId);
+      const teacher = all.filter(g => !g.student_id && g.status === 'answered');
+      renderMyGrammar(mine);
+      renderTeacherGrammar(teacher);
+    } catch {}
+  }
+
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function renderMyGrammar(list) {
+    const el = document.getElementById('myGrammarList');
+    if (!list.length) { el.innerHTML = '<div class="empty-msg">아직 질문이 없어요 ✏️</div>'; return; }
+    el.innerHTML = list.map(g => `
+      <div class="qa-card">
+        <div class="qa-q">Q. ${esc(g.question)}</div>
+        ${g.status === 'answered' && g.answer
+          ? `<div class="qa-a">${esc(g.answer)}</div>`
+          : `<div class="qa-pending">⏳ 선생님 답변을 기다리는 중이에요</div>`}
+        <div class="qa-footer">
+          <span class="qa-mine-badge">내 질문</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderTeacherGrammar(list) {
+    const el = document.getElementById('teacherGrammarList');
+    if (!list.length) { el.innerHTML = '<div class="empty-msg">등록된 문법 자료가 없어요</div>'; return; }
+    el.innerHTML = list.map(g => `
+      <div class="qa-card">
+        <div class="qa-q">Q. ${esc(g.question)}</div>
+        <div class="qa-a">${esc(g.answer)}</div>
+      </div>`).join('');
+  }
+
+  async function addGrammarQuestion() {
+    const q   = document.getElementById('grammarInput').value.trim();
+    const msg = document.getElementById('grammarMsg');
+    msg.className = 'msg'; msg.textContent = '';
+    if (!q) { msg.className = 'msg err'; msg.textContent = '질문을 입력해주세요.'; return; }
+    try {
+      await API.addGrammarQuestion(studentId, studentName, q);
+      document.getElementById('grammarInput').value = '';
+      msg.className = 'msg ok'; msg.textContent = '질문이 등록됐어요! 선생님이 답변할 예정이에요.';
+      loadGrammar();
+    } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
+  }
+
+  document.getElementById('addGrammarBtn').onclick = addGrammarQuestion;
+
+  // ── 교재 단어 ─────────────────────────────────────────────────
+  let currentUnit = '', currentTextbookId = null, tbLessonInfo = {}, addedWordIds = new Set();
+
+  function bindUnitBtns() {
+    document.querySelectorAll('.unit-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentUnit = btn.dataset.unit;
+        loadTbContent();
+      };
+    });
+  }
+  document.getElementById('tbReloadBtn').onclick = loadTbContent;
+
+  async function loadTextbook() {
+    if (currentTextbookId) { loadTbContent(); return; }
+    document.getElementById('tbWordList').innerHTML    = '<div class="empty-msg">불러오는 중... ⏳</div>';
+    document.getElementById('tbGrammarList').innerHTML = '<div class="empty-msg">불러오는 중... ⏳</div>';
+    document.getElementById('tbProgressText').textContent = '교재 정보를 확인하는 중...';
+    addedWordIds = new Set();
+    try {
+      const info = await API.getStudentTextbook(studentId);
+      if (!info.textbook_id) {
+        document.getElementById('tbWordList').innerHTML = `<div class="empty-msg">📚 ${esc(info.message || '학교/학년을 설정해 주세요')}<br><small>선생님께 문의하세요</small></div>`;
+        document.getElementById('tbGrammarList').innerHTML = '';
+        document.getElementById('tbProgressText').textContent = '교재 미설정';
+        return;
+      }
+      currentTextbookId = info.textbook_id;
+      tbLessonInfo = info.lesson_info || {};
+      const header = document.getElementById('tbInfoHeader');
+      header.style.display = 'block';
+      header.innerHTML = `📚 <strong>${esc(info.textbook_info?.publisher || '')} ${esc(info.textbook_info?.author || '')}</strong> ${esc(info.textbook_info?.title || info.textbook_id)} &nbsp;|&nbsp; ${info.school || ''} 고${info.grade || '?'}`;
+      const sel = document.getElementById('unitSelector');
+      sel.innerHTML = `<button class="unit-btn active" data-unit="">전체</button>`;
+      const total = info.textbook_info?.total_units || 4;
+      for (let i = 1; i <= total; i++) sel.innerHTML += `<button class="unit-btn" data-unit="${i}">L${i}</button>`;
+      bindUnitBtns();
+      loadTbContent();
+    } catch (e) {
+      document.getElementById('tbWordList').innerHTML = `<div class="empty-msg">불러오기 실패: ${esc(e.message)}</div>`;
+    }
+  }
+
+  async function loadTbContent() {
+    if (!currentTextbookId) return;
+    document.getElementById('tbWordList').innerHTML    = '<div class="empty-msg">불러오는 중... ⏳</div>';
+    document.getElementById('tbGrammarList').innerHTML = '<div class="empty-msg">불러오는 중... ⏳</div>';
+    document.getElementById('tbProgressText').textContent = '교재 단어를 불러오는 중...';
+    addedWordIds = new Set();
+    try {
+      const [wordsData, grammarData] = await Promise.all([
+        API.getTextbookWords(currentTextbookId, currentUnit || null),
+        API.getTextbookGrammar(currentTextbookId, currentUnit || null),
+      ]);
+      const shuffled = (wordsData.words || []).sort(() => Math.random() - 0.5).slice(0, 30);
+      renderTbWords(shuffled);
+      renderTbGrammar(grammarData.grammar || []);
+    } catch (e) {
+      document.getElementById('tbWordList').innerHTML = `<div class="empty-msg">불러오기 실패: ${esc(e.message)}</div>`;
+    }
+  }
+
+  function renderTbWords(words) {
+    const el = document.getElementById('tbWordList');
+    const prog = document.getElementById('tbProgressText');
+    if (!words.length) {
+      el.innerHTML = '<div class="empty-msg">🎉 이 Unit의 모든 단어를 이미 알고 있어요!</div>';
+      prog.innerHTML = '모든 단어 완료! <strong>완벽해요 🎉</strong>';
+      return;
+    }
+    prog.innerHTML = `교재 추천 단어 <strong>${words.length}개</strong> — 모르는 단어를 단어장에 추가하세요`;
+    el.innerHTML = words.map(w => `
+      <div class="tb-card" id="tbcard_${w.id}">
+        <div class="tb-tags">
+          <span class="tb-unit-tag">Unit ${w.unit}</span>
+          <span class="tb-pos-tag">${esc(w.part_of_speech)}</span>
+        </div>
+        <div class="tb-english">${esc(w.english)}</div>
+        <div class="tb-korean">${esc(w.korean)}</div>
+        <div class="tb-example">"${esc(w.example)}"</div>
+        <div class="tb-actions">
+          <button class="btn-know" onclick="tbKnow('${w.id}')">✅ 알아요</button>
+          <button class="btn-dontknow" onclick="tbDontKnow('${w.id}','${esc(w.english)}','${esc(w.korean)}')">📌 몰라요 → 단어장</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderTbGrammar(grammar) {
+    const el = document.getElementById('tbGrammarList');
+    if (!grammar.length) { el.innerHTML = '<div class="empty-msg">등록된 문법이 없어요</div>'; return; }
+    el.innerHTML = grammar.map(g => `
+      <div class="tb-grammar-card">
+        <span class="tb-grammar-point">📐 ${esc(g.grammar_point)}</span>
+        <div class="tb-grammar-sentence">${esc(g.sentence)}</div>
+        <div class="tb-grammar-explanation">${esc(g.explanation)}</div>
+        <div class="tb-grammar-pattern">패턴: ${esc(g.key_pattern)}</div>
+        <div class="tb-grammar-q">Q. ${esc(g.question)}</div>
+        <button class="tb-grammar-toggle" onclick="toggleGrammarAnswer(this)">▶ 정답 보기</button>
+        <div class="tb-grammar-answer">A. ${esc(g.answer)}</div>
+      </div>`).join('');
+  }
+
+  function toggleGrammarAnswer(btn) {
+    const el = btn.nextElementSibling;
+    const open = el.style.display === 'block';
+    el.style.display = open ? 'none' : 'block';
+    btn.textContent = open ? '▶ 정답 보기' : '▼ 정답 숨기기';
+  }
+
+  function tbKnow(wordId) {
+    const card = document.getElementById('tbcard_' + wordId);
+    if (!card) return;
+    card.style.opacity = '0.4'; card.style.transition = 'opacity .3s';
+    setTimeout(() => { card.style.display = 'none'; }, 300);
+  }
+
+  async function tbDontKnow(wordId, english, korean) {
+    const card = document.getElementById('tbcard_' + wordId);
+    if (!card || addedWordIds.has(wordId)) return;
+    const btn = card.querySelector('.btn-dontknow');
+    btn.disabled = true; btn.textContent = '추가 중...';
+    try {
+      await API.addWord(studentId, { english, korean, blank_type: 'korean' });
+      addedWordIds.add(wordId);
+      card.querySelector('.tb-actions').innerHTML = '<button class="btn-added">✅ 단어장에 추가됨</button>';
+      loadWords();
+    } catch (e) {
+      if (e.message.includes('이미') || e.message.includes('duplicate')) {
+        addedWordIds.add(wordId);
+        card.querySelector('.tb-actions').innerHTML = '<button class="btn-added">✅ 이미 단어장에 있음</button>';
+      } else { btn.disabled = false; btn.textContent = '📌 몰라요 → 단어장'; alert('추가 실패: ' + e.message); }
+    }
+  }
+
+  loadWords();
+</script>
+
+<script>
+// ══ 수행평가 서술형 연습 모듈 ══════════════════════════════════
+const WP = { step:'select', selectedType:'sentence_completion', sessionId:null, problem:null, targetWords:[], grade:null, wordUpdates:[], initialized:false }
+const TYPE_META = {
+  sentence_completion: { icon:'✏️', label:'조건영작',    desc:'조건에 맞게 영작' },
+  word_arrangement:    { icon:'🔀', label:'단어 배열',   desc:'단어 순서 맞추기' },
+  summary_writing:     { icon:'📋', label:'요약문 완성', desc:'지문 읽고 요약' },
+  free_writing:        { icon:'🖊️', label:'자유 영작',   desc:'주제 보고 자유롭게' },
+}
+function wpEl() { return document.getElementById('wp-app') }
+
+function wpRenderSelect() {
+  const typeButtons = Object.entries(TYPE_META).map(([key, m]) => `
+    <button class="wp-type-btn ${WP.selectedType===key?'selected':''}" data-type="${key}" onclick="wpSelectType('${key}')">
+      <span class="wp-type-icon">${m.icon}</span>
+      <strong>${m.label}</strong><br>
+      <span style="font-size:.75rem;font-weight:400;color:#5a6878">${m.desc}</span>
+    </button>`).join('')
+  wpEl().innerHTML = `
+    <p class="section-label" style="margin-bottom:10px">문제 유형 선택</p>
+    <div class="wp-type-grid">${typeButtons}</div>
+    <div class="wp-hint-box" id="wpHintBox">
+      <div class="wp-hint-label">💡 오늘의 집중 단어 (모르는 단어 기반)</div>
+      <div class="wp-hint-words" id="wpHintWords"><span style="color:#9aafc4;font-size:.82rem">불러오는 중...</span></div>
+    </div>
+    <button class="wp-generate-btn" id="wpGenBtn" onclick="wpGenerate()">🎲 문제 생성하기</button>
+    <div style="height:18px"></div>
+    <p class="section-label">최근 연습 기록</p>
+    <div id="wpHistory"><div class="empty-msg" style="padding:16px 0">불러오는 중...</div></div>`
+  wpLoadHint()
+  wpLoadHistory()
+}
+
+async function wpLoadHint() {
+  try {
+    const words = await API.getMyWords(studentId)
+    const scored = words.filter(w => w.status==='approved')
+      .map(w => ({...w, p:(3-Math.min(w.box||1,3))*3+(w.wrong_count||0)}))
+      .sort((a,b) => b.p-a.p).slice(0,5)
+    const el = document.getElementById('wpHintWords')
+    if (!el) return
+    if (!scored.length) { el.innerHTML = '<span style="color:#9aafc4;font-size:.82rem">승인된 단어가 없어요</span>'; return }
+    el.innerHTML = scored.map(w => `<div class="wp-hint-word">${esc(w.english)} <span>· ${esc(w.korean)}</span></div>`).join('')
+  } catch {}
+}
+
+async function wpLoadHistory() {
+  const el = document.getElementById('wpHistory')
+  if (!el) return
+  try {
+    const history = await API.writingHistory(studentId)
+    if (!history.length) { el.innerHTML = '<div class="empty-msg" style="padding:16px 0">아직 연습 기록이 없어요 ✏️</div>'; return }
+    el.innerHTML = history.map(h => {
+      const total = h.grade?.total ?? '?'
+      const d = new Date(h.created_at)
+      const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+      const color = total>=7?'#16a34a':total>=4?'#ca8a04':'#dc2626'
+      return `<div class="word-item">
+        <span class="word-en" style="font-size:.88rem">${TYPE_META[h.problem_type]?.label??h.problem_type}</span>
+        <span class="word-ko" style="font-size:.82rem">${dateStr}</span>
+        <span class="badge" style="background:none;color:${color};font-weight:800;font-size:.95rem">${total}/9</span>
+      </div>`
+    }).join('')
+  } catch { el.innerHTML = '<div class="empty-msg" style="padding:16px 0">기록 불러오기 실패</div>' }
+}
+
+function wpSelectType(type) {
+  WP.selectedType = type
+  document.querySelectorAll('.wp-type-btn').forEach(b => b.classList.toggle('selected', b.dataset.type===type))
+}
+
+async function wpGenerate() {
+  const btn = document.getElementById('wpGenBtn')
+  if (btn) { btn.disabled=true; btn.textContent='⏳ 문제 생성 중...' }
+  wpEl().innerHTML = `<div class="wp-loading"><span class="wp-loading-spinner">⚙️</span>Gemini가 맞춤 문제를 만드는 중이에요...<br><small style="font-size:.78rem">모르는 단어를 분석해서 출제합니다</small></div>`
+  try {
+    const res = await API.writingGenerate(studentId, WP.selectedType)
+    WP.sessionId=res.sessionId; WP.problem=res.problem; WP.targetWords=res.targetWords; WP.step='write'
+    wpRenderWrite()
+  } catch (e) {
+    wpEl().innerHTML = `<div class="empty-msg" style="padding:32px 0">문제 생성 실패: ${esc(e.message)}<br><button class="wp-retry-btn" style="margin-top:16px;max-width:200px" onclick="wpInit()">다시 시도</button></div>`
+  }
+}
+
+function wpRenderWrite() {
+  const p = WP.problem
+  const typeLabel = TYPE_META[p.type]?.label ?? p.type
+  const conditions = Array.isArray(p.conditions)
+    ? p.conditions.map((c,i) => `<div class="wp-condition-item"><span class="wp-condition-num">${i+1}.</span>${esc(c)}</div>`).join('') : ''
+  wpEl().innerHTML = `
+    <div class="wp-problem-card">
+      <span class="wp-problem-tag">${typeLabel}</span>
+      <div class="wp-problem-instruction">${esc(p.instruction)}</div>
+      ${p.prompt ? `<div class="wp-problem-prompt">${esc(p.prompt)}</div>` : ''}
+      ${conditions ? `<div class="wp-conditions"><div class="wp-conditions-title">📌 조건</div>${conditions}</div>` : ''}
+    </div>
+    <div class="wp-hint-box">
+      <div class="wp-hint-label">💡 이 단어들을 활용해보세요 (선택사항)</div>
+      <div class="wp-hint-words">${WP.targetWords.map(w=>`<div class="wp-hint-word">${esc(w.english)} <span>· ${esc(w.korean)}</span></div>`).join('')}</div>
+    </div>
+    <textarea class="wp-answer-area" id="wpAnswerInput" placeholder="여기에 영어 답안을 작성하세요..."
+      oninput="document.getElementById('wpCharCount').textContent=this.value.length+'자'"></textarea>
+    <div class="wp-char-count" id="wpCharCount">0자</div>
+    <div class="wp-submit-row">
+      <button class="wp-submit-btn" id="wpSubmitBtn" onclick="wpSubmit()">📤 제출하고 채점받기</button>
+      <button class="wp-new-btn" onclick="wpInit()">🔄 새 문제</button>
+    </div>
+    <div class="msg" id="wpSubmitMsg" style="margin-top:8px"></div>`
+}
+
+async function wpSubmit() {
+  const answer = document.getElementById('wpAnswerInput')?.value?.trim()
+  const msg = document.getElementById('wpSubmitMsg')
+  if (!answer) { msg.className='msg err'; msg.textContent='답안을 입력해주세요.'; return }
+  if (answer.length < 10) { msg.className='msg err'; msg.textContent='더 자세하게 써보세요.'; return }
+  const btn = document.getElementById('wpSubmitBtn')
+  btn.disabled=true; btn.textContent='⏳ AI 채점 중...'
+  wpEl().innerHTML = `<div class="wp-loading"><span class="wp-loading-spinner">🤖</span>AI가 답안을 분석하고 채점하는 중이에요...<br><small style="font-size:.78rem">내용 · 구성 · 표현을 꼼꼼히 확인합니다</small></div>`
+  try {
+    const res = await API.writingGrade(studentId, WP.sessionId, answer)
+    WP.grade=res.grade; WP.wordUpdates=res.wordUpdates??[]; WP.step='result'
+    wpRenderResult()
+  } catch (e) {
+    wpEl().innerHTML = `<div class="empty-msg" style="padding:32px 0">채점 실패: ${esc(e.message)}<br><button class="wp-retry-btn" style="margin-top:16px;max-width:200px" onclick="wpRenderWrite()">다시 제출</button></div>`
+  }
+}
+
+function wpRenderResult() {
+  const g = WP.grade
+  const pct = Math.round((g.total/9)*100)
+  const scoreColor = g.total>=7?'#16a34a':g.total>=4?'#ca8a04':'#dc2626'
+  const rubrics = [{key:'content',label:'내용',icon:'💡'},{key:'structure',label:'구성',icon:'🏗️'},{key:'expression',label:'표현',icon:'✍️'}]
+  const rubricHtml = rubrics.map(r => {
+    const item = g[r.key]??{}; const s = item.score??0
+    const dots = [0,1,2,3].map(i=>`<div class="wp-dot ${i<s?'on':''}"></div>`).join('')
+    const improve = item.improvement ? `<button class="wp-improve-toggle" onclick="wpToggleImprove(this)">▶ 개선 방향 보기</button><div class="wp-rubric-improve">${esc(item.improvement)}</div>` : ''
+    return `<div class="wp-rubric-card">
+      <div class="wp-rubric-header"><span style="font-size:1.1rem">${r.icon}</span><span class="wp-rubric-name">${r.label}</span><div class="wp-rubric-dots">${dots}</div><span class="wp-rubric-score s${s}">${s}/3</span></div>
+      <div class="wp-rubric-comment">${esc(item.comment??'')}</div>${improve}</div>`
+  }).join('')
+  const wordTagHtml = WP.wordUpdates.map(w => w.used
+    ? `<div class="wp-word-tag used">✓ ${esc(w.english)}${w.newBox?` → Box ${w.newBox}`:''}</div>`
+    : `<div class="wp-word-tag unused">✗ ${esc(w.english)}</div>`).join('')
+  wpEl().innerHTML = `
+    <div class="wp-score-header">
+      <div class="wp-total-score" style="color:${scoreColor}">${g.total}<span class="wp-total-denom">/9</span></div>
+      <div style="font-size:.83rem;color:#9aafc4;margin-top:4px">${pct}% 달성</div>
+      <div class="wp-score-bar-wrap"><div class="wp-score-bar" id="wpScoreBar" style="width:0%"></div></div>
+    </div>
+    ${rubricHtml}
+    <div class="wp-model-card">
+      <div class="wp-model-title" onclick="wpToggleModel(this)">✨ 모범 답안 보기 <span style="color:#9aafc4;font-size:.72rem;margin-left:auto">▶ 클릭</span></div>
+      <div class="wp-model-body" id="wpModelBody">${esc(g.model_answer??'')}</div>
+    </div>
+    ${WP.wordUpdates.length ? `<div class="wp-hint-box"><div class="wp-hint-label">🎯 단어 활용 결과</div><div class="wp-word-results">${wordTagHtml}</div></div>` : ''}
+    <button class="wp-retry-btn" onclick="wpInit()">🔄 다시 연습하기</button>
+    <div style="height:20px"></div>`
+  setTimeout(() => { const bar=document.getElementById('wpScoreBar'); if(bar) bar.style.width=pct+'%' }, 100)
+}
+
+function wpToggleImprove(btn) {
+  const el=btn.nextElementSibling, open=el.style.display==='block'
+  el.style.display=open?'none':'block'
+  btn.textContent=open?'▶ 개선 방향 보기':'▼ 개선 방향 숨기기'
+}
+function wpToggleModel(titleEl) {
+  const body=document.getElementById('wpModelBody'), open=body.style.display==='block'
+  body.style.display=open?'none':'block'
+  const arrow=titleEl.querySelector('span:last-child')
+  if(arrow) arrow.textContent=open?'▶ 클릭':'▼ 닫기'
+}
+function wpInit() { WP.step='select'; WP.initialized=true; wpRenderSelect() }
+</script>
+</body>
+</html>

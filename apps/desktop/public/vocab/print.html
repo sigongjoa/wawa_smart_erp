@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>단어 시험지</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple Gothic', 'NanumGothic', sans-serif; font-size: 11pt; }
+
+  /* 화면 전용 컨트롤 */
+  .no-print { padding: 12px 16px; background: #f0f4f8; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #e2e8f0; }
+  .no-print button { padding: 9px 20px; background: #667eea; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: .9rem; font-weight: 600; }
+  .no-print button:hover { background: #5a67d8; }
+  .no-print span { color: #718096; font-size: .85rem; }
+
+  /* 학생 페이지 */
+  .student-page { padding: 12mm 14mm; page-break-after: always; }
+  .student-page:last-of-type { page-break-after: auto; }
+
+  /* 헤더 */
+  .sheet-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2.5px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
+  .sheet-header h1 { font-size: 16pt; font-weight: 800; }
+  .sheet-meta { text-align: right; font-size: 10pt; }
+  .sheet-meta .name-line { font-size: 13pt; font-weight: 700; margin-bottom: 3px; }
+  .score-row { display: flex; justify-content: flex-end; gap: 16px; margin-bottom: 14px; font-size: 10.5pt; }
+  .score-box { border: 1px solid #999; padding: 2px 24px; }
+
+  /* 파트 제목 */
+  .part-title { font-size: 11pt; font-weight: 700; background: #2d3748; color: #fff; padding: 4px 10px; margin-bottom: 10px; }
+
+  /* Part 1: 단어 테이블 */
+  .word-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10.5pt; }
+  .word-table th { background: #edf2f7; border: 1px solid #718096; padding: 5px 10px; font-weight: 700; text-align: center; }
+  .word-table td { border: 1px solid #a0aec0; padding: 6px 10px; }
+  .word-table tr:nth-child(even) td { background: #f7fafc; }
+  .blank { display: inline-block; min-width: 100px; border-bottom: 1.5px solid #333; }
+
+  /* Part 2, 3: 문제 */
+  .problems { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+  .problem { display: flex; gap: 8px; font-size: 10.5pt; }
+  .problem-num { font-weight: 700; min-width: 20px; padding-top: 1px; }
+  .problem-body { flex: 1; }
+  .problem-direction { font-size: 9.5pt; color: #555; margin-bottom: 4px; }
+  .problem-sentence { line-height: 1.7; margin-bottom: 6px; font-style: italic; }
+  .problem-hint { font-size: 9.5pt; color: #444; margin-bottom: 6px; }
+  .problem-options { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 16px; }
+  .problem-options span { font-size: 10pt; }
+
+  /* 정답지 */
+  .answer-page { padding: 12mm 14mm; page-break-before: always; }
+  .answer-page h2 { font-size: 14pt; font-weight: 700; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 14px; }
+  .answer-section { margin-bottom: 20px; }
+  .answer-section h3 { font-size: 11pt; font-weight: 700; margin-bottom: 8px; color: #2d3748; }
+  .answer-grid { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 10.5pt; }
+  .answer-item { min-width: 80px; }
+  .answer-item .num { font-weight: 700; }
+  .answer-item .ans { color: #2b6cb0; }
+
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <button onclick="window.print()">인쇄 / PDF 저장</button>
+  <button onclick="window.location.href='grade.html'" style="background:#38a169">✏️ 채점하기</button>
+  <span>인쇄 후 채점하기를 눌러 O/X를 표시하면 단어장이 자동 업데이트됩니다.</span>
+</div>
+
+<div id="content"></div>
+
+<script>
+const data = JSON.parse(
+  localStorage.getItem('printJob') || sessionStorage.getItem('printJob') || 'null'
+)
+
+if (!data || !data.jobs?.length) {
+  document.getElementById('content').innerHTML =
+    '<p style="padding:30px;color:red">인쇄 데이터가 없습니다. 관리자 화면 → 프린트 탭에서 다시 시도하세요.</p>'
+} else {
+  const today = new Date()
+  const dateStr = `${today.getFullYear()}. ${String(today.getMonth()+1).padStart(2,'0')}. ${String(today.getDate()).padStart(2,'0')}.`
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+  const circled = ['①','②','③','④','⑤']
+
+  // 정답지 데이터 수집
+  const answerKey = []
+
+  const studentPages = data.jobs.map((job, jobIdx) => {
+    const jobAnswers = { name: job.studentName, parts: [] }
+
+    // Part 1: 단어 빈칸
+    const p1Rows = (job.part1 || []).map((w, i) => {
+      const blankEn = w.blank_type === 'english' || w.blank_type === 'both'
+      const blankKo = w.blank_type === 'korean'  || w.blank_type === 'both'
+      const enCell = blankEn ? '<span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>' : `<strong>${esc(w.english)}</strong>`
+      const koCell = blankKo ? '<span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>' : esc(w.korean)
+      const ans = blankEn ? w.english : w.korean
+      jobAnswers.parts.push({ q: i+1, part: 1, ans })
+      return `<tr><td style="text-align:center;color:#888;width:26px">${i+1}</td><td>${enCell}</td><td>${koCell}</td></tr>`
+    }).join('')
+
+    // Part 2: 어휘 문맥 문제
+    const p2Problems = (job.part2 || []).map((p, i) => {
+      const num = (job.part1||[]).length + i + 1
+      const typeLabel = p.type === 'synonym' ? '유의어' : '반의어'
+      const opts = (p.options||[]).map((o,j) => `<span>${circled[j]} ${esc(o)}</span>`).join('')
+      jobAnswers.parts.push({ q: num, part: 2, ans: p.answer, type: typeLabel })
+      return `
+        <div class="problem">
+          <div class="problem-num">${num}.</div>
+          <div class="problem-body">
+            <div class="problem-direction">다음 빈칸에 들어갈 말로 가장 적절한 것을 고르시오. <span style="font-size:9pt;color:#888">(${typeLabel})</span></div>
+            <div class="problem-sentence">"${esc(p.sentence)}"</div>
+            ${p.hint_ko ? `<div class="problem-hint">힌트: ${esc(p.hint_ko)}</div>` : ''}
+            <div class="problem-options">${opts}</div>
+          </div>
+        </div>`
+    }).join('')
+
+    // Part 3: 문법 문제
+    const p3Problems = (job.part3 || []).map((p, i) => {
+      const num = (job.part1||[]).length + (job.part2||[]).length + i + 1
+      const opts = (p.options||[]).map((o,j) => `<span>${circled[j]} ${esc(o)}</span>`).join('')
+      jobAnswers.parts.push({ q: num, part: 3, ans: p.answer, grammar: p.grammar_point })
+      return `
+        <div class="problem">
+          <div class="problem-num">${num}.</div>
+          <div class="problem-body">
+            <div class="problem-direction">다음 빈칸에 들어갈 말로 가장 적절한 것을 고르시오.</div>
+            <div class="problem-sentence">"${esc(p.sentence)}"</div>
+            ${p.grammar_point ? `<div class="problem-hint" style="color:#666">[${esc(p.grammar_point)}]</div>` : ''}
+            <div class="problem-options">${opts}</div>
+          </div>
+        </div>`
+    }).join('')
+
+    answerKey.push(jobAnswers)
+
+    return `
+      <div class="student-page">
+        <div class="sheet-header">
+          <h1>영어 단어 시험</h1>
+          <div class="sheet-meta">
+            <div class="name-line">이름: ${esc(job.studentName)}</div>
+            <div>${dateStr}</div>
+          </div>
+        </div>
+        <div class="score-row">점수: <span class="score-box">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+
+        ${job.part1?.length ? `
+        <div class="part-title">Part 1. 단어 (${job.part1.length}문제)</div>
+        <table class="word-table">
+          <thead><tr><th>#</th><th>영어</th><th>한국어</th></tr></thead>
+          <tbody>${p1Rows}</tbody>
+        </table>` : ''}
+
+        ${job.part2?.length ? `
+        <div class="part-title">Part 2. 어휘 (${job.part2.length}문제)</div>
+        <div class="problems">${p2Problems}</div>` : ''}
+
+        ${job.part3?.length ? `
+        <div class="part-title">Part 3. 문법 (${job.part3.length}문제)</div>
+        <div class="problems">${p3Problems}</div>` : ''}
+      </div>`
+  }).join('')
+
+  // 정답지 페이지
+  const answerPages = answerKey.map(job => {
+    const p1 = job.parts.filter(p => p.part === 1)
+    const p2 = job.parts.filter(p => p.part === 2)
+    const p3 = job.parts.filter(p => p.part === 3)
+
+    const renderAnswers = (arr) => arr.map(a =>
+      `<div class="answer-item"><span class="num">${a.q}번</span> <span class="ans">${esc(a.ans)}</span></div>`
+    ).join('')
+
+    return `
+      <div class="answer-page">
+        <h2>정답지 — ${esc(job.name)} <span style="font-size:11pt;font-weight:400;color:#718096">(${dateStr})</span></h2>
+        ${p1.length ? `<div class="answer-section"><h3>Part 1. 단어</h3><div class="answer-grid">${renderAnswers(p1)}</div></div>` : ''}
+        ${p2.length ? `<div class="answer-section"><h3>Part 2. 어휘</h3><div class="answer-grid">${renderAnswers(p2)}</div></div>` : ''}
+        ${p3.length ? `<div class="answer-section"><h3>Part 3. 문법</h3><div class="answer-grid">${renderAnswers(p3)}</div></div>` : ''}
+      </div>`
+  }).join('')
+
+  document.getElementById('content').innerHTML = studentPages + answerPages
+}
+</script>
+</body>
+</html>

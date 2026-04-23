@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>선생님 관리 — Word Gacha</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; background: #f0f4f8; min-height: 100vh; }
+
+  /* 헤더 */
+  header { background: #2d3748; color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 1.15rem; font-weight: 700; }
+  .logout-btn { background: rgba(255,255,255,.15); border: none; color: #fff; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: .85rem; }
+  .logout-btn:hover { background: rgba(255,255,255,.25); }
+
+  /* 탭 */
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid #e2e8f0; }
+  .tab { padding: 14px 24px; cursor: pointer; font-size: .9rem; font-weight: 600; color: #718096; border-bottom: 3px solid transparent; transition: all .18s; }
+  .tab.active { color: #667eea; border-bottom-color: #667eea; }
+  .tab:hover:not(.active) { color: #4a5568; }
+
+  /* 콘텐츠 */
+  .tab-content { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  /* 공통 카드 */
+  .card { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .card h2 { font-size: 1rem; font-weight: 700; color: #2d3748; margin-bottom: 14px; }
+
+  /* 폼 요소 */
+  .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+  input[type=text], input[type=password], select, textarea {
+    padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 9px;
+    font-size: .9rem; outline: none; transition: border-color .2s; font-family: inherit;
+  }
+  input[type=text]:focus, select:focus, textarea:focus { border-color: #667eea; }
+  textarea { resize: vertical; min-height: 60px; }
+  .flex1 { flex: 1; min-width: 120px; }
+
+  /* 버튼 */
+  .btn { padding: 9px 16px; border: none; border-radius: 9px; font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .btn-primary { background: #667eea; color: #fff; }
+  .btn-primary:hover { background: #5a67d8; }
+  .btn-sm { padding: 5px 10px; font-size: .78rem; }
+  .btn-danger  { background: #fed7d7; color: #c53030; }
+  .btn-danger:hover  { background: #feb2b2; }
+  .btn-success { background: #c6f6d5; color: #276749; }
+  .btn-success:hover { background: #9ae6b4; }
+  .btn-warn    { background: #fefcbf; color: #b7791f; }
+  .btn-warn:hover    { background: #faf089; }
+  .btn-outline { background: #fff; border: 1.5px solid #e2e8f0; color: #4a5568; }
+  .btn-outline:hover { border-color: #667eea; color: #667eea; }
+  .btn-pdf { background: #667eea; color: #fff; padding: 10px 20px; font-size: .9rem; }
+  .btn-pdf:hover { background: #5a67d8; }
+  .btn-zip { background: #2d3748; color: #fff; padding: 10px 20px; font-size: .9rem; }
+  .btn-zip:hover { background: #1a202c; }
+
+  /* 필터 바 */
+  .filter-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-bar label { font-size: .85rem; font-weight: 600; color: #4a5568; }
+
+  /* 테이블 */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  th { background: #f7fafc; padding: 10px 12px; text-align: left; font-weight: 700; color: #4a5568; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+  tr:hover td { background: #f7fafc; }
+  .badge { font-size: .72rem; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+  .badge.pending  { background: #fefcbf; color: #b7791f; }
+  .badge.approved { background: #c6f6d5; color: #276749; }
+  .badge.source-student { background: #e9d8fd; color: #6b46c1; }
+  .badge.source-teacher { background: #bee3f8; color: #2b6cb0; }
+  /* 대기중 카운트 뱃지 */
+  .tab .count-badge {
+    display: inline-block; margin-left: 6px; padding: 1px 7px;
+    border-radius: 999px; font-size: .72rem; font-weight: 700;
+    background: #e53e3e; color: #fff; vertical-align: middle;
+  }
+  .tab .count-badge[data-n="0"] { display: none; }
+  .pending-shortcut {
+    background: #fef3c7; color: #92400e; border: 1px solid #f59e0b;
+    padding: 5px 10px; border-radius: 8px; font-size: .82rem; font-weight: 700;
+    cursor: pointer;
+  }
+  .pending-shortcut:hover { background: #fde68a; }
+  .blank-badge { font-size: .72rem; padding: 3px 8px; border-radius: 20px; background: #bee3f8; color: #2b6cb0; font-weight: 600; }
+  .box-badge { font-size: .72rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; }
+  .box1 { background: #fed7d7; color: #c53030; }
+  .box2 { background: #feebc8; color: #c05621; }
+  .box3 { background: #fefcbf; color: #b7791f; }
+  .box4 { background: #c6f6d5; color: #276749; }
+  .box5 { background: #e2e8f0; color: #718096; }
+
+  /* 편집 인라인 */
+  .edit-input { padding: 5px 8px; border: 1.5px solid #667eea; border-radius: 7px; font-size: .85rem; width: 100%; min-width: 80px; }
+
+  /* 문법 Q&A */
+  .qa-item { background: #f7fafc; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
+  .qa-body { flex: 1; }
+  .qa-q { font-weight: 700; color: #2d3748; margin-bottom: 4px; }
+  .qa-a { color: #718096; font-size: .88rem; }
+  .qa-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .qa-meta { font-size: .75rem; color: #a0aec0; margin-top: 4px; }
+  .badge.student-q { background: #bee3f8; color: #2b6cb0; }
+  .badge.ai-ans { background: #e9d8fd; color: #6b46c1; }
+  /* 답변 입력 영역 */
+  .answer-form { margin-top: 10px; display: none; }
+  .answer-form textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #667eea; border-radius: 9px; font-size: .88rem; resize: vertical; min-height: 70px; font-family: inherit; outline: none; }
+  .answer-form-btns { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+
+  /* 프린트 탭 */
+  .student-check-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 10px 0; }
+  .student-check { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #f7fafc; border-radius: 9px; cursor: pointer; border: 1.5px solid #e2e8f0; transition: border-color .15s; }
+  .student-check:hover { border-color: #667eea; }
+  .student-check input { cursor: pointer; }
+  .print-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .grammar-check-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
+  .grammar-check { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #f7fafc; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+  .grammar-check input { cursor: pointer; }
+
+  /* 학생 관리 */
+  .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .student-card { background: #f7fafc; border-radius: 11px; padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 8px; border: 1.5px solid #e2e8f0; }
+  .student-name { font-weight: 700; color: #2d3748; font-size: .95rem; }
+  .student-actions { display: flex; gap: 6px; }
+
+  /* 오답 현황 */
+  .wrong-student-block { margin-bottom: 20px; }
+  .wrong-student-name { font-size: .9rem; font-weight: 700; color: #2d3748; padding: 8px 12px;
+    background: #f7fafc; border-radius: 9px; margin-bottom: 8px; border-left: 4px solid #fc8181; }
+  .wrong-word-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: #fff; border-radius: 9px; margin-bottom: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.05); flex-wrap: wrap; }
+  .wrong-count-badge { font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+    background: #fed7d7; color: #c53030; white-space: nowrap; }
+  .wrong-en { font-weight: 700; color: #2d3748; flex: 1; min-width: 80px; }
+  .wrong-ko { color: #718096; font-size: .88rem; flex: 1; min-width: 80px; }
+
+  /* 오답 현황 - box 드롭다운 */
+  .box-select { font-size: .72rem; padding: 3px 10px; border-radius: 20px; font-weight: 700;
+    border: none; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; }
+  .box-select:hover { opacity: .85; }
+
+  /* 메시지 */
+  .flash { padding: 10px 14px; border-radius: 9px; font-size: .85rem; margin-bottom: 10px; display: none; }
+  .flash.ok  { background: #c6f6d5; color: #276749; }
+  .flash.err { background: #fed7d7; color: #c53030; }
+
+  .empty { text-align: center; color: #a0aec0; padding: 32px 0; font-size: .9rem; }
+
+  /* 토스트 알림 */
+  .toast-wrap { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .toast { padding: 12px 18px; border-radius: 10px; font-size: .88rem; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.15); opacity: 0; transform: translateX(30px); transition: all .25s ease; pointer-events: none; max-width: 320px; }
+  .toast.show { opacity: 1; transform: translateX(0); }
+  .toast.ok   { background: #c6f6d5; color: #276749; }
+  .toast.err  { background: #fed7d7; color: #c53030; }
+  .toast.info { background: #bee3f8; color: #2b6cb0; }
+</style>
+</head>
+<body>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<header>
+  <h1>📖 Word Gacha — 선생님</h1>
+  <button class="logout-btn" id="logoutBtn">로그아웃</button>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="words">📝 단어 관리<span class="count-badge" id="pendingBadge" data-n="0">0</span></div>
+  <div class="tab" data-tab="student-questions">📬 학생 질문</div>
+  <div class="tab" data-tab="wrong">❌ 오답 현황</div>
+  <div class="tab" data-tab="grammar">📚 문법 Q&amp;A</div>
+  <div class="tab" data-tab="print">🖨️ 프린트</div>
+  <div class="tab" data-tab="grade">✏️ 채점</div>
+  <div class="tab" data-tab="students">👤 학생 관리</div>
+  <div class="tab" data-tab="textbook-viewer">📖 교재 데이터</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1: 단어 관리
+═══════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-words">
+  <div class="card">
+    <h2>단어 직접 추가 (선생님)</h2>
+    <div class="row">
+      <select id="addWordStudent" class="flex1">
+        <option value="">학생 선택</option>
+      </select>
+      <input type="text" id="addWordEn" placeholder="영어 단어" class="flex1">
+      <input type="text" id="addWordKo" placeholder="한국어 뜻" class="flex1">
+      <select id="addWordBlank">
+        <option value="korean">한글 빈칸</option>
+        <option value="english">영어 빈칸</option>
+        <option value="both">둘 다 빈칸</option>
+      </select>
+      <button class="btn btn-primary" id="addWordBtn">추가</button>
+    </div>
+    <div class="flash" id="addWordMsg"></div>
+  </div>
+
+  <div class="filter-bar">
+    <label>학생:</label>
+    <select id="filterStudent"><option value="">전체</option></select>
+    <label>상태:</label>
+    <select id="filterStatus">
+      <option value="">전체</option>
+      <option value="pending">대기중</option>
+      <option value="approved">승인됨</option>
+    </select>
+    <button class="btn btn-outline btn-sm" id="refreshWords">새로고침</button>
+    <button class="pending-shortcut" id="pendingShortcut" type="button" style="margin-left:auto">⏳ 대기중만 보기 (<span id="pendingShortcutCount">0</span>)</button>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table id="wordTable">
+        <thead>
+          <tr>
+            <th>학생</th><th>영어</th><th>한국어</th><th>품사</th><th>예문</th><th>제출</th><th>빈칸</th>
+            <th>상태</th><th>박스</th><th>틀린 수</th><th>작업</th>
+          </tr>
+        </thead>
+        <tbody id="wordTbody"><tr><td colspan="11" class="empty">불러오는 중...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 2: 학생 질문
+═══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-student-questions">
+  <div class="card">
+    <h2>📬 학생 질문 목록</h2>
+    <div class="filter-bar">
+      <label>상태:</label>
+      <select id="filterSQStatus">
+        <option value="">전체</option>
+        <option value="pending">대기중</option>
+        <option value="answered">답변됨</option>
+      </select>
+      <button class="btn btn-outline btn-sm" id="refreshSQ">새로고침</button>
+    </div>
+    <div id="studentQuestionList"><div class="empty">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB: 오답 현황
+═══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-wrong">
+  <div class="card">
+    <h2>❌ 학생별 오답 현황</h2>
+    <div class="filter-bar">
+      <label>정렬:</label>
+      <select id="wrongSort">
+        <option value="count">틀린 횟수순</option>
+        <option value="student">학생별</option>
+      </select>
+      <button class="btn btn-outline btn-sm" id="refreshWrong">새로고침</button>
+    </div>
+    <div id="wrongList"><div class="empty">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 3: 문법 Q&A
+═══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-grammar">
+  <div class="card">
+    <h2>문법 Q&amp;A 추가</h2>
+    <div class="row">
+      <input type="text" id="grammarQ" placeholder="질문 (예: 현재완료 부정문 형태는?)" class="flex1">
+    </div>
+    <div class="row">
+      <input type="text" id="grammarA" placeholder="답변 (예: have/has + not + 과거분사)" class="flex1">
+    </div>
+    <div class="row">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;">
+        <input type="checkbox" id="grammarInclude" checked> 프린트에 포함
+      </label>
+      <button class="btn btn-primary" id="addGrammarBtn">추가</button>
+    </div>
+    <div class="flash" id="grammarMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>문법 목록</h2>
+    <div id="grammarList"><div class="empty">등록된 문법 Q&A가 없습니다.</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 3: 프린트
+═══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-print">
+  <div class="card">
+    <h2>학생 선택</h2>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-outline btn-sm" id="selectAllStudents">전체 선택</button>
+      <button class="btn btn-outline btn-sm" id="deselectAllStudents">전체 해제</button>
+    </div>
+    <div class="student-check-list" id="printStudentList"></div>
+  </div>
+
+  <div class="card">
+    <h2>문법 Q&A 선택</h2>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-outline btn-sm" id="selectAllGrammar">전체 선택</button>
+      <button class="btn btn-outline btn-sm" id="deselectAllGrammar">전체 해제</button>
+    </div>
+    <div id="grammarCheckList" class="grammar-check-list"></div>
+    <div id="grammarEmptyMsg" style="color:#a0aec0;font-size:.85rem;display:none;">답변된 문법 Q&A가 없습니다</div>
+  </div>
+
+  <div class="flash" id="printMsg"></div>
+  <div class="print-actions">
+    <button class="btn btn-pdf" id="printSingleBtn">📄 시험지 생성</button>
+    <button class="btn btn-zip" id="printBulkBtn">📦 일괄 시험지 생성</button>
+    <a href="print.html" target="_blank" class="btn btn-primary" id="printOpenBtn" style="display:none;text-decoration:none;">🖨️ 시험지 열기</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 4: 학생 관리
+═══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-students">
+  <div class="card">
+    <h2>학생 추가</h2>
+    <div class="row" style="flex-wrap:wrap;gap:6px;">
+      <input type="text" id="newStudentName" placeholder="학생 이름" style="flex:1;min-width:120px;">
+      <select id="newStudentSchool" style="flex:1;min-width:120px;">
+        <option value="">학교 선택</option>
+      </select>
+      <select id="newStudentGrade" style="width:90px;">
+        <option value="">학년</option>
+        <option value="1">고1</option>
+        <option value="2">고2</option>
+        <option value="3">고3</option>
+      </select>
+      <button class="btn btn-primary" id="addStudentBtn">추가</button>
+    </div>
+    <div class="flash" id="studentMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>학생 목록</h2>
+    <div class="student-grid" id="studentGrid"><div class="empty">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 7: 교재 데이터
+═══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-textbook-viewer">
+  <div class="card">
+    <h2>교재 선택</h2>
+    <div class="row" style="flex-wrap:wrap;gap:8px;">
+      <select id="tbvSchool" style="flex:1;min-width:130px;">
+        <option value="">학교 선택</option>
+      </select>
+      <select id="tbvGrade" style="width:80px;">
+        <option value="">학년</option>
+        <option value="1">고1</option>
+        <option value="2">고2</option>
+      </select>
+      <select id="tbvSemester" style="width:90px;">
+        <option value="semester1">1학기</option>
+        <option value="semester2">2학기</option>
+      </select>
+      <button class="btn btn-primary" id="tbvLoadBtn">불러오기</button>
+    </div>
+    <div id="tbvTextbookInfo" style="margin-top:10px;font-size:.85rem;color:#667eea;font-weight:600;"></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <h2 style="margin:0;">단어 목록</h2>
+      <div id="tbvUnitBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <span id="tbvWordCount" style="margin-left:auto;font-size:.85rem;color:#888;"></span>
+    </div>
+    <div style="overflow-x:auto;margin-top:12px;">
+      <table id="tbvWordTable" style="width:100%;border-collapse:collapse;font-size:.87rem;">
+        <thead>
+          <tr style="background:#f7fafc;">
+            <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;">Unit</th>
+            <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;">영어</th>
+            <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;">한국어</th>
+            <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;">품사</th>
+            <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;">예문</th>
+          </tr>
+        </thead>
+        <tbody id="tbvWordBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:#aaa;">교재를 선택해주세요</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>문법 포인트</h2>
+    <div id="tbvGrammarList" style="display:flex;flex-direction:column;gap:10px;">
+      <div style="text-align:center;color:#aaa;padding:20px;">교재를 선택해주세요</div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js?v=2"></script>
+<script src="js/api.js?v=2"></script>
+<script>
+// ──── WAWA ERP 통합 로그인 체크 ─────────────────────────────────
+(async () => {
+  const { isAdmin } = await API.checkAuth();
+  if (!isAdmin) window.location.href = '/#/login';
+})();
+
+document.getElementById('logoutBtn').onclick = () => { window.location.href = '/#/'; };
+
+// ──── 탭 전환 ────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    if (tab.dataset.tab === 'grade') { window.location.href = 'grade.html'; return; }
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'words')             loadWords();
+    if (tab.dataset.tab === 'student-questions') loadStudentQuestions();
+    if (tab.dataset.tab === 'wrong')             loadWrongWords();
+    if (tab.dataset.tab === 'grammar')           loadGrammar();
+    if (tab.dataset.tab === 'print')             loadPrintTab();
+    if (tab.dataset.tab === 'students')          loadStudents();
+  };
+});
+
+function flash(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.className = `flash ${type}`; el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 단어 관리
+// ══════════════════════════════════════════════════════════════
+let allStudents = [];
+let allWords    = [];
+
+async function loadWords() {
+  const studentSel  = document.getElementById('filterStudent').value;
+  const statusSel   = document.getElementById('filterStatus').value;
+
+  // 학생 목록 동기화
+  allStudents = await API.getStudents().catch(() => []);
+  populateStudentSelects();
+
+  // 전체 단어 불러오기
+  allWords = await API.getAllWords(statusSel || '').catch(() => []);
+
+  // pending 카운트 — 필터 상태와 무관하게 전체 기준으로 얻기 위해 한 번 더 호출
+  // (statusSel이 pending이면 재호출 불필요)
+  let pendingCount;
+  if (statusSel === 'pending') {
+    pendingCount = allWords.length;
+  } else {
+    const pendingList = await API.getAllWords('pending').catch(() => []);
+    pendingCount = pendingList.length;
+  }
+  updatePendingBadge(pendingCount);
+
+  // 학생 필터
+  let words = studentSel ? allWords.filter(w => w.student_id === studentSel) : allWords;
+
+  // pending 먼저, approved 나중에 — 검토 효율
+  words = [...words].sort((a, b) => {
+    if (a.status === b.status) return 0;
+    return a.status === 'pending' ? -1 : 1;
+  });
+
+  const tbody = document.getElementById('wordTbody');
+  if (!words.length) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty">단어가 없습니다.</td></tr>';
+    return;
+  }
+
+  const POS_LABEL = { noun: '명사', verb: '동사', adj: '형용사', adv: '부사', prep: '전치사', conj: '접속사' };
+  const studentMap = new Map(allStudents.map(s => [s.id, s.name]));
+
+  tbody.innerHTML = words.map(w => {
+    const sName = studentMap.get(w.student_id) || w.students?.name || w.student_name || '?';
+    const addedBy = w.added_by === 'student' ? '학생' : '선생님';
+    const sourceCls = w.added_by === 'student' ? 'source-student' : 'source-teacher';
+    const posLabel = w.pos ? (POS_LABEL[w.pos] || w.pos) : '—';
+    return `
+    <tr data-id="${w.id}">
+      <td>${sName}</td>
+      <td><input class="edit-input" data-field="english"    value="${esc(w.english)}"   style="width:100px"></td>
+      <td><input class="edit-input" data-field="korean"     value="${esc(w.korean)}"    style="width:100px"></td>
+      <td style="font-size:.82rem;color:#4a5568;">${posLabel}</td>
+      <td style="font-size:.82rem;color:#718096;font-style:italic;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(w.example||'')}">${esc(w.example || '')}</td>
+      <td><span class="badge ${sourceCls}">${addedBy}</span></td>
+      <td>
+        <select class="edit-input" data-field="blank_type" style="width:90px">
+          <option value="korean"  ${w.blank_type==='korean' ?'selected':''}>한글 빈칸</option>
+          <option value="english" ${w.blank_type==='english'?'selected':''}>영어 빈칸</option>
+          <option value="both"    ${w.blank_type==='both'   ?'selected':''}>둘 다</option>
+        </select>
+      </td>
+      <td><span class="badge ${w.status}">${w.status==='pending'?'⏳ 대기중':'✅ 승인됨'}</span></td>
+      <td><span class="box-badge box${w.box}">Box ${w.box}</span></td>
+      <td>${w.wrong_count}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-success" onclick="saveWord('${w.id}', this)">저장</button>
+        ${w.status==='pending'
+          ? `<button class="btn btn-sm btn-outline" onclick="approveWord('${w.id}')">✅ 승인</button>
+             <button class="btn btn-sm btn-danger"  onclick="rejectWord('${w.id}', '${esc(w.english)}')">🚫 거절</button>`
+          : `<button class="btn btn-sm btn-success" onclick="reviewWord('${w.id}', true)">⭕</button>
+             <button class="btn btn-sm btn-warn"    onclick="reviewWord('${w.id}', false)">❌</button>
+             <button class="btn btn-sm btn-danger"  onclick="deleteWord('${w.id}')">삭제</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updatePendingBadge(n) {
+  const badge = document.getElementById('pendingBadge');
+  if (badge) {
+    badge.textContent = String(n);
+    badge.dataset.n = String(n);
+  }
+  const shortcut = document.getElementById('pendingShortcutCount');
+  if (shortcut) shortcut.textContent = String(n);
+}
+
+async function rejectWord(id, english) {
+  if (!confirm(`"${english}" 단어를 거절하시겠습니까?\n학생의 제출이 거부되고 목록에서 제거됩니다.`)) return;
+  try { await API.deleteWord(id); toast('거절되었습니다', 'ok'); loadWords(); }
+  catch(e) { alert(e.message); }
+}
+window.rejectWord = rejectWord;
+
+function esc(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function populateStudentSelects() {
+  ['filterStudent','addWordStudent'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = id === 'filterStudent'
+      ? '<option value="">전체</option>'
+      : '<option value="">학생 선택</option>';
+    allStudents.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.name;
+      if (s.id === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+async function saveWord(id, btn) {
+  const row = btn.closest('tr');
+  const updates = {};
+  row.querySelectorAll('[data-field]').forEach(el => {
+    updates[el.dataset.field] = el.value;
+  });
+  try {
+    await API.updateWord(id, { ...updates, status: 'approved' });
+    loadWords();
+  } catch(e) { alert(e.message); }
+}
+
+async function approveWord(id) {
+  try { await API.updateWord(id, { status: 'approved' }); loadWords(); }
+  catch(e) { alert(e.message); }
+}
+
+async function reviewWord(id, correct) {
+  try { await API.reviewWord(id, correct); loadWords(); }
+  catch(e) { alert(e.message); }
+}
+
+async function deleteWord(id) {
+  if (!confirm('삭제할까요?')) return;
+  try { await API.deleteWord(id); loadWords(); }
+  catch(e) { alert(e.message); }
+}
+
+document.getElementById('addWordBtn').onclick = async () => {
+  const sid   = document.getElementById('addWordStudent').value;
+  const en    = document.getElementById('addWordEn').value.trim();
+  const ko    = document.getElementById('addWordKo').value.trim();
+  const blank = document.getElementById('addWordBlank').value;
+  if (!sid) return flash('addWordMsg', '학생을 선택하세요', 'err');
+  if (!en || !ko) return flash('addWordMsg', '영어와 뜻을 입력하세요', 'err');
+  try {
+    await API.addWord(sid, { english: en, korean: ko, blank_type: blank, added_by: 'teacher' });
+    document.getElementById('addWordEn').value = '';
+    document.getElementById('addWordKo').value = '';
+    flash('addWordMsg', '추가됐습니다', 'ok');
+    loadWords();
+  } catch(e) { flash('addWordMsg', e.message, 'err'); }
+};
+
+document.getElementById('refreshWords').onclick = loadWords;
+document.getElementById('filterStudent').onchange = loadWords;
+document.getElementById('filterStatus').onchange  = loadWords;
+document.getElementById('pendingShortcut')?.addEventListener('click', () => {
+  const sel = document.getElementById('filterStatus');
+  sel.value = 'pending';
+  document.getElementById('filterStudent').value = '';
+  // 단어 탭으로 전환
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab[data-tab="words"]').classList.add('active');
+  document.getElementById('tab-words').classList.add('active');
+  loadWords();
+});
+
+// 대기중 카운트 주기적 갱신 (60초마다) — 현재 탭이 다른 곳에 있어도 뱃지 업데이트
+async function refreshPendingBadge() {
+  try {
+    const pending = await API.getAllWords('pending');
+    updatePendingBadge(pending.length);
+  } catch {}
+}
+setInterval(refreshPendingBadge, 60000);
+
+// ══════════════════════════════════════════════════════════════
+// 학생 질문 탭
+// ══════════════════════════════════════════════════════════════
+async function loadStudentQuestions() {
+  const statusFilter = document.getElementById('filterSQStatus').value;
+  const all = await API.getGrammar().catch(() => []);
+  // 학생 질문만 (student_id 있는 것)
+  let list = all.filter(g => g.student_id);
+  if (statusFilter) list = list.filter(g => g.status === statusFilter);
+
+  // 최신순 정렬
+  list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const el = document.getElementById('studentQuestionList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">학생 질문이 없습니다.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(g => `
+    <div class="qa-item" data-id="${g.id}">
+      <div class="qa-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="badge student-q">📬 ${esc(g.student_name || '학생')}</span>
+          <span class="badge ${g.status === 'pending' ? 'pending' : 'approved'}">
+            ${g.status === 'pending' ? '⏳ 대기중' : '✅ 답변됨'}
+          </span>
+          ${g.answered_by === 'ai' ? '<span class="badge ai-ans">🤖 AI 답변</span>' : ''}
+        </div>
+        <div class="qa-q">Q. ${esc(g.question)}</div>
+        ${g.answer
+          ? `<div class="qa-a" style="margin-top:6px;">A. ${esc(g.answer)}</div>`
+          : `<div class="qa-meta">아직 답변이 없습니다</div>`
+        }
+        <div class="answer-form" id="answerForm-${g.id}">
+          <textarea id="answerText-${g.id}" placeholder="답변을 입력하세요...">${esc(g.answer || '')}</textarea>
+          <div class="answer-form-btns">
+            <button class="btn btn-sm btn-outline" onclick="toggleAnswerForm('${g.id}')">취소</button>
+            <button class="btn btn-sm btn-primary" onclick="submitAnswer('${g.id}')">저장</button>
+          </div>
+        </div>
+        ${g.status === 'answered'
+          ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;">
+               <label style="font-size:.78rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                 <input type="checkbox" ${g.include_in_print ? 'checked' : ''} onchange="toggleSQPrint('${g.id}', this.checked)">
+                 프린트 포함
+               </label>
+             </div>`
+          : ''
+        }
+      </div>
+      <div class="qa-actions">
+        <button class="btn btn-sm btn-outline" onclick="toggleAnswerForm('${g.id}')">
+          ${g.answer ? '수정' : '직접 답변'}
+        </button>
+        <button class="btn btn-sm btn-warn" onclick="aiAnswerQuestion('${g.id}')">🤖 AI 답변</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteSQ('${g.id}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleAnswerForm(id) {
+  const form = document.getElementById(`answerForm-${id}`);
+  form.style.display = form.style.display === 'block' ? 'none' : 'block';
+}
+
+async function submitAnswer(id) {
+  const answer = document.getElementById(`answerText-${id}`).value.trim();
+  if (!answer) { alert('답변을 입력하세요'); return; }
+  try {
+    await API.updateGrammar(id, { answer, status: 'answered', answered_by: 'teacher' });
+    loadStudentQuestions();
+  } catch(e) { alert(e.message); }
+}
+
+async function aiAnswerQuestion(id) {
+  if (!confirm('AI가 답변을 생성합니다. 계속할까요?')) return;
+  try {
+    toast('AI가 답변을 생성하고 있습니다...', 'info', 8000);
+    await API.aiAnswerGrammar(id);
+    toast('AI 답변이 생성됐습니다', 'ok');
+    loadStudentQuestions();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function toggleSQPrint(id, val) {
+  try { await API.updateGrammar(id, { include_in_print: val }); loadStudentQuestions(); }
+  catch(e) { alert(e.message); }
+}
+
+async function deleteSQ(id) {
+  if (!confirm('질문을 삭제할까요?')) return;
+  try { await API.deleteGrammar(id); loadStudentQuestions(); }
+  catch(e) { alert(e.message); }
+}
+
+document.getElementById('filterSQStatus').onchange = loadStudentQuestions;
+document.getElementById('refreshSQ').onclick = loadStudentQuestions;
+
+// ══════════════════════════════════════════════════════════════
+// 오답 현황
+// ══════════════════════════════════════════════════════════════
+async function loadWrongWords() {
+  const sort = document.getElementById('wrongSort').value;
+  const words = await API.getAllWords('').catch(() => []);
+
+  // 틀린 적 있는 단어만
+  const wrong = words.filter(w => w.wrong_count > 0);
+  const el = document.getElementById('wrongList');
+
+  if (!wrong.length) {
+    el.innerHTML = '<div class="empty">아직 틀린 단어가 없습니다 🎉</div>';
+    return;
+  }
+
+  if (sort === 'count') {
+    // 틀린 횟수 많은 순
+    wrong.sort((a, b) => b.wrong_count - a.wrong_count);
+    el.innerHTML = wrong.map(w => {
+      const sName = w.students?.name || '?';
+      return `
+        <div class="wrong-word-row">
+          <span class="wrong-count-badge">❌ ${w.wrong_count}회</span>
+          <span class="wrong-en">${esc(w.english)}</span>
+          <span class="wrong-ko">${esc(w.korean)}</span>
+          <span class="badge student-q" style="font-size:.72rem;">${esc(sName)}</span>
+          ${boxSelect(w)}
+        </div>`;
+    }).join('');
+  } else {
+    // 학생별 그룹
+    const byStudent = {};
+    wrong.forEach(w => {
+      const name = w.students?.name || '?';
+      if (!byStudent[name]) byStudent[name] = [];
+      byStudent[name].push(w);
+    });
+    // 학생별로 틀린 수 합계 내림차순 정렬
+    const sorted = Object.entries(byStudent).sort((a, b) => {
+      const sumA = a[1].reduce((s, w) => s + w.wrong_count, 0);
+      const sumB = b[1].reduce((s, w) => s + w.wrong_count, 0);
+      return sumB - sumA;
+    });
+    el.innerHTML = sorted.map(([name, ws]) => {
+      const total = ws.reduce((s, w) => s + w.wrong_count, 0);
+      ws.sort((a, b) => b.wrong_count - a.wrong_count);
+      return `
+        <div class="wrong-student-block">
+          <div class="wrong-student-name">👤 ${esc(name)} — 총 ${total}회 틀림</div>
+          ${ws.map(w => `
+            <div class="wrong-word-row">
+              <span class="wrong-count-badge">❌ ${w.wrong_count}회</span>
+              <span class="wrong-en">${esc(w.english)}</span>
+              <span class="wrong-ko">${esc(w.korean)}</span>
+              ${boxSelect(w)}
+            </div>`).join('')}
+        </div>`;
+    }).join('');
+  }
+}
+
+document.getElementById('wrongSort').onchange = loadWrongWords;
+document.getElementById('refreshWrong').onclick = loadWrongWords;
+
+const BOX_STYLE = {
+  1: 'background:#fed7d7;color:#c53030',
+  2: 'background:#feebc8;color:#c05621',
+  3: 'background:#fefcbf;color:#b7791f',
+  4: 'background:#c6f6d5;color:#276749',
+};
+
+function boxSelect(w) {
+  const opts = [1,2,3,4].map(n =>
+    `<option value="${n}" ${w.box==n?'selected':''}>${n}단계</option>`
+  ).join('');
+  return `<select class="box-select" style="${BOX_STYLE[w.box]||''}"
+    onchange="changeBox(${w.id},this.value,this)">${opts}</select>`;
+}
+
+async function changeBox(id, box, el) {
+  const prev = el.value;
+  try {
+    await API.updateWord(id, { box: parseInt(box) });
+    el.style.cssText = BOX_STYLE[box] || '';
+  } catch {
+    el.value = prev;
+    showFlash('box 변경 실패', false);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 문법 Q&A
+// ══════════════════════════════════════════════════════════════
+async function loadGrammar() {
+  const all  = await API.getGrammar().catch(() => []);
+  // 선생님이 직접 만든 Q&A만 (student_id 없는 것)
+  const list = all.filter(g => !g.student_id);
+  const el   = document.getElementById('grammarList');
+  if (!list.length) { el.innerHTML = '<div class="empty">등록된 문법 Q&A가 없습니다.</div>'; return; }
+  el.innerHTML = list.map(g => `
+    <div class="qa-item" data-id="${g.id}">
+      <div class="qa-body">
+        <div class="qa-q">Q. ${esc(g.question)}</div>
+        <div class="qa-a">A. ${esc(g.answer)}</div>
+        <div style="margin-top:4px;">
+          <span class="badge ${g.include_in_print ? 'approved' : 'pending'}">${g.include_in_print ? '프린트 포함' : '프린트 제외'}</span>
+        </div>
+      </div>
+      <div class="qa-actions">
+        <button class="btn btn-sm btn-outline" onclick="editGrammar('${g.id}', '${esc(g.question)}', '${esc(g.answer)}', ${g.include_in_print})">수정</button>
+        <button class="btn btn-sm ${g.include_in_print ? 'btn-warn' : 'btn-success'}" onclick="toggleGrammar('${g.id}', ${!g.include_in_print})">${g.include_in_print ? '제외' : '포함'}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteGrammar('${g.id}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('addGrammarBtn').onclick = async () => {
+  const q = document.getElementById('grammarQ').value.trim();
+  const a = document.getElementById('grammarA').value.trim();
+  const inc = document.getElementById('grammarInclude').checked;
+  if (!q || !a) return flash('grammarMsg', '질문과 답변을 입력하세요', 'err');
+  try {
+    await API.addGrammar({ question: q, answer: a, include_in_print: inc });
+    document.getElementById('grammarQ').value = '';
+    document.getElementById('grammarA').value = '';
+    flash('grammarMsg', '추가됐습니다', 'ok');
+    loadGrammar();
+  } catch(e) { flash('grammarMsg', e.message, 'err'); }
+};
+
+function editGrammar(id, q, a, inc) {
+  const nq = prompt('질문 수정:', q.replace(/&quot;/g,'"'));
+  if (nq === null) return;
+  const na = prompt('답변 수정:', a.replace(/&quot;/g,'"'));
+  if (na === null) return;
+  API.updateGrammar(id, { question: nq, answer: na, include_in_print: inc })
+    .then(() => loadGrammar()).catch(e => alert(e.message));
+}
+
+async function toggleGrammar(id, val) {
+  try { await API.updateGrammar(id, { include_in_print: val }); loadGrammar(); }
+  catch(e) { alert(e.message); }
+}
+
+async function deleteGrammar(id) {
+  if (!confirm('삭제할까요?')) return;
+  try { await API.deleteGrammar(id); loadGrammar(); }
+  catch(e) { alert(e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 프린트 탭
+// ══════════════════════════════════════════════════════════════
+let _allGrammar = [];
+
+async function loadPrintTab() {
+  const [students, grammar] = await Promise.all([
+    API.getStudents().catch(() => []),
+    API.getGrammar().catch(() => []),
+  ]);
+  _allGrammar = grammar;
+
+  // 학생 체크박스 — 선택 변경 시 문법 목록 동적 업데이트
+  const slist = document.getElementById('printStudentList');
+  slist.innerHTML = students.map(s => `
+    <label class="student-check">
+      <input type="checkbox" value="${s.id}" data-name="${esc(s.name)}" class="print-student-cb"> ${s.name}
+    </label>
+  `).join('');
+  document.querySelectorAll('.print-student-cb').forEach(cb => {
+    cb.addEventListener('change', updateGrammarList);
+  });
+
+  updateGrammarList();
+}
+
+function updateGrammarList() {
+  const selectedIds = getSelectedStudentIds();
+  const answered = _allGrammar.filter(g => g.status === 'answered' && g.answer);
+
+  // 개별(1명): 해당 학생 본인 질문 + 선생님 Q&A만
+  // 일괄(복수): 전체 answered
+  const filtered = selectedIds.length === 1
+    ? answered.filter(g => !g.student_id || g.student_id === selectedIds[0])
+    : answered;
+
+  const gcl = document.getElementById('grammarCheckList');
+  const gem = document.getElementById('grammarEmptyMsg');
+
+  if (!filtered.length) {
+    gcl.innerHTML = '';
+    gem.style.display = 'block';
+    return;
+  }
+  gem.style.display = 'none';
+  gcl.innerHTML = filtered.map(g => {
+    const label = g.student_id
+      ? `📬 ${esc(g.student_name || '학생')} 질문`
+      : '📚 선생님 Q&A';
+    return `
+      <label class="grammar-check">
+        <input type="checkbox" value="${g.id}" class="print-grammar-cb" checked>
+        <span style="flex:1;">
+          <span style="font-size:.72rem;color:#718096;">${label}</span><br>
+          Q. ${esc(g.question)}
+        </span>
+      </label>`;
+  }).join('');
+}
+
+document.getElementById('selectAllStudents').onclick   = () => document.querySelectorAll('.print-student-cb').forEach(cb => cb.checked = true);
+document.getElementById('deselectAllStudents').onclick = () => document.querySelectorAll('.print-student-cb').forEach(cb => cb.checked = false);
+document.getElementById('selectAllGrammar').onclick    = () => document.querySelectorAll('.print-grammar-cb').forEach(cb => cb.checked = true);
+document.getElementById('deselectAllGrammar').onclick  = () => document.querySelectorAll('.print-grammar-cb').forEach(cb => cb.checked = false);
+
+function getSelectedStudentIds() {
+  return [...document.querySelectorAll('.print-student-cb:checked')].map(cb => cb.value);
+}
+
+function getSelectedGrammarIds() {
+  return [...document.querySelectorAll('.print-grammar-cb:checked')].map(cb => cb.value);
+}
+
+function toast(msg, type = 'ok', duration = 3000) {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => { requestAnimationFrame(() => el.classList.add('show')); });
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+async function runPrint(ids, grammarIds) {
+  const btn1 = document.getElementById('printSingleBtn');
+  const btn2 = document.getElementById('printBulkBtn');
+  const openBtn = document.getElementById('printOpenBtn');
+  btn1.disabled = btn2.disabled = true;
+  btn1.textContent = btn2.textContent = '⏳ AI 생성 중...';
+  openBtn.style.display = 'none';
+  toast('AI가 문제를 생성하고 있습니다. 20~40초 소요됩니다.', 'info', 45000);
+  try {
+    const result = await API.generatePrint(ids, grammarIds);
+    if (!result.jobs?.length) { toast('승인된 단어가 있는 학생이 없습니다', 'err'); return; }
+    localStorage.setItem('printJob', JSON.stringify({ ...result, createdAt: Date.now() }));
+    const win = window.open('print.html', '_blank');
+    if (win) {
+      toast(`시험지 생성 완료! (${result.jobs.length}명)`, 'ok');
+    } else {
+      toast('팝업이 차단됐습니다. 아래 버튼을 클릭하세요.', 'err', 8000);
+      openBtn.style.display = 'inline-block';
+    }
+  } catch(e) {
+    toast(e.message || '생성 실패', 'err');
+  } finally {
+    btn1.disabled = btn2.disabled = false;
+    btn1.textContent = '📄 시험지 생성';
+    btn2.textContent = '📦 일괄 시험지 생성';
+  }
+}
+
+document.getElementById('printSingleBtn').onclick = async () => {
+  const ids = getSelectedStudentIds();
+  const grammarIds = getSelectedGrammarIds();
+  if (!ids.length) return toast('학생을 선택하세요', 'err');
+  if (ids.length > 1) return toast('개별 시험지는 학생 1명만 선택하세요', 'err');
+  await runPrint(ids, grammarIds);
+};
+
+document.getElementById('printBulkBtn').onclick = async () => {
+  const ids = getSelectedStudentIds();
+  const grammarIds = getSelectedGrammarIds();
+  if (!ids.length) return toast('학생을 선택하세요', 'err');
+  await runPrint(ids, grammarIds);
+};
+
+// ══════════════════════════════════════════════════════════════
+// 학생 관리
+// ══════════════════════════════════════════════════════════════
+async function loadStudents() {
+  const students = await API.getStudents().catch(() => []);
+  const grid = document.getElementById('studentGrid');
+  if (!students.length) { grid.innerHTML = '<div class="empty">등록된 학생이 없습니다.</div>'; return; }
+  grid.innerHTML = students.map(s => {
+    const schoolLabel = s.school ? `${s.school} ` : '';
+    const gradeLabel  = s.grade  ? `고${s.grade} ` : '';
+    const textbookTag = (s.school && s.grade) ? `<span style="font-size:11px;color:#888;display:block;">${schoolLabel}${gradeLabel}</span>` : `<span style="font-size:11px;color:#f59e0b;display:block;">학교 미설정</span>`;
+    const pinTag = s.has_pin
+      ? `<span style="font-size:11px;color:#276749;display:block;">🔒 PIN 설정됨</span>`
+      : `<span style="font-size:11px;color:#a0aec0;display:block;">🔓 PIN 없음</span>`;
+    return `
+    <div class="student-card">
+      <div class="student-name">👤 ${esc(s.name)}${textbookTag}${pinTag}</div>
+      <div class="student-actions">
+        <button class="btn btn-sm btn-outline" onclick="editStudent('${s.id}', '${esc(s.name)}', '${s.school||''}', '${s.grade||''}', ${!!s.has_pin})">수정</button>
+        <button class="btn btn-sm btn-danger"  onclick="deleteStudent('${s.id}')">삭제</button>
+      </div>
+    </div>
+  `}).join('');
+}
+
+// 학교 목록 로드 → 교재 뷰어 섹션 하단에서 통합 처리
+
+document.getElementById('addStudentBtn').onclick = async () => {
+  const name   = document.getElementById('newStudentName').value.trim();
+  const school = document.getElementById('newStudentSchool').value;
+  const grade  = document.getElementById('newStudentGrade').value;
+  if (!name) return flash('studentMsg', '이름을 입력하세요', 'err');
+  try {
+    await API.addStudent(name, school || null, grade ? Number(grade) : null);
+    document.getElementById('newStudentName').value = '';
+    document.getElementById('newStudentSchool').value = '';
+    document.getElementById('newStudentGrade').value = '';
+    flash('studentMsg', '추가됐습니다', 'ok');
+    loadStudents();
+  } catch(e) { flash('studentMsg', e.message, 'err'); }
+};
+
+function editStudent(id, name, school, grade, hasPin) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;';
+  const schoolOptions = window._schoolsData
+    ? Object.entries(window._schoolsData.schools).map(([k,s]) => `<option value="${k}" ${k===school?'selected':''}>${s.name}</option>`).join('')
+    : `<option value="${school}">${school}</option>`;
+  const pinSection = hasPin
+    ? `<div style="border-top:1px solid #45475a;padding-top:12px;">
+         <div style="font-size:.82rem;color:#a0aec0;margin-bottom:8px;">🔒 PIN 설정됨</div>
+         <div style="display:flex;gap:8px;">
+           <input id="editNewPin" type="text" inputmode="numeric" maxlength="4" placeholder="새 PIN (4자리)" style="flex:1;padding:8px;border-radius:6px;border:1px solid #45475a;background:#313244;color:#cdd6f4;">
+           <button id="editSetPinBtn" style="padding:8px 12px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:bold;cursor:pointer;font-size:.8rem;">변경</button>
+           <button id="editResetPinBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #45475a;background:#313244;color:#fc8181;cursor:pointer;font-size:.8rem;">초기화</button>
+         </div>
+       </div>`
+    : `<div style="border-top:1px solid #45475a;padding-top:12px;">
+         <div style="font-size:.82rem;color:#a0aec0;margin-bottom:8px;">🔓 PIN 없음</div>
+         <div style="display:flex;gap:8px;">
+           <input id="editNewPin" type="text" inputmode="numeric" maxlength="4" placeholder="PIN 설정 (4자리)" style="flex:1;padding:8px;border-radius:6px;border:1px solid #45475a;background:#313244;color:#cdd6f4;">
+           <button id="editSetPinBtn" style="padding:8px 12px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:bold;cursor:pointer;font-size:.8rem;">설정</button>
+         </div>
+       </div>`;
+  modal.innerHTML = `
+    <div style="background:#1e1e2e;border-radius:12px;padding:24px;min-width:300px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:12px;">
+      <h3 style="margin:0;color:#cdd6f4;">학생 정보 수정</h3>
+      <input id="editName" type="text" value="${name.replace(/&quot;/g,'"')}" placeholder="이름" style="padding:8px;border-radius:6px;border:1px solid #45475a;background:#313244;color:#cdd6f4;">
+      <select id="editSchool" style="padding:8px;border-radius:6px;border:1px solid #45475a;background:#313244;color:#cdd6f4;">
+        <option value="">학교 선택</option>${schoolOptions}
+      </select>
+      <select id="editGrade" style="padding:8px;border-radius:6px;border:1px solid #45475a;background:#313244;color:#cdd6f4;">
+        <option value="">학년</option>
+        <option value="1" ${grade=='1'?'selected':''}>고1</option>
+        <option value="2" ${grade=='2'?'selected':''}>고2</option>
+        <option value="3" ${grade=='3'?'selected':''}>고3</option>
+      </select>
+      ${pinSection}
+      <div id="pinMsg" style="font-size:.8rem;min-height:16px;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:8px 16px;border-radius:6px;border:1px solid #45475a;background:#313244;color:#cdd6f4;cursor:pointer;">취소</button>
+        <button id="editSaveBtn" style="padding:8px 16px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:bold;cursor:pointer;">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const pinMsg = modal.querySelector('#pinMsg');
+
+  // PIN 설정/변경
+  modal.querySelector('#editSetPinBtn')?.addEventListener('click', async () => {
+    const pin = (modal.querySelector('#editNewPin')?.value || '').trim();
+    if (!/^\d{4}$/.test(pin)) { pinMsg.style.color = '#fc8181'; pinMsg.textContent = 'PIN은 4자리 숫자여야 합니다'; return; }
+    try {
+      await API.updateStudent(id, { pin });
+      pinMsg.style.color = '#68d391'; pinMsg.textContent = 'PIN이 설정됐습니다';
+      modal.querySelector('#editNewPin').value = '';
+      loadStudents();
+    } catch(e) { pinMsg.style.color = '#fc8181'; pinMsg.textContent = e.message; }
+  });
+
+  // PIN 초기화
+  modal.querySelector('#editResetPinBtn')?.addEventListener('click', async () => {
+    if (!confirm('PIN을 초기화하면 이 학생은 PIN 없이 입장할 수 있습니다. 계속할까요?')) return;
+    try {
+      await API.updateStudent(id, { pin: '' });
+      pinMsg.style.color = '#68d391'; pinMsg.textContent = 'PIN이 초기화됐습니다';
+      loadStudents();
+    } catch(e) { pinMsg.style.color = '#fc8181'; pinMsg.textContent = e.message; }
+  });
+
+  modal.querySelector('#editSaveBtn').onclick = async () => {
+    const updates = {
+      name:   modal.querySelector('#editName').value.trim(),
+      school: modal.querySelector('#editSchool').value || null,
+      grade:  modal.querySelector('#editGrade').value ? Number(modal.querySelector('#editGrade').value) : null,
+    };
+    if (!updates.name) return alert('이름을 입력하세요');
+    try {
+      await API.updateStudent(id, updates);
+      modal.remove();
+      loadStudents();
+    } catch(e) { alert(e.message); }
+  };
+}
+
+async function deleteStudent(id) {
+  if (!confirm('학생과 모든 단어가 삭제됩니다. 계속할까요?')) return;
+  try { await API.deleteStudent(id); loadStudents(); }
+  catch(e) { alert(e.message); }
+}
+
+// ──── 초기 로드 ──────────────────────────────────────────────
+loadWords();
+refreshPendingBadge();
+
+// ══════════════════════════════════════════════════════════════
+// 교재 데이터 뷰어
+// ══════════════════════════════════════════════════════════════
+let _tbvSchools = null;
+let _tbvCurrentId = null;
+let _tbvCurrentUnit = '';
+
+// 학교 목록 로드 (schools 드롭다운 공통)
+(async () => {
+  try {
+    const data = await API._fetch('/schools');
+    _tbvSchools = data;
+    const selStudent = document.getElementById('newStudentSchool');
+    const selViewer  = document.getElementById('tbvSchool');
+    Object.entries(data.schools).forEach(([key, s]) => {
+      selStudent.innerHTML += `<option value="${key}">${s.name}</option>`;
+      selViewer.innerHTML  += `<option value="${key}">${s.name}</option>`;
+    });
+    window._schoolsData = data;
+  } catch(e) { console.warn('학교 로드 실패', e); }
+})();
+
+document.getElementById('tbvLoadBtn').onclick = async () => {
+  const school   = document.getElementById('tbvSchool').value;
+  const grade    = document.getElementById('tbvGrade').value;
+  const semester = document.getElementById('tbvSemester').value;
+  if (!school || !grade) return alert('학교와 학년을 선택해주세요');
+
+  const schoolData = _tbvSchools?.schools[school];
+  if (!schoolData) return alert('학교 정보를 찾을 수 없습니다');
+  const textbookId = schoolData.textbooks[grade]?.[semester];
+  if (!textbookId) return alert('해당 학기 교재 데이터가 없습니다');
+
+  _tbvCurrentId   = textbookId;
+  _tbvCurrentUnit = '';
+
+  const label = _tbvSchools.textbook_labels?.[textbookId] || textbookId;
+  document.getElementById('tbvTextbookInfo').textContent = `📚 ${label}`;
+  await tbvLoadData();
+};
+
+async function tbvLoadData() {
+  if (!_tbvCurrentId) return;
+  document.getElementById('tbvWordBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#aaa;">불러오는 중...</td></tr>';
+  document.getElementById('tbvGrammarList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">불러오는 중...</div>';
+
+  try {
+    const unit = _tbvCurrentUnit || null;
+    const [wData, gData] = await Promise.all([
+      API.getTextbookWords(_tbvCurrentId, unit),
+      API.getTextbookGrammar(_tbvCurrentId, unit),
+    ]);
+
+    // Unit 버튼 생성 (처음 로드 시에만)
+    if (!_tbvCurrentUnit) {
+      const total = wData.textbook_info?.total_units || 4;
+      const lessonInfo = wData.lesson_info || {};
+      let btns = '<button class="unit-btn active" onclick="tbvSelectUnit(\'\', this)">전체</button>';
+      for (let i = 1; i <= total; i++) {
+        const title = lessonInfo[i]?.title || `Unit ${i}`;
+        btns += `<button class="unit-btn" onclick="tbvSelectUnit('${i}', this)" title="${esc(title)}">L${i}</button>`;
+      }
+      document.getElementById('tbvUnitBtns').innerHTML = btns;
+    }
+
+    // 단어 테이블
+    const words = wData.words || [];
+    document.getElementById('tbvWordCount').textContent = `총 ${words.length}개`;
+    if (!words.length) {
+      document.getElementById('tbvWordBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#aaa;">단어가 없습니다</td></tr>';
+    } else {
+      document.getElementById('tbvWordBody').innerHTML = words.map(w => `
+        <tr style="border-bottom:1px solid #f0f4ff;">
+          <td style="padding:7px 8px;color:#667eea;font-weight:600;">L${w.unit}</td>
+          <td style="padding:7px 8px;font-weight:600;">${esc(w.english)}</td>
+          <td style="padding:7px 8px;color:#4a5568;">${esc(w.korean)}</td>
+          <td style="padding:7px 8px;"><span style="background:#ebf4ff;color:#2b6cb0;border-radius:4px;padding:1px 6px;font-size:.78rem;">${esc(w.part_of_speech)}</span></td>
+          <td style="padding:7px 8px;color:#718096;font-size:.83rem;font-style:italic;">${esc(w.example || '')}</td>
+        </tr>`).join('');
+    }
+
+    // 문법 카드
+    const grammar = gData.grammar || [];
+    if (!grammar.length) {
+      document.getElementById('tbvGrammarList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">문법이 없습니다</div>';
+    } else {
+      document.getElementById('tbvGrammarList').innerHTML = grammar.map(g => `
+        <div style="background:#f7fafc;border-radius:10px;padding:14px;border-left:4px solid #667eea;">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+            <span style="background:#ebf4ff;color:#2b6cb0;border-radius:4px;padding:1px 8px;font-size:.78rem;font-weight:700;">L${g.unit}</span>
+            <strong style="color:#2d3748;">📐 ${esc(g.grammar_point)}</strong>
+          </div>
+          <div style="font-style:italic;color:#4a5568;margin-bottom:4px;">"${esc(g.sentence)}"</div>
+          <div style="font-size:.85rem;color:#718096;margin-bottom:4px;">${esc(g.explanation)}</div>
+          <div style="font-size:.83rem;background:#e6fffa;color:#234e52;border-radius:4px;padding:4px 8px;margin-bottom:4px;">패턴: ${esc(g.key_pattern)}</div>
+          <div style="font-size:.83rem;color:#553c9a;">Q. ${esc(g.question)}</div>
+          <div style="font-size:.83rem;color:#276749;margin-top:2px;">A. ${esc(g.answer)}</div>
+        </div>`).join('');
+    }
+  } catch(e) {
+    document.getElementById('tbvWordBody').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#e53e3e;">${esc(e.message)}</td></tr>`;
+  }
+}
+
+function tbvSelectUnit(unit, btn) {
+  document.querySelectorAll('#tbvUnitBtns .unit-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _tbvCurrentUnit = unit;
+  tbvLoadData();
+}
+</script>
+</body>
+</html>

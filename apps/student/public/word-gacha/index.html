@@ -1,0 +1,4897 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fafbfc">
+<title>Word Gacha — 내 방</title>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/variable/woff2/SUIT-Variable.css">
+
+<style>
+  /* ==================================================================
+     Design tokens — Digital Tamers room + PokéRogue console UI
+     2px 보더 패널, 각진 모서리, 오프셋 그림자, 흰 배경, 채도 높은 단색
+     ================================================================== */
+  :root {
+    --bg:        #fafbfc;
+    --surface:   #ffffff;
+    --surface-2: #f2f4f7;
+    --surface-3: #e7eaf0;
+    --floor:     #f6efe3;  /* 방 바닥 — 따뜻한 베이지 톤 */
+    --floor-ln:  #ece2cd;
+    --wall:      #eef2f8;
+
+    --ink:       #14171f;
+    --ink-2:     #3c4352;
+    --ink-3:     #7a8092;
+    --ink-4:     #a8aebc;
+
+    --line:      #dce1ea;
+    --line-deep: #9ba3b4;
+
+    --pri:       #1f4fe6;
+    --pri-deep:  #1438a8;
+    --pri-soft:  #e9efff;
+
+    --hot:       #d4232c;
+    --hot-soft:  #fbe5e7;
+
+    --gold:      #c89200;
+    --gold-soft: #fbf1d6;
+
+    /* 6 types — 포켓몬 타입처럼 */
+    --t-noun: #2174d4; --t-noun-soft: #e4eefb;
+    --t-verb: #d4232c; --t-verb-soft: #fbe5e7;
+    --t-adj:  #2f9e57; --t-adj-soft:  #e2f2ea;
+    --t-adv:  #b73d8a; --t-adv-soft:  #f8e6ef;
+    --t-prep: #c89200; --t-prep-soft: #fbf1d6; --t-prep-ink: #8a6500;
+    --t-conj: #6f5b48; --t-conj-soft: #ece5dc;
+
+    /* state tokens — 상태 표현 전용 (HP·단계·HUD 악센트) */
+    --hp-full: #28a86a;
+    --hp-low:  #e85a2c;
+    --hp-crit: var(--hot);
+    --stage-1-bg: var(--hot-soft);
+    --stage-2-bg: var(--gold-soft);
+    --stage-3-bg: var(--t-noun-soft);
+    --stage-4-bg: var(--t-adj-soft);
+    --stage-5-bg: var(--ink);
+    --accent-streak: #ff9d4d;
+    --accent-coin:   #ffd65c;
+
+    --r-0: 0;
+    --r-1: 2px;
+    --r-2: 4px;
+    --r-3: 8px;
+    --r-pill: 999px;
+
+    /* interaction scale */
+    --touch-min: 44px;
+    --focus-ring: 2px;
+    --focus-offset: 2px;
+
+    --disp: 'SUIT Variable', 'Pretendard Variable', -apple-system, system-ui, sans-serif;
+    --body: 'Pretendard Variable', -apple-system, system-ui, sans-serif;
+
+    --e-out:  cubic-bezier(.2, .8, .2, 1);
+    --e-expo: cubic-bezier(.16, 1, .3, 1);
+  }
+
+  /* global focus-visible — 키보드 사용자에게 명시적 포커스 링 */
+  :focus { outline: none; }
+  button:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="radio"]:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline: var(--focus-ring) solid var(--pri);
+    outline-offset: var(--focus-offset);
+    border-radius: var(--r-1);
+  }
+  .ask-box:focus-within {
+    outline: var(--focus-ring) solid var(--pri);
+    outline-offset: var(--focus-offset);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    background: #dde1e8;
+    color: var(--ink);
+    font: 400 14px/1.5 var(--body);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: grid;
+    place-items: start center;
+    padding: 24px 0 max(24px, env(safe-area-inset-bottom));
+  }
+
+  button { font-family: inherit; cursor: pointer; border: 0; background: none; color: inherit; padding: 0; }
+
+  .device {
+    width: min(100%, 420px);
+    min-height: calc(100vh - 48px);
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 rgba(20, 22, 30, .25);
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 440px) {
+    body { padding: 0; background: var(--bg); }
+    .device { border: 0; min-height: 100vh; box-shadow: none; }
+  }
+
+  /* ==================================================================
+     HUD bar — 항상 보이는 트레이너 상태 (LV · EXP · 연속 · 코인)
+     포켓몬 배틀 화면의 상태 박스 DNA
+     ================================================================== */
+  .hud {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--ink);
+    color: #fff;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .hud-lv {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--pri);
+    border: 1.5px solid #fff;
+    border-radius: var(--r-1);
+    font-family: var(--disp);
+    line-height: 1;
+  }
+  .hud-lv .t {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .1em;
+    opacity: .85;
+  }
+  .hud-lv .n {
+    font: 800 14px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-exp {
+    position: relative;
+    height: 8px;
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: var(--r-1);
+    overflow: hidden;
+  }
+  .hud-exp::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: var(--exp, 72%);
+    background: var(--hp-full);
+    border-right: 1px solid rgba(255, 255, 255, .5);
+  }
+  .hud-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font: 700 12px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-stat svg { width: 13px; height: 13px; }
+  .hud-stat.streak { color: var(--accent-streak); }
+  .hud-stat.coin   { color: var(--accent-coin); }
+
+  /* ==================================================================
+     Main / screen routing
+     ================================================================== */
+  main.app {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 76px;
+  }
+  main.app::-webkit-scrollbar { display: none; }
+
+  .screen { display: none; animation: screen-in .38s var(--e-expo) both; }
+  body[data-screen="home"]     .screen[data-s="home"]     { display: block; }
+  body[data-screen="learn"]    .screen[data-s="learn"]    { display: block; }
+  body[data-screen="practice"] .screen[data-s="practice"] { display: block; }
+  body[data-screen="dex"]      .screen[data-s="dex"]      { display: block; }
+  body[data-screen="me"]       .screen[data-s="me"]       { display: block; }
+  body[data-screen="playroom"] .screen[data-s="playroom"] { display: block; }
+
+  @keyframes screen-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen { animation: none; }
+  }
+
+  /* ==================================================================
+     Console panel — PokéRogue 대화상자 DNA
+     2px 보더 + 1px inner 보더 + 4px 오프셋 그림자
+     ================================================================== */
+  .panel {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    position: relative;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .panel-header {
+    padding: 6px 10px;
+    background: var(--ink);
+    color: #fff;
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--ink);
+    position: relative;
+    z-index: 1;
+  }
+  .panel-body {
+    padding: 12px 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* dialog box — 마스코트 대사용 */
+  .dialog {
+    margin: 16px 16px 0;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    padding: 14px 18px;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .dialog::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .dialog .speaker {
+    font: 800 10px/1 var(--disp);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--pri);
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+  }
+  .dialog .line {
+    font: 500 14px/1.55 var(--body);
+    color: var(--ink);
+    position: relative;
+    z-index: 1;
+  }
+  .dialog .line b { font-weight: 800; color: var(--pri); }
+  .dialog .arrow {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--ink);
+    z-index: 1;
+  }
+
+  /* ==================================================================
+     Home — THE ROOM
+     내 방이 메인. 4개 가구 + 마스코트
+     ================================================================== */
+  .room-wrap {
+    padding: 14px 16px 0;
+  }
+  .room {
+    position: relative;
+    aspect-ratio: 1.05 / 1;
+    background: var(--wall);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    overflow: hidden;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .room::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid rgba(20, 23, 31, .15);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* 바닥 */
+  .room .floor {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 44%;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--floor) 0 36px,
+        var(--floor-ln) 36px 37px
+      );
+    border-top: 2px solid var(--ink);
+  }
+  /* 뒷벽 장식 — 창문 */
+  .room .window {
+    position: absolute;
+    top: 10%;
+    right: 8%;
+    width: 26%;
+    height: 24%;
+    background: #cfe0f7;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-1);
+  }
+  .room .window::before,
+  .room .window::after {
+    content: "";
+    position: absolute;
+    background: var(--ink);
+  }
+  .room .window::before { left: 0; right: 0; top: 50%; height: 1.5px; }
+  .room .window::after  { top: 0; bottom: 0; left: 50%; width: 1.5px; }
+
+  /* 가구 = 클릭 가능한 기능 진입점 */
+  .item {
+    position: absolute;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    z-index: 3;
+    transition: transform .15s var(--e-out);
+  }
+  .item:active { transform: translateY(1px); }
+  .item svg { display: block; width: 100%; height: 100%; }
+  .item .lbl {
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .06em;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .item:hover .lbl { color: var(--pri); }
+
+  .item.shelf   { top: 6%;  left: 8%;   width: 22%; height: 38%; }
+  .item.board   { top: 10%; left: 36%;  width: 28%; height: 22%; }
+  .item.note    { top: 62%; left: 8%;   width: 22%; height: 22%; }
+  .item.trophy  { top: 56%; right: 6%;  width: 24%; height: 30%; }
+
+  /* 마스코트 */
+  .mascot-wrap {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    transform: translateX(-50%);
+    width: 38%;
+    aspect-ratio: 1;
+    z-index: 4;
+  }
+  .mascot-wrap svg { width: 100%; height: 100%; display: block; }
+  .mascot-wrap .shadow {
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 8px;
+    background: radial-gradient(ellipse at center, rgba(20,23,31,.35), transparent 70%);
+    z-index: -1;
+  }
+  /* 마스코트 눈 — 정적. 진입 애니메이션에서 한 번만 반짝 */
+  .mascot-eye { transform-origin: center; }
+
+  /* ==================================================================
+     Today's quests — 게시판 스타일
+     ================================================================== */
+  .quests {
+    margin: 20px 16px 0;
+  }
+  .quests-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .quests-head h2 {
+    margin: 0;
+    font: 800 15px/1 var(--disp);
+    letter-spacing: -.005em;
+  }
+  .quests-head .sub {
+    font: 500 11px/1 var(--body);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .quest-list {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    overflow: hidden;
+  }
+  .quest {
+    display: grid;
+    grid-template-columns: 36px 1fr auto 10px;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 12px;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+  }
+  .quest + .quest { border-top: 1px dashed var(--line-deep); }
+  .quest:active { background: var(--surface-2); }
+
+  .q-marker {
+    width: 36px; height: 36px;
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    display: grid; place-items: center;
+    background: var(--surface);
+    position: relative;
+  }
+  .q-marker[data-c="review"] { background: var(--t-noun-soft); }
+  .q-marker[data-c="new"]    { background: var(--t-adj-soft); }
+  .q-marker[data-c="gram"]   { background: var(--t-adv-soft); }
+  .q-marker svg { width: 18px; height: 18px; }
+  .q-marker .mn {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: var(--ink);
+    color: #fff;
+    font: 800 10px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+    padding: 2px 5px;
+    border-radius: var(--r-1);
+    min-width: 18px;
+    text-align: center;
+  }
+  .q-text {
+    min-width: 0;
+  }
+  .q-text .t {
+    font: 700 14px/1.2 var(--body);
+    color: var(--ink);
+    letter-spacing: -.005em;
+  }
+  .q-text .s {
+    margin-top: 3px;
+    font: 500 11px/1 var(--body);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .q-reward {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .04em;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .q-reward .xp { color: var(--t-adj); }
+  .q-arr { color: var(--ink-4); }
+
+  /* ==================================================================
+     Weekly pace
+     ================================================================== */
+  .pace {
+    margin: 20px 16px 0;
+    padding: 14px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .pace-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .pace-head .ttl {
+    font: 800 12px/1 var(--disp);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .pace-head .avg {
+    font: 800 20px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+  }
+  .pace-head .avg small {
+    font: 500 12px/1 var(--body);
+    color: var(--ink-3);
+    margin-left: 4px;
+  }
+  .chart {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    align-items: end;
+    height: 56px;
+  }
+  .chart b {
+    display: block;
+    border: 1.5px solid var(--ink);
+    border-radius: 2px 2px 0 0;
+    background: var(--surface-3);
+    min-height: 4px;
+  }
+  .chart b.hit { background: var(--pri); }
+  .chart b.today { background: var(--hot); }
+  .chart-x {
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    font: 700 11px/1 var(--disp);
+    letter-spacing: .04em;
+    color: var(--ink-3);
+    text-align: center;
+  }
+  .chart-x b.today { color: var(--hot); }
+
+  /* ==================================================================
+     Learn — subnav
+     ================================================================== */
+  .page-head {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .page-head h1 {
+    margin: 0;
+    font: 800 22px/1.2 var(--disp);
+    letter-spacing: -.015em;
+  }
+  .page-head .sub {
+    font: 500 12px/1 var(--body);
+    color: var(--ink-3);
+  }
+
+  .subnav {
+    padding: 0 16px 12px;
+    display: flex;
+    gap: 6px;
+  }
+  .subnav button {
+    flex: 1;
+    min-height: var(--touch-min);
+    padding: 10px 0;
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-1);
+    font: 700 13px/1 var(--disp);
+    color: var(--ink-3);
+    letter-spacing: -.005em;
+  }
+  .subnav button[aria-selected="true"] {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .subpane { display: none; }
+  .subpane.active { display: block; }
+
+  /* ==================================================================
+     Quiz battle screen — PokéRogue 배틀 UI 이식
+     ================================================================== */
+  .battle-wrap {
+    padding: 0 16px;
+  }
+  /* 상대 (단어) 이름플레이트 — 상단 좌측 */
+  .enemy-plate {
+    position: relative;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    padding: 10px 14px;
+    margin-bottom: 0;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .enemy-plate::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .enemy-head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .enemy-head .name {
+    font: 800 17px/1.1 var(--disp);
+    letter-spacing: -.01em;
+  }
+  .enemy-head .lv {
+    font: 800 11px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  .enemy-head .lv strong { color: var(--ink); font-size: 14px; }
+  .enemy-sub {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .enemy-hp {
+    flex: 1;
+    height: 8px;
+    background: var(--surface-3);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-1);
+    overflow: hidden;
+    position: relative;
+  }
+  .enemy-hp::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: var(--hp, 40%);
+    background: var(--hp-full);
+  }
+  .enemy-hp[data-level="low"]::after  { background: var(--hp-low); }
+  .enemy-hp[data-level="crit"]::after { background: var(--hp-crit); }
+  .enemy-hp-val {
+    font: 800 10px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+    letter-spacing: .04em;
+  }
+
+  /* 중앙 스테이지 — 단어 크게, 마스코트 오른쪽 아래 */
+  .stage {
+    margin: 14px 0;
+    position: relative;
+    min-height: 160px;
+    padding: 20px 16px 16px;
+    background: var(--floor);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .stage::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    bottom: 0;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--floor) 0 28px,
+        var(--floor-ln) 28px 29px
+      );
+    border-top: 1.5px solid var(--ink);
+  }
+  .stage-word {
+    position: relative;
+    z-index: 1;
+    font: 800 34px/1.05 var(--disp);
+    letter-spacing: -.02em;
+    color: var(--ink);
+    padding: 16px 0;
+  }
+  .stage-word .phon {
+    display: block;
+    margin-top: 6px;
+    font: 600 12px/1 var(--body);
+    color: var(--ink-3);
+    letter-spacing: 0;
+  }
+  .stage-mascot {
+    position: relative;
+    z-index: 1;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+  }
+  .stage-mascot svg { width: 100%; height: 100%; display: block; }
+
+  /* 기술 버튼 — 4분할 */
+  .moves {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0;
+  }
+  .move {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    text-align: left;
+    min-height: 72px;
+    transition: transform .1s var(--e-out), background .15s var(--e-out);
+  }
+  .move::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .move:active { transform: translate(1px, 1px); }
+  .move[aria-checked="true"] {
+    background: var(--pri-soft);
+    box-shadow: 2px 2px 0 var(--pri);
+  }
+  .move-hd {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; gap: 5px;
+    font: 700 11px/1 var(--disp);
+    letter-spacing: .08em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .move-hd .key {
+    width: 14px; height: 14px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 2px;
+    display: grid; place-items: center;
+    font: 800 11px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+  }
+  .move-text {
+    position: relative; z-index: 1;
+    font: 600 14px/1.25 var(--body);
+    color: var(--ink);
+  }
+
+  .quiz-footer {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .progress-inline {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    padding: 10px 12px;
+    box-shadow: 2px 2px 0 var(--ink);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+  }
+  .progress-inline::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .progress-inline span {
+    position: relative; z-index: 1;
+  }
+  .progress-inline .lbl {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .08em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .progress-inline .bar {
+    height: 6px;
+    background: var(--surface-3);
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-inline .bar i {
+    display: block;
+    height: 100%;
+    width: var(--p, 30%);
+    background: var(--pri);
+  }
+  .progress-inline .val {
+    font: 800 11px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .btn-confirm {
+    padding: 0 18px;
+    background: var(--ink);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    font: 800 14px/1 var(--disp);
+    letter-spacing: -.005em;
+    box-shadow: 2px 2px 0 var(--hot);
+  }
+  .btn-confirm:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--hot); }
+
+  /* ==================================================================
+     My Words — row list
+     ================================================================== */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter {
+    min-height: var(--touch-min);
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-1);
+    font: 700 12px/1 var(--disp);
+    color: var(--ink-2);
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .filter[aria-pressed="true"] {
+    background: var(--ink);
+    color: #fff;
+  }
+  .filter .n {
+    font-variant-numeric: tabular-nums;
+    opacity: .7;
+  }
+
+  .word-list {
+    margin: 0 16px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    overflow: hidden;
+  }
+  .word-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+  }
+  .word-row + .word-row { border-top: 1px dashed var(--line-deep); }
+  .word-row:active { background: var(--surface-2); }
+  /* evolution stage icon — Box 1~5 */
+  .stage-icon {
+    width: 32px; height: 32px;
+    background: var(--surface-2);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    display: grid; place-items: center;
+    position: relative;
+  }
+  .stage-icon svg { width: 20px; height: 20px; }
+  .stage-icon[data-stage="1"] { background: var(--stage-1-bg); }
+  .stage-icon[data-stage="2"] { background: var(--stage-2-bg); }
+  .stage-icon[data-stage="3"] { background: var(--stage-3-bg); }
+  .stage-icon[data-stage="4"] { background: var(--stage-4-bg); }
+  .stage-icon[data-stage="5"] { background: var(--stage-5-bg); }
+  .stage-icon[data-stage="5"] svg { color: #fff; }
+  .stage-icon .num {
+    position: absolute;
+    bottom: -6px; right: -6px;
+    width: 16px; height: 16px;
+    background: var(--ink);
+    color: #fff;
+    font: 800 11px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+    border: 1.5px solid #fff;
+    border-radius: 50%;
+    display: grid; place-items: center;
+  }
+  .stage-icon[data-stage="5"] .num { background: var(--t-adj); }
+
+  .wr-main { min-width: 0; }
+  .wr-en {
+    font: 800 16px/1.15 var(--disp);
+    letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  .wr-ko {
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font: 500 12px/1.3 var(--body);
+    color: var(--ink-2);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 5px;
+    border: 1px solid;
+    border-radius: var(--r-1);
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip[data-t="noun"] { background: var(--t-noun-soft); color: var(--t-noun); border-color: var(--t-noun); }
+  .chip[data-t="verb"] { background: var(--t-verb-soft); color: var(--t-verb); border-color: var(--t-verb); }
+  .chip[data-t="adj"]  { background: var(--t-adj-soft);  color: var(--t-adj);  border-color: var(--t-adj);  }
+  .chip[data-t="adv"]  { background: var(--t-adv-soft);  color: var(--t-adv);  border-color: var(--t-adv);  }
+  .chip[data-t="prep"] { background: var(--t-prep-soft); color: var(--t-prep-ink); border-color: var(--t-prep); }
+  .chip[data-t="conj"] { background: var(--t-conj-soft); color: var(--t-conj); border-color: var(--t-conj); }
+  .wr-right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  }
+  .wr-hp {
+    width: 56px; height: 5px;
+    background: var(--surface-3);
+    border: 1px solid var(--ink);
+    border-radius: var(--r-1);
+    overflow: hidden;
+    position: relative;
+  }
+  .wr-hp i {
+    display: block; height: 100%;
+    width: var(--hp, 50%);
+    background: var(--pri);
+  }
+  .wr-hp[data-l="mastered"] i { background: var(--t-adj); }
+  .wr-tag {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .08em;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+  }
+  .wr-tag.mastered { color: var(--t-adj); }
+
+  /* textbook units */
+  .units {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 16px 10px;
+    scrollbar-width: none;
+  }
+  .units::-webkit-scrollbar { display: none; }
+  .unit {
+    flex-shrink: 0;
+    min-height: var(--touch-min);
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-1);
+    min-width: 92px;
+    text-align: left;
+  }
+  .unit[aria-pressed="true"] {
+    background: var(--ink);
+    color: #fff;
+  }
+  .unit .u-n {
+    font: 800 12px/1 var(--disp);
+    font-variant-numeric: tabular-nums;
+  }
+  .unit .u-t {
+    margin-top: 3px;
+    font: 500 10px/1 var(--body);
+    color: var(--ink-3);
+  }
+  .unit[aria-pressed="true"] .u-t { color: rgba(255, 255, 255, .7); }
+  .unit .u-bar {
+    margin-top: 6px;
+    height: 3px;
+    background: var(--surface-3);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .unit[aria-pressed="true"] .u-bar { background: rgba(255, 255, 255, .2); }
+  .unit .u-bar i {
+    display: block; height: 100%;
+    background: var(--pri);
+    width: var(--p, 0%);
+  }
+  .unit[aria-pressed="true"] .u-bar i { background: #fff; }
+
+  /* ==================================================================
+     Practice — 문법 Q&A = 멘토 채팅
+     ================================================================== */
+  .ask {
+    margin: 0 16px 16px;
+  }
+  .ask-box {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    padding: 12px;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .ask-box::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .ask-box textarea {
+    position: relative; z-index: 1;
+    width: 100%;
+    resize: none;
+    min-height: 76px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font: 400 14px/1.5 var(--body);
+    color: var(--ink);
+    padding: 0;
+  }
+  .ask-box textarea::placeholder { color: var(--ink-4); }
+  .ask-bar {
+    position: relative; z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+  .ask-bar .cnt {
+    font: 700 10px/1 var(--disp);
+    letter-spacing: .04em;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .ask-bar button {
+    padding: 8px 14px;
+    background: var(--ink);
+    color: #fff;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-1);
+    font: 800 12px/1 var(--disp);
+    box-shadow: 2px 2px 0 var(--hot);
+  }
+
+  .section-head {
+    padding: 0 16px;
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .section-head h2 {
+    margin: 0;
+    font: 800 13px/1 var(--disp);
+    letter-spacing: .02em;
+    text-transform: uppercase;
+  }
+  .section-head .more {
+    font: 600 11px/1 var(--body);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .q-item {
+    margin: 0 16px 10px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    padding: 11px 13px;
+    box-shadow: 2px 2px 0 var(--ink);
+    position: relative;
+  }
+  .q-item::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .q-top {
+    position: relative; z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .q-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border: 1.5px solid;
+    border-radius: var(--r-1);
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .q-status.pending  { color: var(--ink-2);  border-color: var(--ink-3); background: var(--surface-2); }
+  .q-status.answered { color: var(--t-adj); border-color: var(--t-adj); background: var(--t-adj-soft); }
+  .q-time {
+    font: 500 11px/1 var(--body);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .q-text {
+    position: relative; z-index: 1;
+    font: 500 14px/1.45 var(--body);
+    color: var(--ink);
+  }
+  .q-answer {
+    position: relative; z-index: 1;
+    margin-top: 9px;
+    padding: 10px;
+    background: var(--pri-soft);
+    border: 1.5px solid var(--pri);
+    border-radius: var(--r-1);
+    font: 400 13px/1.55 var(--body);
+    color: var(--ink);
+  }
+  .q-answer .src {
+    display: inline-block;
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .08em;
+    color: var(--pri-deep);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+  .q-answer b { color: var(--pri-deep); font-weight: 800; }
+
+  .empty-box {
+    margin: 0 16px;
+    padding: 36px 20px;
+    background: var(--surface);
+    border: 2px dashed var(--line-deep);
+    border-radius: var(--r-2);
+    text-align: center;
+  }
+  .empty-box .ttl {
+    font: 800 14px/1.3 var(--disp);
+    color: var(--ink-2);
+    margin-bottom: 5px;
+  }
+  .empty-box .sub {
+    font: 500 12px/1.45 var(--body);
+    color: var(--ink-3);
+  }
+
+  /* ==================================================================
+     Dex — 도감 보관함
+     ================================================================== */
+  .dex-hero {
+    margin: 0 16px 14px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    position: relative;
+  }
+  .dex-hero::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .dex-hero-top {
+    position: relative; z-index: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .dex-hero .lbl {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .dex-hero .big {
+    font: 800 18px/1 var(--disp);
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .dex-hero .big .s {
+    font: 500 12px/1 var(--body);
+    color: var(--ink-3);
+    margin-left: 3px;
+  }
+  .dex-hero .pct {
+    font: 800 12px/1 var(--disp);
+    color: var(--pri);
+    font-variant-numeric: tabular-nums;
+    padding: 3px 7px;
+    background: var(--pri-soft);
+    border: 1.5px solid var(--pri);
+    border-radius: var(--r-1);
+  }
+  .dex-hero .bar {
+    position: relative; z-index: 1;
+    margin-top: 10px;
+    height: 8px;
+    background: var(--surface-3);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-1);
+    overflow: hidden;
+  }
+  .dex-hero .bar i {
+    display: block; height: 100%;
+    width: 28%;
+    background: var(--pri);
+  }
+
+  .dex-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .type-case {
+    padding: 12px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    text-align: left;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .type-case::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--line-deep);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .type-case::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 5px;
+    background: var(--tc);
+    z-index: 1;
+  }
+  .type-case[data-t="noun"] { --tc: var(--t-noun); }
+  .type-case[data-t="verb"] { --tc: var(--t-verb); }
+  .type-case[data-t="adj"]  { --tc: var(--t-adj);  }
+  .type-case[data-t="adv"]  { --tc: var(--t-adv);  }
+  .type-case[data-t="prep"] { --tc: var(--t-prep); }
+  .type-case[data-t="conj"] { --tc: var(--t-conj); }
+  .tc-head {
+    position: relative; z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .tc-lbl {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .12em;
+    color: var(--tc);
+    text-transform: uppercase;
+  }
+  .tc-num {
+    font: 800 11px/1 var(--disp);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .tc-name {
+    position: relative; z-index: 2;
+    margin-top: 6px;
+    font: 800 15px/1 var(--disp);
+    color: var(--ink);
+  }
+  .tc-count {
+    position: relative; z-index: 2;
+    margin-top: 10px;
+    font: 800 20px/1 var(--disp);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .tc-count .t {
+    font: 500 11px/1 var(--body);
+    color: var(--ink-3);
+    margin-left: 3px;
+  }
+  .tc-bar {
+    position: relative; z-index: 2;
+    margin-top: 8px;
+    height: 5px;
+    background: var(--surface-3);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .tc-bar i {
+    display: block; height: 100%;
+    background: var(--tc);
+  }
+
+  /* ==================================================================
+     Me — 트레이너 카드
+     ================================================================== */
+  .trainer-card {
+    margin: 14px 16px 0;
+    padding: 14px;
+    background: var(--pri-soft);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    position: relative;
+  }
+  .trainer-card::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--pri);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .tc-corner {
+    position: absolute;
+    top: 0; right: 0;
+    padding: 4px 10px;
+    background: var(--pri);
+    color: #fff;
+    font: 800 10px/1 var(--disp);
+    letter-spacing: .12em;
+    border-bottom-left-radius: var(--r-1);
+    z-index: 1;
+  }
+  .tc-main {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 14px;
+    align-items: center;
+  }
+  .tc-avatar {
+    width: 72px; height: 72px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    padding: 6px;
+    box-shadow: 2px 2px 0 var(--pri);
+  }
+  .tc-avatar svg { width: 100%; height: 100%; display: block; }
+  .tc-name {
+    font: 800 18px/1.1 var(--disp);
+    letter-spacing: -.01em;
+    color: var(--ink);
+    margin: 0;
+  }
+  .tc-lv {
+    margin-top: 5px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 3px 7px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--r-1);
+    font: 800 10px/1 var(--disp);
+  }
+  .tc-lv .n {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tc-streak {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font: 700 12px/1 var(--disp);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .tc-streak svg { width: 14px; height: 14px; color: var(--hot); }
+
+  .stats-row {
+    margin: 10px 16px 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .stat-box {
+    padding: 10px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .stat-box .lbl {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .1em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .stat-box .v {
+    margin-top: 6px;
+    font: 800 18px/1 var(--disp);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-box .v .u {
+    font: 500 10px/1 var(--body);
+    color: var(--ink-3);
+    margin-left: 2px;
+  }
+
+  /* 배지 */
+  .badges-grid {
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .badge {
+    aspect-ratio: 1;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  .badge svg { width: 28px; height: 28px; }
+  .badge[data-earned="true"] { background: var(--gold-soft); box-shadow: 2px 2px 0 var(--gold); }
+  .badge[data-earned="true"] svg { color: var(--gold); }
+  .badge[data-locked="true"]  { background: var(--surface-2); border-style: dashed; }
+  .badge[data-locked="true"] svg { color: var(--ink-4); }
+
+  /* ==================================================================
+     Tab bar
+     ================================================================== */
+  .tabbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: var(--ink);
+    border-top: 2px solid var(--ink);
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 15;
+  }
+  .tabbar button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px 10px;
+    color: rgba(255, 255, 255, .55);
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .04em;
+    position: relative;
+  }
+  .tabbar button svg {
+    width: 22px; height: 22px;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+  .tabbar button[aria-current="page"] {
+    color: #fff;
+  }
+  .tabbar button[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 2px;
+    background: var(--pri);
+  }
+  .tabbar button[aria-current="page"] svg { stroke-width: 2.2; }
+
+  /* ==================================================================
+     stagger reveal
+     ================================================================== */
+  .screen > * {
+    animation: rise .42s var(--e-expo) both;
+  }
+  .screen > *:nth-child(1) { animation-delay: 40ms; }
+  .screen > *:nth-child(2) { animation-delay: 90ms; }
+  .screen > *:nth-child(3) { animation-delay: 140ms; }
+  .screen > *:nth-child(4) { animation-delay: 190ms; }
+  .screen > *:nth-child(5) { animation-delay: 240ms; }
+  .screen > *:nth-child(n+6) { animation-delay: 290ms; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen > * { animation: none; }
+  }
+
+  .vh {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
+
+  /* ==================================================================
+     Alive r1 — FAB / modal / onboarding / vitals
+     ================================================================== */
+  .fab-add {
+    position: fixed;
+    right: max(16px, calc(50% - 210px + 16px));
+    bottom: 72px;
+    width: 56px; height: 56px;
+    background: var(--pri);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    box-shadow: 3px 3px 0 var(--ink);
+    font: 800 28px/1 var(--disp);
+    display: grid; place-items: center;
+    z-index: 20;
+    transition: transform .12s var(--e-out);
+  }
+  .fab-add:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+  dialog.modal-wg {
+    width: min(92%, 360px);
+    padding: 0;
+    background: var(--surface);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 4px 4px 0 var(--ink);
+    position: relative;
+  }
+  dialog.modal-wg::backdrop { background: rgba(20, 22, 30, .55); }
+  dialog.modal-wg::before {
+    content: "";
+    position: absolute; inset: 2px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .modal-head {
+    padding: 14px 16px 10px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--ink);
+    color: #fff;
+    font: 800 14px/1 var(--disp);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .modal-body { padding: 14px 16px; display: grid; gap: 10px; }
+  .modal-foot {
+    padding: 10px 16px 14px;
+    display: flex; gap: 8px; justify-content: flex-end;
+    border-top: 1px dashed var(--line-deep);
+  }
+  .field {
+    display: grid; gap: 4px;
+    font: 700 12px/1.2 var(--disp);
+    letter-spacing: .04em;
+    color: var(--ink-2);
+  }
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 8px 10px;
+    font: 500 14px/1.2 var(--body);
+    color: var(--ink);
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    outline: none;
+  }
+  .field input:focus,
+  .field select:focus { box-shadow: 2px 2px 0 var(--pri); border-color: var(--pri); }
+  .field-err { font: 600 11px/1.2 var(--body); color: var(--hot); min-height: 14px; }
+
+  .btn-wg {
+    padding: 9px 14px;
+    font: 800 13px/1 var(--disp);
+    letter-spacing: .04em;
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .btn-wg[data-variant="primary"] { background: var(--pri); color: #fff; }
+  .btn-wg:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+
+  .egg-grid, .personality-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .personality-grid { grid-template-columns: repeat(2, 1fr); }
+  .egg-pick, .per-pick {
+    padding: 10px 8px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    font: 800 12px/1.2 var(--disp);
+    color: var(--ink);
+    display: grid; gap: 6px; place-items: center;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .egg-pick[aria-pressed="true"],
+  .per-pick[aria-pressed="true"] {
+    background: var(--pri-soft);
+    box-shadow: 1px 1px 0 var(--ink);
+    transform: translate(1px, 1px);
+  }
+  .egg-pick .egg {
+    width: 40px; height: 46px;
+    border: 2px solid var(--ink);
+    border-radius: 50% 50% 44% 44% / 55% 55% 40% 40%;
+    background: var(--c, var(--pri-soft));
+    position: relative;
+  }
+  .egg-pick .egg::after {
+    content: "";
+    position: absolute; inset: 4px 8px auto 8px; height: 6px;
+    border-bottom: 2px dashed rgba(20, 22, 30, .35);
+  }
+
+  .vitals-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 6px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    font: 800 11px/1 var(--disp);
+    color: var(--ink);
+    letter-spacing: .04em;
+  }
+  .vitals-badge .bar {
+    width: 28px; height: 5px;
+    background: var(--surface-3);
+    border: 1px solid var(--ink);
+    border-radius: var(--r-1);
+    overflow: hidden;
+  }
+  .vitals-badge .bar i {
+    display: block; height: 100%;
+    width: var(--v, 100%);
+    background: var(--hp-full);
+  }
+  .vitals-badge[data-low="true"] .bar i { background: var(--hp-low); }
+  .vitals-badge[data-crit="true"] .bar i { background: var(--hp-crit); }
+
+  /* Evolution progress panel (home) */
+  .evo-panel {
+    position: relative;
+    margin: 10px 12px 0;
+    padding: 10px 12px 12px;
+    background: var(--surface);
+    border: 2.5px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    font: 700 12px/1.3 var(--disp);
+    color: var(--ink);
+  }
+  .evo-panel.ready { background: #fff7e0; }
+  .evo-panel .evo-title {
+    display: flex; align-items: baseline; gap: 6px;
+    margin-bottom: 8px;
+    font: 800 13px/1 var(--disp);
+  }
+  .evo-panel .evo-title b { font: 800 14px/1 var(--disp); }
+  .evo-panel .evo-title .ready-badge {
+    margin-left: auto;
+    padding: 2px 6px;
+    background: var(--gold, #ffc800);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    font: 800 10px/1 var(--disp);
+    color: var(--ink);
+  }
+  .evo-panel .evo-row {
+    display: grid;
+    grid-template-columns: 56px 1fr 52px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+  }
+  .evo-panel .evo-row[data-done="true"] { opacity: .6; }
+  .evo-panel .evo-row .lbl { font: 700 11px/1 var(--disp); }
+  .evo-panel .evo-row .num { font: 800 11px/1 var(--disp); text-align: right; }
+  .evo-panel .evo-row .track {
+    height: 8px;
+    background: var(--surface-3, #f1ead9);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .evo-panel .evo-row .track i {
+    display: block; height: 100%;
+    width: var(--v, 0%);
+    background: var(--hp-full, #58cc02);
+    transition: width .4s var(--e-out, ease-out);
+  }
+  .evo-panel .evo-row[data-done="true"] .track i { background: var(--gold, #ffc800); }
+
+  /* Delta float on vitals changes (+2 교감 등) */
+  .delta-float {
+    position: absolute;
+    font: 800 13px/1 var(--disp);
+    pointer-events: none;
+    animation: delta-up .9s var(--e-out, ease-out) forwards;
+    z-index: 20;
+  }
+  .delta-float[data-kind="bond"]   { color: #e03a52; }
+  .delta-float[data-kind="hunger"] { color: #1fa34e; }
+  @keyframes delta-up {
+    0%   { transform: translateY(0)     scale(.9); opacity: 0; }
+    20%  { transform: translateY(-4px)  scale(1.1); opacity: 1; }
+    100% { transform: translateY(-28px) scale(1);   opacity: 0; }
+  }
+
+  /* Reunion overlay */
+  .reunion {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(20, 23, 31, .55);
+    z-index: 80;
+    padding: 20px;
+  }
+  .reunion[hidden] { display: none; }
+  .reunion .card {
+    max-width: 320px; width: 100%;
+    padding: 22px 20px 18px;
+    background: var(--surface);
+    border: 3px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 5px 5px 0 var(--ink);
+    text-align: center;
+  }
+  .reunion .card .title {
+    font: 900 16px/1.3 var(--disp);
+    margin-bottom: 6px;
+  }
+  .reunion .card .line {
+    font: 600 13px/1.5 var(--body);
+    color: var(--ink-2, #3c404a);
+    margin-bottom: 14px;
+  }
+  .reunion .card .mini {
+    display: flex; justify-content: center; margin-bottom: 12px;
+  }
+  .reunion .card .mini svg { width: 88px; height: 88px; }
+  .reunion .btn-close {
+    padding: 10px 22px;
+    background: var(--hp-full, #58cc02);
+    border: 2.5px solid var(--ink);
+    border-radius: var(--r-1);
+    box-shadow: 3px 3px 0 var(--ink);
+    font: 800 13px/1 var(--disp);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .reunion .btn-close:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+
+  .toast-wg {
+    position: fixed;
+    left: 50%; bottom: 96px;
+    transform: translateX(-50%);
+    padding: 10px 14px;
+    background: var(--ink);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    box-shadow: 3px 3px 0 rgba(20, 22, 30, .25);
+    font: 700 13px/1 var(--disp);
+    letter-spacing: .02em;
+    z-index: 30;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s var(--e-out), transform .2s var(--e-out);
+  }
+  .toast-wg[data-show="true"] { opacity: 1; transform: translate(-50%, -4px); }
+
+  .empty-words {
+    padding: 14px 16px;
+    text-align: center;
+    font: 600 13px/1.4 var(--body);
+    color: var(--ink-3);
+  }
+
+  /* ==================================================================
+     Home entry tile — 놀아주기 (playroom entry)
+     ================================================================== */
+  .item.playroom-entry {
+    right: 16px;
+    bottom: 92px;
+    background: var(--pri-soft);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    padding: 10px 12px 8px;
+    display: grid; gap: 4px; place-items: center;
+    position: absolute;
+    color: var(--ink);
+  }
+  .item.playroom-entry .pr-icon { font-size: 24px; line-height: 1; }
+  .item.playroom-entry .lbl {
+    font: 800 11px/1 var(--disp);
+    letter-spacing: .04em;
+    background: var(--ink);
+    color: #fff;
+    padding: 3px 7px;
+    border-radius: var(--r-1);
+  }
+  .item.playroom-entry:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+  /* ==================================================================
+     Dex type view (LV2) — 품사별 카드 그리드
+     ================================================================== */
+  .dex-type-view {
+    margin: 12px 16px 0;
+    animation: rise .32s var(--e-expo) both;
+  }
+  .btn-back-pr {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 10px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    font: 800 12px/1 var(--disp);
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .dex-type-title {
+    font: 900 20px/1.1 var(--disp);
+    margin: 0 0 10px;
+    color: var(--ink);
+  }
+  .dex-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .dex-card {
+    aspect-ratio: 3/4;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 2px 2px 0 var(--ink);
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: 8px 6px 6px;
+    position: relative;
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .dex-card .dc-face {
+    display: grid; place-items: center;
+    font: 800 14px/1.1 var(--disp);
+    text-align: center;
+    padding: 0 4px;
+    word-break: break-word;
+  }
+  .dex-card .dc-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px dashed var(--line-deep);
+    padding-top: 4px;
+    font: 700 10px/1 var(--disp);
+    letter-spacing: .04em;
+    color: var(--ink-3);
+  }
+  .dex-card .dc-foot .box {
+    padding: 2px 5px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--r-1);
+  }
+  .dex-card[data-state="locked"] {
+    background: var(--surface-2);
+    border-style: dashed;
+  }
+  .dex-card[data-state="locked"] .dc-face { color: var(--ink-4); filter: blur(2px); }
+  .dex-card[data-state="locked"]::after {
+    content: "🔒";
+    position: absolute; top: 6px; right: 6px;
+    font-size: 14px;
+  }
+  .dex-card[data-state="seen"] .dc-face { opacity: .6; }
+  .dex-card[data-state="unlocked"] {
+    background: var(--gold-soft);
+    box-shadow: 2px 2px 0 var(--gold);
+    border-color: var(--gold);
+  }
+  .dex-card[data-state="unlocked"]::after {
+    content: "★";
+    position: absolute; top: 4px; right: 6px;
+    color: var(--gold);
+    font-size: 16px;
+  }
+  .dex-card:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+
+  /* Card detail — modal internals */
+  .cd-hero {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--line-deep);
+  }
+  .cd-word { font: 900 22px/1.1 var(--disp); color: var(--ink); }
+  .cd-meaning {
+    margin-top: 4px;
+    display: flex; align-items: center; gap: 6px;
+    font: 500 13px/1.3 var(--body);
+    color: var(--ink-2);
+  }
+  .cd-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line-deep);
+  }
+  .cd-stats div {
+    display: grid; gap: 2px;
+    text-align: center;
+    font: 700 11px/1 var(--disp);
+    color: var(--ink-3);
+  }
+  .cd-stats b {
+    font: 900 18px/1 var(--disp);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .cd-memory {
+    padding: 10px 0;
+    font: 500 12px/1.4 var(--body);
+    color: var(--ink-2);
+    border-bottom: 1px dashed var(--line-deep);
+  }
+  .cd-example {
+    padding: 10px 0 0;
+    font: 500 12px/1.4 var(--body);
+    color: var(--ink-3);
+    font-style: italic;
+  }
+  .cd-example:empty { display: none; }
+
+  /* ==================================================================
+     Playroom — screen
+     ================================================================== */
+  .screen[data-s="playroom"] .page-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px 8px;
+  }
+  .screen[data-s="playroom"] .page-head h1 {
+    margin: 0;
+    font: 900 20px/1 var(--disp);
+    color: var(--ink);
+  }
+  .playroom-stage {
+    position: relative;
+    margin: 8px 16px 0;
+    padding: 18px 14px 22px;
+    background: linear-gradient(180deg, var(--wall) 0%, var(--floor) 100%);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    display: grid; place-items: center; gap: 10px;
+    min-height: 280px;
+  }
+  .pr-vitals {
+    position: absolute; top: 8px; left: 8px;
+    display: flex; gap: 6px;
+  }
+  .pr-vitals .vitals-badge { background: rgba(255,255,255,.9); }
+  .speech-bubble {
+    position: relative;
+    align-self: start;
+    max-width: 80%;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 2px 2px 0 var(--ink);
+    font: 700 13px/1.3 var(--disp);
+    color: var(--ink);
+  }
+  .speech-bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -9px; left: 24px;
+    width: 10px; height: 10px;
+    background: var(--surface);
+    border-right: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    transform: rotate(45deg);
+  }
+  .mascot-tap {
+    width: 140px; height: 140px;
+    display: grid; place-items: center;
+    position: relative;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  .mascot-tap svg {
+    width: 120px; height: 120px;
+    color: var(--ink);
+    transform-origin: 50% 90%;
+    overflow: visible;
+  }
+  .mascot-tap .pr-shadow {
+    position: absolute;
+    bottom: -6px;
+    width: 70%; height: 10px;
+    background: rgba(20, 22, 30, .2);
+    border-radius: 50%;
+    filter: blur(1px);
+  }
+  .mascot-tap:active svg { transform: scale(1.04); transition: transform .12s var(--e-out); }
+
+  /* Body — breathing + bob 하나의 transform으로 (구형 브라우저 호환) */
+  .m-body {
+    animation: m-alive 2s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: 50% 90%;
+    will-change: transform;
+  }
+  @keyframes m-alive {
+    0%,100% { transform: translateY(0)     scale(1,    1)    rotate(0);     }
+    25%     { transform: translateY(-6px)  scale(1.1,  0.88) rotate(-3deg); }
+    50%     { transform: translateY(-10px) scale(1.18, 0.78) rotate(0);     }
+    75%     { transform: translateY(-6px)  scale(1.1,  0.88) rotate(3deg);  }
+  }
+
+  /* Eyes — blinking */
+  .m-eyes {
+    animation: m-blink 3s linear infinite;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+  @keyframes m-blink {
+    0%, 85%, 91%, 93%, 100% { transform: scaleY(1);    }
+    88%, 92%                { transform: scaleY(0.05); }
+  }
+
+  /* Antenna ball — gentle wiggle */
+  .m-antenna-ball {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: m-wiggle 2.8s ease-in-out infinite;
+    will-change: transform;
+  }
+  @keyframes m-wiggle {
+    0%,100% { transform: translateX(0); }
+    25%     { transform: translateX(-2px); }
+    75%     { transform: translateX(2px); }
+  }
+
+  /* m-breathe — 차분한 숨쉬기 (mood/sleeping/petting 상태에서 사용) */
+  @keyframes m-breathe {
+    0%,100% { transform: scale(1,    1);    }
+    50%     { transform: scale(1.03, 0.97); }
+  }
+
+  /* Mouth — default visibility (모든 마스코트 적용) */
+  .m-mouth-neutral { display: block; }
+  .m-mouth-happy,
+  .m-mouth-sad,
+  .m-mouth-eat { display: none; }
+  .mascot-tap[data-mood="happy"] .m-mouth-neutral,
+  .mascot-tap[data-mood="happy"] .m-mouth-sad,
+  .mascot-tap[data-mood="happy"] .m-mouth-eat { display: none; }
+  .mascot-tap[data-mood="happy"] .m-mouth-happy { display: block; }
+  .mascot-tap[data-mood="sad"] .m-mouth-neutral,
+  .mascot-tap[data-mood="sad"] .m-mouth-happy,
+  .mascot-tap[data-mood="sad"] .m-mouth-eat { display: none; }
+  .mascot-tap[data-mood="sad"] .m-mouth-sad { display: block; }
+  .mascot-tap[data-mood="hungry"] .m-cheek { opacity: .3; }
+
+  /* Sad mood — posture */
+  .mascot-tap[data-mood="sad"] .m-body {
+    animation: m-breathe 4s var(--e-out) infinite, m-droop 6s ease-in-out infinite;
+  }
+  @keyframes m-droop {
+    0%,100% { filter: none; }
+    50%     { filter: grayscale(0.3) brightness(0.95); }
+  }
+
+  /* One-shot action animations via data-anim */
+  .mascot-tap[data-anim="bounce"] svg { animation: m-bounce .5s var(--e-out); }
+  .mascot-tap[data-anim="eating"] .m-body { animation: m-eat .9s var(--e-out) 2; }
+  .mascot-tap[data-anim="eating"] .m-mouth-neutral,
+  .mascot-tap[data-anim="eating"] .m-mouth-happy,
+  .mascot-tap[data-anim="eating"] .m-mouth-sad { display: none; }
+  .mascot-tap[data-anim="eating"] .m-mouth-eat { display: block; animation: m-eat-mouth .3s linear 6; }
+  .mascot-tap[data-anim="petting"] .m-body { animation: m-breathe 2.6s var(--e-out) infinite, m-sway 1.2s ease-in-out 3; }
+  .mascot-tap[data-anim="sleeping"] .m-body {
+    animation: m-breathe 4s var(--e-out) infinite;
+    transform: rotate(-6deg);
+  }
+  .mascot-tap[data-anim="sleeping"] .m-eyes {
+    animation: none;
+    transform: scaleY(0.1);
+  }
+  .mascot-tap[data-anim="tilt"] svg { animation: m-tilt .5s var(--e-out); }
+  .mascot-tap[data-anim="evolving"] svg {
+    animation: m-evolve 1.6s var(--e-out);
+  }
+
+  @keyframes m-bounce {
+    0%   { transform: translateY(0) scale(1); }
+    30%  { transform: translateY(-12px) scale(1.06); }
+    60%  { transform: translateY(0) scale(0.96); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @keyframes m-eat {
+    0%,100% { transform: translateY(0) scale(1); }
+    50%     { transform: translateY(2px) scale(1.04, 0.98); }
+  }
+  @keyframes m-eat-mouth {
+    0%,100% { transform: scaleY(1); }
+    50%     { transform: scaleY(0.3); }
+  }
+  @keyframes m-sway {
+    0%,100% { transform: rotate(0); }
+    25%     { transform: rotate(-4deg); }
+    75%     { transform: rotate(4deg); }
+  }
+  @keyframes m-tilt {
+    0%,100% { transform: rotate(0); }
+    50%     { transform: rotate(15deg); }
+  }
+  @keyframes m-evolve {
+    0%   { transform: scale(1); filter: brightness(1); }
+    30%  { transform: scale(1.1); filter: brightness(2) blur(1px); }
+    60%  { transform: scale(0.9); filter: brightness(2.5) blur(2px); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .m-body,
+    .m-eyes,
+    .mascot-tap[data-anim] .m-body,
+    .mascot-tap[data-anim] svg { animation: none; }
+  }
+
+  /* ==================================================================
+     Particle layer — hearts / zzz / stars / balls
+     ================================================================== */
+  .particle-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 5;
+  }
+  .particle {
+    position: absolute;
+    font: 700 18px/1 var(--disp);
+    left: 50%;
+    bottom: 40%;
+    animation: particle-rise 1.4s var(--e-out) forwards;
+    pointer-events: none;
+    user-select: none;
+  }
+  .particle[data-kind="heart"] { color: var(--hot); }
+  .particle[data-kind="zzz"]   { color: var(--ink-3); font-size: 20px; }
+  .particle[data-kind="star"]  { color: var(--gold); }
+  .particle[data-kind="evolve"] {
+    font-size: 24px;
+    animation: particle-burst 1.6s var(--e-out) forwards;
+  }
+  @keyframes particle-rise {
+    0%   { transform: translate(var(--dx, 0), 0) scale(0.6); opacity: 0; }
+    20%  { opacity: 1; }
+    100% { transform: translate(calc(var(--dx, 0) * 3), -90px) scale(1.1); opacity: 0; }
+  }
+  @keyframes particle-burst {
+    0%   { transform: translate(0, 0) scale(0); opacity: 0; }
+    30%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(1.2); opacity: 1; }
+    100% { transform: translate(calc(var(--dx, 0) * 1.5), calc(var(--dy, 0) * 1.5)) scale(0.4); opacity: 0; }
+  }
+
+  /* Ball mini-game — rolling ball */
+  .play-ball-anim {
+    position: absolute;
+    left: 20%;
+    bottom: 30%;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, #d4d8df 60%, #9ba3b4 100%);
+    border: 2px solid var(--ink);
+    animation: ball-throw 1.2s var(--e-out);
+    z-index: 6;
+  }
+  @keyframes ball-throw {
+    0%   { transform: translate(0, 0);         opacity: 0; }
+    15%  { transform: translate(20px, -60px);  opacity: 1; }
+    50%  { transform: translate(80px, -110px); }
+    85%  { transform: translate(140px, -60px); }
+    100% { transform: translate(160px, 0);     opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .particle, .play-ball-anim { animation: none; display: none; }
+  }
+
+  .play-actions {
+    margin: 14px 16px 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .play-btn {
+    position: relative;
+    padding: 14px 10px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-2);
+    box-shadow: 3px 3px 0 var(--ink);
+    font: 800 13px/1.1 var(--disp);
+    color: var(--ink);
+    display: grid; gap: 6px; place-items: center;
+  }
+  .play-btn .pb-ico { font-size: 26px; line-height: 1; }
+  .play-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .play-btn[disabled],
+  .play-btn[aria-disabled="true"] {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    box-shadow: 2px 2px 0 var(--line-deep);
+    cursor: not-allowed;
+  }
+  .play-btn .pb-cd {
+    position: absolute; top: 4px; right: 6px;
+    font: 700 10px/1 var(--disp);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .play-btn .pb-cd:empty { display: none; }
+
+  .ball-meaning {
+    padding: 12px;
+    text-align: center;
+    background: var(--pri-soft);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-1);
+    font: 800 18px/1.2 var(--disp);
+    color: var(--ink);
+  }
+
+  /* ==================================================================
+     ERP Skin — WAWA 관리자 톤 오버레이
+     기존 Digital Tamers 각진 콘솔 느낌 위에 ERP 관리자 톤을 덧씌워
+     "같은 제품" 정체성을 제공. 기능·레이아웃은 건드리지 않음.
+     ================================================================== */
+  :root {
+    --pri:       #2d3a8c;
+    --pri-deep:  #252f73;
+    --pri-soft:  #eef0f8;
+    --erp-accent:      #00c4a3;
+    --erp-accent-soft: #e8faf6;
+    --erp-radius:      12px;
+    --erp-radius-sm:   8px;
+    --erp-shadow-sm:   0 1px 3px rgba(26,30,46,0.06), 0 1px 2px rgba(26,30,46,0.04);
+    --erp-shadow-md:   0 4px 16px rgba(26,30,46,0.08);
+    --erp-border:      #e3e6ed;
+  }
+
+  body { background: #eef1f5; }
+
+  /* 디바이스 프레임 — 각진 검정 보더 + 오프셋 그림자 → 소프트 카드 */
+  .device {
+    border: 1px solid var(--erp-border);
+    border-radius: 16px;
+    box-shadow: var(--erp-shadow-md);
+  }
+  @media (max-width: 440px) {
+    .device { border: 0; border-radius: 0; box-shadow: none; }
+  }
+
+  /* 헤더 타이포 */
+  .page-head h1 { letter-spacing: -0.01em; color: #1a1e2e; }
+  .page-head .sub { color: #5e6478; }
+
+  /* 서브 네비 — pill toggle 스타일 */
+  .subnav {
+    background: var(--pri-soft);
+    border-radius: var(--erp-radius);
+    padding: 4px;
+    margin: 0 16px 12px;
+    gap: 2px;
+  }
+  .subnav button {
+    border: 0;
+    border-radius: var(--erp-radius-sm);
+    color: #5e6478;
+    background: transparent;
+    font-weight: 600;
+    transition: background .15s, color .15s;
+  }
+  .subnav button[aria-selected="true"] {
+    background: #fff;
+    color: var(--pri);
+    box-shadow: var(--erp-shadow-sm);
+  }
+
+  /* 카드 류 — 각진 2px 검정보더 → 둥근 1px 회색보더 + 소프트 섀도우 */
+  .q-item, .unit, .ask-box, .enemy-plate, .empty-box {
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius);
+    box-shadow: var(--erp-shadow-sm);
+    background: #fff;
+  }
+  .q-item::before, .ask-box::before, .enemy-plate::before { display: none; }
+  .q-item { padding: 14px 16px; }
+  .unit { padding: 10px 12px; gap: 4px; }
+  .unit[aria-pressed="true"] {
+    border-color: var(--pri);
+    background: var(--pri-soft);
+  }
+  .unit .u-n { color: var(--pri); }
+
+  /* 필터 칩 */
+  .filter {
+    border: 1px solid var(--erp-border);
+    border-radius: 999px;
+    background: #fff;
+    color: #5e6478;
+    font-weight: 600;
+    padding: 6px 12px;
+  }
+  .filter[aria-pressed="true"] {
+    background: var(--pri-soft);
+    border-color: var(--pri);
+    color: var(--pri);
+  }
+
+  /* word-row — 리스트 항목 */
+  .word-row {
+    border-radius: var(--erp-radius-sm);
+    border-bottom: 1px solid var(--erp-border) !important;
+    background: #fff;
+    transition: background .15s;
+  }
+  .word-row + .word-row { border-top: 0; }
+  .word-row:hover { background: #f8f9fb; }
+
+  /* 탭바 (하단) */
+  .tabbar {
+    background: #fff;
+    border-top: 1px solid var(--erp-border);
+    box-shadow: 0 -2px 8px rgba(26,30,46,0.04);
+  }
+  .tabbar button { color: #9098ad; }
+  .tabbar button[aria-current="page"] { color: var(--pri); }
+  .tabbar button[aria-current="page"]::before { background: var(--pri); }
+
+  /* 주 버튼 — ask 업로드, 퀴즈 확인 등 */
+  .ask-bar button {
+    background: var(--pri);
+    color: #fff;
+    border: 0;
+    border-radius: var(--erp-radius-sm);
+    padding: 10px 18px;
+    font-weight: 700;
+    box-shadow: var(--erp-shadow-sm);
+    transition: background .15s;
+  }
+  .ask-bar button:hover { background: var(--pri-deep); }
+
+  .btn-confirm {
+    background: var(--pri);
+    color: #fff;
+    border: 0;
+    border-radius: var(--erp-radius-sm);
+    padding: 12px 24px;
+    font-weight: 800;
+    box-shadow: var(--erp-shadow-sm);
+  }
+  .btn-confirm:hover { background: var(--pri-deep); }
+
+  /* 상태 배지 — 답변됨/대기중 */
+  .q-status.answered {
+    color: var(--erp-accent);
+    background: var(--erp-accent-soft);
+    border-color: var(--erp-accent);
+  }
+  .q-status.pending {
+    color: #c89200;
+    background: #fbf1d6;
+    border-color: #e0b340;
+  }
+
+  /* 진행바 — 유닛/퀴즈 */
+  .u-bar, .progress-inline .bar {
+    background: var(--pri-soft);
+    border: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    height: 6px;
+  }
+  .u-bar i, .progress-inline .bar i {
+    background: var(--pri);
+    border-radius: 999px;
+  }
+  /* 퀴즈 정답/오답 피드백 */
+  .move.is-correct {
+    background: var(--erp-accent-soft);
+    border-color: var(--erp-accent);
+    color: #0a6e5e;
+  }
+  .move.is-correct::after {
+    content: '✓';
+    position: absolute;
+    top: 6px; right: 8px;
+    color: var(--erp-accent);
+    font-weight: 800;
+  }
+  .move.is-wrong {
+    background: #fdecec;
+    border-color: #d4232c;
+    color: #7a1218;
+  }
+  .move.is-wrong::after {
+    content: '✕';
+    position: absolute;
+    top: 6px; right: 8px;
+    color: #d4232c;
+    font-weight: 800;
+  }
+  .btn-confirm:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+
+<body data-screen="home">
+
+<!-- ==================================================================
+     SVG sprite — 마스코트 / 가구 / 아이콘
+     ================================================================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- ===== MASCOT: 와와 =====
+         Digital Tamers의 베이비 디지몬 계열.
+         둥근 몸통 + 큰 눈 + 작은 뿔.
+    -->
+    <symbol id="mascot" viewBox="0 0 100 100">
+      <!-- 섀도우 트리 내부에 스타일 직접 선언 — <use> 인스턴스마다 확실히 적용 -->
+      <style>
+        .m-body {
+          transform-box: fill-box;
+          transform-origin: 50% 90%;
+          animation: m-alive 2s ease-in-out infinite;
+        }
+        .m-eyes {
+          transform-box: fill-box;
+          transform-origin: 50% 50%;
+          animation: m-blink 3s linear infinite;
+        }
+        .m-antenna-ball {
+          transform-box: fill-box;
+          transform-origin: 50% 100%;
+          animation: m-wiggle 2.8s ease-in-out infinite;
+        }
+        @keyframes m-alive {
+          0%,100% { transform: translateY(0)     scale(1,    1)    rotate(0);     }
+          25%     { transform: translateY(-6px)  scale(1.1,  0.88) rotate(-3deg); }
+          50%     { transform: translateY(-10px) scale(1.18, 0.78) rotate(0);     }
+          75%     { transform: translateY(-6px)  scale(1.1,  0.88) rotate(3deg);  }
+        }
+        @keyframes m-blink {
+          0%, 85%, 91%, 93%, 100% { transform: scaleY(1); }
+          88%, 92%                { transform: scaleY(0.05); }
+        }
+        @keyframes m-wiggle {
+          0%,100% { transform: translateX(0); }
+          25%     { transform: translateX(-2px); }
+          75%     { transform: translateX(2px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .m-body, .m-eyes, .m-antenna-ball { animation: none; }
+        }
+      </style>
+      <!-- 그림자 -->
+      <ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/>
+      <!-- 발 -->
+      <ellipse cx="40" cy="85" rx="7" ry="4" fill="#1438a8"/>
+      <ellipse cx="60" cy="85" rx="7" ry="4" fill="#1438a8"/>
+      <!-- 뿔/안테나 -->
+      <path class="m-antenna" d="M50 22v-8M50 14l-3-4M50 14l3-4"
+            stroke="#14171f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <circle class="m-antenna-ball" cx="50" cy="12" r="3" fill="#d4232c" stroke="#14171f" stroke-width="2"/>
+      <!-- 몸통 (애니메이션 타겟) -->
+      <g class="m-body" style="transform-origin: 50px 75px;">
+        <path d="M50 22c-16 0-25 10-25 24v14c0 12 10 21 25 21s25-9 25-21V46c0-14-9-24-25-24z"
+              fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/>
+        <!-- 배 -->
+        <ellipse cx="50" cy="60" rx="14" ry="12" fill="#f6efe3"/>
+        <!-- 볼터치 -->
+        <ellipse class="m-cheek" cx="33" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/>
+        <ellipse class="m-cheek" cx="67" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/>
+        <!-- 눈 그룹 (깜빡 타겟) -->
+        <g class="m-eyes" style="transform-origin: 50px 44px;">
+          <ellipse class="mascot-eye" cx="40" cy="44" rx="3" ry="4.5" fill="#14171f"/>
+          <ellipse class="mascot-eye" cx="60" cy="44" rx="3" ry="4.5" fill="#14171f"/>
+          <circle cx="41.4" cy="42.6" r="1.1" fill="#fff"/>
+          <circle cx="61.4" cy="42.6" r="1.1" fill="#fff"/>
+        </g>
+        <!-- 입 그룹 — mood별 path 전환 -->
+        <g class="m-mouth">
+          <path class="m-mouth-neutral" d="M46 54q4 3 8 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <path class="m-mouth-happy"   d="M44 52q6 6 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <path class="m-mouth-sad"     d="M44 56q6 -4 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <ellipse class="m-mouth-eat"  cx="50" cy="55" rx="4" ry="3" fill="#14171f"/>
+        </g>
+        <!-- 팔 -->
+        <ellipse class="m-arm m-arm-l" cx="26" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/>
+        <ellipse class="m-arm m-arm-r" cx="74" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/>
+      </g>
+    </symbol>
+
+    <!-- ===== 가구 =====
+         방에 배치되는 클릭 가능한 기능 진입점 -->
+
+    <!-- 책장 — 내 단어장 -->
+    <symbol id="fur-shelf" viewBox="0 0 80 140">
+      <rect x="4" y="4" width="72" height="132" fill="#a06b42" stroke="#14171f" stroke-width="2.5" rx="2"/>
+      <rect x="8" y="8" width="64" height="30" fill="#efe3cd" stroke="#14171f" stroke-width="1.5"/>
+      <rect x="8" y="42" width="64" height="30" fill="#efe3cd" stroke="#14171f" stroke-width="1.5"/>
+      <rect x="8" y="76" width="64" height="30" fill="#efe3cd" stroke="#14171f" stroke-width="1.5"/>
+      <rect x="8" y="110" width="64" height="22" fill="#efe3cd" stroke="#14171f" stroke-width="1.5"/>
+      <!-- 책 -->
+      <rect x="12" y="13" width="7" height="20" fill="#d4232c" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="21" y="11" width="7" height="22" fill="#1f4fe6" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="30" y="14" width="7" height="19" fill="#2f9e57" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="39" y="12" width="7" height="21" fill="#c89200" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="48" y="15" width="7" height="18" fill="#b73d8a" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="57" y="13" width="7" height="20" fill="#6f5b48" stroke="#14171f" stroke-width="1.2"/>
+
+      <rect x="14" y="47" width="7" height="20" fill="#1f4fe6" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="23" y="46" width="7" height="21" fill="#d4232c" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="32" y="49" width="7" height="18" fill="#c89200" stroke="#14171f" stroke-width="1.2"/>
+      <rect x="43" y="46" width="20" height="21" fill="#2f9e57" stroke="#14171f" stroke-width="1.2"/>
+      <text x="53" y="61" text-anchor="middle" font-family="SUIT Variable, sans-serif" font-weight="800" font-size="12" fill="#fff">W</text>
+
+      <rect x="14" y="81" width="50" height="20" fill="#6f5b48" stroke="#14171f" stroke-width="1.2"/>
+      <text x="39" y="95" text-anchor="middle" font-family="SUIT Variable, sans-serif" font-weight="800" font-size="9" fill="#fff" letter-spacing="1">VOCAB</text>
+
+      <rect x="14" y="115" width="7" height="13" fill="#b73d8a" stroke="#14171f" stroke-width="1"/>
+      <rect x="23" y="115" width="7" height="13" fill="#2f9e57" stroke="#14171f" stroke-width="1"/>
+      <rect x="32" y="115" width="7" height="13" fill="#1f4fe6" stroke="#14171f" stroke-width="1"/>
+    </symbol>
+
+    <!-- 칠판 — 퀴즈 -->
+    <symbol id="fur-board" viewBox="0 0 120 80">
+      <!-- 테두리(나무) -->
+      <rect x="2" y="2" width="116" height="76" fill="#8a6239" stroke="#14171f" stroke-width="2.5" rx="2"/>
+      <!-- 칠판면 -->
+      <rect x="8" y="8" width="104" height="58" fill="#1e3a2a" stroke="#14171f" stroke-width="1.5"/>
+      <!-- 분필 자국 -->
+      <text x="60" y="35" text-anchor="middle" font-family="SUIT Variable, sans-serif" font-weight="800" font-size="18" fill="#f1e4c4">Quiz</text>
+      <text x="60" y="54" text-anchor="middle" font-family="SUIT Variable, sans-serif" font-weight="700" font-size="11" fill="#a8bca0" letter-spacing="2">3 / 10</text>
+      <!-- 받침대 -->
+      <rect x="2" y="68" width="116" height="8" fill="#6f4b2e" stroke="#14171f" stroke-width="1.5"/>
+      <!-- 분필 -->
+      <rect x="40" y="68" width="12" height="4" fill="#f1e4c4" stroke="#14171f" stroke-width="1"/>
+      <rect x="78" y="68" width="8" height="4" fill="#ff9db2" stroke="#14171f" stroke-width="1"/>
+    </symbol>
+
+    <!-- 노트 — 문법 Q&A -->
+    <symbol id="fur-note" viewBox="0 0 80 80">
+      <!-- 책상 -->
+      <rect x="0" y="52" width="80" height="24" fill="#a06b42" stroke="#14171f" stroke-width="2"/>
+      <!-- 공책 -->
+      <rect x="8" y="32" width="56" height="28" fill="#f7f1df" stroke="#14171f" stroke-width="2" rx="1" transform="rotate(-6 36 46)"/>
+      <g transform="rotate(-6 36 46)">
+        <line x1="14" y1="40" x2="58" y2="40" stroke="#b5a88a" stroke-width="1"/>
+        <line x1="14" y1="47" x2="58" y2="47" stroke="#b5a88a" stroke-width="1"/>
+        <line x1="14" y1="54" x2="50" y2="54" stroke="#b5a88a" stroke-width="1"/>
+        <!-- 물음표 -->
+        <path d="M20 46q2-3 5-2t2 4-3 2v2M22 54v1" stroke="#d4232c" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- 연필 -->
+      <g transform="rotate(25 52 42)">
+        <rect x="46" y="30" width="22" height="4" fill="#e8b521" stroke="#14171f" stroke-width="1"/>
+        <polygon points="68,30 72,32 68,34" fill="#14171f"/>
+        <rect x="44" y="30" width="4" height="4" fill="#d4232c" stroke="#14171f" stroke-width="1"/>
+      </g>
+    </symbol>
+
+    <!-- 트로피장 — 도감 -->
+    <symbol id="fur-trophy" viewBox="0 0 80 100">
+      <!-- 장 -->
+      <rect x="4" y="4" width="72" height="92" fill="#efe3cd" stroke="#14171f" stroke-width="2.5" rx="2"/>
+      <!-- 유리 -->
+      <rect x="8" y="8" width="64" height="84" fill="#e4eefb" stroke="#14171f" stroke-width="1.5" opacity=".6"/>
+      <!-- 선반 -->
+      <line x1="8" y1="44" x2="72" y2="44" stroke="#14171f" stroke-width="1.5"/>
+      <line x1="8" y1="70" x2="72" y2="70" stroke="#14171f" stroke-width="1.5"/>
+      <!-- 트로피 -->
+      <g>
+        <path d="M30 20h20v12c0 6-4 10-10 10s-10-4-10-10z" fill="#e8b521" stroke="#14171f" stroke-width="2"/>
+        <path d="M30 24c-4 0-6 2-6 6s2 5 5 5M50 24c4 0 6 2 6 6s-2 5-5 5" stroke="#14171f" stroke-width="1.5" fill="none"/>
+        <rect x="36" y="40" width="8" height="4" fill="#c78900" stroke="#14171f" stroke-width="1.5"/>
+        <rect x="32" y="44" width="16" height="3" fill="#8a6239" stroke="#14171f" stroke-width="1.5"/>
+      </g>
+      <!-- 메달 -->
+      <circle cx="22" cy="58" r="6" fill="#d4232c" stroke="#14171f" stroke-width="1.5"/>
+      <circle cx="40" cy="58" r="6" fill="#2f9e57" stroke="#14171f" stroke-width="1.5"/>
+      <circle cx="58" cy="58" r="6" fill="#1f4fe6" stroke="#14171f" stroke-width="1.5"/>
+      <!-- 배지 -->
+      <polygon points="20,82 22,78 24,82 28,82 25,85 27,89 22,87 17,89 19,85 16,82" fill="#c89200" stroke="#14171f" stroke-width="1.2"/>
+      <polygon points="40,82 42,78 44,82 48,82 45,85 47,89 42,87 37,89 39,85 36,82" fill="#b73d8a" stroke="#14171f" stroke-width="1.2"/>
+      <polygon points="60,82 62,78 64,82 68,82 65,85 67,89 62,87 57,89 59,85 56,82" fill="#6f5b48" stroke="#14171f" stroke-width="1.2"/>
+    </symbol>
+
+    <!-- ===== HUD 아이콘 ===== -->
+    <symbol id="ic-flame" viewBox="0 0 14 14" fill="currentColor">
+      <path d="M7 1c0 3-3 3-3 6a3 3 0 0 0 6 0c0-1-1-1-1-2s1-1 1-3l-1 2c0-1-1-2-2-3z"/>
+    </symbol>
+    <symbol id="ic-coin" viewBox="0 0 14 14" fill="currentColor">
+      <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2" fill="currentColor"/>
+      <text x="7" y="10" text-anchor="middle" font-family="SUIT Variable, sans-serif" font-weight="800" font-size="8" fill="#14171f">W</text>
+    </symbol>
+
+    <!-- ===== Quest icons ===== -->
+    <symbol id="ic-review" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 4v6h6"/>
+      <path d="M4 10a8 8 0 1 1 2 7"/>
+    </symbol>
+    <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <path d="M12 5v14M5 12h14"/>
+    </symbol>
+    <symbol id="ic-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 6h16v10H9l-4 4z"/>
+      <path d="M8 10h8M8 13h5"/>
+    </symbol>
+
+    <!-- ===== Nav icons ===== -->
+    <symbol id="ic-home" viewBox="0 0 24 24">
+      <path d="M4 12l8-7 8 7M6 11v9h4v-6h4v6h4v-9"/>
+    </symbol>
+    <symbol id="ic-learn" viewBox="0 0 24 24">
+      <path d="M5 4h10l4 4v12H5z"/>
+      <path d="M15 4v4h4"/>
+      <path d="M8 13h8M8 17h5"/>
+    </symbol>
+    <symbol id="ic-practice" viewBox="0 0 24 24">
+      <path d="M4 18l5-5 3 3 8-8"/>
+      <path d="M14 8h6v6"/>
+    </symbol>
+    <symbol id="ic-dex" viewBox="0 0 24 24">
+      <rect x="4" y="4" width="16" height="16" rx="2"/>
+      <path d="M4 10h16M10 4v16"/>
+    </symbol>
+    <symbol id="ic-me" viewBox="0 0 24 24">
+      <circle cx="12" cy="9" r="4"/>
+      <path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>
+    </symbol>
+
+    <!-- ===== Evolution stage icons (Box 1~5) =====
+         단어가 진화하는 느낌 — 포켓몬 진화 스프라이트 DNA -->
+    <symbol id="stage-1" viewBox="0 0 24 24" fill="currentColor">
+      <!-- 알 -->
+      <ellipse cx="12" cy="14" rx="6" ry="7" fill="#fff" stroke="currentColor" stroke-width="2"/>
+      <path d="M8 14l2-2 2 2 2-2 2 2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+    </symbol>
+    <symbol id="stage-2" viewBox="0 0 24 24" fill="currentColor">
+      <!-- 새싹 -->
+      <ellipse cx="12" cy="18" rx="7" ry="3" fill="#fff" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 18V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M12 10q-4-3-5 0M12 10q4-3 5 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="stage-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <!-- 아기 생물 -->
+      <ellipse cx="12" cy="14" rx="7" ry="6"/>
+      <circle cx="10" cy="13" r="1" fill="currentColor"/>
+      <circle cx="14" cy="13" r="1" fill="currentColor"/>
+      <path d="M12 8V5"/>
+    </symbol>
+    <symbol id="stage-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- 청소년 -->
+      <path d="M6 14c0-5 2-8 6-8s6 3 6 8v4H6z"/>
+      <circle cx="9.5" cy="13" r="1" fill="currentColor"/>
+      <circle cx="14.5" cy="13" r="1" fill="currentColor"/>
+      <path d="M6 6l2 2M18 6l-2 2"/>
+    </symbol>
+    <symbol id="stage-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- 완전체 — 왕관 -->
+      <path d="M4 18l2-10 3 6 3-9 3 9 3-6 2 10z"/>
+      <path d="M4 18h16"/>
+      <circle cx="8" cy="10" r="1" fill="currentColor"/>
+      <circle cx="12" cy="8" r="1" fill="currentColor"/>
+      <circle cx="16" cy="10" r="1" fill="currentColor"/>
+    </symbol>
+
+    <!-- ===== Badges ===== -->
+    <symbol id="badge-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3l2.5 5.5 6 .8-4.5 4 1 6-5-2.8-5 2.8 1-6-4.5-4 6-.8z"/>
+    </symbol>
+    <symbol id="badge-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3c0 4-5 5-5 10a5 5 0 0 0 10 0c0-2-1-3-2-4 0 2-1 3-2 3 1-3-1-5-1-9z"/>
+    </symbol>
+    <symbol id="badge-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 6a2 2 0 0 1 2-2h12v16H6a2 2 0 0 1-2-2z"/>
+      <path d="M9 8h6M9 12h6"/>
+    </symbol>
+    <symbol id="badge-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 19V9M10 19V5M15 19v-7M20 19v-4"/>
+      <path d="M4 19h18"/>
+    </symbol>
+    <symbol id="badge-medal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 3l3 8M17 3l-3 8"/>
+      <circle cx="12" cy="15" r="6"/>
+      <path d="M10 15l2 2 3-4"/>
+    </symbol>
+    <symbol id="badge-crown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 18l2-10 4 5 3-8 3 8 4-5 2 10z"/>
+      <path d="M3 18h18"/>
+    </symbol>
+    <symbol id="badge-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="11" width="14" height="10" rx="1"/>
+      <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="device" role="application" aria-label="Word Gacha">
+
+  <!-- HUD — 항상 보임 -->
+  <div class="hud">
+    <span class="hud-lv"><span class="t">LV</span><span class="n">12</span></span>
+    <div class="hud-exp" style="--exp: 72%"></div>
+    <span class="hud-stat streak"><svg><use href="#ic-flame"/></svg>92</span>
+    <span class="hud-stat coin"><svg><use href="#ic-coin"/></svg>250</span>
+  </div>
+
+  <main class="app">
+
+    <!-- ============================================================
+         HOME — 내 방
+         ============================================================ -->
+    <section class="screen" data-s="home" aria-labelledby="h-home">
+      <h1 id="h-home" class="vh">홈</h1>
+
+      <div class="room-wrap">
+        <div class="room" aria-label="내 방">
+          <div class="window"></div>
+          <div class="floor"></div>
+
+          <button class="item shelf" onclick="goto('learn','mywords')" aria-label="내 단어장">
+            <svg><use href="#fur-shelf"/></svg>
+            <span class="lbl">단어장</span>
+          </button>
+          <button class="item board" onclick="goto('learn','quiz')" aria-label="퀴즈">
+            <svg><use href="#fur-board"/></svg>
+            <span class="lbl">퀴즈</span>
+          </button>
+          <button class="item note" onclick="goto('practice')" aria-label="문법">
+            <svg><use href="#fur-note"/></svg>
+            <span class="lbl">문법</span>
+          </button>
+          <button class="item trophy" onclick="goto('dex')" aria-label="도감">
+            <svg><use href="#fur-trophy"/></svg>
+            <span class="lbl">도감</span>
+          </button>
+
+          <button class="item playroom-entry" onclick="goto('playroom')" aria-label="놀아주기">
+            <span class="pr-icon" aria-hidden="true">🌱</span>
+            <span class="lbl">놀아주기</span>
+          </button>
+
+          <div class="mascot-wrap">
+            <span class="shadow"></span>
+            <svg class="mascot-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/><ellipse cx="40" cy="85" rx="7" ry="4" fill="#1438a8"/><ellipse cx="60" cy="85" rx="7" ry="4" fill="#1438a8"/><path class="m-antenna" d="M50 22v-8M50 14l-3-4M50 14l3-4" stroke="#14171f" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle class="m-antenna-ball" cx="50" cy="12" r="3" fill="#d4232c" stroke="#14171f" stroke-width="2"/><g class="m-body"><path d="M50 22c-16 0-25 10-25 24v14c0 12 10 21 25 21s25-9 25-21V46c0-14-9-24-25-24z" fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/><ellipse cx="50" cy="60" rx="14" ry="12" fill="#f6efe3"/><ellipse class="m-cheek" cx="33" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><ellipse class="m-cheek" cx="67" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><g class="m-eyes"><ellipse class="mascot-eye" cx="40" cy="44" rx="3" ry="4.5" fill="#14171f"/><ellipse class="mascot-eye" cx="60" cy="44" rx="3" ry="4.5" fill="#14171f"/><circle cx="41.4" cy="42.6" r="1.1" fill="#fff"/><circle cx="61.4" cy="42.6" r="1.1" fill="#fff"/></g><g class="m-mouth"><path class="m-mouth-neutral" d="M46 54q4 3 8 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-happy" d="M44 52q6 6 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-sad" d="M44 56q6 -4 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse class="m-mouth-eat" cx="50" cy="55" rx="4" ry="3" fill="#14171f"/></g><ellipse class="m-arm m-arm-l" cx="26" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/><ellipse class="m-arm m-arm-r" cx="74" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/></g></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog">
+        <div class="speaker">WAWA · Lv 12</div>
+        <div class="line">오늘 복습 <b>12개</b>, 새 단어 <b>5개</b>. 문법 답변도 <b>2건</b> 도착했어. 어디부터 할까?</div>
+        <span class="arrow"></span>
+      </div>
+
+      <div class="evo-panel" id="evo-panel" hidden aria-live="polite">
+        <div class="evo-title">
+          <span>진화까지</span> <b id="evo-stage-label">LV 1 → LV 2</b>
+          <span class="ready-badge" id="evo-ready-badge" hidden>준비 완료!</span>
+        </div>
+        <div class="evo-row" id="evo-row-bond">
+          <span class="lbl">교감</span>
+          <span class="track"><i style="--v:0%"></i></span>
+          <span class="num">0/0</span>
+        </div>
+        <div class="evo-row" id="evo-row-box5">
+          <span class="lbl">외운 단어</span>
+          <span class="track"><i style="--v:0%"></i></span>
+          <span class="num">0/0</span>
+        </div>
+        <div class="evo-row" id="evo-row-streak" hidden>
+          <span class="lbl">연속일</span>
+          <span class="track"><i style="--v:0%"></i></span>
+          <span class="num">0/0</span>
+        </div>
+      </div>
+
+      <div class="quests">
+        <div class="quests-head">
+          <h2>오늘의 퀘스트</h2>
+          <span class="sub">4월 19일 일</span>
+        </div>
+        <div class="quest-list">
+          <button class="quest" onclick="goto('learn','quiz')">
+            <span class="q-marker" data-c="review">
+              <svg style="color: var(--t-noun)"><use href="#ic-review"/></svg>
+              <span class="mn">12</span>
+            </span>
+            <span class="q-text">
+              <span class="t">복습 세션</span>
+              <span class="s">BOX 2·3·5 · 권장 8분</span>
+            </span>
+            <span class="q-reward"><span class="xp">+60</span> EXP</span>
+            <span class="q-arr">›</span>
+          </button>
+
+          <button class="quest" onclick="goto('learn','textbook')">
+            <span class="q-marker" data-c="new">
+              <svg style="color: var(--t-adj)"><use href="#ic-plus"/></svg>
+              <span class="mn">5</span>
+            </span>
+            <span class="q-text">
+              <span class="t">새 단어 포획</span>
+              <span class="s">Unit 5 · Culture</span>
+            </span>
+            <span class="q-reward"><span class="xp">+80</span> EXP</span>
+            <span class="q-arr">›</span>
+          </button>
+
+          <button class="quest" onclick="goto('practice')">
+            <span class="q-marker" data-c="gram">
+              <svg style="color: var(--t-adv)"><use href="#ic-chat"/></svg>
+              <span class="mn">2</span>
+            </span>
+            <span class="q-text">
+              <span class="t">선생님 답변 확인</span>
+              <span class="s">현재완료 · 15분 전</span>
+            </span>
+            <span class="q-reward">—</span>
+            <span class="q-arr">›</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="pace">
+        <div class="pace-head">
+          <div>
+            <div class="ttl">이번 주 페이스</div>
+            <div class="avg">23<small>분 / 일</small></div>
+          </div>
+          <div style="text-align:right">
+            <div class="ttl" style="color: var(--t-adj)">+18%</div>
+            <div style="font: 500 10px/1 var(--body); color: var(--ink-3); margin-top: 4px; font-variant-numeric: tabular-nums;">지난주 대비</div>
+          </div>
+        </div>
+        <div class="chart">
+          <b class="hit" style="height:52%"></b>
+          <b class="hit" style="height:78%"></b>
+          <b class="hit" style="height:34%"></b>
+          <b class="hit" style="height:92%"></b>
+          <b class="hit" style="height:58%"></b>
+          <b style="height:22%"></b>
+          <b class="today" style="height:46%"></b>
+        </div>
+        <div class="chart-x">
+          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><b class="today">일</b>
+        </div>
+      </div>
+
+      <div style="height: 24px"></div>
+    </section>
+
+    <!-- ============================================================
+         LEARN
+         ============================================================ -->
+    <section class="screen" data-s="learn" aria-labelledby="h-learn">
+      <div class="page-head">
+        <h1 id="h-learn">학습</h1>
+        <span class="sub">퀴즈 · 단어장 · 교재</span>
+      </div>
+
+      <div class="subnav" role="tablist" data-screen="learn" aria-label="학습 모드">
+        <button role="tab" id="tab-learn-quiz"     aria-controls="pane-learn-quiz"     aria-selected="true"  data-sub="quiz"     onclick="selectSub('learn','quiz')">퀴즈</button>
+        <button role="tab" id="tab-learn-mywords"  aria-controls="pane-learn-mywords"  aria-selected="false" data-sub="mywords"  onclick="selectSub('learn','mywords')" tabindex="-1">내 단어장</button>
+        <button role="tab" id="tab-learn-textbook" aria-controls="pane-learn-textbook" aria-selected="false" data-sub="textbook" onclick="selectSub('learn','textbook')" tabindex="-1">교재</button>
+      </div>
+
+      <!-- QUIZ — 배틀 스타일 -->
+      <div class="subpane active" data-sub="quiz" role="tabpanel" id="pane-learn-quiz" aria-labelledby="tab-learn-quiz">
+        <div class="battle-wrap" id="quiz-battle">
+          <!-- 상대 = 단어 -->
+          <div class="enemy-plate">
+            <div class="enemy-head">
+              <span class="name" id="quiz-enemy-name">—</span>
+              <span class="lv">BOX <strong id="quiz-enemy-box">1</strong></span>
+            </div>
+            <div class="enemy-sub">
+              <span class="chip" id="quiz-enemy-chip" data-t="noun">NOUN</span>
+              <div class="enemy-hp" id="quiz-enemy-hp" data-level="high" style="--hp: 100%"></div>
+              <span class="enemy-hp-val" id="quiz-enemy-hp-val">HP 3/3</span>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="stage-word">
+              <span id="quiz-stage-word">—</span>
+            </div>
+            <div class="stage-mascot">
+              <svg class="mascot-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/><ellipse cx="40" cy="85" rx="7" ry="4" fill="#1438a8"/><ellipse cx="60" cy="85" rx="7" ry="4" fill="#1438a8"/><path class="m-antenna" d="M50 22v-8M50 14l-3-4M50 14l3-4" stroke="#14171f" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle class="m-antenna-ball" cx="50" cy="12" r="3" fill="#d4232c" stroke="#14171f" stroke-width="2"/><g class="m-body"><path d="M50 22c-16 0-25 10-25 24v14c0 12 10 21 25 21s25-9 25-21V46c0-14-9-24-25-24z" fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/><ellipse cx="50" cy="60" rx="14" ry="12" fill="#f6efe3"/><ellipse class="m-cheek" cx="33" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><ellipse class="m-cheek" cx="67" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><g class="m-eyes"><ellipse class="mascot-eye" cx="40" cy="44" rx="3" ry="4.5" fill="#14171f"/><ellipse class="mascot-eye" cx="60" cy="44" rx="3" ry="4.5" fill="#14171f"/><circle cx="41.4" cy="42.6" r="1.1" fill="#fff"/><circle cx="61.4" cy="42.6" r="1.1" fill="#fff"/></g><g class="m-mouth"><path class="m-mouth-neutral" d="M46 54q4 3 8 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-happy" d="M44 52q6 6 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-sad" d="M44 56q6 -4 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse class="m-mouth-eat" cx="50" cy="55" rx="4" ry="3" fill="#14171f"/></g><ellipse class="m-arm m-arm-l" cx="26" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/><ellipse class="m-arm m-arm-r" cx="74" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/></g></svg>
+            </div>
+          </div>
+
+          <!-- 4분할 기술 버튼 -->
+          <div class="moves" role="radiogroup" aria-label="뜻 고르기" id="quiz-moves">
+            <button class="move" role="radio" aria-checked="false" data-i="0" type="button">
+              <span class="move-hd"><span class="key">1</span> A</span>
+              <span class="move-text">—</span>
+            </button>
+            <button class="move" role="radio" aria-checked="false" data-i="1" type="button">
+              <span class="move-hd"><span class="key">2</span> B</span>
+              <span class="move-text">—</span>
+            </button>
+            <button class="move" role="radio" aria-checked="false" data-i="2" type="button">
+              <span class="move-hd"><span class="key">3</span> C</span>
+              <span class="move-text">—</span>
+            </button>
+            <button class="move" role="radio" aria-checked="false" data-i="3" type="button">
+              <span class="move-hd"><span class="key">4</span> D</span>
+              <span class="move-text">—</span>
+            </button>
+          </div>
+
+          <div class="quiz-footer">
+            <div class="progress-inline">
+              <span class="lbl">진행</span>
+              <span class="bar"><i id="quiz-progress-bar" style="--p: 0%"></i></span>
+              <span class="val" id="quiz-progress-val">0 / 0</span>
+            </div>
+            <button class="btn-confirm" id="btn-quiz-confirm" type="button" disabled>확인</button>
+          </div>
+        </div>
+
+        <!-- 퀴즈 결과 -->
+        <div id="quiz-result" class="empty-box" style="display:none; text-align:center;">
+          <h3 id="quiz-result-title" style="margin:0 0 8px; font:700 18px/1.3 var(--display); color:var(--pri)">— / —</h3>
+          <p id="quiz-result-sub" style="margin:0 0 12px; color:var(--ink-3); font:500 13px/1.5 var(--body)">—</p>
+          <div style="display:flex; gap:8px; justify-content:center;">
+            <button class="btn-confirm" id="btn-quiz-retry" type="button">다시 풀기</button>
+            <button class="btn-confirm" id="btn-quiz-done" type="button" style="background:#fff; color:var(--pri); border:1px solid var(--pri)">단어장 보기</button>
+          </div>
+        </div>
+
+        <!-- 단어 없을 때 -->
+        <div id="quiz-empty" class="empty-box" style="display:none; text-align:center;">
+          <p style="margin:0 0 12px; color:var(--ink-3)">퀴즈를 풀려면 단어가 필요해요.</p>
+          <button class="btn-confirm" type="button" onclick="goto('learn','mywords')">단어 추가하러 가기</button>
+        </div>
+
+        <div style="height: 20px"></div>
+      </div>
+
+      <!-- MY WORDS -->
+      <div class="subpane" data-sub="mywords" role="tabpanel" id="pane-learn-mywords" aria-labelledby="tab-learn-mywords">
+        <div class="filter-bar" role="group" aria-label="단어 상태 필터">
+          <button type="button" class="filter" aria-pressed="true"  onclick="toggleFilter(this)">전체<span class="n">342</span></button>
+          <button type="button" class="filter" aria-pressed="false" onclick="toggleFilter(this)">NEW<span class="n">18</span></button>
+          <button type="button" class="filter" aria-pressed="false" onclick="toggleFilter(this)">학습 중<span class="n">74</span></button>
+          <button type="button" class="filter" aria-pressed="false" onclick="toggleFilter(this)">외움<span class="n">250</span></button>
+        </div>
+
+        <!-- 학생이 직접 추가한 단어 (동적) -->
+        <div class="word-list" id="word-list-dyn" aria-label="내가 추가한 단어"></div>
+
+        <div class="word-list">
+          <button class="word-row">
+            <span class="stage-icon" data-stage="2" style="color: var(--t-adj)">
+              <svg><use href="#stage-2"/></svg>
+              <span class="num">2</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">magnificent</span>
+              <span class="wr-ko"><span class="chip" data-t="adj">ADJ</span>장엄한, 훌륭한</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp"><i style="--hp: 40%"></i></span>
+              <span class="wr-tag">BOX 2</span>
+            </span>
+          </button>
+
+          <button class="word-row">
+            <span class="stage-icon" data-stage="3" style="color: var(--t-verb)">
+              <svg><use href="#stage-3"/></svg>
+              <span class="num">3</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">resemble</span>
+              <span class="wr-ko"><span class="chip" data-t="verb">VERB</span>닮다, 유사하다</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp"><i style="--hp: 60%"></i></span>
+              <span class="wr-tag">BOX 3</span>
+            </span>
+          </button>
+
+          <button class="word-row">
+            <span class="stage-icon" data-stage="1" style="color: var(--t-adj)">
+              <svg><use href="#stage-1"/></svg>
+              <span class="num">1</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">abundant</span>
+              <span class="wr-ko"><span class="chip" data-t="adj">ADJ</span>풍부한, 많은</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp"><i style="--hp: 20%"></i></span>
+              <span class="wr-tag">NEW</span>
+            </span>
+          </button>
+
+          <button class="word-row">
+            <span class="stage-icon" data-stage="5" style="color: var(--t-adj)">
+              <svg><use href="#stage-5"/></svg>
+              <span class="num">5</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">complicated</span>
+              <span class="wr-ko"><span class="chip" data-t="adj">ADJ</span>복잡한</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp" data-l="mastered"><i style="--hp: 100%"></i></span>
+              <span class="wr-tag mastered">외움</span>
+            </span>
+          </button>
+
+          <button class="word-row">
+            <span class="stage-icon" data-stage="4" style="color: var(--t-adv)">
+              <svg><use href="#stage-4"/></svg>
+              <span class="num">4</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">gradually</span>
+              <span class="wr-ko"><span class="chip" data-t="adv">ADV</span>점진적으로, 서서히</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp"><i style="--hp: 80%"></i></span>
+              <span class="wr-tag">BOX 4</span>
+            </span>
+          </button>
+
+          <button class="word-row">
+            <span class="stage-icon" data-stage="2" style="color: var(--t-verb)">
+              <svg><use href="#stage-2"/></svg>
+              <span class="num">2</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">emphasize</span>
+              <span class="wr-ko"><span class="chip" data-t="verb">VERB</span>강조하다</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp"><i style="--hp: 40%"></i></span>
+              <span class="wr-tag">BOX 2</span>
+            </span>
+          </button>
+
+          <button class="word-row">
+            <span class="stage-icon" data-stage="5" style="color: var(--t-noun)">
+              <svg><use href="#stage-5"/></svg>
+              <span class="num">5</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">principle</span>
+              <span class="wr-ko"><span class="chip" data-t="noun">NOUN</span>원칙, 원리</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp" data-l="mastered"><i style="--hp: 100%"></i></span>
+              <span class="wr-tag mastered">외움</span>
+            </span>
+          </button>
+        </div>
+        <div style="height: 24px"></div>
+      </div>
+
+      <!-- TEXTBOOK -->
+      <div class="subpane" data-sub="textbook" role="tabpanel" id="pane-learn-textbook" aria-labelledby="tab-learn-textbook">
+        <div class="units" id="tb-units" aria-label="교재 목록"></div>
+
+        <div id="tb-unit-header" style="padding: 4px 16px 10px; display:none; justify-content: space-between; align-items:center;">
+          <span id="tb-unit-title" style="font: 800 11px/1 var(--disp); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2);"></span>
+          <span id="tb-unit-count" style="font: 700 11px/1 var(--disp); color: var(--ink-3); font-variant-numeric: tabular-nums;"></span>
+        </div>
+
+        <div class="word-list" id="tb-word-list" aria-label="교재 단어"></div>
+
+        <div id="tb-empty" class="empty-box" style="display:none;">
+          <div class="ttl">등록된 교재가 없어요</div>
+          <div class="sub">선생님이 교재를 올리면 여기에 나타나요</div>
+        </div>
+
+        <!-- seed 목업 (교재 없을 때 숨김 처리)·실제 동작은 위 컨테이너에서 -->
+        <div class="word-list" hidden>
+          <button class="word-row">
+            <span class="stage-icon" data-stage="1" style="color: var(--t-noun)">
+              <svg><use href="#stage-1"/></svg>
+              <span class="num">·</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">innovation</span>
+              <span class="wr-ko"><span class="chip" data-t="noun">NOUN</span>혁신</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-tag" style="color: var(--ink-3)">미학습</span>
+            </span>
+          </button>
+          <button class="word-row">
+            <span class="stage-icon" data-stage="1" style="color: var(--t-adj)">
+              <svg><use href="#stage-1"/></svg>
+              <span class="num">1</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">artificial</span>
+              <span class="wr-ko"><span class="chip" data-t="adj">ADJ</span>인공의</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp"><i style="--hp: 20%"></i></span>
+              <span class="wr-tag">NEW</span>
+            </span>
+          </button>
+          <button class="word-row">
+            <span class="stage-icon" data-stage="1" style="color: var(--t-verb)">
+              <svg><use href="#stage-1"/></svg>
+              <span class="num">·</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">implement</span>
+              <span class="wr-ko"><span class="chip" data-t="verb">VERB</span>시행하다, 이행하다</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-tag" style="color: var(--ink-3)">미학습</span>
+            </span>
+          </button>
+          <button class="word-row">
+            <span class="stage-icon" data-stage="2" style="color: var(--t-adv)">
+              <svg><use href="#stage-2"/></svg>
+              <span class="num">2</span>
+            </span>
+            <span class="wr-main">
+              <span class="wr-en">efficiently</span>
+              <span class="wr-ko"><span class="chip" data-t="adv">ADV</span>효율적으로</span>
+            </span>
+            <span class="wr-right">
+              <span class="wr-hp"><i style="--hp: 40%"></i></span>
+              <span class="wr-tag">BOX 2</span>
+            </span>
+          </button>
+        </div>
+        <div style="height: 96px"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         PRACTICE — 문법 Q&A (멘토 채팅)
+         ============================================================ -->
+    <section class="screen" data-s="practice" aria-labelledby="h-practice">
+      <div class="page-head">
+        <h1 id="h-practice">연습</h1>
+        <span class="sub">선생님과 문답</span>
+      </div>
+
+      <div class="subnav" role="tablist" data-screen="practice" aria-label="연습 모드">
+        <button role="tab" id="tab-practice-grammar" aria-controls="pane-practice-grammar" aria-selected="true"  data-sub="grammar" onclick="selectSub('practice','grammar')">문법 Q&amp;A</button>
+        <button role="tab" id="tab-practice-writing" aria-controls="pane-practice-writing" aria-selected="false" data-sub="writing" onclick="selectSub('practice','writing')" tabindex="-1">수행평가</button>
+      </div>
+
+      <div class="subpane active" data-sub="grammar" role="tabpanel" id="pane-practice-grammar" aria-labelledby="tab-practice-grammar">
+        <div class="ask">
+          <div class="ask-box">
+            <label for="ask-input" class="vh">문법 질문 입력</label>
+            <textarea id="ask-input" maxlength="500" placeholder="궁금한 영어 문법을 질문하세요.
+예) 현재완료와 과거시제의 차이?"></textarea>
+            <div class="ask-bar">
+              <span id="ask-count" class="cnt" aria-live="polite">0 / 500</span>
+              <button type="button" id="btn-ask-submit">올리기</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h2>내 질문</h2>
+          <span class="more" id="qa-mine-count">전체 0건</span>
+        </div>
+        <div id="qa-mine-list"></div>
+        <div id="qa-mine-empty" class="empty-box" style="display:none;">
+          <div class="ttl">아직 올린 질문이 없어요</div>
+          <div class="sub">궁금한 문법을 위에 적어서 올려보세요</div>
+        </div>
+
+        <div class="section-head">
+          <h2>선생님 공유</h2>
+          <span class="more" id="qa-shared-count">전체 0건</span>
+        </div>
+        <div id="qa-shared-list"></div>
+
+        <div style="height: 24px"></div>
+      </div>
+
+      <div class="subpane" data-sub="writing" role="tabpanel" id="pane-practice-writing" aria-labelledby="tab-practice-writing">
+        <div class="empty-box">
+          <div class="ttl">수행평가 과제가 없습니다</div>
+          <div class="sub">선생님이 과제를 올리면 여기에 나와요</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         DEX — 도감
+         ============================================================ -->
+    <section class="screen" data-s="dex" aria-labelledby="h-dex">
+      <div class="page-head">
+        <h1 id="h-dex">도감</h1>
+        <span class="sub">품사별 수집률</span>
+      </div>
+
+      <div class="dex-hero">
+        <div class="dex-hero-top">
+          <div>
+            <div class="lbl">전체 수집</div>
+            <div class="big">342<span class="s">/ 1,200</span></div>
+          </div>
+          <div class="pct">28%</div>
+        </div>
+        <div class="bar"><i></i></div>
+      </div>
+
+      <div class="dex-grid" id="dex-grid-types">
+        <button class="type-case" data-t="noun" onclick="openDexType('noun')">
+          <div class="tc-head">
+            <span class="tc-lbl">NOUN</span>
+            <span class="tc-num">128 / 380</span>
+          </div>
+          <div class="tc-name">명사</div>
+          <div class="tc-count">128<span class="t">수집</span></div>
+          <div class="tc-bar"><i style="width:34%"></i></div>
+        </button>
+        <button class="type-case" data-t="verb" onclick="openDexType('verb')">
+          <div class="tc-head">
+            <span class="tc-lbl">VERB</span>
+            <span class="tc-num">94 / 310</span>
+          </div>
+          <div class="tc-name">동사</div>
+          <div class="tc-count">94<span class="t">수집</span></div>
+          <div class="tc-bar"><i style="width:30%"></i></div>
+        </button>
+        <button class="type-case" data-t="adj" onclick="openDexType('adj')">
+          <div class="tc-head">
+            <span class="tc-lbl">ADJ</span>
+            <span class="tc-num">82 / 240</span>
+          </div>
+          <div class="tc-name">형용사</div>
+          <div class="tc-count">82<span class="t">수집</span></div>
+          <div class="tc-bar"><i style="width:34%"></i></div>
+        </button>
+        <button class="type-case" data-t="adv" onclick="openDexType('adv')">
+          <div class="tc-head">
+            <span class="tc-lbl">ADV</span>
+            <span class="tc-num">28 / 160</span>
+          </div>
+          <div class="tc-name">부사</div>
+          <div class="tc-count">28<span class="t">수집</span></div>
+          <div class="tc-bar"><i style="width:17%"></i></div>
+        </button>
+        <button class="type-case" data-t="prep" onclick="openDexType('prep')">
+          <div class="tc-head">
+            <span class="tc-lbl">PREP</span>
+            <span class="tc-num">8 / 60</span>
+          </div>
+          <div class="tc-name">전치사</div>
+          <div class="tc-count">8<span class="t">수집</span></div>
+          <div class="tc-bar"><i style="width:13%"></i></div>
+        </button>
+        <button class="type-case" data-t="conj" onclick="openDexType('conj')">
+          <div class="tc-head">
+            <span class="tc-lbl">CONJ</span>
+            <span class="tc-num">2 / 50</span>
+          </div>
+          <div class="tc-name">접속사</div>
+          <div class="tc-count">2<span class="t">수집</span></div>
+          <div class="tc-bar"><i style="width:4%"></i></div>
+        </button>
+      </div>
+
+      <!-- 품사별 카드 그리드 뷰 (dex LV2) -->
+      <div class="dex-type-view" id="dex-type-view" hidden>
+        <button class="btn-back-pr" id="btn-dex-back" aria-label="품사 선택으로">← 품사 선택</button>
+        <h2 id="dex-type-title" class="dex-type-title">명사</h2>
+        <div class="dex-cards-grid" id="dex-cards-grid" aria-label="단어 카드"></div>
+      </div>
+
+      <div style="height: 24px"></div>
+    </section>
+
+    <!-- ============================================================
+         ME — 트레이너 카드
+         ============================================================ -->
+    <section class="screen" data-s="me" aria-labelledby="h-me">
+      <h1 id="h-me" class="vh">기록</h1>
+
+      <div class="trainer-card">
+        <span class="tc-corner">TRAINER</span>
+        <div class="tc-main">
+          <div class="tc-avatar">
+            <svg class="mascot-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/><ellipse cx="40" cy="85" rx="7" ry="4" fill="#1438a8"/><ellipse cx="60" cy="85" rx="7" ry="4" fill="#1438a8"/><path class="m-antenna" d="M50 22v-8M50 14l-3-4M50 14l3-4" stroke="#14171f" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle class="m-antenna-ball" cx="50" cy="12" r="3" fill="#d4232c" stroke="#14171f" stroke-width="2"/><g class="m-body"><path d="M50 22c-16 0-25 10-25 24v14c0 12 10 21 25 21s25-9 25-21V46c0-14-9-24-25-24z" fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/><ellipse cx="50" cy="60" rx="14" ry="12" fill="#f6efe3"/><ellipse class="m-cheek" cx="33" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><ellipse class="m-cheek" cx="67" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><g class="m-eyes"><ellipse class="mascot-eye" cx="40" cy="44" rx="3" ry="4.5" fill="#14171f"/><ellipse class="mascot-eye" cx="60" cy="44" rx="3" ry="4.5" fill="#14171f"/><circle cx="41.4" cy="42.6" r="1.1" fill="#fff"/><circle cx="61.4" cy="42.6" r="1.1" fill="#fff"/></g><g class="m-mouth"><path class="m-mouth-neutral" d="M46 54q4 3 8 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-happy" d="M44 52q6 6 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-sad" d="M44 56q6 -4 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse class="m-mouth-eat" cx="50" cy="55" rx="4" ry="3" fill="#14171f"/></g><ellipse class="m-arm m-arm-l" cx="26" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/><ellipse class="m-arm m-arm-r" cx="74" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/></g></svg>
+          </div>
+          <div>
+            <h2 class="tc-name">와와 트레이너</h2>
+            <span class="tc-lv">LV <span class="n">12</span></span>
+            <div class="tc-streak">
+              <svg><use href="#ic-flame"/></svg>
+              92일 연속 · 최장 17일
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="lbl">외운 단어</div>
+          <div class="v">342</div>
+        </div>
+        <div class="stat-box">
+          <div class="lbl">학습 시간</div>
+          <div class="v">1,284<span class="u">분</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="lbl">정답률</div>
+          <div class="v">86<span class="u">%</span></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>이번 주</h2>
+        <span class="more" style="color: var(--t-adj); font-weight: 800;">+18%</span>
+      </div>
+      <div class="pace" style="margin-top: 0;">
+        <div class="pace-head">
+          <div>
+            <div class="ttl">목표 달성</div>
+            <div class="avg">5<small>/ 7일</small></div>
+          </div>
+          <div style="text-align:right">
+            <div class="ttl">평균</div>
+            <div class="avg" style="font-size: 16px;">23<small>분</small></div>
+          </div>
+        </div>
+        <div class="chart">
+          <b class="hit" style="height:52%"></b>
+          <b class="hit" style="height:78%"></b>
+          <b class="hit" style="height:34%"></b>
+          <b class="hit" style="height:92%"></b>
+          <b class="hit" style="height:58%"></b>
+          <b style="height:22%"></b>
+          <b class="today" style="height:46%"></b>
+        </div>
+        <div class="chart-x">
+          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><b class="today">일</b>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>배지</h2>
+        <span class="more">6 / 12</span>
+      </div>
+      <div class="badges-grid">
+        <div class="badge" data-earned="true"><svg><use href="#badge-star"/></svg></div>
+        <div class="badge" data-earned="true"><svg><use href="#badge-flame"/></svg></div>
+        <div class="badge" data-earned="true"><svg><use href="#badge-book"/></svg></div>
+        <div class="badge" data-earned="true"><svg><use href="#badge-chart"/></svg></div>
+        <div class="badge" data-earned="true"><svg><use href="#badge-medal"/></svg></div>
+        <div class="badge" data-earned="true"><svg><use href="#badge-crown"/></svg></div>
+        <div class="badge" data-locked="true"><svg><use href="#badge-lock"/></svg></div>
+        <div class="badge" data-locked="true"><svg><use href="#badge-lock"/></svg></div>
+      </div>
+
+      <div style="height: 24px"></div>
+    </section>
+
+    <!-- ============================================================
+         PLAYROOM — 캐릭터와 노는 공간 (r2.2)
+         ============================================================ -->
+    <section class="screen" data-s="playroom" aria-labelledby="h-playroom">
+      <div class="page-head">
+        <button class="btn-back-pr" onclick="goto('home')" aria-label="내 방으로">← 내 방</button>
+        <h1 id="h-playroom">놀이방</h1>
+      </div>
+
+      <div class="playroom-stage" aria-live="polite">
+        <div class="pr-vitals" id="pr-vitals"></div>
+        <div class="speech-bubble" id="mascot-speech" role="status">안녕!</div>
+        <button class="mascot-tap" id="btn-mascot-tap" aria-label="쓰다듬기">
+          <span class="pr-shadow"></span>
+          <svg class="mascot-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/><ellipse cx="40" cy="85" rx="7" ry="4" fill="#1438a8"/><ellipse cx="60" cy="85" rx="7" ry="4" fill="#1438a8"/><path class="m-antenna" d="M50 22v-8M50 14l-3-4M50 14l3-4" stroke="#14171f" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle class="m-antenna-ball" cx="50" cy="12" r="3" fill="#d4232c" stroke="#14171f" stroke-width="2"/><g class="m-body"><path d="M50 22c-16 0-25 10-25 24v14c0 12 10 21 25 21s25-9 25-21V46c0-14-9-24-25-24z" fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/><ellipse cx="50" cy="60" rx="14" ry="12" fill="#f6efe3"/><ellipse class="m-cheek" cx="33" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><ellipse class="m-cheek" cx="67" cy="50" rx="3" ry="2" fill="#ff9db2" opacity=".8"/><g class="m-eyes"><ellipse class="mascot-eye" cx="40" cy="44" rx="3" ry="4.5" fill="#14171f"/><ellipse class="mascot-eye" cx="60" cy="44" rx="3" ry="4.5" fill="#14171f"/><circle cx="41.4" cy="42.6" r="1.1" fill="#fff"/><circle cx="61.4" cy="42.6" r="1.1" fill="#fff"/></g><g class="m-mouth"><path class="m-mouth-neutral" d="M46 54q4 3 8 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-happy" d="M44 52q6 6 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="m-mouth-sad" d="M44 56q6 -4 12 0" stroke="#14171f" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse class="m-mouth-eat" cx="50" cy="55" rx="4" ry="3" fill="#14171f"/></g><ellipse class="m-arm m-arm-l" cx="26" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/><ellipse class="m-arm m-arm-r" cx="74" cy="54" rx="4" ry="6" fill="#1f4fe6" stroke="#14171f" stroke-width="2"/></g></svg>
+        </button>
+        <div class="particle-layer" id="particle-layer" aria-hidden="true"></div>
+      </div>
+
+      <div class="play-actions" role="group" aria-label="캐릭터와 놀기">
+        <button class="play-btn" id="btn-play-feed"  data-kind="feed">
+          <span class="pb-ico">🍎</span><span>먹이</span>
+          <span class="pb-cd" data-cd=""></span>
+        </button>
+        <button class="play-btn" id="btn-play-pet"   data-kind="pet">
+          <span class="pb-ico">✋</span><span>쓰다듬기</span>
+          <span class="pb-cd" data-cd=""></span>
+        </button>
+        <button class="play-btn" id="btn-play-ball"  data-kind="ball">
+          <span class="pb-ico">🎾</span><span>공놀이</span>
+          <span class="pb-cd" data-cd=""></span>
+        </button>
+        <button class="play-btn" id="btn-play-sleep" data-kind="sleep">
+          <span class="pb-ico">💤</span><span>재우기</span>
+          <span class="pb-cd" data-cd=""></span>
+        </button>
+      </div>
+      <div style="height: 24px"></div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar" aria-label="주 메뉴">
+    <button data-to="home" aria-current="page" onclick="goto('home')">
+      <svg fill="none"><use href="#ic-home"/></svg>홈
+    </button>
+    <button data-to="learn" onclick="goto('learn')">
+      <svg fill="none"><use href="#ic-learn"/></svg>학습
+    </button>
+    <button data-to="practice" onclick="goto('practice')">
+      <svg fill="none"><use href="#ic-practice"/></svg>연습
+    </button>
+    <button data-to="dex" onclick="goto('dex')">
+      <svg fill="none"><use href="#ic-dex"/></svg>도감
+    </button>
+    <button data-to="me" onclick="goto('me')">
+      <svg fill="none"><use href="#ic-me"/></svg>기록
+    </button>
+  </nav>
+
+  <!-- 단어 추가 FAB — mywords 서브팬 활성 시만 노출 -->
+  <button type="button" class="fab-add" id="btn-add-word" aria-label="단어 추가" hidden>
+    <span aria-hidden="true">+</span>
+  </button>
+
+  <!-- Toast for r1 actions -->
+  <div class="toast-wg" id="toast-wg" role="status" aria-live="polite"></div>
+
+  <!-- Reunion overlay — shown on return after idle >= 12h -->
+  <div class="reunion" id="reunion" hidden role="dialog" aria-labelledby="reunion-title" aria-describedby="reunion-line">
+    <div class="card">
+      <div class="mini">
+        <svg viewBox="0 0 100 100"><ellipse cx="50" cy="91" rx="26" ry="3.5" fill="rgba(20,23,31,.15)"/><circle cx="50" cy="55" r="28" fill="#1f4fe6" stroke="#14171f" stroke-width="2.5"/><ellipse cx="40" cy="48" rx="3" ry="4" fill="#14171f"/><ellipse cx="60" cy="48" rx="3" ry="4" fill="#14171f"/><path d="M42 62q8 6 16 0" stroke="#14171f" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      </div>
+      <div class="title" id="reunion-title">보고 싶었어!</div>
+      <div class="line" id="reunion-line">오랜만이야~</div>
+      <button type="button" class="btn-close" id="btn-reunion-close">반가워!</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Alive r1 — onboarding + add-word dialogs
+     ============================================================ -->
+<dialog class="modal-wg" id="dlg-onboard" aria-labelledby="dlg-onboard-title">
+  <form method="dialog" id="form-onboard">
+    <div class="modal-head" id="dlg-onboard-title">새 친구 만나기</div>
+    <div class="modal-body">
+      <!-- step 1 -->
+      <div data-step="1">
+        <div class="field"><span>어떤 알을 부화시킬까요?</span></div>
+        <div class="egg-grid" role="radiogroup" aria-label="알 선택">
+          <button type="button" class="egg-pick" data-species="sprout" aria-pressed="false">
+            <span class="egg" style="--c: #dff2e6"></span>초록 새싹
+          </button>
+          <button type="button" class="egg-pick" data-species="ember" aria-pressed="false">
+            <span class="egg" style="--c: #fbe5e7"></span>불씨
+          </button>
+          <button type="button" class="egg-pick" data-species="droplet" aria-pressed="false">
+            <span class="egg" style="--c: #e4eefb"></span>물방울
+          </button>
+        </div>
+        <div class="field-err" id="err-species"></div>
+      </div>
+      <!-- step 2 (hidden initially) -->
+      <div data-step="2" hidden>
+        <label class="field">
+          <span>이름을 지어주세요 (1~10자)</span>
+          <input type="text" id="inp-name" maxlength="10" autocomplete="off" />
+        </label>
+        <div class="field-err" id="err-name"></div>
+      </div>
+      <!-- step 3 -->
+      <div data-step="3" hidden>
+        <div class="field"><span>성격은?</span></div>
+        <div class="personality-grid" role="radiogroup" aria-label="성격 선택">
+          <button type="button" class="per-pick" data-personality="brave"   aria-pressed="false">용감한</button>
+          <button type="button" class="per-pick" data-personality="gentle"  aria-pressed="false">상냥한</button>
+          <button type="button" class="per-pick" data-personality="curious" aria-pressed="false">호기심 많은</button>
+          <button type="button" class="per-pick" data-personality="lazy"    aria-pressed="false">느긋한</button>
+        </div>
+        <div class="field-err" id="err-personality"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-wg" id="btn-onboard-back" hidden>이전</button>
+      <button type="button" class="btn-wg" data-variant="primary" id="btn-onboard-next">다음</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="modal-wg" id="dlg-card-detail" aria-labelledby="cd-title">
+  <form method="dialog">
+    <div class="modal-head" id="cd-title">단어 카드</div>
+    <div class="modal-body">
+      <div class="cd-hero">
+        <span class="stage-icon" id="cd-stage" data-stage="1">
+          <svg><use href="#stage-1"/></svg><span class="num">1</span>
+        </span>
+        <div class="cd-hero-text">
+          <div class="cd-word" id="cd-word">—</div>
+          <div class="cd-meaning"><span class="chip" id="cd-chip" data-t="noun">N</span><span id="cd-meaning">—</span></div>
+        </div>
+      </div>
+      <div class="cd-stats">
+        <div><span class="lbl">정답</span><b id="cd-correct">0</b></div>
+        <div><span class="lbl">오답</span><b id="cd-wrong">0</b></div>
+        <div><span class="lbl">정답률</span><b id="cd-acc">0</b>%</div>
+      </div>
+      <div class="cd-memory" id="cd-memory"></div>
+      <div class="cd-example" id="cd-example"></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-wg" id="btn-cd-close">닫기</button>
+      <button type="button" class="btn-wg" data-variant="primary" id="btn-cd-review">복습하기</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="modal-wg" id="dlg-play-ball" aria-labelledby="ball-title">
+  <form method="dialog">
+    <div class="modal-head" id="ball-title">공놀이 · 철자 맞히기</div>
+    <div class="modal-body">
+      <div class="field"><span>이 뜻의 영단어를 입력하세요</span></div>
+      <div class="ball-meaning" id="ball-meaning">—</div>
+      <label class="field">
+        <span>영어 철자</span>
+        <input type="text" id="ball-input" autocomplete="off" autocapitalize="off" />
+      </label>
+      <div class="field-err" id="err-ball"></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-wg" id="btn-ball-cancel">그만</button>
+      <button type="submit" class="btn-wg" data-variant="primary" id="btn-ball-submit">확인</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="modal-wg" id="dlg-add-word" aria-labelledby="dlg-add-word-title">
+  <form method="dialog" id="form-add-word">
+    <div class="modal-head" id="dlg-add-word-title">단어 추가</div>
+    <div class="modal-body">
+      <label class="field">
+        <span>영어 단어</span>
+        <input type="text" id="aw-word" autocomplete="off" required />
+      </label>
+      <label class="field">
+        <span>뜻</span>
+        <input type="text" id="aw-meaning" autocomplete="off" required />
+      </label>
+      <label class="field">
+        <span>품사</span>
+        <select id="aw-pos" required>
+          <option value="">선택</option>
+          <option value="noun">명사</option>
+          <option value="verb">동사</option>
+          <option value="adj">형용사</option>
+          <option value="adv">부사</option>
+          <option value="prep">전치사</option>
+          <option value="conj">접속사</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>예문 (선택)</span>
+        <input type="text" id="aw-example" autocomplete="off" />
+      </label>
+      <div class="field-err" id="err-add-word"></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-wg" id="btn-add-cancel">취소</button>
+      <button type="submit" class="btn-wg" data-variant="primary" id="btn-add-submit">추가</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const body = document.body;
+
+  function goto(screen, sub) {
+    body.dataset.screen = screen;
+    document.querySelectorAll('.tabbar button').forEach(b => {
+      if (b.dataset.to === screen) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    if (sub) selectSub(screen, sub);
+    document.querySelector('main.app').scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function selectSub(screen, sub) {
+    document.querySelectorAll(`.subnav[data-screen="${screen}"] button`).forEach(b => {
+      const active = b.dataset.sub === sub;
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+      if (active) b.removeAttribute('tabindex');
+      else b.setAttribute('tabindex', '-1');
+    });
+    document.querySelectorAll(`.screen[data-s="${screen}"] .subpane`).forEach(p => {
+      p.classList.toggle('active', p.dataset.sub === sub);
+    });
+  }
+
+  function pickMove(el) {
+    el.closest('.moves').querySelectorAll('.move').forEach(m => {
+      m.setAttribute('aria-checked', m === el ? 'true' : 'false');
+    });
+  }
+
+  function toggleFilter(el) {
+    el.parentElement.querySelectorAll('.filter').forEach(f => {
+      f.setAttribute('aria-pressed', f === el ? 'true' : 'false');
+    });
+  }
+</script>
+
+<script type="module">
+  import { createStore, seed, migrate, KEYS } from './js/state.js';
+  import { addWord } from './js/vocab.js';
+  import {
+    createCreature, tick, interact, moodOf, moodRefined, evolutionProgress,
+    STARTER_SPECIES, PERSONALITIES,
+  } from './js/creature.js';
+  import {
+    playAnim, spawnParticles, animForAction, particleForAction,
+  } from './js/animate.js';
+  import {
+    loadServerWords, saveServerWord, loadServerState, saveServerState, patchWordProgress,
+    loadGrammarQA, submitGrammarQuestion,
+    loadServerTextbooks, loadTextbookWords,
+  } from './js/wawa-bridge.js';
+  import { startQuiz, answer as quizAnswer, finishQuiz, EXP_PER_CORRECT, COIN_PER_CORRECT, HP_MAX } from './js/quiz.js';
+
+  const CREATURE_KEY = 'wg.v1.creature';
+
+  // 부팅 전 서버 state가 있으면 localStorage에 주입 (seed보다 먼저 덮어쓰기)
+  async function hydrateFromServer() {
+    try {
+      const state = await loadServerState();
+      if (!state || typeof state !== 'object') return;
+      const keysToRestore = [
+        ['profile',     KEYS.profile],
+        ['quizHistory', KEYS.quizHistory],
+        ['badges',      KEYS.badges],
+        ['seen',        KEYS.seen],
+      ];
+      for (const [prop, key] of keysToRestore) {
+        if (state[prop] !== undefined) {
+          localStorage.setItem(key, JSON.stringify(state[prop]));
+        }
+      }
+      if (state.creature !== undefined) {
+        if (state.creature === null) localStorage.removeItem(CREATURE_KEY);
+        else localStorage.setItem(CREATURE_KEY, JSON.stringify(state.creature));
+      }
+    } catch (e) { console.warn('[wawa-bridge] hydrateFromServer failed', e); }
+  }
+
+  await hydrateFromServer();
+
+  const rawStore = createStore(localStorage);
+
+  // 현재 전체 상태를 snapshot으로 만들어 서버에 저장 (debounced)
+  function snapshotAndSave() {
+    const state = {
+      profile:     rawStore.get(KEYS.profile),
+      quizHistory: rawStore.get(KEYS.quizHistory),
+      badges:      rawStore.get(KEYS.badges),
+      seen:        rawStore.get(KEYS.seen),
+      creature:    (() => { try { return JSON.parse(localStorage.getItem(CREATURE_KEY)); } catch { return null; } })(),
+    };
+    saveServerState(state);
+  }
+
+  // store.set을 감싸서 변경 시마다 서버 sync
+  const store = {
+    ...rawStore,
+    set(key, value) {
+      rawStore.set(key, value);
+      // words는 개별 POST/PATCH로 관리 — state blob에 포함 X
+      if (key !== KEYS.words && key !== KEYS.schemaVersion) snapshotAndSave();
+    },
+  };
+
+  seed(store);
+  migrate(store);
+
+  loadServerWords().then(serverWords => {
+    if (!Array.isArray(serverWords)) return;
+    const local = rawStore.get(KEYS.words) ?? [];
+    const merged = [...serverWords];
+    for (const w of local) {
+      if (!w?.word) continue;
+      if (!merged.some(s => s.word?.toLowerCase() === w.word.toLowerCase())) merged.push(w);
+    }
+    rawStore.set(KEYS.words, merged);
+    try { renderWordList?.(); } catch {}
+  }).catch(() => {});
+
+  function toast(msg) {
+    const t = document.getElementById('toast-wg');
+    if (!t) return;
+    t.textContent = msg;
+    t.dataset.show = 'true';
+    clearTimeout(toast._h);
+    toast._h = setTimeout(() => { t.dataset.show = 'false'; }, 1800);
+  }
+
+  function readCreature() {
+    try { return JSON.parse(localStorage.getItem(CREATURE_KEY)); } catch { return null; }
+  }
+  function writeCreature(c) {
+    const prev = readCreature();
+    localStorage.setItem(CREATURE_KEY, JSON.stringify(c));
+    snapshotAndSave();
+    document.body.dataset.creature = c ? 'ready' : '';
+    renderVitals();
+    renderEvoPanel();
+    if (prev && c) {
+      const db = (c.bond ?? 0)   - (prev.bond ?? 0);
+      const dh = (c.hunger ?? 0) - (prev.hunger ?? 0);
+      if (Math.abs(db) >= 0.5) spawnDelta('bond', db);
+      if (Math.abs(dh) >= 1)   spawnDelta('hunger', dh);
+    }
+  }
+
+  function spawnDelta(kind, value) {
+    const host = document.getElementById('hud-vitals');
+    if (!host) return;
+    const el = document.createElement('span');
+    el.className = 'delta-float';
+    el.dataset.kind = kind;
+    const sign = value > 0 ? '+' : '';
+    const label = kind === 'bond' ? '♥' : '🍚';
+    el.textContent = `${label}${sign}${value % 1 === 0 ? value : value.toFixed(1)}`;
+    const rect = host.getBoundingClientRect();
+    el.style.left = `${rect.left + (kind === 'bond' ? 10 : 60)}px`;
+    el.style.top  = `${rect.top - 4}px`;
+    el.style.position = 'fixed';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  function renderEvoPanel() {
+    const panel = document.getElementById('evo-panel');
+    if (!panel) return;
+    const c = readCreature();
+    if (!c) { panel.hidden = true; return; }
+    const words = store.get(KEYS.words) ?? [];
+    const prof  = store.get(KEYS.profile) ?? {};
+    const streak = prof.streak ?? 0;
+    const p = evolutionProgress(c, words, streak);
+    if (!p) { panel.hidden = true; return; }
+    panel.hidden = false;
+    panel.classList.toggle('ready', !!p.ready);
+    document.getElementById('evo-stage-label').textContent = `LV ${p.stageFrom} → LV ${p.stageTo}`;
+    document.getElementById('evo-ready-badge').hidden = !p.ready;
+    const setRow = (id, v, max) => {
+      const row = document.getElementById(id);
+      if (!row) return;
+      const pct = max === 0 ? 100 : Math.min(100, Math.round(v / max * 100));
+      row.querySelector('.track i').style.setProperty('--v', pct + '%');
+      row.querySelector('.num').textContent = `${v}/${max}`;
+      row.dataset.done = v >= max ? 'true' : 'false';
+    };
+    setRow('evo-row-bond',  Math.round(p.bond.v), p.bond.max);
+    setRow('evo-row-box5',  p.box5.v, p.box5.max);
+    const streakRow = document.getElementById('evo-row-streak');
+    if (p.streak) {
+      streakRow.hidden = false;
+      setRow('evo-row-streak', p.streak.v, p.streak.max);
+    } else {
+      streakRow.hidden = true;
+    }
+  }
+
+  function renderVitals() {
+    const c = readCreature();
+    if (!c) return;
+    const ticked = tick(c, new Date().toISOString());
+    if (ticked.hunger !== c.hunger) writeCreature(ticked);
+    // Inject vitals badges into HUD once
+    let host = document.getElementById('hud-vitals');
+    if (!host) {
+      const hud = document.querySelector('.hud');
+      if (!hud) return;
+      host = document.createElement('span');
+      host.id = 'hud-vitals';
+      host.style.cssText = 'display:inline-flex;gap:6px;margin-left:6px';
+      hud.appendChild(host);
+    }
+    const cur = readCreature() ?? ticked;
+    const bondPct = Math.round(cur.bond);
+    const hungerPct = Math.round(cur.hunger);
+    const hungerLow = cur.hunger <= 20;
+    const hungerCrit = cur.hunger <= 10;
+    host.innerHTML = `
+      <span class="vitals-badge" title="교감 ${bondPct}">
+        <span>♥</span><span class="bar"><i style="--v:${bondPct}%"></i></span>
+      </span>
+      <span class="vitals-badge" data-low="${hungerLow}" data-crit="${hungerCrit}" title="배부름 ${hungerPct}">
+        <span>🍚</span><span class="bar"><i style="--v:${hungerPct}%"></i></span>
+      </span>
+    `;
+  }
+
+  // ============================================================
+  // Onboarding flow
+  // ============================================================
+  function openOnboard() {
+    const dlg = document.getElementById('dlg-onboard');
+    if (!dlg || dlg.open) return;
+    dlg.dataset.step = '1';
+    dlg.dataset.species = '';
+    dlg.dataset.personality = '';
+    dlg.querySelector('#inp-name').value = '';
+    dlg.querySelectorAll('[data-step]').forEach(s => {
+      s.hidden = s.dataset.step !== '1';
+    });
+    dlg.querySelectorAll('.egg-pick, .per-pick').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    dlg.querySelectorAll('.field-err').forEach(e => e.textContent = '');
+    document.getElementById('btn-onboard-back').hidden = true;
+    document.getElementById('btn-onboard-next').textContent = '다음';
+    dlg.showModal();
+  }
+
+  function onboardGoto(dlg, step) {
+    dlg.dataset.step = String(step);
+    dlg.querySelectorAll('[data-step]').forEach(s => {
+      s.hidden = s.dataset.step !== String(step);
+    });
+    document.getElementById('btn-onboard-back').hidden = step === 1;
+    document.getElementById('btn-onboard-next').textContent = step === 3 ? '완료' : '다음';
+  }
+
+  document.addEventListener('click', (e) => {
+    const egg = e.target.closest('.egg-pick');
+    if (egg) {
+      const dlg = document.getElementById('dlg-onboard');
+      dlg.querySelectorAll('.egg-pick').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      egg.setAttribute('aria-pressed', 'true');
+      dlg.dataset.species = egg.dataset.species;
+      document.getElementById('err-species').textContent = '';
+    }
+    const per = e.target.closest('.per-pick');
+    if (per) {
+      const dlg = document.getElementById('dlg-onboard');
+      dlg.querySelectorAll('.per-pick').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      per.setAttribute('aria-pressed', 'true');
+      dlg.dataset.personality = per.dataset.personality;
+      document.getElementById('err-personality').textContent = '';
+    }
+  });
+
+  document.getElementById('btn-onboard-back')?.addEventListener('click', () => {
+    const dlg = document.getElementById('dlg-onboard');
+    const step = Number(dlg.dataset.step);
+    if (step > 1) onboardGoto(dlg, step - 1);
+  });
+
+  document.getElementById('btn-onboard-next')?.addEventListener('click', () => {
+    const dlg = document.getElementById('dlg-onboard');
+    const step = Number(dlg.dataset.step);
+    if (step === 1) {
+      if (!dlg.dataset.species) {
+        document.getElementById('err-species').textContent = '알을 선택하세요';
+        return;
+      }
+      onboardGoto(dlg, 2);
+      return;
+    }
+    if (step === 2) {
+      const name = dlg.querySelector('#inp-name').value.trim();
+      if (!name) { document.getElementById('err-name').textContent = '이름을 입력하세요'; return; }
+      if (name.length > 10) { document.getElementById('err-name').textContent = '10자 이하로'; return; }
+      dlg.dataset.name = name;
+      onboardGoto(dlg, 3);
+      return;
+    }
+    if (step === 3) {
+      if (!dlg.dataset.personality) {
+        document.getElementById('err-personality').textContent = '성격을 선택하세요';
+        return;
+      }
+      const now = new Date().toISOString();
+      const c = createCreature({
+        speciesKey: dlg.dataset.species,
+        name: dlg.dataset.name,
+        personality: dlg.dataset.personality,
+        now,
+      });
+      writeCreature(c);
+      dlg.close();
+      toast(`${c.name}을(를) 만났어요!`);
+    }
+  });
+
+  // ============================================================
+  // Add-word flow
+  // ============================================================
+  function renderWordList() {
+    const host = document.getElementById('word-list-dyn');
+    if (!host) return;
+    const words = store.get(KEYS.words) ?? [];
+    const userAdded = words.filter(w => !/^w0\d{2}$/.test(w.id)); // seed ids are w001-w012
+    if (userAdded.length === 0) {
+      host.innerHTML = '<div class="empty-words">아직 추가한 단어가 없어요. 아래 + 버튼을 눌러 첫 단어를 추가해보세요.</div>';
+      return;
+    }
+    host.innerHTML = userAdded.map(w => `
+      <button class="word-row" type="button" data-wid="${w.id}">
+        <span class="stage-icon" data-stage="${w.box}">
+          <svg><use href="#stage-${w.box}"/></svg>
+          <span class="num">${w.box}</span>
+        </span>
+        <span class="wr-main">
+          <span class="wr-en">${escapeHtml(w.word)}</span>
+          <span class="wr-ko"><span class="chip" data-t="${w.pos}">${w.pos.toUpperCase()}</span>${escapeHtml(w.meaning)}</span>
+        </span>
+        <span class="wr-right">
+          <span class="wr-hp"><i style="--hp: ${w.box * 20}%"></i></span>
+          <span class="wr-tag">BOX ${w.box}</span>
+        </span>
+      </button>
+    `).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function updateFabVisibility() {
+    const fab = document.getElementById('btn-add-word');
+    if (!fab) return;
+    const mywordsActive = document.querySelector('.screen[data-s="learn"] .subpane[data-sub="mywords"]')?.classList.contains('active');
+    const onLearn = document.body.dataset.screen === 'learn';
+    fab.hidden = !(onLearn && mywordsActive);
+  }
+  // Observe subpane class changes to toggle FAB
+  const learnSection = document.querySelector('.screen[data-s="learn"]');
+  if (learnSection) {
+    const mo = new MutationObserver(updateFabVisibility);
+    learnSection.querySelectorAll('.subpane').forEach(p => mo.observe(p, { attributes: true, attributeFilter: ['class'] }));
+  }
+  // Observe body data-screen
+  new MutationObserver(updateFabVisibility).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+  updateFabVisibility();
+
+  document.getElementById('btn-add-word')?.addEventListener('click', () => {
+    const dlg = document.getElementById('dlg-add-word');
+    dlg.querySelector('#form-add-word').reset();
+    document.getElementById('err-add-word').textContent = '';
+    dlg.showModal();
+    setTimeout(() => dlg.querySelector('#aw-word').focus(), 50);
+  });
+
+  document.getElementById('btn-add-cancel')?.addEventListener('click', () => {
+    document.getElementById('dlg-add-word').close();
+  });
+
+  document.getElementById('form-add-word')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const dlg = document.getElementById('dlg-add-word');
+    const input = {
+      word:    dlg.querySelector('#aw-word').value,
+      meaning: dlg.querySelector('#aw-meaning').value,
+      pos:     dlg.querySelector('#aw-pos').value,
+      example: dlg.querySelector('#aw-example').value,
+    };
+    const words = store.get(KEYS.words) ?? [];
+    const result = addWord(words, input);
+    if (!result.ok) {
+      const msgs = { 'word required': '영어 단어를 입력하세요', 'meaning required': '뜻을 입력하세요', 'invalid pos': '품사를 선택하세요', 'word must be English letters': '영문자만 가능합니다', duplicate: '이미 추가된 단어입니다' };
+      document.getElementById('err-add-word').textContent = msgs[result.error] ?? result.error;
+      return;
+    }
+    store.set(KEYS.words, result.words);
+    saveServerWord(input)
+      .catch(err => toast(`서버 저장 실패: ${err.message}`));
+    // bond +2 on addWord
+    const c = readCreature();
+    if (c) writeCreature(interact(c, 'addWord', new Date().toISOString()));
+    renderWordList();
+    dlg.close();
+    toast(`"${input.word}" 추가됨 · 교감 +2`);
+  });
+
+  // ============================================================
+  // Dex drilldown — LV1 타일 → LV2 그리드 → LV3 상세 모달
+  // ============================================================
+  const POS_LABEL = { noun: '명사', verb: '동사', adj: '형용사', adv: '부사', prep: '전치사', conj: '접속사' };
+  const SEED_ID = /^w0\d{2}$/;
+
+  function unlockState(word, seenIds) {
+    if ((word.box ?? 1) >= 5) return 'unlocked';
+    if (seenIds.has(word.id)) return 'seen';
+    return 'locked';
+  }
+
+  function daysBetween(aISO, bISO) {
+    if (!aISO || !bISO) return null;
+    const ms = new Date(bISO) - new Date(aISO);
+    return Math.floor(ms / 86_400_000);
+  }
+
+  window.openDexType = function openDexType(pos) {
+    const view = document.getElementById('dex-type-view');
+    const typesGrid = document.getElementById('dex-grid-types');
+    const title = document.getElementById('dex-type-title');
+    const grid = document.getElementById('dex-cards-grid');
+    if (!view || !grid) return;
+    view.hidden = false;
+    typesGrid.hidden = true;
+    title.textContent = POS_LABEL[pos] ?? pos;
+    const words = (store.get(KEYS.words) ?? []).filter(w => w.pos === pos);
+    const seenIds = new Set(store.get(KEYS.seen) ?? []);
+    if (words.length === 0) {
+      grid.innerHTML = '<div class="empty-words">이 품사에는 아직 단어가 없어요.</div>';
+      return;
+    }
+    grid.innerHTML = words.map(w => {
+      const state = unlockState(w, seenIds);
+      const face = state === 'locked' ? '???' : escapeHtml(w.word);
+      const meaning = state === 'locked' ? '' : escapeHtml(w.meaning);
+      return `
+        <button class="dex-card" type="button" data-state="${state}" data-wid="${w.id}" ${state==='locked'?'aria-label="잠김"':''}>
+          <span class="dc-face"><span>${face}</span><small style="display:block;font:500 10px/1.2 var(--body);color:var(--ink-3);margin-top:4px">${meaning}</small></span>
+          <span class="dc-foot"><span>${w.pos.toUpperCase()}</span><span class="box">BOX ${w.box}</span></span>
+        </button>
+      `;
+    }).join('');
+    grid.querySelectorAll('.dex-card').forEach(el => {
+      el.addEventListener('click', () => {
+        if (el.dataset.state === 'locked') {
+          toast('Box 5에 도달하면 해금!');
+          return;
+        }
+        openCardDetail(el.dataset.wid);
+      });
+    });
+  };
+
+  document.getElementById('btn-dex-back')?.addEventListener('click', () => {
+    document.getElementById('dex-type-view').hidden = true;
+    document.getElementById('dex-grid-types').hidden = false;
+  });
+
+  function openCardDetail(wordId) {
+    const words = store.get(KEYS.words) ?? [];
+    const w = words.find(x => x.id === wordId);
+    if (!w) return;
+    const history = store.get(KEYS.quizHistory) ?? [];
+    const wh = history.filter(h => h.wordId === wordId);
+    const correct = wh.filter(h => h.correct).length;
+    const wrong = wh.length - correct;
+    const acc = wh.length === 0 ? 0 : Math.round(correct / wh.length * 100);
+
+    document.getElementById('cd-word').textContent = w.word;
+    document.getElementById('cd-meaning').textContent = w.meaning;
+    const chip = document.getElementById('cd-chip');
+    chip.dataset.t = w.pos;
+    chip.textContent = w.pos.toUpperCase();
+    const stageEl = document.getElementById('cd-stage');
+    stageEl.dataset.stage = String(w.box);
+    stageEl.innerHTML = `<svg><use href="#stage-${w.box}"/></svg><span class="num">${w.box}</span>`;
+    document.getElementById('cd-correct').textContent = String(correct);
+    document.getElementById('cd-wrong').textContent = String(wrong);
+    document.getElementById('cd-acc').textContent = String(acc);
+
+    const mem = document.getElementById('cd-memory');
+    const ago = daysBetween(w.addedAt, new Date().toISOString());
+    mem.textContent = w.addedAt
+      ? (ago === 0 ? '오늘 처음 만났어요!' : ago === 1 ? '어제 처음 만났어요' : `${ago}일 전 처음 만났어요`)
+      : '기억이 희미해요…';
+
+    const ex = document.getElementById('cd-example');
+    ex.textContent = w.example ? `"${w.example}"` : '';
+
+    const dlg = document.getElementById('dlg-card-detail');
+    dlg.showModal();
+  }
+
+  document.getElementById('btn-cd-close')?.addEventListener('click', () => {
+    document.getElementById('dlg-card-detail').close();
+  });
+  document.getElementById('btn-cd-review')?.addEventListener('click', () => {
+    document.getElementById('dlg-card-detail').close();
+    goto('learn', 'quiz');
+  });
+
+  // ============================================================
+  // Playroom wiring
+  // ============================================================
+  const COOLDOWN_KEY = (kind) => `wg.v1.cooldown.${kind}`;
+
+  function readCooldown(kind) { return localStorage.getItem(COOLDOWN_KEY(kind)); }
+  function writeCooldown(kind, iso) { localStorage.setItem(COOLDOWN_KEY(kind), iso); }
+
+  async function importPlay() {
+    return await import('./js/play.js');
+  }
+
+  let playModule = null;
+  importPlay().then(m => { playModule = m; refreshPlayroom(); });
+
+  function refreshPlayroom() {
+    if (document.body.dataset.screen !== 'playroom') return;
+    const c = readCreature();
+    if (!c) return;
+    const now = new Date().toISOString();
+    const refined = moodRefined(c, now);
+    // mood stance on mascot — coarse (kept for existing CSS) + refined (new detail)
+    const mascot = document.getElementById('btn-mascot-tap');
+    if (mascot) {
+      mascot.dataset.mood = c.mood ?? 'neutral';
+      mascot.dataset.moodRefined = refined;
+    }
+    // vitals badges
+    const host = document.getElementById('pr-vitals');
+    if (host) {
+      const bondPct = Math.round(c.bond);
+      const hungerPct = Math.round(c.hunger);
+      host.innerHTML = `
+        <span class="vitals-badge"><span>♥</span><span class="bar"><i style="--v:${bondPct}%"></i></span></span>
+        <span class="vitals-badge" data-low="${c.hunger<=20}" data-crit="${c.hunger<=10}"><span>🍚</span><span class="bar"><i style="--v:${hungerPct}%"></i></span></span>
+      `;
+    }
+    // speech — prefer personality-flavored idle line where available.
+    if (playModule) {
+      const bub = document.getElementById('mascot-speech');
+      if (bub) {
+        const seed = Math.floor(Date.now() / 10000);
+        const idleEvent = refined === 'hungry' ? 'feed'
+                        : refined === 'sad'    ? 'reunion'
+                        : refined === 'bored'  ? 'pet'
+                        : null;
+        bub.textContent = idleEvent
+          ? playModule.lineFor(c.personality, idleEvent, refined, seed)
+          : playModule.speechFor(refined, seed);
+      }
+    }
+    // button cooldowns
+    refreshPlayButtonStates(now);
+  }
+
+  function refreshPlayButtonStates(nowISO) {
+    if (!playModule) return;
+    const now = nowISO ?? new Date().toISOString();
+    const c = readCreature();
+    document.querySelectorAll('.play-btn').forEach(btn => {
+      const kind = btn.dataset.kind;
+      const last = readCooldown(kind);
+      const ok = playModule.canDo(kind, last, now);
+      let extraDisabled = false;
+      if (kind === 'feed' && c && (c.hunger ?? 0) >= (playModule.FEED_FULL ?? 70)) extraDisabled = true;
+      btn.disabled = !ok || extraDisabled;
+      const cd = btn.querySelector('.pb-cd');
+      if (cd) {
+        const rem = playModule.remainingMs(kind, last, now);
+        if (rem > 0) cd.textContent = rem >= 60000 ? `${Math.ceil(rem/60000)}m` : `${Math.ceil(rem/1000)}s`;
+        else if (extraDisabled) cd.textContent = '배부름';
+        else cd.textContent = '';
+      }
+    });
+  }
+
+  function handlePlayAction(kind) {
+    if (!playModule) return;
+    const c = readCreature();
+    if (!c) return;
+    const now = new Date().toISOString();
+    const last = readCooldown(kind);
+    if (!playModule.canDo(kind, last, now)) {
+      toast('조금 쉬어야 해요');
+      return;
+    }
+    const r = playModule.performAction(c, kind, now);
+    if (r.error) {
+      const mascotEl = document.getElementById('btn-mascot-tap');
+      const anim = animForAction(kind, r);
+      if (mascotEl && anim) playAnim(mascotEl, anim);
+      if (r.error === 'not hungry') toast(r.speech ?? '배 안 고파요');
+      else toast('지금은 못 해요');
+      return;
+    }
+    writeCreature(r.creature);
+    writeCooldown(kind, now);
+    const bub = document.getElementById('mascot-speech');
+    if (bub) {
+      const eventKey = kind === 'tap' ? 'pet' : kind; // tap ~= pet
+      const refined2 = moodRefined(r.creature, now);
+      bub.textContent = playModule.lineFor(r.creature.personality, eventKey, refined2, Date.now()) || r.speech || '';
+    }
+    // animation + particles
+    const mascot = document.getElementById('btn-mascot-tap');
+    const layer = document.getElementById('particle-layer');
+    const anim = animForAction(kind, r);
+    if (mascot && anim) playAnim(mascot, anim);
+    const particle = particleForAction(kind);
+    if (layer && particle) {
+      spawnParticles(layer, particle.kind, { count: particle.count, spread: particle.spread });
+    }
+    refreshPlayroom();
+    const parts = [];
+    if (r.reward?.bond) parts.push(`교감 +${r.reward.bond}`);
+    if (r.reward?.hunger) parts.push(`배부름 +${r.reward.hunger}`);
+    if (r.reward?.exp) parts.push(`EXP +${r.reward.exp}`);
+    if (parts.length) toast(parts.join(' · '));
+  }
+
+  // mascot tap → bond +0.5 (uses tap cooldown via creature module's INTERACTION_EFFECTS)
+  document.getElementById('btn-mascot-tap')?.addEventListener('click', () => {
+    handlePlayAction('tap');
+  });
+
+  // play buttons
+  document.querySelectorAll('.play-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kind = btn.dataset.kind;
+      if (kind === 'ball') openBallGame();
+      else handlePlayAction(kind);
+    });
+  });
+
+  // ball minigame
+  function openBallGame() {
+    const now = new Date().toISOString();
+    const last = readCooldown('ball');
+    if (playModule && !playModule.canDo('ball', last, now)) {
+      toast('공놀이는 잠시 후에');
+      return;
+    }
+    const words = (store.get(KEYS.words) ?? []).filter(w => (w.box ?? 1) >= 3);
+    if (words.length === 0) {
+      toast('아직 익숙한 단어가 없어요');
+      return;
+    }
+    const pick = words[Math.floor(Math.random() * words.length)];
+    const dlg = document.getElementById('dlg-play-ball');
+    dlg.dataset.answer = pick.word;
+    document.getElementById('ball-meaning').textContent = pick.meaning;
+    document.getElementById('ball-input').value = '';
+    document.getElementById('err-ball').textContent = '';
+    dlg.showModal();
+    setTimeout(() => document.getElementById('ball-input').focus(), 50);
+  }
+
+  document.getElementById('btn-ball-cancel')?.addEventListener('click', () => {
+    document.getElementById('dlg-play-ball').close();
+  });
+  document.getElementById('dlg-play-ball')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const dlg = document.getElementById('dlg-play-ball');
+    const ans = dlg.dataset.answer?.toLowerCase();
+    const got = document.getElementById('ball-input').value.trim().toLowerCase();
+    const correct = got === ans;
+    const c = readCreature();
+    const now = new Date().toISOString();
+    if (!playModule || !c) return;
+    const r = playModule.performAction(c, correct ? 'ball:correct' : 'ball', now);
+    if (r.creature) {
+      writeCreature(r.creature);
+      writeCooldown('ball', now);
+    }
+    dlg.close();
+    // animation + particles based on ball outcome
+    const mascot = document.getElementById('btn-mascot-tap');
+    const layer = document.getElementById('particle-layer');
+    const ballKind = correct ? 'ball:correct' : 'ball:wrong';
+    const anim = animForAction(ballKind, r);
+    if (mascot && anim) playAnim(mascot, anim);
+    const particle = particleForAction(ballKind);
+    if (layer && particle) {
+      spawnParticles(layer, particle.kind, { count: particle.count, spread: particle.spread });
+    }
+    refreshPlayroom();
+    toast(correct ? `정답! "${ans}" · 교감 +2` : `정답은 "${ans}" · 교감 +0.5`);
+  });
+
+  // ============================================================
+  // 문법 Q&A — 서버 연동
+  // ============================================================
+  function relTime(iso) {
+    if (!iso) return '';
+    const t = new Date(iso).getTime();
+    if (Number.isNaN(t)) return '';
+    const diff = Date.now() - t;
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return '방금';
+    if (m < 60) return `${m}분 전`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}시간 전`;
+    const d = Math.floor(h / 24);
+    if (d < 7) return `${d}일 전`;
+    return new Date(iso).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+  }
+
+  function qaItemHtml(row, { showSource }) {
+    const answered = row.status === 'answered' && row.answer;
+    const statusLabel = answered ? '답변됨' : '대기중';
+    const statusClass = answered ? 'answered' : 'pending';
+    const source = row.answered_by === 'ai' ? 'AI 튜터'
+                 : row.answered_by === 'teacher' ? '멘토 · 선생님'
+                 : '';
+    return `
+      <div class="q-item">
+        <div class="q-top">
+          <span class="q-status ${statusClass}">${escapeHtml(statusLabel)}</span>
+          <span class="q-time">${escapeHtml(relTime(row.created_at))}</span>
+        </div>
+        <div class="q-text">${escapeHtml(row.question || '')}</div>
+        ${answered ? `
+          <div class="q-answer">
+            ${showSource && source ? `<span class="src">${escapeHtml(source)}</span>` : ''}
+            ${escapeHtml(row.answer)}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  let _qaLoaded = false;
+  async function loadGrammarPanel() {
+    const mineList = document.getElementById('qa-mine-list');
+    const sharedList = document.getElementById('qa-shared-list');
+    if (!mineList || !sharedList) return;
+    const student = (() => { try { return JSON.parse(localStorage.getItem('play_student') || 'null'); } catch { return null; } })();
+    const myId = student?.id;
+    let rows = [];
+    try { rows = await loadGrammarQA(); } catch (e) { console.warn('[grammar] load failed', e); }
+    const mine = rows.filter(r => myId && r.student_id === myId);
+    const shared = rows.filter(r => !myId || r.student_id !== myId);
+    mineList.innerHTML = mine.map(r => qaItemHtml(r, { showSource: true })).join('');
+    sharedList.innerHTML = shared.map(r => qaItemHtml(r, { showSource: false })).join('');
+    document.getElementById('qa-mine-count').textContent = `전체 ${mine.length}건`;
+    document.getElementById('qa-shared-count').textContent = `전체 ${shared.length}건`;
+    document.getElementById('qa-mine-empty').style.display = mine.length === 0 ? '' : 'none';
+    _qaLoaded = true;
+  }
+
+  const askInput = document.getElementById('ask-input');
+  const askCount = document.getElementById('ask-count');
+  askInput?.addEventListener('input', () => {
+    askCount.textContent = `${askInput.value.length} / 500`;
+  });
+  document.getElementById('btn-ask-submit')?.addEventListener('click', async () => {
+    const q = askInput.value.trim();
+    if (!q) { toast('질문을 입력해주세요'); return; }
+    try {
+      await submitGrammarQuestion(q);
+      askInput.value = '';
+      askCount.textContent = '0 / 500';
+      toast('질문을 올렸어요. 답변을 기다려주세요');
+      await loadGrammarPanel();
+    } catch (e) {
+      toast('질문 전송 실패 — 다시 시도해주세요');
+      console.warn('[grammar] submit failed', e);
+    }
+  });
+
+  // ============================================================
+  // 교재 — 서버 연동
+  // ============================================================
+  let _textbooks = [];
+  let _activeTextbookId = null;
+  let _tbLoaded = false;
+
+  function posKey(pos) {
+    const p = (pos || '').toLowerCase();
+    if (['noun','verb','adj','adv','prep','conj'].includes(p)) return p;
+    return 'noun';
+  }
+
+  function renderTextbookUnits() {
+    const host = document.getElementById('tb-units');
+    if (!host) return;
+    if (_textbooks.length === 0) {
+      host.innerHTML = '';
+      document.getElementById('tb-empty').style.display = '';
+      document.getElementById('tb-unit-header').style.display = 'none';
+      document.getElementById('tb-word-list').innerHTML = '';
+      return;
+    }
+    document.getElementById('tb-empty').style.display = 'none';
+    host.innerHTML = _textbooks.map((b, i) => {
+      const pressed = b.id === _activeTextbookId ? 'true' : 'false';
+      const label = b.title || `${b.grade ?? ''} ${b.semester ? b.semester + '학기' : ''}`.trim() || `교재 ${i + 1}`;
+      const sub = [b.school, b.grade].filter(Boolean).join(' · ');
+      return `
+        <button class="unit" aria-pressed="${pressed}" data-tb="${escapeHtml(b.id)}">
+          <div class="u-n">${escapeHtml(label)}</div>
+          <div class="u-t">${escapeHtml(sub)}</div>
+          <div class="u-bar"><i style="--p: 0%"></i></div>
+        </button>
+      `;
+    }).join('');
+    host.querySelectorAll('.unit').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        _activeTextbookId = btn.dataset.tb;
+        renderTextbookUnits();
+        await renderTextbookWords();
+      });
+    });
+  }
+
+  async function renderTextbookWords() {
+    const list = document.getElementById('tb-word-list');
+    const header = document.getElementById('tb-unit-header');
+    if (!list || !header) return;
+    if (!_activeTextbookId) { list.innerHTML = ''; header.style.display = 'none'; return; }
+    const book = _textbooks.find(b => b.id === _activeTextbookId);
+    let words = [];
+    try { words = await loadTextbookWords(_activeTextbookId); } catch (e) { console.warn('[textbook] load words failed', e); }
+    header.style.display = 'flex';
+    document.getElementById('tb-unit-title').textContent = book?.title || '교재';
+    document.getElementById('tb-unit-count').textContent = `${words.length}개`;
+    list.innerHTML = words.map(w => {
+      const pos = posKey(w.pos);
+      const unit = w.unit ? `Unit ${escapeHtml(String(w.unit))}` : '';
+      return `
+        <button class="word-row" type="button">
+          <span class="stage-icon" data-stage="1" style="color: var(--t-${pos})">
+            <svg><use href="#stage-1"/></svg>
+            <span class="num">·</span>
+          </span>
+          <span class="wr-main">
+            <span class="wr-en">${escapeHtml(w.english || '')}</span>
+            <span class="wr-ko"><span class="chip" data-t="${pos}">${pos.toUpperCase()}</span>${escapeHtml(w.korean || '')}</span>
+          </span>
+          <span class="wr-right">
+            <span class="wr-tag" style="color: var(--ink-3)">${escapeHtml(unit)}</span>
+          </span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  async function loadTextbookPanel() {
+    try { _textbooks = await loadServerTextbooks(); } catch (e) { _textbooks = []; console.warn('[textbook] load failed', e); }
+    if (_textbooks.length > 0 && !_activeTextbookId) _activeTextbookId = _textbooks[0].id;
+    renderTextbookUnits();
+    await renderTextbookWords();
+    _tbLoaded = true;
+  }
+
+  // 탭 진입 시 lazy-load (중복 호출 없음)
+  function maybeLoadPanels() {
+    const s = document.body.dataset.screen;
+    if (s === 'practice' && !_qaLoaded) loadGrammarPanel();
+    if (s === 'learn') {
+      const textbookActive = document.querySelector('.screen[data-s="learn"] .subpane[data-sub="textbook"]')?.classList.contains('active');
+      if (textbookActive && !_tbLoaded) loadTextbookPanel();
+    }
+  }
+
+  // Update playroom when entering
+  new MutationObserver(() => {
+    if (document.body.dataset.screen === 'playroom') refreshPlayroom();
+    maybeLoadPanels();
+  }).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+
+  // 교재 탭 클릭 시에도 로드
+  document.getElementById('tab-learn-textbook')?.addEventListener('click', () => {
+    if (!_tbLoaded) loadTextbookPanel();
+  });
+
+  // Tick cooldowns every second while in playroom
+  setInterval(() => {
+    if (document.body.dataset.screen === 'playroom' && playModule) {
+      refreshPlayButtonStates();
+    }
+  }, 1000);
+
+  // ============================================================
+  // Bootstrap
+  // ============================================================
+  (function bootstrap() {
+    renderWordList();
+    const c = readCreature();
+    if (!c) {
+      openOnboard();
+    } else {
+      document.body.dataset.creature = 'ready';
+      renderVitals();
+      renderEvoPanel();
+      maybeShowReunion(c);
+    }
+    // dailyVisit interaction once per day
+    const today = new Date().toISOString().slice(0, 10);
+    const lastVisit = localStorage.getItem('wg.v1.lastVisitDate');
+    if (c && lastVisit !== today) {
+      writeCreature(interact(c, 'dailyVisit', new Date().toISOString()));
+      localStorage.setItem('wg.v1.lastVisitDate', today);
+    }
+  })();
+
+  // Reunion overlay — shown if idle >= 12h since last interaction.
+  function maybeShowReunion(c) {
+    if (!c?.lastInteractionAt) return;
+    const idleH = (Date.now() - new Date(c.lastInteractionAt).getTime()) / 3600000;
+    if (idleH < 12) return;
+    const el = document.getElementById('reunion');
+    if (!el) return;
+    const hours = Math.floor(idleH);
+    const days  = Math.floor(idleH / 24);
+    const when = days >= 1 ? `${days}일 만이야` : `${hours}시간 만이야`;
+    const title = el.querySelector('.title');
+    const line  = el.querySelector('.line');
+    // Try personality-flavored reunion line async (play.js loads dynamically).
+    import('./js/play.js').then(m => {
+      const speech = m.lineFor(c.personality, 'reunion', moodRefined(c, new Date().toISOString()), Date.now());
+      if (title) title.textContent = speech || '보고 싶었어!';
+    }).catch(() => {});
+    if (line) line.textContent = `${c.name ?? '친구'}야, ${when}`;
+    el.hidden = false;
+  }
+  document.getElementById('btn-reunion-close')?.addEventListener('click', () => {
+    const el = document.getElementById('reunion');
+    if (el) el.hidden = true;
+    const c = readCreature();
+    if (c) writeCreature(interact(c, 'dailyVisit', new Date().toISOString()));
+  });
+  // Re-render evo panel when navigating back to home.
+  new MutationObserver(() => {
+    if (document.body.dataset.screen === 'home') renderEvoPanel();
+  }).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+
+  // ============================================================
+  // Quiz wiring — quiz.js 엔진과 실제 단어로 세션 진행
+  // ============================================================
+  const POS_TAG = { noun: 'NOUN', verb: 'VERB', adj: 'ADJ', adv: 'ADV', prep: 'PREP', conj: 'CONJ' };
+  let quizSession = null;
+  let quizPick = null;   // 선택한 choice index (확인 누르기 전)
+  let quizLocked = false; // 정답 공개 후 다음 질문까지 잠시 잠금
+
+  function hpLevel(hp) {
+    if (hp >= 3) return 'high';
+    if (hp === 2) return 'mid';
+    return 'low';
+  }
+
+  function renderQuizQuestion() {
+    if (!quizSession || quizSession.finished) return;
+    const q = quizSession.questions[quizSession.index];
+    const words = store.get(KEYS.words) ?? [];
+    const target = words.find(w => w.id === q.wordId) ?? { box: 1, pos: 'noun' };
+    const pos = target.pos ?? 'noun';
+
+    // enemy plate
+    const nameEl = document.getElementById('quiz-enemy-name');
+    const boxEl = document.getElementById('quiz-enemy-box');
+    const chipEl = document.getElementById('quiz-enemy-chip');
+    const hpBar = document.getElementById('quiz-enemy-hp');
+    const hpVal = document.getElementById('quiz-enemy-hp-val');
+    if (nameEl) nameEl.textContent = q.prompt;
+    if (boxEl) boxEl.textContent = String(target.box ?? 1);
+    if (chipEl) { chipEl.dataset.t = pos; chipEl.textContent = POS_TAG[pos] ?? pos.toUpperCase(); }
+    if (hpBar) {
+      hpBar.style.setProperty('--hp', `${Math.max(0, quizSession.hp) / HP_MAX * 100}%`);
+      hpBar.dataset.level = hpLevel(quizSession.hp);
+    }
+    if (hpVal) hpVal.textContent = `HP ${Math.max(0, quizSession.hp)}/${HP_MAX}`;
+
+    // stage word
+    const stageWord = document.getElementById('quiz-stage-word');
+    if (stageWord) stageWord.textContent = q.prompt;
+
+    // choices
+    const moves = document.getElementById('quiz-moves');
+    if (moves) {
+      moves.querySelectorAll('.move').forEach((btn, i) => {
+        const txt = btn.querySelector('.move-text');
+        if (txt) txt.textContent = q.choices[i] ?? '';
+        btn.setAttribute('aria-checked', 'false');
+        btn.classList.remove('is-correct', 'is-wrong');
+        btn.disabled = false;
+      });
+    }
+
+    // progress
+    const total = quizSession.questions.length;
+    const done = quizSession.index;
+    const bar = document.getElementById('quiz-progress-bar');
+    const val = document.getElementById('quiz-progress-val');
+    if (bar) bar.style.setProperty('--p', `${total ? (done / total) * 100 : 0}%`);
+    if (val) val.textContent = `${done} / ${total} · 정답 ${quizSession.correct}`;
+
+    const confirmBtn = document.getElementById('btn-quiz-confirm');
+    if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = '확인'; }
+    quizPick = null;
+    quizLocked = false;
+  }
+
+  function startNewQuizSession() {
+    const words = (store.get(KEYS.words) ?? []).filter(w => w?.id && w?.word && w?.meaning);
+    const battle = document.getElementById('quiz-battle');
+    const empty = document.getElementById('quiz-empty');
+    const result = document.getElementById('quiz-result');
+    if (result) result.style.display = 'none';
+    if (words.length < 2) {
+      if (battle) battle.style.display = 'none';
+      if (empty) empty.style.display = '';
+      quizSession = null;
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    if (battle) battle.style.display = '';
+    try {
+      quizSession = startQuiz(words);
+      renderQuizQuestion();
+    } catch (e) {
+      console.warn('[quiz] startQuiz failed', e);
+      if (battle) battle.style.display = 'none';
+      if (empty) empty.style.display = '';
+    }
+  }
+
+  function finishAndShowResult() {
+    const allWords = store.get(KEYS.words) ?? [];
+    const res = finishQuiz(quizSession, allWords);
+
+    // 변경된 단어 찾아 서버 patch + 로컬 store 업데이트
+    const prevById = new Map(allWords.map(w => [w.id, w]));
+    const reviewCounts = new Map();
+    for (const r of quizSession.results) {
+      reviewCounts.set(r.wordId, (reviewCounts.get(r.wordId) ?? 0) + 1);
+    }
+    for (const w of res.updatedWords) {
+      const prev = prevById.get(w.id);
+      if (!prev) continue;
+      const patch = {};
+      if (prev.box !== w.box) patch.box = w.box;
+      if ((prev.wrongCount ?? 0) !== (w.wrongCount ?? 0)) patch.wrongCount = w.wrongCount ?? 0;
+      const rd = reviewCounts.get(w.id) ?? 0;
+      if (rd > 0) patch.reviewDelta = rd;
+      if (Object.keys(patch).length === 0) continue;
+      // 서버 id(vw_*)만 patch — seed(w0*)는 skip
+      if (String(w.id).startsWith('vw')) {
+        patchWordProgress(w.id, patch).catch(() => {});
+      }
+    }
+
+    store.set(KEYS.words, res.updatedWords);
+
+    // quiz history 누적 (per-word)
+    const history = store.get(KEYS.quizHistory) ?? [];
+    for (const r of quizSession.results) {
+      history.push({
+        wordId: r.wordId,
+        correct: r.correct,
+        date: res.historyEntry.date,
+      });
+    }
+    store.set(KEYS.quizHistory, history);
+
+    // seen ids — 퀴즈로 마주친 단어는 도감(dex)에서 해금
+    const seen = new Set(store.get(KEYS.seen) ?? []);
+    for (const r of quizSession.results) seen.add(r.wordId);
+    store.set(KEYS.seen, [...seen]);
+
+    // exp / coin
+    const profile = store.get(KEYS.profile) ?? { lv: 1, exp: 0, coin: 0, streak: 0, lastActiveDate: null };
+    profile.exp = (profile.exp ?? 0) + res.expGained;
+    profile.coin = (profile.coin ?? 0) + res.coinGained;
+    profile.lastActiveDate = res.historyEntry.date;
+    store.set(KEYS.profile, profile);
+
+    // 교감: 퀴즈 완료 시 bond+
+    const c = readCreature();
+    if (c) writeCreature(interact(c, 'answer', new Date().toISOString()));
+
+    // 결과 패널
+    const battle = document.getElementById('quiz-battle');
+    const result = document.getElementById('quiz-result');
+    const title = document.getElementById('quiz-result-title');
+    const sub = document.getElementById('quiz-result-sub');
+    if (battle) battle.style.display = 'none';
+    if (result) result.style.display = '';
+    if (title) title.textContent = `${res.correct} / ${res.total} 정답`;
+    if (sub) sub.textContent = `EXP +${res.expGained} · 코인 +${res.coinGained}`;
+
+    renderWordList();
+    quizSession = null;
+  }
+
+  function commitQuizAnswer() {
+    if (!quizSession || quizSession.finished) return;
+    if (quizPick === null || quizLocked) return;
+    const q = quizSession.questions[quizSession.index];
+    const correct = quizPick === q.correctIndex;
+    quizSession = quizAnswer(quizSession, quizPick);
+    quizLocked = true;
+
+    // 정답/오답 피드백
+    const moves = document.getElementById('quiz-moves');
+    if (moves) {
+      moves.querySelectorAll('.move').forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === q.correctIndex) btn.classList.add('is-correct');
+        else if (i === quizPick) btn.classList.add('is-wrong');
+      });
+    }
+    const confirmBtn = document.getElementById('btn-quiz-confirm');
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = quizSession.finished ? '결과 보기' : '다음 문제';
+    }
+    toast(correct ? '정답!' : '아쉽다…');
+  }
+
+  function nextQuizStep() {
+    if (!quizSession) return;
+    if (!quizLocked) return; // 아직 답 제출 안 했으면 commit 먼저
+    if (quizSession.finished) {
+      finishAndShowResult();
+    } else {
+      renderQuizQuestion();
+    }
+  }
+
+  // 선택 클릭
+  document.getElementById('quiz-moves')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.move');
+    if (!btn || btn.disabled) return;
+    if (!quizSession || quizSession.finished || quizLocked) return;
+    const i = Number(btn.dataset.i);
+    if (!Number.isInteger(i)) return;
+    quizPick = i;
+    document.querySelectorAll('#quiz-moves .move').forEach(m => {
+      m.setAttribute('aria-checked', m === btn ? 'true' : 'false');
+    });
+    const confirmBtn = document.getElementById('btn-quiz-confirm');
+    if (confirmBtn) confirmBtn.disabled = false;
+  });
+
+  // 확인 버튼
+  document.getElementById('btn-quiz-confirm')?.addEventListener('click', () => {
+    if (!quizSession) return;
+    if (quizLocked) nextQuizStep();
+    else commitQuizAnswer();
+  });
+
+  // 결과 화면 버튼
+  document.getElementById('btn-quiz-retry')?.addEventListener('click', () => { startNewQuizSession(); });
+  document.getElementById('btn-quiz-done')?.addEventListener('click', () => {
+    document.getElementById('quiz-result').style.display = 'none';
+    document.getElementById('quiz-battle').style.display = '';
+    goto('learn', 'mywords');
+  });
+
+  // 키보드 1/2/3/4 + Enter
+  document.addEventListener('keydown', (e) => {
+    if (document.body.dataset.screen !== 'learn') return;
+    const quizPane = document.getElementById('pane-learn-quiz');
+    if (!quizPane?.classList.contains('active')) return;
+    if (e.target && /^(input|textarea|select)$/i.test(e.target.tagName)) return;
+    if (['1','2','3','4'].includes(e.key)) {
+      const idx = Number(e.key) - 1;
+      const btn = document.querySelector(`#quiz-moves .move[data-i="${idx}"]`);
+      if (btn && !btn.disabled) btn.click();
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      const btn = document.getElementById('btn-quiz-confirm');
+      if (btn && !btn.disabled) btn.click();
+      e.preventDefault();
+    }
+  });
+
+  // 퀴즈 탭 진입 시 세션 초기화 (이미 세션 있으면 유지)
+  function maybeStartQuiz() {
+    if (document.body.dataset.screen !== 'learn') return;
+    const pane = document.getElementById('pane-learn-quiz');
+    if (!pane?.classList.contains('active')) return;
+    if (!quizSession) startNewQuizSession();
+  }
+  new MutationObserver(maybeStartQuiz).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+  document.querySelectorAll('.screen[data-s="learn"] .subpane').forEach(p => {
+    new MutationObserver(maybeStartQuiz).observe(p, { attributes: true, attributeFilter: ['class'] });
+  });
+  // 초기 부팅 시 현재 탭이 learn/quiz면 바로 시작
+  queueMicrotask(maybeStartQuiz);
+
+  // Expose minimal API for E2E tests
+  window.__wg = { readCreature, writeCreature, renderWordList, store, KEYS, refreshPlayroom, openCardDetail };
+</script>
+
+</body>
+</html>

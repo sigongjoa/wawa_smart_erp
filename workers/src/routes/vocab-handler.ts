@@ -1,0 +1,647 @@
+/**
+ * Vocab Gacha 교사용 핸들러 (JWT)
+ * 단어 CRUD + 문법 Q&A + Gemini AI 답변 + 가중치 출제 + 채점
+ */
+import { RequestContext } from '@/types';
+import { requireAuth, requireRole } from '@/middleware/auth';
+import { getAcademyId, getUserId } from '@/utils/context';
+import { generatePrefixedId } from '@/utils/id';
+import { executeQuery, executeFirst, executeInsert, executeUpdate, executeDelete } from '@/utils/db';
+import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
+import { handleRouteError } from '@/utils/error-handler';
+import { logger } from '@/utils/logger';
+
+// ── 단어 CRUD ──
+
+async function handleGetWords(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const url = new URL(request.url);
+  const studentId = url.searchParams.get('student_id');
+  const status = url.searchParams.get('status');
+
+  let query = 'SELECT * FROM vocab_words WHERE academy_id = ?';
+  const params: unknown[] = [academyId];
+
+  if (studentId) {
+    query += ' AND student_id = ?';
+    params.push(studentId);
+  }
+  if (status) {
+    query += ' AND status = ?';
+    params.push(status);
+  }
+  query += ' ORDER BY created_at DESC LIMIT 500';
+
+  const words = await executeQuery<any>(context.env.DB, query, params);
+  return successResponse(words);
+}
+
+async function handleCreateWord(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const body = await request.json() as any;
+  const academyId = getAcademyId(context);
+
+  if (!body.student_id || !body.english?.trim() || !body.korean?.trim()) {
+    return errorResponse('입력 검증 오류: student_id, english, korean은 필수입니다', 400);
+  }
+
+  // 학생 검증 (학원 내)
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+    [body.student_id, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
+  const id = generatePrefixedId('vw');
+  const blankType = ['korean', 'english', 'both'].includes(body.blank_type) ? body.blank_type : 'korean';
+
+  await executeInsert(
+    context.env.DB,
+    `INSERT INTO vocab_words (id, academy_id, student_id, english, korean, blank_type, status, added_by)
+     VALUES (?, ?, ?, ?, ?, ?, 'approved', 'teacher')`,
+    [id, academyId, body.student_id, body.english.trim(), body.korean.trim(), blankType]
+  );
+
+  return successResponse({ id }, 201);
+}
+
+async function handleUpdateWord(request: Request, context: RequestContext, id: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const word = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_words WHERE id = ? AND academy_id = ?',
+    [id, academyId]
+  );
+  if (!word) return errorResponse('단어를 찾을 수 없습니다', 404);
+
+  const body = await request.json() as any;
+  const sets: string[] = [];
+  const params: unknown[] = [];
+
+  for (const f of ['english', 'korean', 'blank_type', 'status', 'box']) {
+    if (body[f] !== undefined) {
+      sets.push(`${f} = ?`);
+      params.push(body[f]);
+    }
+  }
+  if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+
+  sets.push("updated_at = datetime('now')");
+  params.push(id);
+  await executeUpdate(context.env.DB, `UPDATE vocab_words SET ${sets.join(', ')} WHERE id = ?`, params);
+  return successResponse({ id, updated: true });
+}
+
+async function handleDeleteWord(context: RequestContext, id: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const word = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_words WHERE id = ? AND academy_id = ?',
+    [id, academyId]
+  );
+  if (!word) return errorResponse('단어를 찾을 수 없습니다', 404);
+
+  await executeDelete(context.env.DB, 'DELETE FROM vocab_words WHERE id = ?', [id]);
+  return successResponse({ id, deleted: true });
+}
+
+// ── 문법 Q&A ──
+
+async function handleGetGrammar(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status');
+
+  let query = `SELECT q.*, s.name as student_name FROM vocab_grammar_qa q
+               LEFT JOIN gacha_students s ON s.id = q.student_id
+               WHERE q.academy_id = ?`;
+  const params: unknown[] = [academyId];
+  if (status) {
+    query += ' AND q.status = ?';
+    params.push(status);
+  }
+  query += ' ORDER BY q.created_at DESC LIMIT 200';
+
+  const list = await executeQuery<any>(context.env.DB, query, params);
+  return successResponse(list);
+}
+
+async function handleCreateGrammar(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const body = await request.json() as any;
+  if (!body.question?.trim()) return errorResponse('질문은 필수입니다', 400);
+
+  const academyId = getAcademyId(context);
+  const id = generatePrefixedId('vqa');
+  const hasAnswer = !!body.answer?.trim();
+
+  await executeInsert(
+    context.env.DB,
+    `INSERT INTO vocab_grammar_qa (id, academy_id, student_id, question, answer, status, answered_by, answered_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, academyId, body.student_id || null,
+      body.question.trim(), hasAnswer ? body.answer.trim() : null,
+      hasAnswer ? 'answered' : 'pending',
+      hasAnswer ? 'teacher' : null,
+      hasAnswer ? new Date().toISOString() : null,
+    ]
+  );
+  return successResponse({ id }, 201);
+}
+
+async function handleUpdateGrammar(request: Request, context: RequestContext, id: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const qa = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_grammar_qa WHERE id = ? AND academy_id = ?',
+    [id, academyId]
+  );
+  if (!qa) return errorResponse('Q&A를 찾을 수 없습니다', 404);
+
+  const body = await request.json() as any;
+  const sets: string[] = [];
+  const params: unknown[] = [];
+
+  if (body.answer !== undefined) {
+    sets.push('answer = ?', "status = 'answered'", "answered_by = 'teacher'", "answered_at = datetime('now')");
+    params.push(body.answer);
+  }
+  if (body.include_in_print !== undefined) {
+    sets.push('include_in_print = ?');
+    params.push(body.include_in_print ? 1 : 0);
+  }
+  if (body.question !== undefined) {
+    sets.push('question = ?');
+    params.push(body.question);
+  }
+  if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+
+  params.push(id);
+  await executeUpdate(context.env.DB, `UPDATE vocab_grammar_qa SET ${sets.join(', ')} WHERE id = ?`, params);
+  return successResponse({ id, updated: true });
+}
+
+async function handleDeleteGrammar(context: RequestContext, id: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const qa = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_grammar_qa WHERE id = ? AND academy_id = ?',
+    [id, academyId]
+  );
+  if (!qa) return errorResponse('Q&A를 찾을 수 없습니다', 404);
+
+  await executeDelete(context.env.DB, 'DELETE FROM vocab_grammar_qa WHERE id = ?', [id]);
+  return successResponse({ id, deleted: true });
+}
+
+// ── AI 답변 (Gemini) ──
+
+async function handleAiAnswer(context: RequestContext, id: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const apiKey = context.env.GEMINI_API_KEY;
+  if (!apiKey) return errorResponse('Gemini API 키가 설정되지 않았습니다', 500);
+
+  const academyId = getAcademyId(context);
+  const qa = await executeFirst<any>(
+    context.env.DB,
+    'SELECT * FROM vocab_grammar_qa WHERE id = ? AND academy_id = ?',
+    [id, academyId]
+  );
+  if (!qa) return errorResponse('Q&A를 찾을 수 없습니다', 404);
+
+  const prompt = `당신은 한국 중·고등학생을 가르치는 영어 선생님입니다. 학생의 영문법/단어 질문에 친절하고 명확하게 답변하세요.
+
+학생 질문: ${qa.question}
+
+작성 규칙:
+- 3~5문장, 존댓말
+- 핵심 규칙 → 예문 1~2개 → 자주 틀리는 포인트 순서
+- 한글로 설명, 예문은 영어 + 한글 해석 병기
+- 답변만 출력 (제목/번호 없이)`;
+
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.5, maxOutputTokens: 1024 },
+      }),
+    }
+  );
+  if (!res.ok) {
+    logger.error('Gemini API 오류', new Error(await res.text()));
+    return errorResponse('AI 답변 생성에 실패했습니다', 502);
+  }
+  const data = await res.json() as any;
+  const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!answer) return errorResponse('AI 응답이 비어있습니다', 502);
+
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE vocab_grammar_qa SET answer = ?, status = 'answered', answered_by = 'ai', answered_at = datetime('now') WHERE id = ?`,
+    [answer, id]
+  );
+  return successResponse({ id, answer });
+}
+
+// ── 교과서 ──
+
+async function handleGetTextbooks(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const books = await executeQuery<any>(
+    context.env.DB,
+    'SELECT * FROM vocab_textbooks WHERE academy_id = ? ORDER BY school, grade, semester',
+    [academyId]
+  );
+  return successResponse(books);
+}
+
+async function handleCreateTextbook(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const body = await request.json() as any;
+  if (!body.title?.trim()) return errorResponse('교과서명은 필수입니다', 400);
+
+  const academyId = getAcademyId(context);
+  const userId = getUserId(context);
+  const id = generatePrefixedId('vt');
+
+  await executeInsert(
+    context.env.DB,
+    `INSERT INTO vocab_textbooks (id, academy_id, school, grade, semester, title, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, academyId, body.school || null, body.grade || null, body.semester || null, body.title.trim(), userId]
+  );
+  return successResponse({ id }, 201);
+}
+
+async function handleGetTextbookWords(context: RequestContext, textbookId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const book = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_textbooks WHERE id = ? AND academy_id = ?',
+    [textbookId, academyId]
+  );
+  if (!book) return errorResponse('교과서를 찾을 수 없습니다', 404);
+
+  const words = await executeQuery<any>(
+    context.env.DB,
+    'SELECT * FROM vocab_textbook_words WHERE textbook_id = ? ORDER BY unit, english',
+    [textbookId]
+  );
+  return successResponse(words);
+}
+
+async function handleAddTextbookWords(request: Request, context: RequestContext, textbookId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const book = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_textbooks WHERE id = ? AND academy_id = ?',
+    [textbookId, academyId]
+  );
+  if (!book) return errorResponse('교과서를 찾을 수 없습니다', 404);
+
+  const body = await request.json() as any;
+  if (!Array.isArray(body.words) || body.words.length === 0) {
+    return errorResponse('words 배열이 필요합니다', 400);
+  }
+  if (body.words.length > 200) return errorResponse('한번에 최대 200개까지 추가 가능합니다', 400);
+
+  const created: string[] = [];
+  for (const w of body.words) {
+    if (!w.english?.trim() || !w.korean?.trim()) continue;
+    const id = generatePrefixedId('vtw');
+    await executeInsert(
+      context.env.DB,
+      `INSERT INTO vocab_textbook_words (id, textbook_id, unit, english, korean, sentence)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, textbookId, w.unit || null, w.english.trim(), w.korean.trim(), w.sentence || null]
+    );
+    created.push(id);
+  }
+  return successResponse({ created: created.length }, 201);
+}
+
+async function handleDeleteTextbook(context: RequestContext, id: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const book = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM vocab_textbooks WHERE id = ? AND academy_id = ?',
+    [id, academyId]
+  );
+  if (!book) return errorResponse('교과서를 찾을 수 없습니다', 404);
+  await executeDelete(context.env.DB, 'DELETE FROM vocab_textbooks WHERE id = ?', [id]);
+  return successResponse({ id, deleted: true });
+}
+
+// ── 가중치 출제 (Print Pick) ──
+
+async function handlePrintPick(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const body = await request.json() as any;
+  const academyId = getAcademyId(context);
+  const userId = getUserId(context);
+  const studentId = body.student_id;
+  const maxWords = Math.min(40, Math.max(1, parseInt(body.max_words) || 20));
+
+  if (!studentId) return errorResponse('student_id는 필수입니다', 400);
+
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id, name FROM gacha_students WHERE id = ? AND academy_id = ?',
+    [studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
+  // box < 5, status approved
+  const candidates = await executeQuery<any>(
+    context.env.DB,
+    `SELECT * FROM vocab_words
+     WHERE academy_id = ? AND student_id = ? AND status = 'approved' AND box < 5`,
+    [academyId, studentId]
+  );
+
+  if (candidates.length === 0) {
+    return errorResponse('출제할 단어가 없습니다', 404);
+  }
+
+  // 가중치: box 1→5x, 2→3x, 3→2x, 4→1x
+  const weightMap: Record<number, number> = { 1: 5, 2: 3, 3: 2, 4: 1 };
+  const pool: any[] = [];
+  for (const w of candidates) {
+    const weight = weightMap[w.box] || 1;
+    for (let i = 0; i < weight; i++) pool.push(w);
+  }
+
+  // 중복 없이 max_words 만큼 뽑기 (Fisher-Yates)
+  const seen = new Set<string>();
+  const selected: any[] = [];
+  while (selected.length < maxWords && pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const w = pool[idx];
+    if (!seen.has(w.id)) {
+      seen.add(w.id);
+      selected.push(w);
+    }
+    pool.splice(idx, 1);
+  }
+
+  // 인쇄용 문법 Q&A (include_in_print 플래그)
+  const grammarItems = await executeQuery<any>(
+    context.env.DB,
+    `SELECT * FROM vocab_grammar_qa
+     WHERE academy_id = ? AND status = 'answered' AND include_in_print = 1
+     ORDER BY created_at DESC LIMIT 5`,
+    [academyId]
+  );
+
+  // print_job 기록
+  const jobId = generatePrefixedId('vpj');
+  await executeInsert(
+    context.env.DB,
+    `INSERT INTO vocab_print_jobs (id, academy_id, student_id, word_ids_json, grammar_ids_json, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [jobId, academyId, studentId,
+      JSON.stringify(selected.map(w => w.id)),
+      JSON.stringify(grammarItems.map((g: any) => g.id)),
+      userId]
+  );
+
+  return successResponse({
+    job_id: jobId,
+    student,
+    words: selected,
+    grammar: grammarItems,
+  });
+}
+
+// ── 채점 (O/X) ──
+
+async function handlePrintGrade(request: Request, context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const body = await request.json() as any;
+  const academyId = getAcademyId(context);
+  const jobId = body.job_id;
+  const results = body.results; // [{ word_id, correct: 0|1 }]
+
+  if (!jobId || !Array.isArray(results)) {
+    return errorResponse('job_id, results는 필수입니다', 400);
+  }
+
+  const job = await executeFirst<any>(
+    context.env.DB,
+    'SELECT * FROM vocab_print_jobs WHERE id = ? AND academy_id = ?',
+    [jobId, academyId]
+  );
+  if (!job) return errorResponse('출제 기록을 찾을 수 없습니다', 404);
+
+  const summary = { correct: 0, wrong: 0 };
+  for (const r of results) {
+    const word = await executeFirst<any>(
+      context.env.DB,
+      'SELECT * FROM vocab_words WHERE id = ? AND academy_id = ?',
+      [r.word_id, academyId]
+    );
+    if (!word) continue;
+
+    const boxBefore = word.box || 1;
+    const correct = r.correct ? 1 : 0;
+    const boxAfter = correct ? Math.min(5, boxBefore + 1) : 1;
+
+    await executeUpdate(
+      context.env.DB,
+      `UPDATE vocab_words SET
+        box = ?, review_count = review_count + 1,
+        wrong_count = wrong_count + ?,
+        updated_at = datetime('now')
+       WHERE id = ?`,
+      [boxAfter, correct ? 0 : 1, r.word_id]
+    );
+
+    const resultId = generatePrefixedId('vgr');
+    await executeInsert(
+      context.env.DB,
+      `INSERT INTO vocab_grade_results (id, print_job_id, word_id, correct, box_before, box_after)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [resultId, jobId, r.word_id, correct, boxBefore, boxAfter]
+    );
+
+    if (correct) summary.correct++; else summary.wrong++;
+  }
+
+  return successResponse({ job_id: jobId, ...summary });
+}
+
+async function handleGetPrintJob(context: RequestContext, jobId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const job = await executeFirst<any>(
+    context.env.DB,
+    'SELECT * FROM vocab_print_jobs WHERE id = ? AND academy_id = ?',
+    [jobId, academyId]
+  );
+  if (!job) return errorResponse('출제 기록을 찾을 수 없습니다', 404);
+
+  const wordIds: string[] = JSON.parse(job.word_ids_json || '[]');
+  const grammarIds: string[] = JSON.parse(job.grammar_ids_json || '[]');
+
+  const words = wordIds.length
+    ? await executeQuery<any>(
+        context.env.DB,
+        `SELECT * FROM vocab_words WHERE id IN (${wordIds.map(() => '?').join(',')})`,
+        wordIds
+      )
+    : [];
+  const grammar = grammarIds.length
+    ? await executeQuery<any>(
+        context.env.DB,
+        `SELECT * FROM vocab_grammar_qa WHERE id IN (${grammarIds.map(() => '?').join(',')})`,
+        grammarIds
+      )
+    : [];
+
+  return successResponse({ job, words, grammar });
+}
+
+// ── 메인 라우터 ──
+
+export async function handleVocab(
+  method: string,
+  pathname: string,
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  try {
+    // /api/vocab/words
+    if (pathname === '/api/vocab/words') {
+      if (method === 'GET') return await handleGetWords(request, context);
+      if (method === 'POST') return await handleCreateWord(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/words/:id
+    const wordMatch = pathname.match(/^\/api\/vocab\/words\/([^/]+)$/);
+    if (wordMatch) {
+      const id = wordMatch[1];
+      if (method === 'PATCH') return await handleUpdateWord(request, context, id);
+      if (method === 'DELETE') return await handleDeleteWord(context, id);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/grammar
+    if (pathname === '/api/vocab/grammar') {
+      if (method === 'GET') return await handleGetGrammar(request, context);
+      if (method === 'POST') return await handleCreateGrammar(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/grammar/:id/ai-answer
+    const aiMatch = pathname.match(/^\/api\/vocab\/grammar\/([^/]+)\/ai-answer$/);
+    if (aiMatch) {
+      if (method === 'POST') return await handleAiAnswer(context, aiMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/grammar/:id
+    const grammarMatch = pathname.match(/^\/api\/vocab\/grammar\/([^/]+)$/);
+    if (grammarMatch) {
+      const id = grammarMatch[1];
+      if (method === 'PATCH') return await handleUpdateGrammar(request, context, id);
+      if (method === 'DELETE') return await handleDeleteGrammar(context, id);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/textbooks
+    if (pathname === '/api/vocab/textbooks') {
+      if (method === 'GET') return await handleGetTextbooks(request, context);
+      if (method === 'POST') return await handleCreateTextbook(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/textbooks/:id/words
+    const tbWordsMatch = pathname.match(/^\/api\/vocab\/textbooks\/([^/]+)\/words$/);
+    if (tbWordsMatch) {
+      const tbId = tbWordsMatch[1];
+      if (method === 'GET') return await handleGetTextbookWords(context, tbId);
+      if (method === 'POST') return await handleAddTextbookWords(request, context, tbId);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/textbooks/:id
+    const tbMatch = pathname.match(/^\/api\/vocab\/textbooks\/([^/]+)$/);
+    if (tbMatch) {
+      if (method === 'DELETE') return await handleDeleteTextbook(context, tbMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/print/pick
+    if (pathname === '/api/vocab/print/pick') {
+      if (method === 'POST') return await handlePrintPick(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/print/grade
+    if (pathname === '/api/vocab/print/grade') {
+      if (method === 'POST') return await handlePrintGrade(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/vocab/print/jobs/:id
+    const jobMatch = pathname.match(/^\/api\/vocab\/print\/jobs\/([^/]+)$/);
+    if (jobMatch) {
+      if (method === 'GET') return await handleGetPrintJob(context, jobMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    return errorResponse('Not found', 404);
+  } catch (error) {
+    return handleRouteError(error, 'Vocab Gacha');
+  }
+}
