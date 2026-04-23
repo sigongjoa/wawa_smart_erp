@@ -34,7 +34,7 @@ test('사이드바 "출제·채점" → React /vocab/grade (ERP Layout 유지)',
   await expect(gradeLink.first()).toBeVisible({ timeout: 5_000 });
   await gradeLink.first().click();
 
-  await page.waitForURL(/#\/vocab\/grade$/, { timeout: 10_000 });
+  await page.waitForURL(/#\/vocab\/grading$/, { timeout: 10_000 });
 
   // ERP Layout 유지
   await expect(page.locator('.app-sidebar')).toBeVisible();

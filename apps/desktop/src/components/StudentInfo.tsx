@@ -14,10 +14,22 @@ export default function StudentInfo({ profile }: Props) {
         </span>
       </div>
       <div className="info-row">
+        <span className="info-label">담임 선생님</span>
+        <span className="info-value">
+          {profile.homeroom_teacher ? (
+            <strong>{profile.homeroom_teacher.name}</strong>
+          ) : (
+            <span style={{ color: 'var(--text-tertiary)' }}>미지정</span>
+          )}
+        </span>
+      </div>
+      <div className="info-row">
         <span className="info-label">담당 선생님</span>
         <span className="info-value">
           {profile.teachers.length > 0
-            ? profile.teachers.map((t) => t.name).join(', ')
+            ? profile.teachers
+                .map((t) => (t.is_homeroom ? `${t.name} (담임)` : t.name))
+                .join(', ')
             : '-'}
         </span>
       </div>

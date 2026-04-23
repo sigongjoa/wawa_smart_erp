@@ -10,6 +10,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { api, PauseRecord, RealtimeSession, AdhocSession, Student } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
+import HomeroomSummaryCard from '../components/HomeroomSummaryCard';
 
 type Day = '월' | '화' | '수' | '목' | '금' | '토' | '일';
 const DAYS: Day[] = ['월', '화', '수', '목', '금', '토', '일'];
@@ -480,6 +481,8 @@ export default function TimerPage() {
           </div>
         </div>
       </div>
+
+      <HomeroomSummaryCard />
 
       {/* 요일 선택 */}
       <div className="filter-bar">

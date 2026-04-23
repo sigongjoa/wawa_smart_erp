@@ -98,7 +98,7 @@ export default function App() {
             <Route path="/vocab" element={<VocabAdminPage />}>
               <Route index element={<VocabWordsTab />} />
               <Route path="wrong" element={<VocabWrongTab />} />
-              <Route path="grade" element={<VocabGradeTab />} />
+              <Route path="grading" element={<VocabGradeTab />} />
             </Route>
             <Route path="/exam-result/:attemptId" element={<ExamResultPage />} />
             <Route path="/progress" element={<ProgressPage />} />

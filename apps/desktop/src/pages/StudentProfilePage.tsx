@@ -6,8 +6,13 @@ import CommentTimeline from '../components/CommentTimeline';
 import AttendanceSummary from '../components/AttendanceSummary';
 import StudentInfo from '../components/StudentInfo';
 import EnrollmentManager from '../components/EnrollmentManager';
+import ConsultationPanel from '../components/ConsultationPanel';
+import ExternalSchedulePanel from '../components/ExternalSchedulePanel';
+import TeacherNotesPanel from '../components/TeacherNotesPanel';
+import HomeroomSelector from '../components/HomeroomSelector';
 import { useAuthStore } from '../store';
 import Modal from '../components/Modal';
+import { toast } from '../components/Toast';
 
 const GRADE_OPTIONS = [
   '초4', '초5', '초6',
@@ -38,6 +43,11 @@ export default function StudentProfilePage() {
   // 삭제 확인
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // 학부모 링크 공유
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareExpires, setShareExpires] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -116,6 +126,56 @@ export default function StudentProfilePage() {
         <div className="student-profile-title-row">
           <h2>{profile.name} <span className="student-grade-badge">{profile.grade}</span></h2>
           <div className="student-profile-actions">
+            {(user?.role === 'instructor' || user?.role === 'admin') && (
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={async () => {
+                  const subject = window.prompt('과목명을 입력하세요 (예: 수학)', '수학');
+                  if (!subject) return;
+                  try {
+                    const res = await api.startLiveSession({
+                      student_id: id!,
+                      subject: subject.trim(),
+                    });
+                    navigate(`/live/${res.id}?student_name=${encodeURIComponent(profile.name)}`);
+                  } catch (e: any) {
+                    alert(e.message || '라이브 세션 시작 실패');
+                  }
+                }}
+              >
+                🔴 라이브 시작
+              </button>
+            )}
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={shareLoading}
+              onClick={async () => {
+                if (!id) return;
+                setShareLoading(true);
+                const month = new Date().toISOString().slice(0, 7);
+                try {
+                  const res = await api.createParentReportLink(id, { month, days: 14 });
+                  const fullUrl = res.url.startsWith('http')
+                    ? res.url
+                    : `${window.location.origin}${res.path}`;
+                  setShareUrl(fullUrl);
+                  setShareExpires(res.expires_at);
+                  // 최적 UX: 모달 열리면서 자동 복사 시도; 실패해도 모달에서 수동 복사 가능
+                  try {
+                    await navigator.clipboard.writeText(fullUrl);
+                    toast.success('링크가 복사되었습니다');
+                  } catch {
+                    // fallback 모달에 복사 버튼 있음
+                  }
+                } catch (e: any) {
+                  toast.error(e.message || '링크 생성 실패');
+                } finally {
+                  setShareLoading(false);
+                }
+              }}
+            >
+              {shareLoading ? '생성 중...' : '학부모 링크'}
+            </button>
             <button className="btn btn-ghost btn-sm" onClick={() => setShowEdit(true)}>
               편집
             </button>
@@ -161,8 +221,22 @@ export default function StudentProfilePage() {
         <section className="dashboard-section dashboard-half">
           <h3>기본 정보</h3>
           <StudentInfo profile={profile} />
+          {user?.role === 'admin' && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <HomeroomSelector profile={profile} onChanged={loadProfile} />
+            </div>
+          )}
         </section>
       </div>
+
+      {/* 교과 선생님 메모 (담임 종합 조회용) */}
+      <TeacherNotesPanel studentId={id!} />
+
+      {/* 학부모 상담 (담당 선생님 공유) */}
+      <ConsultationPanel studentId={id!} />
+
+      {/* 타 과목/타 학원/시험 일정 공유 */}
+      <ExternalSchedulePanel studentId={id!} />
 
       {/* 코멘트 히스토리 */}
       <section className="dashboard-section">
@@ -246,6 +320,54 @@ export default function StudentProfilePage() {
                 {deleting ? '삭제 중...' : '삭제'}
               </button>
             </div>
+        </Modal>
+      )}
+
+      {/* 학부모 링크 공유 모달 */}
+      {shareUrl && (
+        <Modal onClose={() => setShareUrl(null)}>
+          <h3 className="modal-title">학부모 월간 리포트 링크</h3>
+          <div className="modal-body">
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+              아래 링크를 카톡/문자로 전달해 주세요.
+              {shareExpires && (
+                <> 만료일: <strong>{new Date(shareExpires).toLocaleDateString('ko-KR')}</strong></>
+              )}
+            </p>
+            <input
+              type="text"
+              readOnly
+              value={shareUrl}
+              onFocus={(e) => e.currentTarget.select()}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: 13,
+                fontFamily: 'monospace',
+                border: '1px solid var(--border-primary)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+              }}
+              aria-label="학부모 리포트 링크"
+            />
+          </div>
+          <div className="modal-footer">
+            <button className="btn btn-ghost" onClick={() => setShareUrl(null)}>닫기</button>
+            <button
+              className="btn btn-primary"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  toast.success('복사되었습니다');
+                } catch {
+                  toast.error('수동으로 선택 후 복사해 주세요');
+                }
+              }}
+            >
+              복사
+            </button>
+          </div>
         </Modal>
       )}
     </div>

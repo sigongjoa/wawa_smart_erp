@@ -79,7 +79,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await api.login(slug, name, pin);
-      login(res.user, res.accessToken, res.refreshToken);
+      login(res.user);
       localStorage.setItem('lastSlug', slug);
       navigate('/timer');
     } catch (err: any) {
