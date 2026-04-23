@@ -3233,122 +3233,16 @@
 
       <!-- MY WORDS -->
       <div class="subpane" data-sub="mywords" role="tabpanel" id="pane-learn-mywords" aria-labelledby="tab-learn-mywords">
-        <div class="filter-bar" role="group" aria-label="단어 상태 필터">
-          <button type="button" class="filter" aria-pressed="true"  onclick="toggleFilter(this)">전체<span class="n">342</span></button>
-          <button type="button" class="filter" aria-pressed="false" onclick="toggleFilter(this)">NEW<span class="n">18</span></button>
-          <button type="button" class="filter" aria-pressed="false" onclick="toggleFilter(this)">학습 중<span class="n">74</span></button>
-          <button type="button" class="filter" aria-pressed="false" onclick="toggleFilter(this)">외움<span class="n">250</span></button>
+        <div class="filter-bar" role="group" aria-label="단어 상태 필터" id="mywords-filter">
+          <button type="button" class="filter" data-f="all"       aria-pressed="true"  onclick="toggleFilter(this)">전체<span class="n" data-count="all">0</span></button>
+          <button type="button" class="filter" data-f="new"       aria-pressed="false" onclick="toggleFilter(this)">NEW<span class="n" data-count="new">0</span></button>
+          <button type="button" class="filter" data-f="learning"  aria-pressed="false" onclick="toggleFilter(this)">학습 중<span class="n" data-count="learning">0</span></button>
+          <button type="button" class="filter" data-f="mastered"  aria-pressed="false" onclick="toggleFilter(this)">외움<span class="n" data-count="mastered">0</span></button>
         </div>
 
-        <!-- 학생이 직접 추가한 단어 (동적) -->
-        <div class="word-list" id="word-list-dyn" aria-label="내가 추가한 단어"></div>
+        <!-- 학생 단어 목록 (동적, renderWordList에서 렌더) -->
+        <div class="word-list" id="word-list-dyn" aria-label="내 단어"></div>
 
-        <div class="word-list">
-          <button class="word-row">
-            <span class="stage-icon" data-stage="2" style="color: var(--t-adj)">
-              <svg><use href="#stage-2"/></svg>
-              <span class="num">2</span>
-            </span>
-            <span class="wr-main">
-              <span class="wr-en">magnificent</span>
-              <span class="wr-ko"><span class="chip" data-t="adj">ADJ</span>장엄한, 훌륭한</span>
-            </span>
-            <span class="wr-right">
-              <span class="wr-hp"><i style="--hp: 40%"></i></span>
-              <span class="wr-tag">BOX 2</span>
-            </span>
-          </button>
-
-          <button class="word-row">
-            <span class="stage-icon" data-stage="3" style="color: var(--t-verb)">
-              <svg><use href="#stage-3"/></svg>
-              <span class="num">3</span>
-            </span>
-            <span class="wr-main">
-              <span class="wr-en">resemble</span>
-              <span class="wr-ko"><span class="chip" data-t="verb">VERB</span>닮다, 유사하다</span>
-            </span>
-            <span class="wr-right">
-              <span class="wr-hp"><i style="--hp: 60%"></i></span>
-              <span class="wr-tag">BOX 3</span>
-            </span>
-          </button>
-
-          <button class="word-row">
-            <span class="stage-icon" data-stage="1" style="color: var(--t-adj)">
-              <svg><use href="#stage-1"/></svg>
-              <span class="num">1</span>
-            </span>
-            <span class="wr-main">
-              <span class="wr-en">abundant</span>
-              <span class="wr-ko"><span class="chip" data-t="adj">ADJ</span>풍부한, 많은</span>
-            </span>
-            <span class="wr-right">
-              <span class="wr-hp"><i style="--hp: 20%"></i></span>
-              <span class="wr-tag">NEW</span>
-            </span>
-          </button>
-
-          <button class="word-row">
-            <span class="stage-icon" data-stage="5" style="color: var(--t-adj)">
-              <svg><use href="#stage-5"/></svg>
-              <span class="num">5</span>
-            </span>
-            <span class="wr-main">
-              <span class="wr-en">complicated</span>
-              <span class="wr-ko"><span class="chip" data-t="adj">ADJ</span>복잡한</span>
-            </span>
-            <span class="wr-right">
-              <span class="wr-hp" data-l="mastered"><i style="--hp: 100%"></i></span>
-              <span class="wr-tag mastered">외움</span>
-            </span>
-          </button>
-
-          <button class="word-row">
-            <span class="stage-icon" data-stage="4" style="color: var(--t-adv)">
-              <svg><use href="#stage-4"/></svg>
-              <span class="num">4</span>
-            </span>
-            <span class="wr-main">
-              <span class="wr-en">gradually</span>
-              <span class="wr-ko"><span class="chip" data-t="adv">ADV</span>점진적으로, 서서히</span>
-            </span>
-            <span class="wr-right">
-              <span class="wr-hp"><i style="--hp: 80%"></i></span>
-              <span class="wr-tag">BOX 4</span>
-            </span>
-          </button>
-
-          <button class="word-row">
-            <span class="stage-icon" data-stage="2" style="color: var(--t-verb)">
-              <svg><use href="#stage-2"/></svg>
-              <span class="num">2</span>
-            </span>
-            <span class="wr-main">
-              <span class="wr-en">emphasize</span>
-              <span class="wr-ko"><span class="chip" data-t="verb">VERB</span>강조하다</span>
-            </span>
-            <span class="wr-right">
-              <span class="wr-hp"><i style="--hp: 40%"></i></span>
-              <span class="wr-tag">BOX 2</span>
-            </span>
-          </button>
-
-          <button class="word-row">
-            <span class="stage-icon" data-stage="5" style="color: var(--t-noun)">
-              <svg><use href="#stage-5"/></svg>
-              <span class="num">5</span>
-            </span>
-            <span class="wr-main">
-              <span class="wr-en">principle</span>
-              <span class="wr-ko"><span class="chip" data-t="noun">NOUN</span>원칙, 원리</span>
-            </span>
-            <span class="wr-right">
-              <span class="wr-hp" data-l="mastered"><i style="--hp: 100%"></i></span>
-              <span class="wr-tag mastered">외움</span>
-            </span>
-          </button>
-        </div>
         <div style="height: 24px"></div>
       </div>
 
@@ -3495,68 +3389,68 @@
       <div class="dex-hero">
         <div class="dex-hero-top">
           <div>
-            <div class="lbl">전체 수집</div>
-            <div class="big">342<span class="s">/ 1,200</span></div>
+            <div class="lbl">외운 단어</div>
+            <div class="big" id="dex-hero-big">0<span class="s" id="dex-hero-total">/ 0</span></div>
           </div>
-          <div class="pct">28%</div>
+          <div class="pct" id="dex-hero-pct">0%</div>
         </div>
-        <div class="bar"><i></i></div>
+        <div class="bar"><i id="dex-hero-bar" style="width:0%"></i></div>
       </div>
 
       <div class="dex-grid" id="dex-grid-types">
         <button class="type-case" data-t="noun" onclick="openDexType('noun')">
           <div class="tc-head">
             <span class="tc-lbl">NOUN</span>
-            <span class="tc-num">128 / 380</span>
+            <span class="tc-num" data-dex-num="noun">0 / 0</span>
           </div>
           <div class="tc-name">명사</div>
-          <div class="tc-count">128<span class="t">수집</span></div>
-          <div class="tc-bar"><i style="width:34%"></i></div>
+          <div class="tc-count" data-dex-count="noun">0<span class="t">수집</span></div>
+          <div class="tc-bar"><i data-dex-bar="noun" style="width:0%"></i></div>
         </button>
         <button class="type-case" data-t="verb" onclick="openDexType('verb')">
           <div class="tc-head">
             <span class="tc-lbl">VERB</span>
-            <span class="tc-num">94 / 310</span>
+            <span class="tc-num" data-dex-num="verb">0 / 0</span>
           </div>
           <div class="tc-name">동사</div>
-          <div class="tc-count">94<span class="t">수집</span></div>
-          <div class="tc-bar"><i style="width:30%"></i></div>
+          <div class="tc-count" data-dex-count="verb">0<span class="t">수집</span></div>
+          <div class="tc-bar"><i data-dex-bar="verb" style="width:0%"></i></div>
         </button>
         <button class="type-case" data-t="adj" onclick="openDexType('adj')">
           <div class="tc-head">
             <span class="tc-lbl">ADJ</span>
-            <span class="tc-num">82 / 240</span>
+            <span class="tc-num" data-dex-num="adj">0 / 0</span>
           </div>
           <div class="tc-name">형용사</div>
-          <div class="tc-count">82<span class="t">수집</span></div>
-          <div class="tc-bar"><i style="width:34%"></i></div>
+          <div class="tc-count" data-dex-count="adj">0<span class="t">수집</span></div>
+          <div class="tc-bar"><i data-dex-bar="adj" style="width:0%"></i></div>
         </button>
         <button class="type-case" data-t="adv" onclick="openDexType('adv')">
           <div class="tc-head">
             <span class="tc-lbl">ADV</span>
-            <span class="tc-num">28 / 160</span>
+            <span class="tc-num" data-dex-num="adv">0 / 0</span>
           </div>
           <div class="tc-name">부사</div>
-          <div class="tc-count">28<span class="t">수집</span></div>
-          <div class="tc-bar"><i style="width:17%"></i></div>
+          <div class="tc-count" data-dex-count="adv">0<span class="t">수집</span></div>
+          <div class="tc-bar"><i data-dex-bar="adv" style="width:0%"></i></div>
         </button>
         <button class="type-case" data-t="prep" onclick="openDexType('prep')">
           <div class="tc-head">
             <span class="tc-lbl">PREP</span>
-            <span class="tc-num">8 / 60</span>
+            <span class="tc-num" data-dex-num="prep">0 / 0</span>
           </div>
           <div class="tc-name">전치사</div>
-          <div class="tc-count">8<span class="t">수집</span></div>
-          <div class="tc-bar"><i style="width:13%"></i></div>
+          <div class="tc-count" data-dex-count="prep">0<span class="t">수집</span></div>
+          <div class="tc-bar"><i data-dex-bar="prep" style="width:0%"></i></div>
         </button>
         <button class="type-case" data-t="conj" onclick="openDexType('conj')">
           <div class="tc-head">
             <span class="tc-lbl">CONJ</span>
-            <span class="tc-num">2 / 50</span>
+            <span class="tc-num" data-dex-num="conj">0 / 0</span>
           </div>
           <div class="tc-name">접속사</div>
-          <div class="tc-count">2<span class="t">수집</span></div>
-          <div class="tc-bar"><i style="width:4%"></i></div>
+          <div class="tc-count" data-dex-count="conj">0<span class="t">수집</span></div>
+          <div class="tc-bar"><i data-dex-bar="conj" style="width:0%"></i></div>
         </button>
       </div>
 
@@ -3900,6 +3794,10 @@
     el.parentElement.querySelectorAll('.filter').forEach(f => {
       f.setAttribute('aria-pressed', f === el ? 'true' : 'false');
     });
+    // 내 단어장 필터는 실제 렌더링 갱신
+    if (el.parentElement?.id === 'mywords-filter' && window.__wg?.renderWordList) {
+      window.__wg.renderWordList();
+    }
   }
 </script>
 
@@ -4192,31 +4090,93 @@
   // ============================================================
   // Add-word flow
   // ============================================================
+  function classifyWord(w) {
+    const box = w.box ?? 1;
+    const wc = w.wrongCount ?? 0;
+    if (box >= 5) return 'mastered';
+    if (box === 1 && wc === 0) return 'new';
+    return 'learning';
+  }
+
+  function updateFilterCounts() {
+    const words = store.get(KEYS.words) ?? [];
+    const counts = { all: words.length, new: 0, learning: 0, mastered: 0 };
+    for (const w of words) counts[classifyWord(w)]++;
+    for (const key of ['all', 'new', 'learning', 'mastered']) {
+      const el = document.querySelector(`[data-count="${key}"]`);
+      if (el) el.textContent = String(counts[key]);
+    }
+  }
+
   function renderWordList() {
     const host = document.getElementById('word-list-dyn');
     if (!host) return;
     const words = store.get(KEYS.words) ?? [];
-    const userAdded = words.filter(w => !/^w0\d{2}$/.test(w.id)); // seed ids are w001-w012
-    if (userAdded.length === 0) {
-      host.innerHTML = '<div class="empty-words">아직 추가한 단어가 없어요. 아래 + 버튼을 눌러 첫 단어를 추가해보세요.</div>';
+    const activeFilterBtn = document.querySelector('#mywords-filter .filter[aria-pressed="true"]');
+    const filter = activeFilterBtn?.dataset.f || 'all';
+    const filtered = filter === 'all' ? words : words.filter(w => classifyWord(w) === filter);
+
+    updateFilterCounts();
+    renderDexCounts();
+
+    if (filtered.length === 0) {
+      host.innerHTML = words.length === 0
+        ? '<div class="empty-words">아직 단어가 없어요. 아래 + 버튼을 눌러 첫 단어를 추가해보세요.</div>'
+        : `<div class="empty-words">이 필터에 해당하는 단어가 없어요.</div>`;
       return;
     }
-    host.innerHTML = userAdded.map(w => `
+    // box 낮은 것(가장 자주 틀리는 것) 먼저, 동점이면 wrongCount 높은 것
+    const sorted = [...filtered].sort((a, b) => (a.box ?? 1) - (b.box ?? 1) || (b.wrongCount ?? 0) - (a.wrongCount ?? 0));
+    host.innerHTML = sorted.map(w => {
+      const box = w.box ?? 1;
+      const mastered = box >= 5;
+      const hpPct = mastered ? 100 : Math.min(100, box * 20);
+      const tag = mastered ? '외움' : (box === 1 && (w.wrongCount ?? 0) === 0 ? 'NEW' : `BOX ${box}`);
+      const pos = w.pos || 'noun';
+      return `
       <button class="word-row" type="button" data-wid="${w.id}">
-        <span class="stage-icon" data-stage="${w.box}">
-          <svg><use href="#stage-${w.box}"/></svg>
-          <span class="num">${w.box}</span>
+        <span class="stage-icon" data-stage="${box}">
+          <svg><use href="#stage-${box}"/></svg>
+          <span class="num">${box}</span>
         </span>
         <span class="wr-main">
           <span class="wr-en">${escapeHtml(w.word)}</span>
-          <span class="wr-ko"><span class="chip" data-t="${w.pos}">${w.pos.toUpperCase()}</span>${escapeHtml(w.meaning)}</span>
+          <span class="wr-ko"><span class="chip" data-t="${pos}">${pos.toUpperCase()}</span>${escapeHtml(w.meaning)}</span>
         </span>
         <span class="wr-right">
-          <span class="wr-hp"><i style="--hp: ${w.box * 20}%"></i></span>
-          <span class="wr-tag">BOX ${w.box}</span>
+          <span class="wr-hp"${mastered ? ' data-l="mastered"' : ''}><i style="--hp: ${hpPct}%"></i></span>
+          <span class="wr-tag${mastered ? ' mastered' : ''}">${tag}</span>
         </span>
-      </button>
-    `).join('');
+      </button>`;
+    }).join('');
+  }
+
+  // 품사 분류 + dex 카운트 갱신
+  function renderDexCounts() {
+    const words = store.get(KEYS.words) ?? [];
+    const types = ['noun', 'verb', 'adj', 'adv', 'prep', 'conj'];
+    let totalMastered = 0;
+    for (const t of types) {
+      const list = words.filter(w => (w.pos || 'noun') === t);
+      const mastered = list.filter(w => (w.box ?? 1) >= 5).length;
+      totalMastered += mastered;
+      const numEl = document.querySelector(`[data-dex-num="${t}"]`);
+      const countEl = document.querySelector(`[data-dex-count="${t}"]`);
+      const barEl = document.querySelector(`[data-dex-bar="${t}"]`);
+      if (numEl) numEl.textContent = `${mastered} / ${list.length}`;
+      if (countEl) countEl.innerHTML = `${mastered}<span class="t">외움</span>`;
+      if (barEl) barEl.style.width = (list.length > 0 ? Math.round((mastered / list.length) * 100) : 0) + '%';
+    }
+    const heroBig = document.getElementById('dex-hero-big');
+    const heroTotal = document.getElementById('dex-hero-total');
+    const heroPct = document.getElementById('dex-hero-pct');
+    const heroBar = document.getElementById('dex-hero-bar');
+    const total = words.length;
+    const pct = total > 0 ? Math.round((totalMastered / total) * 100) : 0;
+    if (heroBig) heroBig.firstChild.nodeValue = String(totalMastered);
+    if (heroTotal) heroTotal.textContent = `/ ${total}`;
+    if (heroPct) heroPct.textContent = `${pct}%`;
+    if (heroBar) heroBar.style.width = pct + '%';
   }
 
   function escapeHtml(s) {
