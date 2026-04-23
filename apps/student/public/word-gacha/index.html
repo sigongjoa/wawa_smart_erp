@@ -3717,20 +3717,6 @@
   <!-- Toast for r1 actions -->
   <div class="toast-wg" id="toast-wg" role="status" aria-live="polite"></div>
 
-  <!-- 로그인 안 된 상태 배너 (로컬 데모 모드) -->
-  <div id="sync-banner" hidden style="
-    position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
-    background: #fff7e6; color: #92400e; border: 1px solid #f59e0b;
-    padding: 8px 14px; border-radius: 10px; font: 500 12px/1.4 var(--body);
-    box-shadow: 0 2px 8px rgba(0,0,0,.08); z-index: 9999;
-    display: flex; align-items: center; gap: 10px; max-width: 90vw;
-  ">
-    <span>📴 로컬에서만 저장돼요</span>
-    <a href="/#/login" style="color: #2d3a8c; font-weight: 700; text-decoration: underline;">로그인</a>
-    <button type="button" id="sync-banner-close" aria-label="배너 닫기"
-      style="background: transparent; border: none; cursor: pointer; color: #92400e; font-size: 16px; padding: 0 4px;">×</button>
-  </div>
-
   <!-- Reunion overlay — shown on return after idle >= 12h -->
   <div class="reunion" id="reunion" hidden role="dialog" aria-labelledby="reunion-title" aria-describedby="reunion-line">
     <div class="card">
@@ -3935,19 +3921,7 @@
     loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob,
   } from './js/wawa-bridge.js';
 
-  // 서버 sync 꺼졌을 때 배너 표시
-  function updateSyncBanner() {
-    const banner = document.getElementById('sync-banner');
-    if (!banner) return;
-    const dismissed = sessionStorage.getItem('wg.sync-banner-dismissed') === '1';
-    banner.hidden = !isSyncDisabled() || dismissed;
-  }
-  document.getElementById('sync-banner-close')?.addEventListener('click', () => {
-    sessionStorage.setItem('wg.sync-banner-dismissed', '1');
-    updateSyncBanner();
-  });
-  window.addEventListener('wawa:sync-disabled', updateSyncBanner);
-  queueMicrotask(updateSyncBanner);
+  // sync-banner 제거됨: 로컬 모드 여부는 내부 _syncDisabled 플래그로만 관리
   import { startQuiz, answer as quizAnswer, finishQuiz, EXP_PER_CORRECT, COIN_PER_CORRECT, HP_MAX } from './js/quiz.js';
 
   const CREATURE_KEY = 'wg.v1.creature';
@@ -4036,10 +4010,11 @@
     renderVitals();
     renderEvoPanel();
     if (prev && c) {
-      const db = (c.bond ?? 0)   - (prev.bond ?? 0);
+      // delta-float 토스트 제거됨
+      /* const db = (c.bond ?? 0)   - (prev.bond ?? 0);
       const dh = (c.hunger ?? 0) - (prev.hunger ?? 0);
       if (Math.abs(db) >= 0.5) spawnDelta('bond', db);
-      if (Math.abs(dh) >= 1)   spawnDelta('hunger', dh);
+      if (Math.abs(dh) >= 1)   spawnDelta('hunger', dh); */
     }
   }
 
