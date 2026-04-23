@@ -12,6 +12,8 @@ function getToken() { return localStorage.getItem('play_token'); }
  * 토큰 없음 / 만료(401) 어느 쪽이든 UI는 그대로 동작, 서버 호출만 생략.
  */
 let _syncDisabled = !getToken();
+let _consecutive401 = 0;           // 연속 401 카운터 — 일시적 전파 지연 대응
+const DISABLE_THRESHOLD = 2;       // 2번 연속 401이어야 disable
 
 export function isSyncDisabled() { return _syncDisabled; }
 export function getSyncStatus() {
@@ -20,20 +22,25 @@ export function getSyncStatus() {
   return 'ok';
 }
 
-function disableSync(reason) {
-  if (_syncDisabled) return;
-  _syncDisabled = true;
-  console.warn(`[wawa-bridge] server sync disabled: ${reason} — 로컬 데이터로만 동작`);
-  // UI에 배너를 띄울 수 있는 커스텀 이벤트
+function setSyncDisabled(disabled, reason) {
+  if (_syncDisabled === disabled) return;
+  _syncDisabled = disabled;
+  if (disabled) {
+    console.warn(`[wawa-bridge] server sync disabled: ${reason}`);
+  } else {
+    console.info('[wawa-bridge] server sync re-enabled');
+  }
   try {
-    window.dispatchEvent(new CustomEvent('wawa:sync-disabled', { detail: { reason } }));
+    window.dispatchEvent(new CustomEvent('wawa:sync-disabled', { detail: { reason, disabled } }));
   } catch {}
 }
 
 async function authedFetch(path, init = {}) {
-  if (_syncDisabled) return null;
   const token = getToken();
-  if (!token) { disableSync('no-token'); return null; }
+  if (!token) {
+    setSyncDisabled(true, 'no-token');
+    return null;
+  }
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
@@ -44,15 +51,22 @@ async function authedFetch(path, init = {}) {
       },
     });
     if (res.status === 401) {
-      // 토큰은 유지 (사용자가 의도적으로 로그인 페이지로 갈 수도 있음).
-      // 단지 이번 세션에서 서버 동기화를 꺼서 다른 API 호출도 무시.
-      disableSync('unauthorized');
+      _consecutive401 += 1;
+      if (_consecutive401 >= DISABLE_THRESHOLD) {
+        setSyncDisabled(true, 'unauthorized');
+      }
       return null;
+    }
+    // 2xx-4xx 범위에서 401 이외는 "서버가 응답했다" → 인증 OK → 카운터 리셋 + sync 재활성
+    if (res.status < 500) {
+      _consecutive401 = 0;
+      if (_syncDisabled) setSyncDisabled(false, 'recovered');
     }
     return res;
   } catch (e) {
+    // 네트워크 에러는 sync disable 안 함 (일시적 오프라인도 가능)
     console.warn('[wawa-bridge] fetch error, sync 보류', e);
-    return null;  // 네트워크 에러에도 로컬 동작 유지
+    return null;
   }
 }
 
