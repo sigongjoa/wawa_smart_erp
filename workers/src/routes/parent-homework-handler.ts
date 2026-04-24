@@ -23,7 +23,7 @@ async function loadTarget(db: D1Database, targetId: string) {
     `SELECT t.id, t.assignment_id, t.student_id, t.academy_id, t.status,
             t.last_submitted_at, t.last_reviewed_at, t.assigned_at,
             a.title as assignment_title, a.instructions, a.due_at,
-            a.attached_file_key, a.attached_file_name,
+            a.attached_file_key, a.attached_file_name, a.status as assignment_status,
             gs.name as student_name, gs.grade as student_grade
      FROM assignment_targets t
      JOIN assignments a ON a.id = t.assignment_id
@@ -64,6 +64,9 @@ export async function handleParentHomework(
 
     const target = await loadTarget(context.env.DB, targetId);
     if (!target) return notFoundResponse();
+    if (target.assignment_status === 'closed') {
+      return errorResponse('이 과제 공유 링크는 더 이상 사용할 수 없습니다', 410);
+    }
 
     // R2 키 형식 검증 + 학원 범위 매칭
     if (!/^assignments\/[A-Za-z0-9\-_/.]+$/.test(rawKey) || rawKey.includes('..')) {
@@ -128,6 +131,9 @@ export async function handleParentHomework(
 
     const target = await loadTarget(context.env.DB, targetId);
     if (!target) return notFoundResponse();
+    if (target.assignment_status === 'closed') {
+      return errorResponse('이 과제 공유 링크는 더 이상 사용할 수 없습니다', 410);
+    }
 
     const submissions = await executeQuery<any>(
       context.env.DB,
