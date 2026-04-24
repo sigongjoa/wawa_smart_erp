@@ -3574,6 +3574,28 @@
       </div>
 
       <div style="height: 24px"></div>
+
+      <!-- 계정 섹션 -->
+      <div style="padding: 0 16px; display: flex; flex-direction: column; gap: 10px;">
+        <button
+          type="button"
+          id="btn-back-home-react"
+          style="width: 100%; padding: 14px; min-height: 48px; background: transparent; border: 1.5px solid #14171f; border-radius: 10px; color: #14171f; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;"
+          onclick="window.location.href = '/#/'"
+        >
+          ← 와와 홈으로
+        </button>
+        <button
+          type="button"
+          id="btn-word-gacha-logout"
+          style="width: 100%; padding: 14px; min-height: 48px; background: transparent; border: 1.5px solid #e62829; border-radius: 10px; color: #e62829; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;"
+          onclick="(function(){ if(confirm('로그아웃하시겠어요?')){ try{ localStorage.removeItem('play_token'); localStorage.removeItem('play_student'); localStorage.removeItem('play_token_created_at'); localStorage.removeItem('play_academy_slug'); }catch(e){} window.location.href='/#/login'; } })()"
+        >
+          로그아웃
+        </button>
+      </div>
+
+      <div style="height: 24px"></div>
     </section>
 
     <!-- ============================================================
