@@ -220,7 +220,17 @@ async function handleSelfStartPrintJob(
   const body = (await request.json().catch(() => ({}))) as any;
   const maxWords = Math.min(30, Math.max(4, parseInt(body.max_words) || 10));
 
-  // 본인 approved 단어 중 box < 5
+  // 본인 단어 전체 분포 조회 (상세한 에러 제공용)
+  const allMine = await executeQuery<{ status: string; box: number | null }>(
+    db,
+    `SELECT status, box FROM vocab_words
+      WHERE academy_id = ? AND student_id = ?`,
+    [auth.academyId, auth.studentId]
+  );
+  const totalMine = allMine.length;
+  const approvedMine = allMine.filter((w) => w.status === 'approved').length;
+  const masteredMine = allMine.filter((w) => w.status === 'approved' && (w.box ?? 0) >= 5).length;
+
   const candidates = await executeQuery<any>(
     db,
     `SELECT * FROM vocab_words
@@ -228,7 +238,25 @@ async function handleSelfStartPrintJob(
     [auth.academyId, auth.studentId]
   );
   if (candidates.length < 1) {
-    return errorResponse('시험을 치려면 승인된 단어가 최소 1개 필요해요', 409);
+    if (totalMine === 0) {
+      return errorResponse(
+        '아직 등록된 단어가 없어요. "내 단어장" 에서 단어를 추가하거나 선생님께 문의해주세요.',
+        409
+      );
+    }
+    if (approvedMine === 0) {
+      return errorResponse(
+        `단어가 ${totalMine}개 있지만 선생님 승인 대기 중이에요. 승인을 기다려주세요.`,
+        409
+      );
+    }
+    if (masteredMine === approvedMine) {
+      return errorResponse(
+        `승인된 단어 ${approvedMine}개 모두 Box 5(마스터) 단계예요. 새 단어를 추가해야 시험을 볼 수 있어요.`,
+        409
+      );
+    }
+    return errorResponse('시험 가능한 단어가 없어요. "내 단어장" 을 확인해 주세요.', 409);
   }
   // 4지선다 오답은 학원 전체 풀에서 뽑으니 본인 단어가 1~3개여도 진행 가능
 

@@ -5176,12 +5176,14 @@
     try {
       const res = await selfStartPrintJob(10);
       if (res.error) {
-        toast(res.error);
+        // 서버가 409 로 내려주는 상세 메시지 전부 표시 (toast 대신 alert 로
+        // 확인 클릭 유도 → 학생이 메시지를 읽을 시간 보장)
+        alert(`시험을 시작할 수 없어요\n\n${res.error}`);
         return;
       }
       const data = res.data;
       if (!data?.id || !data?.questions?.length) {
-        toast('시험지 생성 실패');
+        alert('시험지 생성 실패\n\n잠시 후 다시 시도해 주세요.');
         return;
       }
       printState.jobId = data.id;
