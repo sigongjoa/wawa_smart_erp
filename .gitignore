@@ -117,6 +117,19 @@ scripts/
 **/assets/**/*.gif
 
 # ========================================
+# TEST DATA / SEED — 실명·PIN 해시·테스트 DB 자격증명 포함. 절대 커밋 금지
+# ========================================
+workers/migrations/seed_test_fixtures.sql
+workers/migrations/seed_*.sql
+workers/seed-*.sql
+workers/seed-*.mjs
+workers/.dev.vars
+workers/.dev.vars.*
+.env
+.env.*
+!.env.example
+
+# ========================================
 # MISC
 # ========================================
 .nyc_output/
@@ -125,6 +138,19 @@ scripts/
 .eslintcache
 /storybook-static/
 code*.html
+
+# ── Debug / scratch artifacts ──
+debug-screenshots/
+workers/debug-screenshots/
+e2e-results.txt
+workers/e2e-results.txt
+db_schema_debug.json
+check-console.js
+check-console.cjs
+workers/check-console.js
+workers/check-console.cjs
+workers/STATUS.txt
+*.tsbuildinfo
 
 # ── Python ──
 __pycache__/
