@@ -3576,6 +3576,10 @@
           <div class="lbl">정답률</div>
           <div class="v" id="me-stat-acc">—</div>
         </div>
+        <div class="stat-box">
+          <div class="lbl">오늘 시험</div>
+          <div class="v" id="me-stat-today">0<span class="u">회</span></div>
+        </div>
       </div>
 
       <div style="height: 24px"></div>
@@ -3914,7 +3918,7 @@
     loadGrammarQA, submitGrammarQuestion,
     loadServerTextbooks, loadTextbookWords,
     isSyncDisabled,
-    loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob, selfStartPrintJob,
+    loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob, selfStartPrintJob, getTodayStats,
   } from './js/wawa-bridge.js';
 
   // sync-banner 제거됨: 로컬 모드 여부는 내부 _syncDisabled 플래그로만 관리
@@ -4228,11 +4232,14 @@
     host.innerHTML = sorted.map(w => {
       const box = w.box ?? 1;
       const mastered = box >= 5;
+      const pending = w.status === 'pending';
       const hpPct = mastered ? 100 : Math.min(100, box * 20);
-      const tag = mastered ? '외움' : (box === 1 && (w.wrongCount ?? 0) === 0 ? 'NEW' : `BOX ${box}`);
+      const tag = pending ? '대기' : (mastered ? '외움' : (box === 1 && (w.wrongCount ?? 0) === 0 ? 'NEW' : `BOX ${box}`));
       const pos = w.pos || 'noun';
+      const rowStyle = pending ? 'style="border-left:3px solid #fac000;opacity:0.75;"' : '';
+      const tagStyle = pending ? 'style="background:#fac000;color:#14171f;"' : '';
       return `
-      <button class="word-row" type="button" data-wid="${w.id}">
+      <button class="word-row" type="button" data-wid="${w.id}" ${rowStyle}>
         <span class="stage-icon" data-stage="${box}">
           <svg><use href="#stage-${box}"/></svg>
           <span class="num">${box}</span>
@@ -4243,7 +4250,7 @@
         </span>
         <span class="wr-right">
           <span class="wr-hp"${mastered ? ' data-l="mastered"' : ''}><i style="--hp: ${hpPct}%"></i></span>
-          <span class="wr-tag${mastered ? ' mastered' : ''}">${tag}</span>
+          <span class="wr-tag${mastered ? ' mastered' : ''}" ${tagStyle}>${tag}</span>
         </span>
       </button>`;
     }).join('');
@@ -5553,6 +5560,15 @@
         const pct = Math.round((correct / history.length) * 100);
         accEl.textContent = `${pct}%`;
       }
+    }
+
+    // 오늘 시험 횟수 — 서버에서 조회 (실패 시 0 유지)
+    const todayEl = document.getElementById('me-stat-today');
+    if (todayEl) {
+      getTodayStats().then(stats => {
+        const n = stats?.todayCount ?? 0;
+        todayEl.innerHTML = `${n}<span class="u">회</span>`;
+      }).catch(() => {});
     }
   }
   queueMicrotask(renderMe);

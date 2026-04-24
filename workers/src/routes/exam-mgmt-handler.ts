@@ -84,7 +84,7 @@ export async function handleExamMgmt(
     // period 조회 또는 생성
     let period = await executeFirst<ExamPeriodRow>(
       db,
-      `SELECT * FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
+      `SELECT id, academy_id, title, period_month, status, created_by, created_at, updated_at FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
       [academyId, month]
     );
     if (!period) {
@@ -98,7 +98,7 @@ export async function handleExamMgmt(
       );
       period = await executeFirst<ExamPeriodRow>(
         db,
-        `SELECT * FROM exam_periods WHERE id = ?`,
+        `SELECT id, academy_id, title, period_month, status, created_by, created_at, updated_at FROM exam_periods WHERE id = ?`,
         [id]
       );
     }
@@ -170,7 +170,7 @@ export async function handleExamMgmt(
 
     const period = await executeFirst<ExamPeriodRow>(
       db,
-      `SELECT * FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
+      `SELECT id, academy_id, title, period_month, status, created_by, created_at, updated_at FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
       [academyId, month]
     );
     if (!period) return successResponse({ period: null, absentees: [] });
@@ -247,7 +247,7 @@ export async function handleExamMgmt(
 
     const period = await executeFirst<ExamPeriodRow>(
       db,
-      `SELECT * FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
+      `SELECT id, academy_id, title, period_month, status, created_by, created_at, updated_at FROM exam_periods WHERE academy_id = ? AND period_month = ?`,
       [academyId, month]
     );
     if (!period) return errorResponse('시험 기간이 없습니다', 404);
@@ -267,7 +267,7 @@ export async function handleExamMgmt(
     // 학년 기반 시험지 찾거나 생성
     let paper = await executeFirst<ExamPaperRow>(
       db,
-      `SELECT * FROM exam_papers WHERE exam_period_id = ? AND academy_id = ? AND grade_filter = ? AND is_custom = 0`,
+      `SELECT id, exam_period_id, academy_id, title, grade_filter, is_custom, created_at FROM exam_papers WHERE exam_period_id = ? AND academy_id = ? AND grade_filter = ? AND is_custom = 0`,
       [period.id, academyId, student.grade]
     );
     if (!paper) {
@@ -297,7 +297,7 @@ export async function handleExamMgmt(
   if (method === 'GET' && pathname === '/api/exam-mgmt') {
     const rows = await executeQuery<ExamPeriodRow>(
       db,
-      `SELECT * FROM exam_periods WHERE academy_id = ? ORDER BY period_month DESC`,
+      `SELECT id, academy_id, title, period_month, status, created_by, created_at, updated_at FROM exam_periods WHERE academy_id = ? ORDER BY period_month DESC`,
       [academyId]
     );
     return successResponse(rows);
@@ -336,7 +336,7 @@ export async function handleExamMgmt(
     const body = await request.json() as any;
 
     const existing = await executeFirst<ExamPeriodRow>(
-      db, 'SELECT * FROM exam_periods WHERE id = ? AND academy_id = ?', [id, academyId]
+      db, 'SELECT id, academy_id, title, period_month, status, created_by, created_at, updated_at FROM exam_periods WHERE id = ? AND academy_id = ?', [id, academyId]
     );
     if (!existing) return errorResponse('시험 기간을 찾을 수 없습니다', 404);
 
@@ -383,7 +383,7 @@ export async function handleExamMgmt(
     const periodId = papersGetMatch[1];
     const rows = await executeQuery<ExamPaperRow>(
       db,
-      `SELECT * FROM exam_papers WHERE exam_period_id = ? AND academy_id = ? ORDER BY grade_filter, title`,
+      `SELECT id, exam_period_id, academy_id, title, grade_filter, is_custom, created_at FROM exam_papers WHERE exam_period_id = ? AND academy_id = ? ORDER BY grade_filter, title`,
       [periodId, academyId]
     );
     return successResponse(rows);
@@ -576,7 +576,7 @@ export async function handleExamMgmt(
     // 기존 시험지 로드
     let papers = await executeQuery<ExamPaperRow>(
       db,
-      `SELECT * FROM exam_papers WHERE exam_period_id = ? AND academy_id = ? AND is_custom = 0`,
+      `SELECT id, exam_period_id, academy_id, title, grade_filter, is_custom, created_at FROM exam_papers WHERE exam_period_id = ? AND academy_id = ? AND is_custom = 0`,
       [periodId, academyId]
     );
 

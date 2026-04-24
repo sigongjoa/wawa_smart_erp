@@ -180,7 +180,16 @@ export async function handleAbsence(
         return errorResponse('classId, date 파라미터 필수', 400);
       }
 
-      // 해당 수업에 배정된 학생 중, 출석 기록이 없는 학생 조회
+      const academyId = getAcademyId(context);
+
+      // 테넌트 격리: 해당 수업이 현재 학원 소유인지 검증
+      const cls = await executeFirst<{ id: string }>(
+        context.env.DB,
+        'SELECT id FROM classes WHERE id = ? AND academy_id = ?',
+        [classId, academyId]
+      );
+      if (!cls) return errorResponse('수업을 찾을 수 없습니다', 404);
+
       const unchecked = await executeQuery<any>(
         context.env.DB,
         `SELECT s.id, s.name,
@@ -189,9 +198,9 @@ export async function handleAbsence(
          JOIN students s ON cs.student_id = s.id
          LEFT JOIN attendance att ON att.student_id = s.id AND att.class_id = cs.class_id AND att.date = ?
          LEFT JOIN absences a ON a.student_id = s.id AND a.class_id = cs.class_id AND a.absence_date = ?
-         WHERE cs.class_id = ? AND att.id IS NULL AND s.status = 'active'
+         WHERE cs.class_id = ? AND s.academy_id = ? AND att.id IS NULL AND s.status = 'active'
          ORDER BY s.name`,
-        [date, date, classId]
+        [date, date, classId, academyId]
       );
 
       return successResponse(unchecked);

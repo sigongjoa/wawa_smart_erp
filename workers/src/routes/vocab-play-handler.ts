@@ -474,6 +474,19 @@ async function handleListPendingPrintJobs(context: RequestContext, auth: PlayAut
   return successResponse(rows);
 }
 
+/** 오늘 제출된 self-start 시험 개수 — 기록 탭 stat 용 */
+async function handleGetTodayStats(context: RequestContext, auth: PlayAuth): Promise<Response> {
+  const todayDone = await executeFirst<{ n: number }>(
+    context.env.DB,
+    `SELECT COUNT(*) AS n FROM vocab_print_jobs
+      WHERE academy_id = ? AND student_id = ? AND created_by = ?
+        AND status = 'submitted'
+        AND date(submitted_at) = date('now')`,
+    [auth.academyId, auth.studentId, `student:${auth.studentId}`]
+  );
+  return successResponse({ todayCount: todayDone?.n || 0 });
+}
+
 async function loadOwnPrintJob(jobId: string, auth: PlayAuth, db: D1Database) {
   return executeFirst<any>(
     db,
@@ -785,6 +798,10 @@ export async function handleVocabPlay(
     // ── Phase 3b: 시험지 응시 ──
     if (pathname === '/api/play/vocab/print/pending') {
       if (method === 'GET') return await handleListPendingPrintJobs(context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    if (pathname === '/api/play/vocab/stats/today') {
+      if (method === 'GET') return await handleGetTodayStats(context, auth);
       return errorResponse('Method not allowed', 405);
     }
     if (pathname === '/api/play/vocab/print/self-start') {

@@ -63,7 +63,10 @@ export async function tenantMiddleware(
   if (!academy) {
     academy = await executeFirst<Academy>(
       context.env.DB,
-      'SELECT * FROM academies WHERE id = ? AND is_active = 1',
+      `SELECT id, name, slug, phone, address, owner_id, plan,
+              max_students, max_teachers, is_active, logo_url,
+              default_class_id, expires_at, created_at, updated_at
+       FROM academies WHERE id = ? AND is_active = 1`,
       [academyId]
     );
 
@@ -100,7 +103,10 @@ export async function resolveAcademyBySlug(
 ): Promise<Academy | null> {
   return executeFirst<Academy>(
     db,
-    'SELECT * FROM academies WHERE slug = ? AND is_active = 1',
+    `SELECT id, name, slug, phone, address, owner_id, plan,
+            max_students, max_teachers, is_active, logo_url,
+            default_class_id, expires_at, created_at, updated_at
+     FROM academies WHERE slug = ? AND is_active = 1`,
     [slug]
   );
 }

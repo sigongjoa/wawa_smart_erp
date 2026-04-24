@@ -310,6 +310,13 @@ export async function selfStartPrintJob(maxWords = 10) {
   return { ok: true, data: json?.data ?? null };
 }
 
+export async function getTodayStats() {
+  const res = await authedFetch('/api/play/vocab/stats/today');
+  if (!res || !res.ok) return null;
+  const json = await res.json().catch(() => ({}));
+  return json?.data ?? null;
+}
+
 export async function submitPrintJob(jobId) {
   const res = await authedFetch(`/api/play/vocab/print/${encodeURIComponent(jobId)}/submit`, {
     method: 'POST',
