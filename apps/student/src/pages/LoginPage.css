@@ -1,0 +1,452 @@
+/* ═════════════════════════════════════════════════════════
+   LoginPage — "Arcade Registration Terminal"
+   Philosophy: 게임기 앞 등록화면. 폼이 아니라 부팅 시퀀스.
+   Block wordmark · PIN slot cells · full-bleed submit.
+   ═════════════════════════════════════════════════════════ */
+
+.lg {
+  min-height: 100dvh;
+  min-height: 100svh;
+  background: var(--bg-canvas);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  color: var(--ink);
+}
+
+/* ─ Wordmark Block (상단) ─────────────────────────────── */
+.lg-wordmark {
+  padding: clamp(32px, 8vw, 56px) var(--sp-5) var(--sp-5);
+  border-bottom: 2px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lg-wordmark-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 3px;
+  color: var(--ink-40);
+  text-transform: uppercase;
+}
+
+.lg-wordmark-title {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 14vw, 80px);
+  font-weight: var(--fw-black);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.lg-wordmark-title span {
+  color: var(--primary);
+}
+
+.lg-wordmark-sub {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: var(--fw-medium);
+  color: var(--ink-60);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lg-wordmark-sub::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--type-grass);
+  animation: lg-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes lg-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-wordmark-sub::before { animation: none; }
+}
+
+/* ─ Registration Form ────────────────────────────────── */
+.lg-form {
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.lg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lg-field-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--ink-60);
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.lg-field-index {
+  color: var(--ink-20);
+}
+
+/* ─ Academy block button ───────────────────────────────── */
+.lg-academy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 18px 20px;
+  min-height: 64px;
+  width: 100%;
+  background: var(--bg-card);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-display);
+  cursor: pointer;
+  text-align: left;
+  transition: transform var(--dur-fast) var(--ease-out-quart),
+              background var(--dur-fast) var(--ease-out-quart);
+}
+
+.lg-academy:active { transform: scale(0.985); }
+.lg-academy:focus-visible { outline: 3px solid var(--primary); outline-offset: -5px; }
+.lg-academy[data-empty="true"] { color: var(--ink-40); font-style: italic; }
+
+.lg-academy-name {
+  font-size: 22px;
+  font-weight: var(--fw-black);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.lg-academy-arrow {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: var(--fw-bold);
+  color: var(--ink-60);
+  line-height: 1;
+}
+
+/* ─ Name input ─────────────────────────────────────────── */
+.lg-name {
+  width: 100%;
+  padding: 18px 20px;
+  min-height: 64px;
+  background: var(--bg-card);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.01em;
+  outline: none;
+}
+
+.lg-name::placeholder {
+  color: var(--ink-20);
+  font-weight: var(--fw-medium);
+}
+
+.lg-name:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -5px;
+}
+
+/* ─ PIN slots (4자리 분리 셀) ──────────────────────────── */
+.lg-pin {
+  position: relative;
+}
+
+.lg-pin-slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  pointer-events: none;
+}
+
+.lg-pin-slot {
+  aspect-ratio: 1 / 1;
+  max-height: 72px;
+  background: var(--bg-card);
+  border: 2px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 10vw, 40px);
+  font-weight: var(--fw-black);
+  color: var(--ink);
+  transition: border-color var(--dur-fast) var(--ease-out-quart),
+              background var(--dur-fast) var(--ease-out-quart);
+}
+
+.lg-pin-slot[data-state="filled"] {
+  background: var(--ink);
+  color: var(--bg-canvas);
+}
+
+.lg-pin-slot[data-state="active"] {
+  border-color: var(--primary);
+  border-width: 3px;
+}
+
+.lg-pin-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  background: transparent;
+  font-size: 16px; /* iOS zoom 방지 */
+  letter-spacing: 0.5em;
+  cursor: pointer;
+  -webkit-text-security: disc;
+}
+
+.lg-pin-input:focus-visible + .lg-pin-slots .lg-pin-slot[data-state="empty"]:first-of-type {
+  border-color: var(--primary);
+  border-width: 3px;
+}
+
+/* ─ Error banner ───────────────────────────────────────── */
+.lg-error {
+  padding: 14px 16px;
+  background: var(--danger);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-left: 4px solid #fff;
+  border-right: 4px solid #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lg-error::before {
+  content: "!";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  color: var(--danger);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: var(--fw-black);
+  flex-shrink: 0;
+}
+
+/* ─ Submit bar (하단 풀폭) ────────────────────────────── */
+.lg-submit {
+  width: 100%;
+  padding: 22px 24px;
+  min-height: 68px;
+  background: var(--ink);
+  border: 0;
+  color: var(--bg-canvas);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: var(--fw-black);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out-quart),
+              transform var(--dur-fast) var(--ease-out-quart);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lg-submit:not(:disabled):hover { background: var(--primary); }
+.lg-submit:not(:disabled):active { transform: translateY(1px); }
+.lg-submit:disabled {
+  background: var(--ink-20);
+  color: var(--ink-40);
+  cursor: not-allowed;
+  letter-spacing: 2px;
+}
+.lg-submit:focus-visible { outline: 3px solid var(--primary); outline-offset: -6px; }
+
+.lg-submit-arrow {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* ─ Academy Picker Modal (하단 시트 스타일) ────────────── */
+.lg-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 20, 26, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: lg-fade-in var(--dur-base) var(--ease-out-quart);
+}
+
+.lg-sheet {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg-canvas);
+  border-top: 2px solid var(--ink);
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  animation: lg-slide-up var(--dur-base) var(--ease-out-quart);
+}
+
+@keyframes lg-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lg-slide-up {
+  from { transform: translateY(24px); }
+  to { transform: translateY(0); }
+}
+
+.lg-sheet-header {
+  padding: var(--sp-5) var(--sp-5) var(--sp-3);
+  border-bottom: 2px solid var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.lg-sheet-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: var(--fw-black);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.lg-sheet-close {
+  background: none;
+  border: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: var(--fw-black);
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.lg-sheet-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lg-sheet-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px var(--sp-5);
+  min-height: 60px;
+  border-bottom: 1px solid var(--ink-09);
+  cursor: pointer;
+  font-family: var(--font-display);
+  transition: background var(--dur-fast) var(--ease-out-quart);
+}
+
+.lg-sheet-item:hover { background: var(--ink-09); }
+.lg-sheet-item[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--bg-canvas);
+}
+
+.lg-sheet-item-name {
+  font-size: 18px;
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+
+.lg-sheet-item-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.5px;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.lg-sheet-empty {
+  padding: var(--sp-8) var(--sp-5);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  color: var(--ink-40);
+  text-transform: uppercase;
+}
+
+/* ─ Footer signature ───────────────────────────────────── */
+.lg-footer {
+  padding: var(--sp-4) var(--sp-5) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--ink-09);
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--ink-20);
+  text-transform: uppercase;
+}
+
+/* ─ Staggered reveal ──────────────────────────────────── */
+.lg-wordmark, .lg-form > *, .lg-footer {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: lg-reveal var(--dur-base) var(--ease-out-quart) forwards;
+}
+.lg-wordmark { animation-delay: 0ms; }
+.lg-form > *:nth-child(1) { animation-delay: 80ms; }
+.lg-form > *:nth-child(2) { animation-delay: 140ms; }
+.lg-form > *:nth-child(3) { animation-delay: 200ms; }
+.lg-form > *:nth-child(4) { animation-delay: 260ms; }
+.lg-form > *:nth-child(5) { animation-delay: 320ms; }
+.lg-footer { animation-delay: 380ms; }
+
+@keyframes lg-reveal {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-wordmark, .lg-form > *, .lg-footer {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
