@@ -13,8 +13,9 @@
  * UC-08: 데이터 없는 학생 → 빈 배열/0값 정상 반환
  */
 import { test, expect } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
-const API = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
+const API = API_URL;
 
 async function getToken(): Promise<string> {
   const res = await fetch(`${API}/api/auth/login`, {

@@ -3,8 +3,9 @@
  * 실제 브라우저에서 페이지 렌더링 + 기능 동작 확인
  */
 import { test, expect } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
-const LIVE_URL = 'https://wawa-smart-erp.pages.dev';
+const LIVE_URL = SITE_URL;
 const ADMIN = { name: '서재용 개발자', pin: '1141' };
 
 test.describe.configure({ mode: 'serial' });

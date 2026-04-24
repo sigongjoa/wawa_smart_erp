@@ -9,8 +9,9 @@
  * UC-5: 삭제 — 교재 삭제
  */
 import { test, expect, Page } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
-const LIVE_URL = 'https://wawa-smart-erp.pages.dev';
+const LIVE_URL = SITE_URL;
 const CREDS = { name: '서재용', pin: '1141' };
 const TEST_TITLE = `테스트교재_${Date.now()}`;
 const TEST_FILE_URL = 'https://drive.google.com/file/d/test-e2e-dummy/view';

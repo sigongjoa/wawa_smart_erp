@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
 test('라이브: 성적 저장 → 리포트 생성 완전 플로우', async ({ page }) => {
   const ADMIN = { name: '서재용 개발자', pin: '1141' };
@@ -10,7 +11,7 @@ test('라이브: 성적 저장 → 리포트 생성 완전 플로우', async ({ 
   });
 
   console.log('🌐 라이브 서버 접속');
-  await page.goto('https://wawa-smart-erp.pages.dev');
+  await page.goto(SITE_URL);
   await page.waitForLoadState('domcontentloaded');
 
   console.log('🔐 로그인');
@@ -71,7 +72,7 @@ test('정기고사 리뷰: 중간고사 탭 전환 → 타이틀/헤더 반영',
   });
 
   console.log('🌐 라이브 서버 접속');
-  await page.goto('https://wawa-smart-erp.pages.dev');
+  await page.goto(SITE_URL);
   await page.waitForLoadState('domcontentloaded');
 
   console.log('🔐 로그인');

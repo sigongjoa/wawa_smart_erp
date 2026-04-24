@@ -17,8 +17,9 @@
  * UI-12: 다른 페이지 이동 후 돌아와도 정상 동작
  */
 import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
-const LIVE_URL = 'https://wawa-smart-erp.pages.dev';
+const LIVE_URL = SITE_URL;
 const ADMIN = { name: '서재용 개발자', pin: '1141' };
 
 test.describe.configure({ mode: 'serial' });

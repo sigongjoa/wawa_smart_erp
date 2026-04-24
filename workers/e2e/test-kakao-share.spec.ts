@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
-const API_URL = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
-const SITE_URL = 'https://wawa-smart-erp.pages.dev';
 const ADMIN = { name: '서재용 개발자', pin: '1141' };
 
 test('카카오톡 공유: 이미지 업로드 API 직접 테스트', async ({ request }) => {

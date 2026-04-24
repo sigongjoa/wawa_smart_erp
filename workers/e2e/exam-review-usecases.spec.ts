@@ -1,4 +1,5 @@
 import { test, expect, request } from '@playwright/test';
+import { API_URL } from './_env';
 
 /**
  * 정기고사(중간/기말) 리포트 통합 — 전체 유즈케이스 라이브 E2E
@@ -12,7 +13,7 @@ import { test, expect, request } from '@playwright/test';
  * UC-7  학부모 공유 링크 공개 열람
  */
 
-const API = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
+const API = API_URL;
 const ADMIN = { name: '서재용 개발자', pin: '1141' };
 
 // 테스트 데이터 — 과거 학기로 고정해 실제 운영 데이터와 충돌 회피

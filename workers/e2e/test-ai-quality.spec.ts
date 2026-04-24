@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-const API_URL = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
+import { API_URL } from './_env';
 const ADMIN = { name: '서재용 개발자', pin: '1141' };
 
 let token = '';

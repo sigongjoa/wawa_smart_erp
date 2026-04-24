@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
 test('라이브 서버 로그인 및 데이터 조회', async ({ page }) => {
   const ADMIN = { name: '서재용 개발자', pin: '1141' };
@@ -19,7 +20,7 @@ test('라이브 서버 로그인 및 데이터 조회', async ({ page }) => {
   });
 
   console.log('🔗 라이브 서버 접속: https://wawa-smart-erp.pages.dev');
-  await page.goto('https://wawa-smart-erp.pages.dev');
+  await page.goto(SITE_URL);
   await page.waitForLoadState('domcontentloaded');
 
   // 로그인

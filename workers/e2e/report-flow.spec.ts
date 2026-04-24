@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { API_URL as DEFAULT_API_URL } from './_env';
 
 /**
  * Student → Exam Setup → Grade Entry → Parent Report Generation Flow
@@ -6,8 +7,8 @@ import { test, expect } from '@playwright/test';
  */
 
 const API_URL = (process.env.LIVE_API_URL || '').startsWith('http')
-  ? process.env.LIVE_API_URL
-  : 'https://api.wawa.app';
+  ? process.env.LIVE_API_URL!
+  : DEFAULT_API_URL;
 
 // Test data fixtures
 const TEST_ADMIN = { name: '김상현', pin: '1234' };
@@ -41,7 +42,8 @@ test.describe.serial('📊 Student → Exam → Grade → Report Complete Flow',
     expect(loginData.data?.user?.role).toBe('admin');
 
     adminToken = loginData.data.accessToken;
-    academyId = loginData.data?.user?.academyId || 'acad-1';
+    academyId = loginData.data?.user?.academyId;
+    expect(academyId, 'academyId 는 로그인 응답에서만 얻어야 한다 — prod acad-1 로의 fallback 금지').toBeTruthy();
 
     console.log('✅ Admin logged in successfully');
     console.log(`   Token: ${adminToken.substring(0, 20)}...`);

@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
 test('최종 테스트: 성적 저장 완전 플로우', async ({ page }) => {
   const ADMIN = { name: '서재용 개발자', pin: '1141' };
@@ -19,7 +20,7 @@ test('최종 테스트: 성적 저장 완전 플로우', async ({ page }) => {
   });
 
   console.log('🌐 라이브 서버');
-  await page.goto('https://wawa-smart-erp.pages.dev');
+  await page.goto(SITE_URL);
   await page.waitForLoadState('domcontentloaded');
 
   console.log('🔐 로그인');

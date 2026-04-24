@@ -8,7 +8,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 1,
   reporter: 'html',
   use: {
-    baseURL: process.env.API_URL || 'https://wawa-smart-erp-api.zeskywa499.workers.dev',
+    // 프로덕션 URL 로 자동 fallback 금지 — 환경 미지정이면 로컬을 때린다.
+    // prod 를 진짜 테스트해야 하면 `API_URL=https://... pnpm test:e2e` 로 명시.
+    baseURL: process.env.API_URL || 'http://localhost:8787',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

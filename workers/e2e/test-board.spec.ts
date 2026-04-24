@@ -3,8 +3,9 @@
  * 라이브 API 직접 호출
  */
 import { test, expect } from '@playwright/test';
+import { API_URL, SITE_URL } from './_env';
 
-const API = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
+const API = API_URL;
 
 async function login(): Promise<{ token: string; userId: string }> {
   const res = await fetch(`${API}/api/auth/login`, {

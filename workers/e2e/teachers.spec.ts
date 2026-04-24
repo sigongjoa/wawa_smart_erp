@@ -1,4 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, APIRequestContext } from '@playwright/test';
+import { IS_PROD_TARGET } from './_env';
+
+// prod 로 절대 새지 않도록 스펙 수준에서 한 번 더 가드
+test.skip(IS_PROD_TARGET, 'teacher 생성/삭제 스펙은 prod 에서 실행 금지 — 테스트 D1 전용');
 
 const ADMIN_USER = {
   name: '김상현',
@@ -12,13 +16,39 @@ const TEST_TEACHER = {
   isAdmin: false,
 };
 
+// 이 파일에서 생성한 모든 teacher id — afterAll 에서 정리한다
+const CREATED_TEACHER_IDS = new Set<string>();
+
+// POST /api/teachers 호출 후 생성된 id 를 추적한다
+async function createTeacherTracked(
+  request: APIRequestContext,
+  token: string,
+  body: Record<string, unknown>
+) {
+  const response = await request.post('/api/teachers', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: body,
+  });
+  if (response.ok()) {
+    try {
+      const data = await response.clone().json();
+      const id = data?.data?.id;
+      if (id) CREATED_TEACHER_IDS.add(id);
+    } catch {
+      // JSON 파싱 실패는 무시 — 추적 실패시 afterAll 에서 잡힌다
+    }
+  }
+  return response;
+}
+
 test.describe('Teacher Management E2E Tests', () => {
   let adminAccessToken: string = '';
 
   test.beforeEach(async ({ request }) => {
-    // 관리자로 로그인
+    // 관리자로 로그인 — slug 필수 (auth-handler TeacherLoginSchema)
     const loginResponse = await request.post('/api/auth/login', {
       data: {
+        slug: 'alpha',
         name: ADMIN_USER.name,
         pin: ADMIN_USER.pin,
       },
@@ -28,6 +58,53 @@ test.describe('Teacher Management E2E Tests', () => {
       const data = await loginResponse.json();
       adminAccessToken = data.data?.accessToken || '';
     }
+  });
+
+  test.afterAll(async ({ request }) => {
+    if (!adminAccessToken) {
+      // 로그인 한 번도 성공 못했으면 재로그인 시도
+      const loginResponse = await request.post('/api/auth/login', {
+        data: { slug: 'alpha', name: ADMIN_USER.name, pin: ADMIN_USER.pin },
+      });
+      if (loginResponse.ok()) {
+        const data = await loginResponse.json();
+        adminAccessToken = data.data?.accessToken || '';
+      }
+    }
+    if (!adminAccessToken) {
+      console.warn('[teachers cleanup] 로그인 실패 — 생성된 계정 정리 못함');
+      return;
+    }
+    for (const id of CREATED_TEACHER_IDS) {
+      try {
+        await request.delete(`/api/teachers/${id}`, {
+          headers: { Authorization: `Bearer ${adminAccessToken}` },
+        });
+      } catch (e) {
+        console.warn(`[teachers cleanup] DELETE /api/teachers/${id} 실패: ${e}`);
+      }
+    }
+    // 추적 실패한 잔여 rows — 이름 패턴으로 한 번 더 훑는다
+    try {
+      const listRes = await request.get('/api/teachers', {
+        headers: { Authorization: `Bearer ${adminAccessToken}` },
+      });
+      if (listRes.ok()) {
+        const body = await listRes.json();
+        const rows: Array<{ id: string; name: string }> = body?.data ?? [];
+        const testPattern = /^(테스트_|강사_|관리자_|데이터_|중복테스트_|선생님A_|선생님B_|다과목_|라이브테스트_|PIN테스트_|E2E_|첫 번째 선생님$|테스트 선생님$|강사 선생님$|데이터 테스트$|선생님 [AB]$|다과목 선생님$)/;
+        for (const r of rows) {
+          if (testPattern.test(r.name)) {
+            await request.delete(`/api/teachers/${r.id}`, {
+              headers: { Authorization: `Bearer ${adminAccessToken}` },
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`[teachers cleanup] 잔여 계정 스캔 실패: ${e}`);
+    }
+    CREATED_TEACHER_IDS.clear();
   });
 
   // UC-1: Teacher add form rendering and input validation
