@@ -2,7 +2,14 @@
 // 서버 shape(vocab_words): { id, english, korean, box, status, review_count, wrong_count, created_at }
 // 클라 shape(words):         { id, word,    meaning, pos, example, box, wrongCount, addedAt }
 
-const API_BASE = 'https://wawa-smart-erp-api.zeskywa499.workers.dev';
+// 호스트 기반 자동 감지: pages.dev / 커스텀 도메인 → prod, 그 외 → prod (DNS 정비 전 기본값)
+const API_BASE = (() => {
+  const host = location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:8787';
+  }
+  return 'https://wawa-smart-erp-api-production.zeskywa499.workers.dev';
+})();
 // 토큰 수명 상한 (서버 KV TTL과 관계없이 클라 만료) — 7일
 const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
