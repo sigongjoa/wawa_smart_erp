@@ -4329,7 +4329,7 @@
     if (c) writeCreature(interact(c, 'addWord', new Date().toISOString()));
     renderWordList();
     dlg.close();
-    toast(`"${input.word}" 추가됨 · 교감 +2`);
+    toast(`"${input.word}" 추가됨 · 선생님 승인 후 시험에 사용 가능`);
   });
 
   // ============================================================
@@ -4359,7 +4359,8 @@
     view.hidden = false;
     typesGrid.hidden = true;
     title.textContent = POS_LABEL[pos] ?? pos;
-    const words = (store.get(KEYS.words) ?? []).filter(w => w.pos === pos);
+    // null/undefined pos 는 'noun' 로 간주 (renderDexCounts 와 일치)
+    const words = (store.get(KEYS.words) ?? []).filter(w => (w.pos || 'noun') === pos);
     const seenIds = new Set(store.get(KEYS.seen) ?? []);
     if (words.length === 0) {
       grid.innerHTML = '<div class="empty-words">이 품사에는 아직 단어가 없어요.</div>';
@@ -4369,10 +4370,17 @@
       const state = unlockState(w, seenIds);
       const face = state === 'locked' ? '???' : escapeHtml(w.word);
       const meaning = state === 'locked' ? '' : escapeHtml(w.meaning);
+      const pending = w.status === 'pending';
+      const posLabel = (w.pos || 'noun').toUpperCase();
+      const pendingBadge = pending
+        ? '<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fac000;color:#14171f;font:700 9px/1.4 ui-monospace,monospace;letter-spacing:0.5px;">승인 대기</span>'
+        : '';
       return `
-        <button class="dex-card" type="button" data-state="${state}" data-wid="${w.id}" ${state==='locked'?'aria-label="잠김"':''}>
+        <button class="dex-card" type="button" data-state="${state}" data-wid="${w.id}"
+                style="${pending ? 'opacity:0.75;border-style:dashed;' : ''}"
+                ${state==='locked'?'aria-label="잠김"':''}>
           <span class="dc-face"><span>${face}</span><small style="display:block;font:500 10px/1.2 var(--body);color:var(--ink-3);margin-top:4px">${meaning}</small></span>
-          <span class="dc-foot"><span>${w.pos.toUpperCase()}</span><span class="box">BOX ${w.box}</span></span>
+          <span class="dc-foot"><span>${posLabel}${pendingBadge}</span><span class="box">BOX ${w.box}</span></span>
         </button>
       `;
     }).join('');
