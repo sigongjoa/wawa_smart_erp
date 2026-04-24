@@ -25,6 +25,8 @@ export default function ExamPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const saveTimers = useRef<Map<number, number>>(new Map());
+  // 재진입 방지: setSubmitting 은 React state 라 비동기 반영됨 → ref 로 즉시 차단
+  const submitLockRef = useRef(false);
 
   // 초기 로드 — 리스트에서 메타 찾고, attempt가 이미 있으면 바로 take
   useEffect(() => {
@@ -158,7 +160,11 @@ export default function ExamPage() {
   }, [attempt]);
 
   const autoSubmit = useCallback(async () => {
-    if (!attempt || submitting) return;
+    if (!attempt) return;
+    // 동기 ref 가드 — 카운트다운 + 5s 폴링 + 사용자 클릭 경합 시 최초 1회만 진행
+    if (submitLockRef.current) return;
+    if (attempt.status === 'submitted' || attempt.status === 'expired') return;
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       await flushPendingSaves();
@@ -168,10 +174,12 @@ export default function ExamPage() {
       setPhase('result');
     } catch (e: any) {
       setError(e?.message || '제출 실패');
+      // 실패 시 재시도 허용 (lock 해제)
+      submitLockRef.current = false;
     } finally {
       setSubmitting(false);
     }
-  }, [attempt, submitting, flushPendingSaves]);
+  }, [attempt, flushPendingSaves]);
 
   const handleSubmit = useCallback(async () => {
     if (!attempt) return;

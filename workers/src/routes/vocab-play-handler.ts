@@ -2,6 +2,7 @@
  * Vocab Gacha 학생용 핸들러 (PIN 토큰)
  * 로그인은 /api/play/login (gacha-play-handler) 공유 — 같은 KV 토큰
  */
+import { z } from 'zod';
 import { RequestContext } from '@/types';
 import { generatePrefixedId } from '@/utils/id';
 import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/utils/db';
@@ -13,6 +14,78 @@ interface PlayAuth {
   academyId: string;
   teacherId: string;
   name: string;
+}
+
+// ─── DB 행 타입 ───
+interface VocabWordRow {
+  id: string;
+  english: string;
+  korean: string;
+  pos: string | null;
+  example: string | null;
+  box: number;
+  blank_type: string | null;
+  status: string;
+  review_count: number;
+  wrong_count: number;
+  created_at: string;
+}
+interface IdRow { id: string }
+interface GrammarRow {
+  id: string;
+  question: string;
+  answer: string | null;
+  status: string;
+  answered_by: string | null;
+  created_at: string;
+  answered_at: string | null;
+  student_id: string;
+}
+interface TextbookRow {
+  id: string;
+  school: string | null;
+  grade: string | null;
+  semester: string | null;
+  title: string;
+}
+
+// ─── Zod 스키마 ───
+const POS_ENUM = z.enum(['noun', 'verb', 'adj', 'adv', 'prep', 'conj']);
+
+const AddWordSchema = z.object({
+  english: z.string().trim().min(1).max(100),
+  korean: z.string().trim().min(1).max(200),
+  pos: POS_ENUM.optional().nullable(),
+  example: z.string().max(500).optional().nullable(),
+});
+
+const AddGrammarSchema = z.object({
+  question: z.string().trim().min(1).max(2000),
+});
+
+const PatchProgressSchema = z.object({
+  box: z.number().int().min(1).max(5).optional(),
+  wrongCount: z.number().int().min(0).max(9999).optional(),
+  reviewDelta: z.number().int().min(1).max(100).optional(),
+}).refine((v) => v.box !== undefined || v.wrongCount !== undefined || v.reviewDelta !== undefined, {
+  message: '업데이트할 필드가 없습니다',
+});
+
+const SelfStartSchema = z.object({
+  max_words: z.number().int().min(4).max(30).optional(),
+});
+
+function handleZodError(err: unknown): Response | null {
+  if (err instanceof z.ZodError) {
+    const msg = err.errors.map((e) => e.message).join(', ');
+    return errorResponse(`입력 검증 오류: ${msg}`, 400);
+  }
+  return null;
+}
+
+function safeParse<T = unknown>(s: string | null | undefined): T | null {
+  if (!s) return null;
+  try { return JSON.parse(s) as T; } catch { return null; }
 }
 
 async function getPlayAuth(context: RequestContext): Promise<PlayAuth | null> {
@@ -47,7 +120,7 @@ function isAllowedOrigin(request: Request): boolean {
 // ── 학생 단어장 ──
 
 async function handleGetMyWords(context: RequestContext, auth: PlayAuth): Promise<Response> {
-  const words = await executeQuery<any>(
+  const words = await executeQuery<VocabWordRow>(
     context.env.DB,
     `SELECT id, english, korean, pos, example, box, blank_type, status, review_count, wrong_count, created_at
      FROM vocab_words
@@ -58,22 +131,21 @@ async function handleGetMyWords(context: RequestContext, auth: PlayAuth): Promis
   return successResponse(words);
 }
 
-const ALLOWED_POS = new Set(['noun', 'verb', 'adj', 'adv', 'prep', 'conj']);
-
 async function handleAddMyWord(request: Request, context: RequestContext, auth: PlayAuth): Promise<Response> {
-  const body = await request.json() as any;
-  if (!body.english?.trim() || !body.korean?.trim()) {
-    return errorResponse('english, korean은 필수입니다', 400);
+  let data: z.infer<typeof AddWordSchema>;
+  try {
+    data = AddWordSchema.parse(await request.json().catch(() => ({})));
+  } catch (err) {
+    const zerr = handleZodError(err);
+    if (zerr) return zerr;
+    throw err;
   }
-  const pos = typeof body.pos === 'string' && ALLOWED_POS.has(body.pos) ? body.pos : null;
-  const example = typeof body.example === 'string' && body.example.trim()
-    ? body.example.trim().slice(0, 500) : null;
   const id = generatePrefixedId('vw');
   await executeInsert(
     context.env.DB,
     `INSERT INTO vocab_words (id, academy_id, student_id, english, korean, pos, example, status, added_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 'student')`,
-    [id, auth.academyId, auth.studentId, body.english.trim(), body.korean.trim(), pos, example]
+    [id, auth.academyId, auth.studentId, data.english, data.korean, data.pos ?? null, data.example ?? null]
   );
   return successResponse({ id }, 201);
 }
@@ -81,8 +153,7 @@ async function handleAddMyWord(request: Request, context: RequestContext, auth: 
 // ── 문법 질문 ──
 
 async function handleGetMyGrammar(context: RequestContext, auth: PlayAuth): Promise<Response> {
-  // 본인 질문 + 답변된 모든 학원 Q&A
-  const list = await executeQuery<any>(
+  const list = await executeQuery<GrammarRow>(
     context.env.DB,
     `SELECT id, question, answer, status, answered_by, created_at, answered_at, student_id
      FROM vocab_grammar_qa
@@ -94,15 +165,20 @@ async function handleGetMyGrammar(context: RequestContext, auth: PlayAuth): Prom
 }
 
 async function handleAddMyGrammar(request: Request, context: RequestContext, auth: PlayAuth): Promise<Response> {
-  const body = await request.json() as any;
-  if (!body.question?.trim()) return errorResponse('질문은 필수입니다', 400);
-
+  let data: z.infer<typeof AddGrammarSchema>;
+  try {
+    data = AddGrammarSchema.parse(await request.json().catch(() => ({})));
+  } catch (err) {
+    const zerr = handleZodError(err);
+    if (zerr) return zerr;
+    throw err;
+  }
   const id = generatePrefixedId('vqa');
   await executeInsert(
     context.env.DB,
     `INSERT INTO vocab_grammar_qa (id, academy_id, student_id, question, status)
      VALUES (?, ?, ?, ?, 'pending')`,
-    [id, auth.academyId, auth.studentId, body.question.trim()]
+    [id, auth.academyId, auth.studentId, data.question]
   );
   return successResponse({ id }, 201);
 }
@@ -110,7 +186,7 @@ async function handleAddMyGrammar(request: Request, context: RequestContext, aut
 // ── 교과서 ──
 
 async function handleGetTextbooks(context: RequestContext, auth: PlayAuth): Promise<Response> {
-  const books = await executeQuery<any>(
+  const books = await executeQuery<TextbookRow>(
     context.env.DB,
     `SELECT id, school, grade, semester, title FROM vocab_textbooks
      WHERE academy_id = ? ORDER BY school, grade, semester`,
@@ -120,14 +196,14 @@ async function handleGetTextbooks(context: RequestContext, auth: PlayAuth): Prom
 }
 
 async function handleGetTextbookWords(context: RequestContext, auth: PlayAuth, textbookId: string): Promise<Response> {
-  const book = await executeFirst<any>(
+  const book = await executeFirst<IdRow>(
     context.env.DB,
     'SELECT id FROM vocab_textbooks WHERE id = ? AND academy_id = ?',
     [textbookId, auth.academyId]
   );
   if (!book) return errorResponse('교과서를 찾을 수 없습니다', 404);
 
-  const words = await executeQuery<any>(
+  const words = await executeQuery<Record<string, unknown>>(
     context.env.DB,
     'SELECT * FROM vocab_textbook_words WHERE textbook_id = ? ORDER BY unit, english',
     [textbookId]
@@ -151,8 +227,8 @@ async function handleGetState(context: RequestContext, auth: PlayAuth): Promise<
 }
 
 async function handlePutState(request: Request, context: RequestContext, auth: PlayAuth): Promise<Response> {
-  const body = await request.json() as any;
-  if (typeof body !== 'object' || body === null) {
+  const body: unknown = await request.json().catch(() => null);
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return errorResponse('state object is required', 400);
   }
   const json = JSON.stringify(body);
@@ -175,20 +251,22 @@ async function handlePutState(request: Request, context: RequestContext, auth: P
 async function handlePatchWordProgress(
   wordId: string, request: Request, context: RequestContext, auth: PlayAuth
 ): Promise<Response> {
-  const body = await request.json() as any;
+  let data: z.infer<typeof PatchProgressSchema>;
+  try {
+    data = PatchProgressSchema.parse(await request.json().catch(() => ({})));
+  } catch (err) {
+    const zerr = handleZodError(err);
+    if (zerr) return zerr;
+    throw err;
+  }
   const sets: string[] = [];
-  const params: any[] = [];
-  if (typeof body.box === 'number' && body.box >= 1 && body.box <= 5) {
-    sets.push('box = ?'); params.push(body.box);
+  const params: unknown[] = [];
+  if (typeof data.box === 'number') { sets.push('box = ?'); params.push(data.box); }
+  if (typeof data.wrongCount === 'number') { sets.push('wrong_count = ?'); params.push(data.wrongCount); }
+  if (typeof data.reviewDelta === 'number') {
+    sets.push('review_count = review_count + ?');
+    params.push(data.reviewDelta);
   }
-  if (typeof body.wrongCount === 'number' && body.wrongCount >= 0) {
-    sets.push('wrong_count = ?'); params.push(body.wrongCount);
-  }
-  if (typeof body.reviewDelta === 'number' && body.reviewDelta > 0) {
-    sets.push('review_count = review_count + ?'); params.push(body.reviewDelta);
-  }
-  if (sets.length === 0) return errorResponse('업데이트할 필드가 없습니다', 400);
-
   params.push(wordId, auth.studentId, auth.academyId);
   const result = await context.env.DB.prepare(
     `UPDATE vocab_words SET ${sets.join(', ')}
@@ -217,8 +295,15 @@ async function handleSelfStartPrintJob(
   auth: PlayAuth
 ): Promise<Response> {
   const db = context.env.DB;
-  const body = (await request.json().catch(() => ({}))) as any;
-  const maxWords = Math.min(30, Math.max(4, parseInt(body.max_words) || 10));
+  let parsed: z.infer<typeof SelfStartSchema>;
+  try {
+    parsed = SelfStartSchema.parse(await request.json().catch(() => ({})));
+  } catch (err) {
+    const zerr = handleZodError(err);
+    if (zerr) return zerr;
+    throw err;
+  }
+  const maxWords = parsed.max_words ?? 10;
 
   // 1. 진행 중인 self-start 시험 있으면 resume (중복 생성 방지)
   const existingActive = await executeFirst<{ id: string; status: string; started_at: string | null }>(

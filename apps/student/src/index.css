@@ -238,78 +238,7 @@ img { max-width: 100%; height: auto; }
   font-size: 15px; font-weight: 600; color: var(--text-secondary);
 }
 
-/* ══════════════════════════════════════
-   HOME PAGE
-   ══════════════════════════════════════ */
-.home-page {
-  max-width: 480px; margin: 0 auto; padding: 0 16px 32px;
-}
-
-.home-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 0 16px;
-}
-.home-header h1 { font-size: 22px; font-weight: 700; }
-.home-grade { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
-
-/* Progress card */
-.home-progress-card {
-  background: var(--bg-card); border-radius: var(--radius);
-  padding: 20px; box-shadow: var(--shadow-sm); margin-bottom: 20px;
-}
-.home-progress-header {
-  display: flex; justify-content: space-between; align-items: center;
-  font-size: 15px; font-weight: 600; margin-bottom: 12px;
-}
-.home-progress-header span:last-child { color: var(--primary); }
-.home-progress-bar {
-  height: 10px; background: var(--border-light); border-radius: var(--radius-full);
-  overflow: hidden;
-}
-.home-progress-fill {
-  height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent));
-  border-radius: var(--radius-full); transition: width 0.4s ease;
-}
-.home-progress-pct {
-  display: block; text-align: right; font-size: 13px;
-  color: var(--text-tertiary); margin-top: 6px;
-}
-
-/* Mode selection */
-.home-modes {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-  margin-bottom: 24px;
-}
-.home-mode-card {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  background: var(--bg-card); border: 1.5px solid var(--border);
-  border-radius: var(--radius); padding: 20px 12px;
-  font-size: 15px; font-weight: 600; color: var(--text);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.home-mode-card:hover, .home-mode-card:active {
-  border-color: var(--primary-light); box-shadow: var(--shadow-sm);
-}
-.home-mode-icon { font-size: 32px; }
-.home-mode-label { font-weight: 700; }
-.home-mode-count { font-size: 13px; color: var(--text-tertiary); font-weight: 500; }
-
-/* Proof list */
-.home-section { margin-top: 8px; }
-.home-section h2 { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
-.home-proof-list { display: flex; flex-direction: column; gap: 10px; }
-.home-proof-item {
-  background: var(--bg-card); border-radius: var(--radius);
-  padding: 16px; box-shadow: var(--shadow-sm);
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-}
-.home-proof-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.home-proof-title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.home-proof-meta { font-size: 13px; color: var(--text-tertiary); }
-.home-proof-score { font-size: 13px; font-weight: 600; }
-.home-proof-score.good { color: var(--success); }
-.home-proof-score.low { color: var(--danger); }
-.home-proof-actions { display: flex; gap: 6px; flex-shrink: 0; }
+/* HOME PAGE 레거시 .home-* 스타일 제거 (2026-04) — HomePage.css 의 .hp-* 사용 */
 
 /* ══════════════════════════════════════
    GACHA PLAY PAGE

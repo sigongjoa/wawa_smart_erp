@@ -34,8 +34,6 @@ export default function MyArchivePage() {
 
   const isNew = (dt: string) => Date.now() - new Date(dt).getTime() < 7 * 24 * 3600 * 1000;
 
-  const token = localStorage.getItem('play_token');
-
   return (
     <div className="page-container" style={{ padding: 16, maxWidth: 720, margin: '0 auto' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -118,19 +116,14 @@ export default function MyArchivePage() {
                         <div>{f.file_name}</div>
                         <div style={{ fontSize: 10, color: '#999' }}>{(f.size_bytes / 1024).toFixed(0)} KB</div>
                       </div>
-                      {a.can_download && token ? (
-                        <a
-                          href={`${api.archiveDownloadUrl(a.id, f.id)}?t=${encodeURIComponent(token)}`}
-                          onClick={(e) => {
-                            // fetch 인증이 Bearer 헤더 방식이라 단순 <a> 링크로는 인증 실패
-                            // → 클릭 시 fetch → Blob 다운로드
-                            e.preventDefault();
-                            downloadBlob(api.archiveDownloadUrl(a.id, f.id), f.file_name);
-                          }}
-                          style={{ background: '#4a5cff', color: '#fff', padding: '6px 10px', borderRadius: 6, textDecoration: 'none', fontSize: 12 }}
+                      {a.can_download ? (
+                        <button
+                          type="button"
+                          onClick={() => downloadBlob(api.archiveDownloadUrl(a.id, f.id), f.file_name)}
+                          style={{ background: '#4a5cff', color: '#fff', padding: '6px 10px', borderRadius: 6, border: 0, fontSize: 12, cursor: 'pointer' }}
                         >
                           받기
-                        </a>
+                        </button>
                       ) : (
                         <span style={{ fontSize: 11, color: '#999' }}>열람 전용</span>
                       )}
@@ -147,9 +140,14 @@ export default function MyArchivePage() {
 }
 
 async function downloadBlob(url: string, fileName: string) {
-  const token = localStorage.getItem('play_token');
+  // credentials:'include' 로 쿠키 + 레거시 Bearer 헤더 병행 (점진 이관)
+  // 토큰이 필요한 이유: 아직 서버 auth middleware 가 쿠키·헤더 병행 수용 중
+  const token = getPlayToken();
   try {
-    const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    const res = await fetch(url, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) throw new Error('다운로드 실패');
     const blob = await res.blob();
     const link = document.createElement('a');
@@ -160,4 +158,12 @@ async function downloadBlob(url: string, fileName: string) {
   } catch (err) {
     alert(err instanceof Error ? err.message : '다운로드 실패');
   }
+}
+
+/**
+ * 과도기 헬퍼 — localStorage 토큰은 httpOnly 쿠키 전환 완료(이슈 #60)
+ * 직전까지 유지. 콜 사이트는 이 한 곳에 격리.
+ */
+function getPlayToken(): string | null {
+  try { return localStorage.getItem('play_token'); } catch { return null; }
 }

@@ -28,32 +28,26 @@ export default function HomePage() {
     }).finally(() => setLoading(false));
   }, []);
 
+  // 활성 시험/라이브 세션 단일 폴링으로 통합 (5초마다 동시 조회)
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
       try {
-        const active = await api.getActiveExamAttempt();
+        const [active, live] = await Promise.all([
+          api.getActiveExamAttempt().catch(() => null),
+          api.getActiveLiveSession().catch(() => null),
+        ]);
         if (cancelled) return;
         if (active && ['running', 'paused'].includes(active.status)) {
           navigate('/exam-timer', { replace: true });
           return;
         }
+        if (live?.session) {
+          navigate(`/live/${live.session.id}`, { replace: true });
+          return;
+        }
       } catch { /* ignore */ }
       finally { if (!cancelled) setExamChecking(false); }
-    };
-    check();
-    const timer = window.setInterval(check, 5000);
-    return () => { cancelled = true; window.clearInterval(timer); };
-  }, [navigate]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const check = async () => {
-      try {
-        const res = await api.getActiveLiveSession();
-        if (cancelled) return;
-        if (res?.session) navigate(`/live/${res.session.id}`, { replace: true });
-      } catch { /* ignore */ }
     };
     check();
     const timer = window.setInterval(check, 5000);
