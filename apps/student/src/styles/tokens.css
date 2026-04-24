@@ -113,6 +113,76 @@
   --shadow-lg: var(--shadow-pop);
 }
 
+/* ─ 페이지 공용 헤더 ──────────────────────────────────── */
+.page-header {
+  padding: var(--sp-6) var(--sp-5) var(--sp-4);
+}
+.page-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-title-1);
+  font-weight: var(--fw-black);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.page-subtitle {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-body);
+  color: var(--ink-60);
+}
+.page-body {
+  padding: 0 var(--sp-5) var(--sp-6);
+}
+
+/* ─ 카드 프리셋 (재사용) ──────────────────────────────── */
+.card-surface {
+  background: var(--bg-card);
+  border: var(--border-hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+}
+
+.card-label {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semi);
+  color: var(--ink-60);
+  letter-spacing: var(--ls-caption);
+  text-transform: uppercase;
+  margin-bottom: var(--sp-2);
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-size: var(--fs-title-1);
+  font-weight: var(--fw-black);
+  color: var(--ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+.btn-danger-outline {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  min-height: 48px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--danger);
+  border-radius: var(--r-md);
+  color: var(--danger);
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semi);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out-quart);
+}
+.btn-danger-outline:hover {
+  background: var(--danger-surface);
+}
+.btn-danger-outline:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
+
 /* ─ mono-digit 강제 (숫자 시각적 정렬) ────────────────── */
 .mono-digit,
 .stat-number {

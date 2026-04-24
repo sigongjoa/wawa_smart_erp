@@ -14,6 +14,7 @@
 }
 
 .tabbar-item {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -32,8 +33,24 @@
   outline-offset: -2px;
 }
 
+.tabbar-indicator {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 28px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: transform var(--dur-base) var(--ease-out-quart);
+}
+
 .tabbar-item--active {
   color: var(--ink);
+}
+
+.tabbar-item--active .tabbar-indicator {
+  transform: translateX(-50%) scaleX(1);
 }
 
 .tabbar-label {

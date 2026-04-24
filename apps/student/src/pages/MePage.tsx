@@ -11,58 +11,25 @@ export default function MePage() {
     navigate('/login', { replace: true });
   };
 
+  const hasGrade = !!student?.grade && student.grade !== '미지정';
+
   return (
     <div>
       <header className="page-header">
         <h1 className="page-title">나</h1>
       </header>
-      <div style={{ padding: '0 20px' }}>
-        <section
-          style={{
-            background: 'var(--bg-card)',
-            border: 'var(--border-hairline)',
-            borderRadius: 'var(--r-lg)',
-            padding: '20px',
-            marginBottom: '16px',
-          }}
-        >
-          <div style={{
-            fontSize: 'var(--fs-caption)',
-            fontWeight: 'var(--fw-semi)',
-            color: 'var(--ink-60)',
-            letterSpacing: 'var(--ls-caption)',
-            textTransform: 'uppercase',
-            marginBottom: '8px',
-          }}>
-            학생
-          </div>
-          <div style={{ fontSize: 'var(--fs-title-1)', fontWeight: 'var(--fw-black)', color: 'var(--ink)' }}>
-            {student?.name || '-'}
-          </div>
-          {student?.grade && student.grade !== '미지정' && (
-            <div style={{ fontSize: 'var(--fs-body)', color: 'var(--ink-60)', marginTop: '4px' }}>
-              {student.grade}
+      <div className="page-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
+        <section className="card-surface">
+          <div className="card-label">학생</div>
+          <div className="stat-number">{student?.name || '-'}</div>
+          {hasGrade && (
+            <div style={{ fontSize: 'var(--fs-body)', color: 'var(--ink-60)', marginTop: 'var(--sp-1)' }}>
+              {student!.grade}
             </div>
           )}
         </section>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          style={{
-            width: '100%',
-            padding: '14px',
-            minHeight: '48px',
-            background: 'var(--bg-card)',
-            border: '1.5px solid var(--danger)',
-            borderRadius: 'var(--r-md)',
-            color: 'var(--danger)',
-            fontSize: 'var(--fs-body)',
-            fontWeight: 'var(--fw-semi)',
-            fontFamily: 'var(--font-display)',
-            cursor: 'pointer',
-          }}
-        >
+        <button type="button" className="btn-danger-outline" onClick={handleLogout}>
           로그아웃
         </button>
       </div>
