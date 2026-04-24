@@ -369,56 +369,155 @@ export default function ExamPage() {
     );
   }
 
-  // ── Phase: Result ──
+  // ── Phase: Result (Scoreboard) ──
   if (phase === 'result' && attempt) {
     const score = attempt.score ?? 0;
     const correct = attempt.correct ?? 0;
     const total = attempt.total ?? 0;
     const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-    return (
-      <div style={{ maxWidth: 520, margin: '0 auto', padding: 20, minHeight: '100vh' }}>
-        <div style={{ textAlign: 'center', marginTop: 20, marginBottom: 30 }}>
-          <div style={{
-            fontSize: 14, fontWeight: 700, letterSpacing: 2,
-            color: pct >= 80 ? '#10b981' : (pct >= 60 ? '#2d3a8c' : '#dc2626'),
-            marginBottom: 12,
-          }}>
-            {pct >= 80 ? 'GREAT' : (pct >= 60 ? 'GOOD' : 'TRY AGAIN')}
-          </div>
-          <div style={{ fontSize: 48, fontWeight: 800, color: '#2d3a8c', marginBottom: 4 }}>
-            {correct} / {total}
-          </div>
-          <div style={{ fontSize: 16, color: '#4a5568' }}>{score}점 · 정답률 {pct}%</div>
-        </div>
+    const rank = pct >= 80 ? { label: 'GREAT', color: 'var(--type-grass)' }
+               : pct >= 60 ? { label: 'GOOD', color: 'var(--type-water)' }
+               : { label: 'RETRY', color: 'var(--danger)' };
 
-        {attempt.breakdown && (
-          <div style={{
-            background: '#f7fafc', borderRadius: 12, padding: 16, marginBottom: 20,
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 10, color: '#4a5568', fontSize: 13 }}>문항별 결과</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-              {attempt.breakdown.map(b => (
-                <div key={b.questionNo} style={{
-                  textAlign: 'center', padding: '10px 4px',
-                  background: b.correct ? '#d1fae5' : '#fee2e2',
-                  color: b.correct ? '#065f46' : '#991b1b',
-                  borderRadius: 6, fontSize: 12, fontWeight: 600,
-                }}>
-                  {b.questionNo} {b.correct ? 'O' : 'X'}
-                </div>
-              ))}
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        background: 'var(--bg-canvas)',
+        display: 'grid',
+        gridTemplateRows: 'auto 1fr auto',
+      }}>
+        {/* Header */}
+        <header style={{
+          padding: '20px var(--sp-5)',
+          borderBottom: '2px solid var(--ink)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
+            letterSpacing: 3, color: 'var(--ink-40)', textTransform: 'uppercase',
+          }}>SCORECARD</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
+            letterSpacing: 1.5, color: rank.color, textTransform: 'uppercase',
+          }}>{rank.label}</span>
+        </header>
+
+        {/* Hero Score */}
+        <div style={{
+          padding: 'var(--sp-8) var(--sp-5)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--sp-5)',
+          maxWidth: 560,
+          width: '100%',
+          margin: '0 auto',
+        }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(72px, 22vw, 120px)',
+              fontWeight: 900,
+              lineHeight: 0.88,
+              letterSpacing: '-0.04em',
+              color: 'var(--ink)',
+              fontVariantNumeric: 'tabular-nums lining-nums',
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 6,
+            }}>
+              <span>{correct}</span>
+              <span style={{ color: 'var(--ink-20)', fontSize: '0.6em' }}>/</span>
+              <span style={{ color: 'var(--ink-40)' }}>{total}</span>
+            </div>
+            <div style={{
+              marginTop: 14,
+              display: 'flex',
+              gap: 'var(--sp-4)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 1.2,
+              color: 'var(--ink-60)',
+              textTransform: 'uppercase',
+            }}>
+              <span>점수 <strong style={{ color: 'var(--ink)', marginLeft: 6 }}>{score}</strong></span>
+              <span>정답률 <strong style={{ color: 'var(--ink)', marginLeft: 6 }}>{pct}%</strong></span>
             </div>
           </div>
-        )}
 
+          {/* Breakdown grid */}
+          {attempt.breakdown && attempt.breakdown.length > 0 && (
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 2,
+                color: 'var(--ink-60)',
+                textTransform: 'uppercase',
+                marginBottom: 10,
+              }}>문항별 · {attempt.breakdown.length}문항</div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: 2,
+                background: 'var(--ink)',
+                padding: 2,
+                border: '2px solid var(--ink)',
+              }}>
+                {attempt.breakdown.map(b => (
+                  <div key={b.questionNo} style={{
+                    padding: '14px 0 10px',
+                    background: b.correct ? 'var(--type-grass)' : 'var(--danger)',
+                    color: '#fff',
+                    textAlign: 'center',
+                    fontFamily: 'var(--font-display)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    minHeight: 60,
+                  }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: 1, opacity: 0.85,
+                      fontFamily: 'var(--font-mono)',
+                    }}>Q{b.questionNo}</span>
+                    <span style={{
+                      fontSize: 22, fontWeight: 900, lineHeight: 1,
+                    }}>{b.correct ? 'O' : 'X'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom action */}
         <button
+          type="button"
           onClick={() => navigate('/')}
           style={{
-            width: '100%', padding: '14px', borderRadius: 10,
-            border: 'none', background: '#2d3a8c', color: '#fff',
-            fontWeight: 700, fontSize: 15, cursor: 'pointer',
+            width: '100%',
+            padding: '22px',
+            minHeight: 64,
+            background: 'var(--ink)',
+            border: 0,
+            color: 'var(--bg-canvas)',
+            fontFamily: 'var(--font-display)',
+            fontSize: 18,
+            fontWeight: 900,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
           }}
-        >홈으로</button>
+        >
+          HOME <span style={{ fontFamily: 'var(--font-mono)' }}>→</span>
+        </button>
       </div>
     );
   }

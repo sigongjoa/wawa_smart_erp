@@ -1,0 +1,453 @@
+/* ═════════════════════════════════════════════════════════
+   GachaPage — "Trainer Card Session"
+   풀스크린 학습 세션. 한 카드가 화면을 지배.
+   블록·굵은 보더·스코어보드 숫자·220ms 색 플래시 피드백.
+   ═════════════════════════════════════════════════════════ */
+
+.gp {
+  min-height: 100dvh;
+  min-height: 100svh;
+  background: var(--bg-canvas);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  color: var(--ink);
+}
+
+/* ─ Header bar (홈 / 카운터 / 박스) ───────────────────── */
+.gp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px var(--sp-5);
+  border-bottom: 2px solid var(--ink);
+  gap: var(--sp-3);
+}
+
+.gp-back {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.5px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 8px 12px 8px 0;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.gp-back:hover { color: var(--primary); }
+.gp-back-arrow { font-size: 16px; line-height: 1; }
+
+.gp-progress {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.gp-progress-cell {
+  flex: 1;
+  max-width: 14px;
+  height: 6px;
+  background: var(--ink-09);
+  transition: background var(--dur-fast) var(--ease-out-quart);
+}
+
+.gp-progress-cell[data-state="done"] { background: var(--ink); }
+.gp-progress-cell[data-state="correct"] { background: var(--type-grass); }
+.gp-progress-cell[data-state="wrong"] { background: var(--danger); }
+.gp-progress-cell[data-state="current"] { background: var(--warning); }
+
+.gp-score {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: var(--fw-black);
+  letter-spacing: 1px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums lining-nums;
+  min-width: 48px;
+  text-align: right;
+}
+
+/* ─ Stage (메인 영역) ────────────────────────────────── */
+.gp-stage {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-5);
+  gap: var(--sp-4);
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─ Box badge 상단 (트레이너 카드 분류) ─────────────── */
+.gp-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--ink-60);
+  text-transform: uppercase;
+}
+
+.gp-box-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gp-box-num strong {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: var(--fw-black);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+/* ─ Question card (블록) ─────────────────────────────── */
+.gp-card {
+  position: relative;
+  border: 2px solid var(--ink);
+  background: var(--bg-card);
+  padding: var(--sp-6) var(--sp-5);
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--dur-base) var(--ease-out-quart),
+              background var(--dur-base) var(--ease-out-quart);
+}
+
+.gp-card[data-flash="correct"] {
+  border-color: var(--type-grass);
+  border-width: 4px;
+  background: var(--success-surface);
+}
+
+.gp-card[data-flash="wrong"] {
+  border-color: var(--danger);
+  border-width: 4px;
+  background: var(--danger-surface);
+}
+
+.gp-card-text {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 6vw, 30px);
+  font-weight: var(--fw-bold);
+  line-height: 1.35;
+  color: var(--ink);
+  text-align: center;
+}
+
+.gp-card-img {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+/* ─ Answer input ──────────────────────────────────────── */
+.gp-answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.gp-answer-input {
+  width: 100%;
+  padding: 16px 18px;
+  min-height: 56px;
+  background: var(--bg-card);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: var(--fw-bold);
+  text-align: center;
+  outline: none;
+  letter-spacing: -0.01em;
+}
+
+.gp-answer-input::placeholder {
+  color: var(--ink-20);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0;
+}
+
+.gp-answer-input:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -5px;
+}
+
+.gp-answer-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8px;
+}
+
+/* ─ Block button (공용) ──────────────────────────────── */
+.gp-btn {
+  padding: 16px 18px;
+  min-height: 56px;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg-canvas);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: var(--fw-black);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out-quart),
+              transform var(--dur-fast) var(--ease-out-quart);
+}
+.gp-btn:not(:disabled):hover { background: var(--primary); border-color: var(--primary); }
+.gp-btn:not(:disabled):active { transform: scale(0.985); }
+.gp-btn:disabled { background: var(--ink-20); border-color: var(--ink-20); color: var(--ink-40); cursor: not-allowed; }
+.gp-btn:focus-visible { outline: 3px solid var(--primary); outline-offset: -6px; }
+
+.gp-btn--ghost {
+  background: var(--bg-canvas);
+  color: var(--ink);
+}
+.gp-btn--ghost:not(:disabled):hover {
+  background: var(--ink);
+  color: var(--bg-canvas);
+}
+
+.gp-btn--grass {
+  background: var(--type-grass);
+  border-color: var(--type-grass);
+  color: #fff;
+}
+.gp-btn--grass:not(:disabled):hover { background: #2e8820; border-color: #2e8820; }
+
+.gp-btn--danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.gp-btn--danger:not(:disabled):hover { background: #c21f20; border-color: #c21f20; }
+
+/* ─ Reveal (정답 공개) ───────────────────────────────── */
+.gp-reveal {
+  border: 2px solid var(--type-dragon);
+  background: var(--type-dragon-surface);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gp-reveal-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--type-dragon);
+  text-transform: uppercase;
+}
+
+.gp-reveal-answer {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 5.5vw, 26px);
+  font-weight: var(--fw-black);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+/* ─ Self-check ─────────────────────────────────────── */
+.gp-self {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.gp-self-prompt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--ink-60);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.gp-self-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ─ Feedback banner ────────────────────────────────── */
+.gp-fb {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 2px solid var(--ink);
+}
+
+.gp-fb--correct { background: var(--type-grass); color: #fff; border-color: var(--type-grass); }
+.gp-fb--wrong { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+.gp-fb-mark {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: var(--fw-black);
+  line-height: 1;
+  width: 44px;
+  text-align: center;
+}
+
+.gp-fb-text {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: var(--fw-black);
+  letter-spacing: -0.01em;
+}
+
+.gp-fb-box {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+
+/* ─ 작은 미러 (피드백 단계의 문제 축약) ────────────── */
+.gp-mini-q {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-card);
+  border: 1px solid var(--ink-09);
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink-60);
+  text-align: center;
+}
+
+/* ─ Done screen ───────────────────────────────────── */
+.gp-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  text-align: center;
+  padding: var(--sp-8) var(--sp-5);
+  flex: 1;
+}
+
+.gp-done-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 3px;
+  color: var(--ink-40);
+  text-transform: uppercase;
+}
+
+.gp-done-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 10vw, 52px);
+  font-weight: var(--fw-black);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.gp-done-score {
+  font-family: var(--font-display);
+  font-size: clamp(64px, 18vw, 88px);
+  font-weight: var(--fw-black);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums lining-nums;
+  margin-top: var(--sp-3);
+}
+
+.gp-done-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--ink-60);
+  text-transform: uppercase;
+}
+
+.gp-done-error {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 12px 16px;
+  border: 2px solid var(--danger);
+  background: var(--danger-surface);
+}
+
+/* ─ Next button bar (하단 풀폭) ─────────────────────── */
+.gp-next {
+  width: 100%;
+  padding: 22px;
+  min-height: 64px;
+  background: var(--ink);
+  border: 0;
+  color: var(--bg-canvas);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: var(--fw-black);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out-quart);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.gp-next:hover { background: var(--primary); }
+.gp-next-arrow { font-family: var(--font-mono); font-size: 18px; }
+
+/* ─ Loading ────────────────────────────────────────── */
+.gp-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--ink-40);
+  text-transform: uppercase;
+}
+
+/* ─ Stage reveal 모션 ──────────────────────────────── */
+.gp-stage > * {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: gp-reveal 220ms var(--ease-out-quart) forwards;
+}
+.gp-stage > *:nth-child(1) { animation-delay: 0ms; }
+.gp-stage > *:nth-child(2) { animation-delay: 50ms; }
+.gp-stage > *:nth-child(3) { animation-delay: 100ms; }
+.gp-stage > *:nth-child(4) { animation-delay: 150ms; }
+.gp-stage > *:nth-child(5) { animation-delay: 200ms; }
+@keyframes gp-reveal {
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gp-stage > * { opacity: 1; transform: none; animation: none; }
+}

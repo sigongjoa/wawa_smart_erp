@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, Card, getCardImageUrl } from '../api';
 import KaTeX from '../components/KaTeX';
+import './GachaPage.css';
 
 type Phase = 'loading' | 'question' | 'answer' | 'feedback' | 'done';
+type HistoryMark = 'correct' | 'wrong' | null;
+
+const TOTAL = 10;
 
 export default function GachaPage() {
   const navigate = useNavigate();
@@ -13,12 +17,16 @@ export default function GachaPage() {
   const [isCorrect, setIsCorrect] = useState(false);
   const [feedback, setFeedback] = useState<{ box_before: number; box_after: number } | null>(null);
   const [count, setCount] = useState(0);
+  const [history, setHistory] = useState<HistoryMark[]>([]);
   const [error, setError] = useState('');
+  const [flash, setFlash] = useState<'correct' | 'wrong' | null>(null);
+  const flashTimer = useRef<number | null>(null);
 
   const loadCard = useCallback(async () => {
     setPhase('loading');
     setUserAnswer('');
     setError('');
+    setFlash(null);
     try {
       const c = await api.getRandomCard();
       setCard(c);
@@ -35,6 +43,9 @@ export default function GachaPage() {
   }, []);
 
   useEffect(() => { loadCard(); }, [loadCard]);
+  useEffect(() => () => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+  }, []);
 
   const handleShowAnswer = () => {
     setPhase('answer');
@@ -44,7 +55,12 @@ export default function GachaPage() {
     if (!card) return;
     const correct = checkAnswer(userAnswer.trim(), card.answer);
     setIsCorrect(correct);
-    submitFeedback(correct);
+    // 220ms 색 플래시 → 이후 feedback 단계 전환
+    setFlash(correct ? 'correct' : 'wrong');
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => {
+      submitFeedback(correct);
+    }, 220);
   };
 
   const submitFeedback = async (correct: boolean) => {
@@ -52,7 +68,8 @@ export default function GachaPage() {
     try {
       const result = await api.submitCardFeedback(card.id, correct ? 'success' : 'fail');
       setFeedback({ box_before: result.box_before, box_after: result.box_after });
-      setCount(c => c + 1);
+      setCount((c) => c + 1);
+      setHistory((h) => [...h, correct ? 'correct' : 'wrong']);
       setPhase('feedback');
     } catch (err) {
       setError((err as Error).message);
@@ -60,112 +77,177 @@ export default function GachaPage() {
   };
 
   const handleNext = () => {
-    if (count >= 10) {
+    if (count >= TOTAL) {
       setPhase('done');
     } else {
       loadCard();
     }
   };
 
+  const progressCells = useMemo(() => {
+    const cells: Array<'done' | 'correct' | 'wrong' | 'current' | 'idle'> = [];
+    for (let i = 0; i < TOTAL; i++) {
+      if (i < history.length) {
+        cells.push(history[i] === 'correct' ? 'correct' : 'wrong');
+      } else if (i === history.length && phase !== 'done') {
+        cells.push('current');
+      } else {
+        cells.push('idle');
+      }
+    }
+    return cells;
+  }, [history, phase]);
+
+  const correctCount = history.filter((h) => h === 'correct').length;
+
   return (
-    <div className="gacha-play-page">
-      <header className="play-header">
-        <button className="btn-ghost" onClick={() => navigate('/')}>← 홈</button>
-        <span className="play-counter">{count}/10</span>
+    <div className="gp">
+      <header className="gp-head">
+        <button type="button" className="gp-back" onClick={() => navigate('/')}>
+          <span className="gp-back-arrow" aria-hidden="true">←</span>
+          HOME
+        </button>
+        <div className="gp-progress" role="progressbar" aria-valuenow={count} aria-valuemax={TOTAL}>
+          {progressCells.map((s, i) => (
+            <span key={i} className="gp-progress-cell" data-state={s === 'idle' ? undefined : s} />
+          ))}
+        </div>
+        <span className="gp-score">{count}/{TOTAL}</span>
       </header>
 
       {phase === 'loading' && (
-        <div className="play-center"><div className="loading">카드 뽑는 중...</div></div>
+        <div className="gp-loading">LOADING CARD…</div>
       )}
 
-      {phase === 'question' && card && (
-        <div className="play-card">
-          <div className="play-card-badge">Box {card.box}</div>
-          <div className="play-card-question">
+      {(phase === 'question' || phase === 'answer') && card && (
+        <div className="gp-stage">
+          <div className="gp-box">
+            <span className="gp-box-num">BOX <strong>{card.box}</strong></span>
+            <span>CORRECT {correctCount}</span>
+          </div>
+
+          <div className="gp-card" data-flash={flash || undefined}>
             {card.type === 'image' && card.question_image ? (
-              <img src={getCardImageUrl(card.question_image)} alt="question" className="play-card-img" />
+              <img src={getCardImageUrl(card.question_image)} alt="" className="gp-card-img" />
             ) : (
-              <KaTeX content={card.question || ''} className="play-card-text" />
+              <div className="gp-card-text">
+                <KaTeX content={card.question || ''} />
+              </div>
             )}
           </div>
 
-          <div className="play-answer-area">
-            <input
-              type="text"
-              placeholder="정답 입력..."
-              value={userAnswer}
-              onChange={e => setUserAnswer(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSubmitAnswer()}
-              className="play-answer-input"
-              autoFocus
-            />
-            <div className="play-answer-buttons">
-              <button className="btn-primary" onClick={handleSubmitAnswer} disabled={!userAnswer.trim()}>
-                확인
-              </button>
-              <button className="btn-ghost" onClick={handleShowAnswer}>
-                모르겠어요
-              </button>
+          {phase === 'question' && (
+            <div className="gp-answer">
+              <input
+                type="text"
+                className="gp-answer-input"
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && userAnswer.trim() && handleSubmitAnswer()}
+                placeholder="정답 입력"
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <div className="gp-answer-row">
+                <button
+                  type="button"
+                  className="gp-btn"
+                  onClick={handleSubmitAnswer}
+                  disabled={!userAnswer.trim()}
+                >
+                  확인
+                </button>
+                <button
+                  type="button"
+                  className="gp-btn gp-btn--ghost"
+                  onClick={handleShowAnswer}
+                >
+                  모름
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {phase === 'answer' && card && (
-        <div className="play-card">
-          <div className="play-card-question">
-            {card.type === 'image' && card.question_image ? (
-              <img src={getCardImageUrl(card.question_image)} alt="question" className="play-card-img" />
-            ) : (
-              <KaTeX content={card.question || ''} className="play-card-text" />
-            )}
-          </div>
-          <div className="play-reveal">
-            <div className="play-reveal-label">정답</div>
-            <KaTeX content={card.answer} className="play-reveal-answer" />
-          </div>
-          <div className="play-self-check">
-            <p>맞았나요?</p>
-            <div className="play-self-buttons">
-              <button className="btn-success" onClick={() => submitFeedback(true)}>맞았어요 O</button>
-              <button className="btn-fail" onClick={() => submitFeedback(false)}>틀렸어요 X</button>
-            </div>
-          </div>
+          {phase === 'answer' && (
+            <>
+              <div className="gp-reveal">
+                <span className="gp-reveal-label">ANSWER</span>
+                <div className="gp-reveal-answer">
+                  <KaTeX content={card.answer} />
+                </div>
+              </div>
+              <div className="gp-self">
+                <span className="gp-self-prompt">맞았나요?</span>
+                <div className="gp-self-row">
+                  <button type="button" className="gp-btn gp-btn--grass" onClick={() => submitFeedback(true)}>
+                    맞았어요 · O
+                  </button>
+                  <button type="button" className="gp-btn gp-btn--danger" onClick={() => submitFeedback(false)}>
+                    틀렸어요 · X
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {phase === 'feedback' && card && feedback && (
-        <div className="play-card">
-          <div className={`play-feedback ${isCorrect ? 'play-feedback--correct' : 'play-feedback--wrong'}`}>
-            <span className="play-feedback-icon">{isCorrect ? 'O' : 'X'}</span>
-            <span className="play-feedback-text">{isCorrect ? '정답!' : '오답'}</span>
+        <div className="gp-stage">
+          <div className={`gp-fb gp-fb--${isCorrect ? 'correct' : 'wrong'}`}>
+            <span className="gp-fb-mark" aria-hidden="true">{isCorrect ? 'O' : 'X'}</span>
+            <span className="gp-fb-text">{isCorrect ? '정답' : '오답'}</span>
+            <span className="gp-fb-box">
+              BOX {feedback.box_before}
+              {feedback.box_after > feedback.box_before ? ' ↑ ' : feedback.box_after < feedback.box_before ? ' ↓ ' : ' · '}
+              {feedback.box_after}
+            </span>
           </div>
 
-          <div className="play-card-question-small">
+          <div className="gp-mini-q">
             <KaTeX content={card.question || ''} />
           </div>
-          <div className="play-reveal play-reveal--small">
-            <KaTeX content={card.answer} className="play-reveal-answer" />
-          </div>
 
-          <div className="play-box-change">
-            Box {feedback.box_before} → Box {feedback.box_after}
-            {feedback.box_after > feedback.box_before ? ' ↑' : feedback.box_after < feedback.box_before ? ' ↓' : ''}
+          <div className="gp-reveal">
+            <span className="gp-reveal-label">ANSWER</span>
+            <div className="gp-reveal-answer">
+              <KaTeX content={card.answer} />
+            </div>
           </div>
-
-          <button className="btn-primary play-next-btn" onClick={handleNext}>
-            {count >= 10 ? '완료' : '다음 카드 →'}
-          </button>
         </div>
       )}
 
       {phase === 'done' && (
-        <div className="play-done">
-          <h2>{error ? '오류' : count >= 10 ? '오늘의 카드 완료!' : '카드가 없습니다'}</h2>
-          {error && <p className="play-error">{error}</p>}
-          <p>{count}장 학습 완료</p>
-          <button className="btn-primary" onClick={() => navigate('/')}>홈으로</button>
+        <div className="gp-done">
+          <span className="gp-done-kicker">{error ? 'ERROR' : count >= TOTAL ? 'SESSION COMPLETE' : 'NO CARDS'}</span>
+          <h2 className="gp-done-title">
+            {error ? '잠시 문제가 있어요' : count >= TOTAL ? '오늘치 끝' : '카드가 없어요'}
+          </h2>
+          {count > 0 && (
+            <>
+              <div className="gp-done-score">
+                {correctCount}<span style={{ color: 'var(--ink-20)' }}>/</span>
+                <span style={{ color: 'var(--ink-40)' }}>{count}</span>
+              </div>
+              <span className="gp-done-meta">{count}장 학습 · 정답 {correctCount}</span>
+            </>
+          )}
+          {error && <div className="gp-done-error">{error}</div>}
         </div>
+      )}
+
+      {/* 하단 고정 Next / 완료 바 */}
+      {phase === 'feedback' && (
+        <button type="button" className="gp-next" onClick={handleNext}>
+          {count >= TOTAL ? 'FINISH' : 'NEXT'}
+          <span className="gp-next-arrow" aria-hidden="true">→</span>
+        </button>
+      )}
+      {phase === 'done' && (
+        <button type="button" className="gp-next" onClick={() => navigate('/')}>
+          HOME <span className="gp-next-arrow" aria-hidden="true">→</span>
+        </button>
       )}
     </div>
   );
@@ -178,7 +260,6 @@ function checkAnswer(submitted: string, expected: string): boolean {
   const b = normalize(expected);
   if (a === b) return true;
 
-  // 분수 비교: 1/2 == 2/4
   const fa = parseFraction(a);
   const fb = parseFraction(b);
   if (fa && fb) return fa[0] * fb[1] === fa[1] * fb[0];
