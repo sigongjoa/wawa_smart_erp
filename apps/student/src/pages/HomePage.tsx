@@ -4,8 +4,6 @@ import { api, Session, ProofListItem, AssignmentListItem, ExamListItem } from '.
 import { useAuthStore } from '../store';
 import './HomePage.css';
 
-const DAY_LABEL = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-
 export default function HomePage() {
   const navigate = useNavigate();
   const auth = useAuthStore((s) => s.auth);
@@ -71,133 +69,151 @@ export default function HomePage() {
     const d = new Date();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    return `${mm}.${dd} · ${DAY_LABEL[d.getDay()]}`;
+    return `${mm}/${dd}`;
   }, []);
 
   if (loading || examChecking) {
-    return (
-      <div className="hp">
-        <div className="hp-loading">LOADING…</div>
-      </div>
-    );
+    return <div className="hp"><div className="hp-loading">불러오는 중...</div></div>;
   }
 
   const studentName = auth?.student.name || '학생';
   const totalDone = (session?.cards_drawn || 0) + (session?.proofs_done || 0);
   const totalTarget = (session?.cards_target || 10) + (session?.proofs_target || 5);
   const progressPct = totalTarget > 0 ? Math.min(100, Math.round((totalDone / totalTarget) * 100)) : 0;
+  const isCompleted = totalDone >= totalTarget;
 
-  const listItems: Array<{
-    key: string;
-    typeClass: string;
-    label: string;
-    value: React.ReactNode;
-    onClick?: () => void;
-    disabled?: boolean;
-  }> = [
-    {
-      key: 'words',
-      typeClass: 'water',
-      label: '단어',
-      value: (<><strong>{session?.cards_drawn ?? 0}</strong> / {session?.cards_target ?? 10}</>),
-      onClick: () => navigate('/gacha'),
-    },
-    {
-      key: 'proof',
-      typeClass: 'grass',
-      label: '증명',
-      value: (<><strong>{session?.proofs_done ?? 0}</strong> / {session?.proofs_target ?? 5}</>),
-      disabled: proofs.length === 0,
-      onClick: proofs.length > 0 ? () => navigate(`/proof/${proofs[0].id}/ordering`) : undefined,
-    },
-    {
-      key: 'assignments',
-      typeClass: 'electric',
-      label: '과제',
-      value: (<strong>{pendingAssignments.length}</strong>),
-      onClick: () => navigate('/assignments'),
-    },
-    {
-      key: 'exams',
-      typeClass: 'ground',
-      label: '시험',
-      value: (<strong>{exams.length}</strong>),
-      disabled: exams.length === 0,
-      onClick: exams.length > 0 ? () => {
-        const first = exams[0];
-        const ready = first.questionCount > 0;
-        const done = first.attemptStatus === 'submitted' || first.attemptStatus === 'expired';
-        if (ready && !done) navigate(`/exam/${first.assignmentId}`);
-      } : undefined,
-    },
-  ];
+  // 가장 급한 학습: 진도 이어갈 수 있으면 단어/증명, 아니면 첫 과제
+  const primaryAction = (() => {
+    if (!isCompleted && (session?.cards_drawn ?? 0) < (session?.cards_target ?? 10)) {
+      return { label: '단어 카드 계속하기', go: () => navigate('/gacha') };
+    }
+    if (!isCompleted && proofs.length > 0) {
+      return { label: '증명 풀러가기', go: () => navigate(`/proof/${proofs[0].id}/ordering`) };
+    }
+    if (pendingAssignments.length > 0) {
+      return { label: '과제 확인하기', go: () => navigate(`/assignments/${pendingAssignments[0].target_id}`) };
+    }
+    return { label: '학습 현황 보기', go: () => navigate('/dex') };
+  })();
 
   return (
     <div className="hp" style={{ ['--hp-pct' as string]: `${progressPct}%` }}>
-      {/* ── 상단 날짜 marker ───────────────────────── */}
-      <div className="hp-meta">TODAY · {todayLabel}</div>
-
-      {/* ── Hero 이름 ──────────────────────────────── */}
-      <h1 className="hp-hero hp-hero-name">
-        {studentName}<em>.</em>
-      </h1>
-
-      {/* ── Today block (거대 숫자) ────────────────── */}
-      <section className="hp-section">
-        <h2 className="hp-section-label">오늘의 학습</h2>
-        <div className="hp-today">
-          <div className="hp-today-num" aria-label={`${totalDone} of ${totalTarget}`}>
-            {totalDone}
-          </div>
-          <div className="hp-today-of">
-            of <strong>{totalTarget}</strong>
-          </div>
-          <div className="hp-today-line" aria-hidden="true" />
-          <div className="hp-today-pct">
-            <span>진행률</span>
-            <span>{progressPct}%</span>
-          </div>
+      {/* 1. 상단 인사 */}
+      <header className="hp-greet">
+        <div className="hp-greet-hi">
+          안녕, <strong>{studentName}</strong>
         </div>
+        <span className="hp-greet-date">{todayLabel}</span>
+      </header>
+
+      {/* 2. 오늘의 학습 CTA 카드 */}
+      <section className="hp-today">
+        <div className="hp-today-head">
+          <span className="hp-today-label">오늘의 학습</span>
+          <span className="hp-today-pct">{progressPct}%</span>
+        </div>
+        <div className="hp-today-score">
+          <span className="hp-today-score-done">{totalDone}</span>
+          <span className="hp-today-score-sep">/</span>
+          <span className="hp-today-score-total">{totalTarget}</span>
+        </div>
+        <div className="hp-today-bar" aria-hidden="true">
+          <div className="hp-today-bar-fill" />
+        </div>
+        <button type="button" className="hp-today-cta" onClick={primaryAction.go}>
+          {isCompleted ? '오늘치 완료 — 더 하기' : primaryAction.label}
+          <span className="hp-today-cta-arrow" aria-hidden="true">→</span>
+        </button>
       </section>
 
-      {/* ── 할 일 리스트 ───────────────────────────── */}
-      <section className="hp-section">
-        <h2 className="hp-section-label">할 일</h2>
-        <div className="hp-list">
-          {listItems.map((it) => (
-            <button
-              key={it.key}
-              type="button"
-              className={`hp-item hp-item--${it.typeClass}`}
-              onClick={it.onClick}
-              disabled={it.disabled || !it.onClick}
-            >
-              <span className="hp-item-left">
-                <span className="hp-item-dot" aria-hidden="true" />
-                <span className="hp-item-label">{it.label}</span>
-              </span>
-              <span className="hp-item-value">{it.value}</span>
-            </button>
-          ))}
-        </div>
+      {/* 3. 2×2 타일 (빠른 진입) */}
+      <section className="hp-tiles">
+        <button
+          type="button"
+          className="hp-tile hp-tile--water"
+          onClick={() => navigate('/gacha')}
+        >
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">단어</span>
+          </div>
+          <div className="hp-tile-value">
+            <span className="hp-tile-value-num">{session?.cards_drawn ?? 0}</span>
+            <span className="hp-tile-value-sub">/ {session?.cards_target ?? 10}</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="hp-tile hp-tile--grass"
+          disabled={proofs.length === 0}
+          onClick={() => proofs.length > 0 && navigate(`/proof/${proofs[0].id}/ordering`)}
+        >
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">증명</span>
+          </div>
+          <div className="hp-tile-value">
+            <span className="hp-tile-value-num">{session?.proofs_done ?? 0}</span>
+            <span className="hp-tile-value-sub">/ {session?.proofs_target ?? 5}</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="hp-tile hp-tile--electric"
+          onClick={() => navigate('/assignments')}
+        >
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">과제</span>
+          </div>
+          <div className="hp-tile-value">
+            <span className="hp-tile-value-num">{pendingAssignments.length}</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="hp-tile hp-tile--ground"
+          disabled={exams.length === 0}
+          onClick={() => {
+            if (exams.length > 0) {
+              const first = exams[0];
+              const ready = first.questionCount > 0;
+              const done = first.attemptStatus === 'submitted' || first.attemptStatus === 'expired';
+              if (ready && !done) navigate(`/exam/${first.assignmentId}`);
+            }
+          }}
+        >
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">시험</span>
+          </div>
+          <div className="hp-tile-value">
+            <span className="hp-tile-value-num">{exams.length}</span>
+          </div>
+        </button>
       </section>
 
-      {/* ── 과제 ───────────────────────────────────── */}
+      {/* 4. 과제 섹션 */}
       {pendingAssignments.length > 0 && (
-        <section className="hp-section">
+        <section>
           <div className="hp-section-head">
-            <h2 className="hp-section-label">과제 · {pendingAssignments.length}</h2>
+            <h2 className="hp-section-title">
+              과제<span>· {pendingAssignments.length}</span>
+            </h2>
             <button
               type="button"
               className="hp-section-all"
               onClick={() => navigate('/assignments')}
             >
-              모두 보기 →
+              전체 →
             </button>
           </div>
-          <div className="hp-tasks">
+          <div className="hp-cards">
             {pendingAssignments.slice(0, 3).map((a) => (
-              <TaskBlock
+              <TaskCard
                 key={a.target_id}
                 a={a}
                 onClick={() => navigate(`/assignments/${a.target_id}`)}
@@ -207,12 +223,16 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── 증명 ───────────────────────────────────── */}
+      {/* 5. 증명 섹션 */}
       {proofs.length > 0 && (
-        <section className="hp-section">
-          <h2 className="hp-section-label">증명 · {proofs.length}</h2>
-          <div className="hp-tasks">
-            {proofs.slice(0, 3).map((p) => (
+        <section>
+          <div className="hp-section-head">
+            <h2 className="hp-section-title">
+              증명<span>· {proofs.length}</span>
+            </h2>
+          </div>
+          <div className="hp-cards">
+            {proofs.slice(0, 2).map((p) => (
               <div key={p.id} className="hp-proof">
                 <div className="hp-proof-title">{p.title}</div>
                 <div className="hp-proof-meta">
@@ -224,7 +244,7 @@ export default function HomePage() {
                 <div className="hp-proof-actions">
                   <button
                     type="button"
-                    className="hp-proof-btn"
+                    className="hp-proof-btn hp-proof-btn--primary"
                     onClick={() => navigate(`/proof/${p.id}/ordering`)}
                   >
                     순서 배치
@@ -242,13 +262,11 @@ export default function HomePage() {
           </div>
         </section>
       )}
-
-      <footer className="hp-footer">와와 · LEARN</footer>
     </div>
   );
 }
 
-function TaskBlock({ a, onClick }: { a: AssignmentListItem; onClick: () => void }) {
+function TaskCard({ a, onClick }: { a: AssignmentListItem; onClick: () => void }) {
   const statusLabel = (() => {
     switch (a.status) {
       case 'needs_resubmit': return '재제출';
@@ -259,26 +277,46 @@ function TaskBlock({ a, onClick }: { a: AssignmentListItem; onClick: () => void 
     }
   })();
 
-  const dueLabel = a.due_at
-    ? new Date(a.due_at).toLocaleString('ko-KR', {
-        month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
-      })
-    : null;
-
   const isUrgent = a.status === 'needs_resubmit';
+  const dDay = (() => {
+    if (!a.due_at) return null;
+    const diff = new Date(a.due_at).getTime() - Date.now();
+    const days = Math.ceil(diff / 86_400_000);
+    if (diff < 0) return '기한 지남';
+    if (days === 0) return '오늘 마감';
+    if (days === 1) return '내일 마감';
+    return `${days}일 남음`;
+  })();
 
   return (
-    <button type="button" className="hp-task" onClick={onClick}>
-      <div className="hp-task-head">
-        <span className="hp-task-status-dot" data-s={a.status} aria-hidden="true" />
-        <span className="hp-task-status-label">{statusLabel}</span>
-      </div>
-      <div className="hp-task-title">{a.title}</div>
-      {dueLabel && (
-        <div className={`hp-task-due${isUrgent ? ' hp-task-due--urgent' : ''}`}>
-          <strong>DUE</strong> · {dueLabel}
+    <button
+      type="button"
+      className="hp-task"
+      onClick={onClick}
+      data-urgent={isUrgent ? 'true' : undefined}
+    >
+      <div className="hp-task-body">
+        <div className="hp-task-meta">
+          <span className="hp-task-dot" data-s={a.status} aria-hidden="true" />
+          <span>{statusLabel}</span>
+          {dDay && (
+            <>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span>{dDay}</span>
+            </>
+          )}
         </div>
-      )}
+        <div className="hp-task-title">{a.title}</div>
+        {a.due_at && (
+          <div className="hp-task-due">
+            <strong>마감</strong>{' '}
+            {new Date(a.due_at).toLocaleString('ko-KR', {
+              month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+            })}
+          </div>
+        )}
+      </div>
+      <span className="hp-task-arrow" aria-hidden="true">→</span>
     </button>
   );
 }
