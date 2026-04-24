@@ -6,7 +6,8 @@ import Modal from '../components/Modal';
 import { toast } from '../components/Toast';
 
 const POLL_INTERVAL = 3000;
-const PATCH_DEBOUNCE = 600;
+// KV write 억제: 600ms → 3000ms (일 1000회 한도 보호). 사용자는 여전히 디바운스 안에서 연타 가능.
+const PATCH_DEBOUNCE = 3000;
 const CANVAS_W = 800;
 const CANVAS_H = 500;
 

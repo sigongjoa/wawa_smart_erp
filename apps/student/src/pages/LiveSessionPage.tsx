@@ -4,7 +4,8 @@ import { api, LiveSessionState, LiveStroke } from '../api';
 import SimpleCanvas from '../components/SimpleCanvas';
 
 const POLL_INTERVAL = 3000;
-const PATCH_DEBOUNCE = 600;
+// KV write 억제: 600ms → 3000ms (일 1000회 한도 보호)
+const PATCH_DEBOUNCE = 3000;
 const CANVAS_W = 600;
 const CANVAS_H = 400;
 

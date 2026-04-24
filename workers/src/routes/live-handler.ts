@@ -128,14 +128,31 @@ async function loadState(context: RequestContext, id: string): Promise<LiveState
   return (raw as LiveState | null) || emptyState();
 }
 
+// 서버측 내용 기반 dedup — pulse만 바뀌고 실제 컨텐츠(strokes/text/image)는 동일한
+// heartbeat-only PATCH에 대해 KV.put 생략. 무료 티어 KV put 한도(일 1000) 보호.
+// isolate 재활용 시 초기화되지만 isolate 유지 동안엔 유효.
+const lastContentHash: Map<string, string> =
+  (globalThis as any).__liveContentHash ??= new Map();
+
+function hashStateForDedup(state: LiveState): string {
+  // pulse 제외 — 순수 내용 변화만 체크
+  const { pulse: _, ...rest } = state as any;
+  return JSON.stringify(rest);
+}
+
 async function saveState(
   context: RequestContext,
   id: string,
   state: LiveState
 ): Promise<void> {
+  const contentHash = hashStateForDedup(state);
+  // 내용 동일 → KV write skip (pulse만 바뀐 heartbeat 등)
+  if (lastContentHash.get(id) === contentHash) return;
+
   await context.env.KV.put(stateKey(id), JSON.stringify(state), {
     expirationTtl: STATE_TTL,
   });
+  lastContentHash.set(id, contentHash);
 }
 
 function decodeBase64Image(b64: string): { buf: ArrayBuffer; mime: string } | null {
