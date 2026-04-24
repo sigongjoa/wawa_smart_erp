@@ -5,7 +5,11 @@
    ═══════════════════════════════════════════════════════ */
 
 /* ── Design Tokens ── */
+@import './styles/tokens.css';
+
 :root {
+  /* 아래는 레거시 — tokens.css 의 매핑으로 대부분 덮어쓰여짐.
+     새 컴포넌트는 var(--ink), var(--type-*), var(--fs-*) 등을 사용 */
   --primary: #2d3a8c;
   --primary-light: #4f5cb3;
   --primary-surface: #eef0f8;

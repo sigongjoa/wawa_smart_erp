@@ -1,0 +1,130 @@
+/* ═════════════════════════════════════════════════════════
+   WAWA Learn 학생 앱 디자인 토큰
+   독트린: 잘 만들어진 · 게임 같은 · 웰니스
+   레퍼런스: Pokemon Sleep · Apple Fitness+ · Notion Calendar · Pokemon 타입 시스템
+   ═════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─ 색상 · 기본 ────────────────────────────────────────── */
+  --ink: rgba(17, 20, 26, 0.92);       /* 순검정 대신 blueish 진검정 */
+  --ink-60: rgba(17, 20, 26, 0.60);
+  --ink-40: rgba(17, 20, 26, 0.40);
+  --ink-20: rgba(17, 20, 26, 0.20);
+  --ink-09: rgba(17, 20, 26, 0.09);    /* 9% 불투명 얇은 보더 */
+
+  --bg-canvas: #fafbfc;                /* 화이트가 아닌 은은한 틴트 흰색 */
+  --bg-card: #ffffff;
+
+  /* ─ 타입 컬러 시스템 (포켓몬 공식 18 타입 중 6개 선별) ── */
+  /* 과목/단원 코딩용. common/rare 등급제 대체. */
+  --type-electric: #FAC000;   /* 수행평가 — 번쩍 */
+  --type-water:    #2980EF;   /* 단어 — 흐르듯 */
+  --type-grass:    #3FA129;   /* 증명 — 논리의 결 */
+  --type-psychic:  #F584A8;   /* 문법 — 추상 사고 */
+  --type-ground:   #915121;   /* 시험지 — 묵직함 */
+  --type-dragon:   #5060E1;   /* 도전 — 최고 난이도 */
+
+  /* 타입 컬러 surface (8% 채움, 카드 배경용) */
+  --type-electric-surface: rgba(250, 192, 0, 0.08);
+  --type-water-surface:    rgba(41, 128, 239, 0.08);
+  --type-grass-surface:    rgba(63, 161, 41, 0.08);
+  --type-psychic-surface:  rgba(245, 132, 168, 0.08);
+  --type-ground-surface:   rgba(145, 81, 33, 0.08);
+  --type-dragon-surface:   rgba(80, 96, 225, 0.08);
+
+  /* ─ 시멘틱 (상태) ────────────────────────────────────── */
+  --primary: #2d3a8c;                  /* 기존 유지 — 앱 기본 강조 */
+  --primary-hover: #252f73;
+  --primary-surface: rgba(45, 58, 140, 0.06);
+
+  --success: #3FA129;                  /* 타입 Grass 로 통일 */
+  --success-surface: rgba(63, 161, 41, 0.08);
+  --danger: #E62829;                   /* 타입 Fire 에 가까운 채도 높은 빨강 */
+  --danger-surface: rgba(230, 40, 41, 0.08);
+  --warning: #FAC000;                  /* 타입 Electric */
+  --warning-surface: rgba(250, 192, 0, 0.10);
+
+  /* ─ 타이포그래피 스케일 (Notion Calendar 기반 5.3:1 점프) ── */
+  --font-display: 'Pretendard', -apple-system, system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+
+  --fs-hero:    56px;  /* 홈 핵심 숫자 */
+  --fs-title-1: 32px;  /* 페이지 제목 */
+  --fs-title-2: 22px;  /* 섹션 제목 */
+  --fs-body-l:  18px;  /* 카드 본문 */
+  --fs-body:    15px;  /* 일반 본문 */
+  --fs-label:   13px;  /* 레이블 */
+  --fs-caption: 11px;  /* 캡션 · 메타 */
+
+  --fw-black:   900;
+  --fw-bold:    700;
+  --fw-semi:    600;
+  --fw-medium:  500;
+  --fw-regular: 400;
+
+  --ls-caption: 0.6px; /* 11~12px 에 약간 트래킹 */
+
+  /* ─ 간격 · 라디우스 · 섀도우 ──────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+
+  --border-hairline: 1px solid var(--ink-09); /* 평시 모든 분할선 */
+  --border-strong: 2px solid var(--ink);       /* 선택/강조 */
+
+  --shadow-pop: 0 4px 12px rgba(17, 20, 26, 0.12); /* 오직 팝오버/모달 */
+
+  /* ─ 모션 ──────────────────────────────────────────────── */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 320ms;
+
+  /* ─ 네비게이션 ────────────────────────────────────────── */
+  --tabbar-h: 60px;
+
+  /* ─ 레거시 매핑 (기존 컴포넌트 호환) ─────────────────── */
+  --bg: var(--bg-canvas);
+  --text: var(--ink);
+  --text-secondary: var(--ink-60);
+  --text-tertiary: var(--ink-40);
+  --text-on-primary: #ffffff;
+  --border: var(--ink-09);
+  --border-light: var(--ink-09);
+  --radius: var(--r-md);
+  --radius-sm: var(--r-sm);
+  --radius-lg: var(--r-lg);
+  --accent: var(--type-water);
+  --accent-surface: var(--type-water-surface);
+  --primary-light: #4f5cb3;
+  --shadow-sm: var(--shadow-pop);
+  --shadow-md: var(--shadow-pop);
+  --shadow-lg: var(--shadow-pop);
+}
+
+/* ─ mono-digit 강제 (숫자 시각적 정렬) ────────────────── */
+.mono-digit,
+.stat-number {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* ─ prefers-reduced-motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}

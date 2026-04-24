@@ -1,0 +1,50 @@
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg-card);
+  border-top: var(--border-hairline);
+  z-index: 50;
+}
+
+.tabbar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--ink-60);
+  transition: color var(--dur-fast) var(--ease-out-quart);
+}
+
+.tabbar-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.tabbar-item--active {
+  color: var(--ink);
+}
+
+.tabbar-label {
+  font-family: var(--font-display);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semi);
+  letter-spacing: var(--ls-caption);
+}
+
+/* 탭바가 있는 화면의 콘텐츠 영역은 하단 패딩 확보 */
+.with-tabbar {
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 8px);
+  min-height: 100dvh;
+}
