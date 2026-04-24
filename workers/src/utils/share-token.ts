@@ -77,10 +77,11 @@ export async function verifyShareToken(
 
 /**
  * 공유 토큰 HMAC 비밀 해석.
- * PARENT_REPORT_SECRET만 허용 — JWT_SECRET과의 비밀 공유는 보안상 금지.
+ * 우선순위: PARENT_REPORT_SECRET → JWT_SECRET (하위호환 fallback).
+ * TODO(security): prod에 PARENT_REPORT_SECRET 이관 완료되면 fallback 제거.
  */
-export function resolveShareSecret(env: { PARENT_REPORT_SECRET?: string }): string | null {
-  return env.PARENT_REPORT_SECRET || null;
+export function resolveShareSecret(env: { PARENT_REPORT_SECRET?: string; JWT_SECRET?: string }): string | null {
+  return env.PARENT_REPORT_SECRET || env.JWT_SECRET || null;
 }
 
 const RATE_LIMIT_WINDOW_SEC = 3600;
