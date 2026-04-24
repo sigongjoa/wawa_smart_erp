@@ -75,8 +75,12 @@ export async function verifyShareToken(
   return ok ? { ok: true } : { ok: false, reason: 'bad_signature' };
 }
 
-export function resolveShareSecret(env: { PARENT_REPORT_SECRET?: string; JWT_SECRET?: string }): string | null {
-  return env.PARENT_REPORT_SECRET || env.JWT_SECRET || null;
+/**
+ * 공유 토큰 HMAC 비밀 해석.
+ * PARENT_REPORT_SECRET만 허용 — JWT_SECRET과의 비밀 공유는 보안상 금지.
+ */
+export function resolveShareSecret(env: { PARENT_REPORT_SECRET?: string }): string | null {
+  return env.PARENT_REPORT_SECRET || null;
 }
 
 const RATE_LIMIT_WINDOW_SEC = 3600;

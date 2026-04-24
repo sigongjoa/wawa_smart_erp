@@ -15,6 +15,7 @@ import { executeQuery, executeFirst, executeUpdate } from '@/utils/db';
 import { generatePrefixedId } from '@/utils/id';
 import { logger } from '@/utils/logger';
 import { signShareToken, resolveShareSecret, checkShareRateLimit } from '@/utils/share-token';
+import { parsePagination, toPagedResult } from '@/utils/pagination';
 
 const KIND = ['perf_eval', 'exam_paper', 'general'] as const;
 const STATUS = ['published', 'closed'] as const;
@@ -138,6 +139,7 @@ export async function handleAssignments(
     // ── 인박스: GET /api/assignments/inbox ──
     // 회신 대기(=submitted) 타깃 목록. teacher: 본인 발행 과제만, admin: 전체
     if (method === 'GET' && pathname === '/api/assignments/inbox') {
+      const pg = parsePagination(new URL(request.url), { defaultLimit: 100, maxLimit: 500 });
       const params: any[] = [academyId];
       let where = `t.academy_id = ? AND t.status IN ('submitted','needs_resubmit')`;
       if (role !== 'admin') {
@@ -154,10 +156,10 @@ export async function handleAssignments(
          LEFT JOIN gacha_students gs ON gs.id = t.student_id
          WHERE ${where}
          ORDER BY t.last_submitted_at DESC NULLS LAST
-         LIMIT 200`,
-        params
+         LIMIT ? OFFSET ?`,
+        [...params, pg.limit, pg.offset]
       );
-      return successResponse(rows);
+      return successResponse(toPagedResult(rows, pg));
     }
 
     // ── 통계: GET /api/assignments/stats ──
@@ -183,6 +185,7 @@ export async function handleAssignments(
       const statusFilter = url.searchParams.get('status');
       const kindFilter = url.searchParams.get('kind');
       const mine = url.searchParams.get('mine') === '1';
+      const pg = parsePagination(url, { defaultLimit: 100, maxLimit: 500 });
 
       const params: any[] = [academyId];
       let where = `academy_id = ?`;
@@ -207,10 +210,10 @@ export async function handleAssignments(
          FROM assignments a
          WHERE ${where}
          ORDER BY a.created_at DESC
-         LIMIT 200`,
-        params
+         LIMIT ? OFFSET ?`,
+        [...params, pg.limit, pg.offset]
       );
-      return successResponse(rows);
+      return successResponse(toPagedResult(rows, pg));
     }
 
     // ── 발행: POST /api/assignments ──

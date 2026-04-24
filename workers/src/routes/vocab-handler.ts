@@ -11,6 +11,7 @@ import { executeQuery, executeFirst, executeInsert, executeUpdate, executeDelete
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
+import { parsePagination, toPagedResult } from '@/utils/pagination';
 
 // ── 행 타입 ──
 interface VocabWordRow {
@@ -62,6 +63,7 @@ async function handleGetWords(request: Request, context: RequestContext): Promis
   const studentId = url.searchParams.get('student_id');
   const status = url.searchParams.get('status');
 
+  const pg = parsePagination(url, { defaultLimit: 200, maxLimit: 1000 });
   let query = 'SELECT * FROM vocab_words WHERE academy_id = ?';
   const params: unknown[] = [academyId];
 
@@ -73,10 +75,11 @@ async function handleGetWords(request: Request, context: RequestContext): Promis
     query += ' AND status = ?';
     params.push(status);
   }
-  query += ' ORDER BY created_at DESC LIMIT 500';
+  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+  params.push(pg.limit, pg.offset);
 
   const words = await executeQuery<VocabWordRow>(context.env.DB, query, params);
-  return successResponse(words);
+  return successResponse(toPagedResult(words, pg));
 }
 
 async function handleCreateWord(request: Request, context: RequestContext): Promise<Response> {
@@ -173,6 +176,7 @@ async function handleGetGrammar(request: Request, context: RequestContext): Prom
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
 
+  const pg = parsePagination(url, { defaultLimit: 100, maxLimit: 500 });
   let query = `SELECT q.*, s.name as student_name FROM vocab_grammar_qa q
                LEFT JOIN gacha_students s ON s.id = q.student_id
                WHERE q.academy_id = ?`;
@@ -181,10 +185,11 @@ async function handleGetGrammar(request: Request, context: RequestContext): Prom
     query += ' AND q.status = ?';
     params.push(status);
   }
-  query += ' ORDER BY q.created_at DESC LIMIT 200';
+  query += ' ORDER BY q.created_at DESC LIMIT ? OFFSET ?';
+  params.push(pg.limit, pg.offset);
 
   const list = await executeQuery<any>(context.env.DB, query, params);
-  return successResponse(list);
+  return successResponse(toPagedResult(list, pg));
 }
 
 async function handleCreateGrammar(request: Request, context: RequestContext): Promise<Response> {

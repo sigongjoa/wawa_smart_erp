@@ -66,12 +66,31 @@ export async function verifyAccessToken(
   }
 }
 
-export async function verifyRefreshToken(token: string, env: Env): Promise<any | null> {
+export interface RefreshTokenPayload {
+  tokenId: string;
+  userId: string;
+  iat: number;
+  exp: number;
+}
+
+export async function verifyRefreshToken(
+  token: string,
+  env: Env
+): Promise<RefreshTokenPayload | null> {
   try {
     if (!env.JWT_REFRESH_SECRET) throw new Error('JWT_REFRESH_SECRET must be configured');
     const refreshSecret = encoder.encode(env.JWT_REFRESH_SECRET);
     const { payload } = await jwtVerify(token, refreshSecret);
-    return payload;
+    // payload 무결성 검증 — 필수 필드 타입 체크
+    if (typeof payload.tokenId !== 'string' || typeof payload.userId !== 'string') {
+      return null;
+    }
+    return {
+      tokenId: payload.tokenId,
+      userId: payload.userId,
+      iat: payload.iat || 0,
+      exp: payload.exp || 0,
+    };
   } catch (error) {
     return null;
   }

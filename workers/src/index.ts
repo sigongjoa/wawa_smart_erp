@@ -87,7 +87,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         await env.DB.prepare(
           "DELETE FROM sessions WHERE expires_at < datetime('now')"
         ).run();
-      } catch { /* non-critical */ }
+      } catch (err) {
+        logger.warn('health-check 세션 정리 실패', { error: err instanceof Error ? err.message : String(err) });
+      }
       return addCorsHeaders(
         successResponse({ status: 'ok', timestamp: new Date().toISOString() }),
         env,

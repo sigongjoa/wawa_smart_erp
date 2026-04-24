@@ -12,6 +12,7 @@ export interface Env {
   GEMINI_API_KEY?: string;
   CLOVA_INVOKE_URL?: string;
   CLOVA_SECRET_KEY?: string;
+  NOTION_API_KEY?: string;
   JWT_EXPIRES_IN: string;
   REFRESH_TOKEN_EXPIRES_IN: string;
   LOG_LEVEL: string;

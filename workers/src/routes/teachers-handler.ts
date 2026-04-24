@@ -2,14 +2,16 @@
  * 선생님 관리 라우트 핸들러
  */
 
-import { RequestContext } from '@/types';
+import { RequestContext, Env } from '@/types';
 import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/response';
 import { executeFirst, executeQuery, executeInsert, executeUpdate } from '@/utils/db';
 import { requireAuth, requireRole } from '@/middleware/auth';
+import { shouldBlockTestDataInProd } from '@/middleware/test-data-guard';
 import { logger } from '@/utils/logger';
 import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
 import { generatePrefixedId } from '@/utils/id';
+import { hashPin } from '@/utils/crypto';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -22,19 +24,14 @@ const CreateTeacherSchema = z.object({
 
 type CreateTeacherInput = z.infer<typeof CreateTeacherSchema>;
 
-// ==================== 헬퍼 함수 ====================
+const UpdateTeacherSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  role: z.enum(['instructor', 'admin']).optional(),
+  subjects: z.array(z.string()).optional(),
+  status: z.enum(['active', 'disabled']).optional(),
+});
 
-/**
- * 비밀번호를 SHA256으로 해싱 (테스트용)
- * 실제 프로덕션에서는 bcrypt 사용 권장
- */
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+// ==================== 헬퍼 함수 ====================
 
 /**
  * 요청 본문 파싱 및 검증
@@ -77,6 +74,17 @@ async function handleCreateTeacher(
     // 입력 검증
     const input = await parseTeacherInput(request);
 
+    // prod 환경에서 테스트 패턴 이름/이메일 생성 차단 (E2E 테스트 오염 재발 방지)
+    if (shouldBlockTestDataInProd(context.env.ENVIRONMENT, input.name)) {
+      logger.warn(
+        `prod 테스트 데이터 생성 시도 차단: name=${input.name} ip=${ipAddress}`
+      );
+      return errorResponse(
+        '테스트 패턴의 이름(테스트_, 강사_, 라이브테스트_ 등)은 프로덕션에서 생성할 수 없습니다',
+        403
+      );
+    }
+
     logger.logRequest('POST', '/api/teachers', undefined, ipAddress);
 
     // 같은 학원 내 이름 중복 확인
@@ -92,7 +100,7 @@ async function handleCreateTeacher(
     }
 
     // PIN 해싱
-    const pinHash = await hashPassword(input.pin);
+    const pinHash = await hashPin(input.pin);
 
     // 선생님 생성
     const teacherId = generatePrefixedId('user');
@@ -131,11 +139,14 @@ async function handleCreateTeacher(
 /**
  * Notion API에서 학생 데이터 가져오기 (레거시 - 마이그레이션용)
  */
-async function fetchStudentsFromNotion(): Promise<Array<{ name: string; subjects: string[] }>> {
-  // Notion API 토큰은 환경 변수에서 가져오기 (hardcoded 제거)
-  const NOTION_API_KEY = typeof process !== 'undefined' && process.env?.NOTION_API_KEY
-    ? process.env.NOTION_API_KEY
-    : '';
+async function fetchStudentsFromNotion(
+  env: Env
+): Promise<Array<{ name: string; subjects: string[] }>> {
+  const NOTION_API_KEY = env.NOTION_API_KEY || '';
+  if (!NOTION_API_KEY) {
+    logger.warn('NOTION_API_KEY 미설정 — 빈 배열 반환');
+    return [];
+  }
   const DB_STUDENTS = '2f973635-f415-802d-b167-f5cb13265758';
 
   try {
@@ -164,7 +175,7 @@ async function fetchStudentsFromNotion(): Promise<Array<{ name: string; subjects
 
     return students;
   } catch (error) {
-    console.error('Notion 데이터 조회 오류:', error);
+    logger.error('Notion 데이터 조회 오류', error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }
@@ -193,7 +204,7 @@ async function handleMigrateNotionToD1(
     logger.logRequest('POST', '/api/migrate/notion-to-d1', undefined, ipAddress);
 
     // Notion에서 학생 데이터 가져오기
-    const notionStudents = await fetchStudentsFromNotion();
+    const notionStudents = await fetchStudentsFromNotion(context.env);
 
     // D1에서 기존 학생 목록 조회
     const d1Students = await executeQuery<any>(
@@ -376,18 +387,216 @@ async function handleGetTeachers(context: RequestContext): Promise<Response> {
 
     const teachers = await executeQuery<any>(
       context.env.DB,
-      `SELECT id, name, email, role, academy_id, created_at, updated_at
+      `SELECT id, name, email, role, status, subjects, academy_id, last_login_at, created_at, updated_at
        FROM users
-       WHERE academy_id = ? AND role IN ('teacher', 'admin')
-       ORDER BY name`,
+       WHERE academy_id = ? AND role IN ('instructor', 'admin')
+       ORDER BY
+         CASE status WHEN 'active' THEN 0 WHEN 'disabled' THEN 1 ELSE 2 END,
+         name`,
       [context.auth.academyId]
     );
 
-    return successResponse(teachers);
+    // subjects JSON 파싱
+    const parsed = teachers.map((t: any) => ({
+      ...t,
+      subjects: t.subjects ? safeJsonArray(t.subjects) : [],
+    }));
+
+    return successResponse(parsed);
   } catch (error) {
     logger.error('선생님 목록 조회 오류', error instanceof Error ? error : new Error(String(error)));
     return errorResponse('선생님 목록 조회에 실패했습니다', 500);
   }
+}
+
+function safeJsonArray(s: string): string[] {
+  try {
+    const v = JSON.parse(s);
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * PATCH /api/teachers/:id — 선생님 수정 (admin only, 같은 학원)
+ * 규칙:
+ *  - 본인 role 변경 금지 (자기 admin 박탈 방지)
+ *  - 마지막 남은 admin은 role/status 변경으로 admin이 0명이 되지 않도록
+ */
+async function handleUpdateTeacher(
+  teacherId: string,
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  if (!requireRole(context, 'admin')) {
+    return errorResponse('관리자만 선생님을 수정할 수 있습니다', 403);
+  }
+
+  const body = await request.json() as any;
+  const input = UpdateTeacherSchema.parse(body);
+  const academyId = getAcademyId(context);
+  const myId = context.auth!.userId;
+
+  // 대상 유저 조회 + 같은 학원 확인
+  const target = await executeFirst<any>(
+    context.env.DB,
+    `SELECT id, name, role, status FROM users WHERE id = ? AND academy_id = ?`,
+    [teacherId, academyId]
+  );
+  if (!target) return errorResponse('선생님을 찾을 수 없습니다', 404);
+
+  // 자기 자신 role/status 변경 금지
+  if (teacherId === myId && (input.role !== undefined || input.status !== undefined)) {
+    return errorResponse('본인의 역할/상태는 변경할 수 없습니다', 403);
+  }
+
+  // 마지막 admin 보호
+  const isDowngrade = target.role === 'admin' && input.role && input.role !== 'admin';
+  const isDisable = target.role === 'admin' && input.status === 'disabled' && target.status !== 'disabled';
+  if (isDowngrade || isDisable) {
+    const count = await executeFirst<{ c: number }>(
+      context.env.DB,
+      `SELECT COUNT(*) as c FROM users
+       WHERE academy_id = ? AND role = 'admin' AND COALESCE(status,'active') = 'active' AND id != ?`,
+      [academyId, teacherId]
+    );
+    if (!count || count.c === 0) {
+      return errorResponse('최소 1명의 활성 관리자가 유지되어야 합니다', 400);
+    }
+  }
+
+  // 이름 중복 체크
+  if (input.name && input.name !== target.name) {
+    const dup = await executeFirst<{ id: string }>(
+      context.env.DB,
+      `SELECT id FROM users WHERE academy_id = ? AND name = ? AND id != ?`,
+      [academyId, input.name, teacherId]
+    );
+    if (dup) return errorResponse('같은 이름의 선생님이 이미 있습니다', 409);
+  }
+
+  const fields: string[] = [];
+  const values: any[] = [];
+  if (input.name !== undefined) { fields.push('name = ?'); values.push(input.name); }
+  if (input.role !== undefined) { fields.push('role = ?'); values.push(input.role); }
+  if (input.subjects !== undefined) { fields.push('subjects = ?'); values.push(JSON.stringify(input.subjects)); }
+  if (input.status !== undefined) { fields.push('status = ?'); values.push(input.status); }
+
+  if (fields.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+  fields.push("updated_at = datetime('now')");
+  values.push(teacherId);
+
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+    values
+  );
+
+  logger.info(`선생님 수정: ${teacherId} by ${myId}`);
+
+  const updated = await executeFirst<any>(
+    context.env.DB,
+    `SELECT id, name, email, role, status, subjects, last_login_at, updated_at FROM users WHERE id = ?`,
+    [teacherId]
+  );
+  if (updated) updated.subjects = updated.subjects ? safeJsonArray(updated.subjects) : [];
+
+  return successResponse(updated);
+}
+
+/**
+ * DELETE /api/teachers/:id — 선생님 비활성화 (soft-delete, admin only)
+ * 하드 삭제 금지 — 기존 레포트·성적·수업 FK 보호
+ */
+async function handleDeleteTeacher(
+  teacherId: string,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  if (!requireRole(context, 'admin')) {
+    return errorResponse('관리자만 선생님을 비활성화할 수 있습니다', 403);
+  }
+
+  const academyId = getAcademyId(context);
+  const myId = context.auth!.userId;
+
+  if (teacherId === myId) {
+    return errorResponse('본인 계정은 비활성화할 수 없습니다', 403);
+  }
+
+  const target = await executeFirst<any>(
+    context.env.DB,
+    `SELECT id, role, COALESCE(status,'active') as status FROM users WHERE id = ? AND academy_id = ?`,
+    [teacherId, academyId]
+  );
+  if (!target) return errorResponse('선생님을 찾을 수 없습니다', 404);
+  if (target.status === 'disabled') {
+    return successResponse({ message: '이미 비활성화된 계정입니다' });
+  }
+
+  // 마지막 admin 보호
+  if (target.role === 'admin') {
+    const count = await executeFirst<{ c: number }>(
+      context.env.DB,
+      `SELECT COUNT(*) as c FROM users
+       WHERE academy_id = ? AND role = 'admin' AND COALESCE(status,'active') = 'active' AND id != ?`,
+      [academyId, teacherId]
+    );
+    if (!count || count.c === 0) {
+      return errorResponse('최소 1명의 활성 관리자가 유지되어야 합니다', 400);
+    }
+  }
+
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE users SET status = 'disabled', updated_at = datetime('now') WHERE id = ?`,
+    [teacherId]
+  );
+
+  logger.info(`선생님 비활성화: ${teacherId} by ${myId}`);
+  return successResponse({ message: '선생님이 비활성화되었습니다' });
+}
+
+/**
+ * POST /api/teachers/:id/reset-pin — PIN 재발급 (admin only)
+ * 임시 PIN 6자리 숫자를 반환 (1회)
+ */
+async function handleResetTeacherPin(
+  teacherId: string,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  if (!requireRole(context, 'admin')) {
+    return errorResponse('관리자만 PIN을 재설정할 수 있습니다', 403);
+  }
+
+  const academyId = getAcademyId(context);
+  const target = await executeFirst<any>(
+    context.env.DB,
+    `SELECT id FROM users WHERE id = ? AND academy_id = ?`,
+    [teacherId, academyId]
+  );
+  if (!target) return errorResponse('선생님을 찾을 수 없습니다', 404);
+
+  // 6자리 숫자 PIN (0-9)
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  let tempPin = '';
+  for (let i = 0; i < 6; i++) tempPin += String(bytes[i] % 10);
+
+  const pinHash = await hashPin(tempPin);
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
+    [pinHash, teacherId]
+  );
+
+  logger.info(`PIN 재설정: ${teacherId} by ${context.auth!.userId}`);
+  return successResponse({
+    tempPin,
+    message: `임시 PIN: ${tempPin} — 선생님에게 직접 전달 후 로그인 시 재변경하도록 안내`,
+  });
 }
 
 /**
@@ -448,6 +657,19 @@ export async function handleTeachers(
       return await handleCreateTeacher(request, context);
     }
 
+    // /api/teachers/:id/reset-pin
+    const resetMatch = pathname.match(/^\/api\/teachers\/([^/]+)\/reset-pin$/);
+    if (resetMatch && method === 'POST') {
+      return await handleResetTeacherPin(resetMatch[1], context);
+    }
+
+    // /api/teachers/:id (PATCH / DELETE)
+    const idMatch = pathname.match(/^\/api\/teachers\/([^/]+)$/);
+    if (idMatch) {
+      if (method === 'PATCH') return await handleUpdateTeacher(idMatch[1], request, context);
+      if (method === 'DELETE') return await handleDeleteTeacher(idMatch[1], context);
+    }
+
     if (pathname === '/api/migrate/notion-to-d1' && method === 'POST') {
       return await handleMigrateNotionToD1(request, context);
     }
@@ -458,6 +680,10 @@ export async function handleTeachers(
 
     return errorResponse('Not found', 404);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      const message = error.errors.map(e => e.message).join(', ');
+      return errorResponse(`입력 검증 오류: ${message}`, 400);
+    }
     logger.error('Teachers handler error', error instanceof Error ? error : new Error(String(error)));
     return errorResponse('Internal server error', 500);
   }

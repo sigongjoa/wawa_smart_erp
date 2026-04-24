@@ -38,6 +38,7 @@ import { requireAuth } from '@/middleware/auth';
 import { getAcademyId, getUserId } from '@/utils/context';
 import { generateId } from '@/utils/id';
 import { logger } from '@/utils/logger';
+import { parsePagination, toPagedResult } from '@/utils/pagination';
 
 // ─────────────── 타입 ───────────────
 
@@ -514,6 +515,7 @@ export async function handleArchive(
         params.push(like, like, like);
       }
 
+      const pg = parsePagination(url, { defaultLimit: 100, maxLimit: 500 });
       const sql = `
         SELECT m.*,
                (SELECT COUNT(*) FROM archive_files af WHERE af.archive_id = m.id) AS file_count,
@@ -522,10 +524,13 @@ export async function handleArchive(
         FROM material_archives m
         WHERE ${conds.join(' AND ')}
         ORDER BY m.created_at DESC
-        LIMIT 500
+        LIMIT ? OFFSET ?
       `;
-      const rows = await executeQuery<ArchiveRow & { file_count: number; dist_count: number; download_count: number }>(db, sql, params);
-      return successResponse(rows.map((r) => ({ ...r, tags: r.tags ? safeJsonArray(r.tags) : [] })));
+      const rows = await executeQuery<ArchiveRow & { file_count: number; dist_count: number; download_count: number }>(
+        db, sql, [...params, pg.limit, pg.offset]
+      );
+      const normalized = rows.map((r) => ({ ...r, tags: r.tags ? safeJsonArray(r.tags) : [] }));
+      return successResponse(toPagedResult(normalized, pg));
     }
 
     // POST /api/archives — 생성

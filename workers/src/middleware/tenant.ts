@@ -6,6 +6,7 @@
 import { RequestContext, Academy } from '@/types';
 import { executeFirst } from '@/utils/db';
 import { errorResponse } from '@/utils/response';
+import { logger } from '@/utils/logger';
 
 // In-memory tenant 캐시 (isolate별, KV write 폭주 방지)
 // 5분 TTL — KV는 1h fallback. 학원 정보 변경 시 academy-handler에서 invalidate 필요.
@@ -53,8 +54,8 @@ export async function tenantMiddleware(
         academy = cached as Academy;
         tenantMemCache.set(academyId, { academy, expiresAt: now + MEM_TTL_MS });
       }
-    } catch {
-      // 캐시 실패는 무시
+    } catch (err) {
+      logger.warn('tenant KV 캐시 읽기 실패', { academyId, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
@@ -70,8 +71,8 @@ export async function tenantMiddleware(
       tenantMemCache.set(academyId, { academy, expiresAt: now + MEM_TTL_MS });
       try {
         await context.env.KV.put(cacheKey, JSON.stringify(academy), { expirationTtl: KV_TTL_SEC });
-      } catch {
-        // 캐시 저장 실패는 무시
+      } catch (err) {
+        logger.warn('tenant KV 캐시 저장 실패', { academyId, error: err instanceof Error ? err.message : String(err) });
       }
     }
   }

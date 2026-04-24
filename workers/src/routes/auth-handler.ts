@@ -4,92 +4,24 @@
  */
 
 import { RequestContext } from '@/types';
-import { generateTokens, verifyRefreshToken } from '@/utils/jwt';
+import { generateTokens, verifyRefreshToken, createTokenExpiry } from '@/utils/jwt';
 import { executeFirst, executeUpdate } from '@/utils/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
-import { createTokenExpiry } from '@/utils/jwt';
 import { RefreshTokenSchema, parseAndValidate } from '@/schemas/validation';
 import { logger } from '@/utils/logger';
 import { loginRateLimit } from '@/middleware/rateLimit';
+import { hashPin, verifyPin, isLegacyHash } from '@/utils/crypto';
+import {
+  ACCESS_COOKIE, REFRESH_COOKIE, serializeCookie, clearCookie,
+  parseCookies, appendSetCookie,
+} from '@/utils/cookies';
 import { z } from 'zod';
 
-// 로그인 스키마 (학원코드/이름/PIN 기반)
 const TeacherLoginSchema = z.object({
   slug: z.string().min(1, '학원코드는 필수입니다'),
   name: z.string().min(1, '이름은 필수입니다'),
   pin: z.string().min(4, 'PIN은 최소 4자 이상이어야 합니다'),
 });
-
-// ---------- PIN hashing: PBKDF2 (new) + SHA256 (legacy compat) ----------
-
-const PBKDF2_ITERATIONS = 100_000;
-const SALT_BYTES = 16;
-const HASH_BYTES = 32;
-
-function bufToB64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-function b64ToBuf(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
-
-/** New PBKDF2 hash — returns `pbkdf2$100000$<salt_b64>$<hash_b64>` */
-async function hashPinPbkdf2(pin: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(pin), { name: 'PBKDF2' }, false, ['deriveBits'],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-    key, HASH_BYTES * 8,
-  );
-  return `pbkdf2$${PBKDF2_ITERATIONS}$${bufToB64(salt.buffer)}$${bufToB64(bits)}`;
-}
-
-/** Verify against a PBKDF2 hash string */
-async function verifyPinPbkdf2(pin: string, stored: string): Promise<boolean> {
-  const parts = stored.split('$');
-  if (parts.length !== 4 || parts[0] !== 'pbkdf2') return false;
-  const iterations = parseInt(parts[1], 10);
-  const salt = b64ToBuf(parts[2]);
-  const expectedHash = b64ToBuf(parts[3]);
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(pin), { name: 'PBKDF2' }, false, ['deriveBits'],
-  );
-  const bits = new Uint8Array(await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, HASH_BYTES * 8,
-  ));
-  // constant-time compare
-  if (bits.length !== expectedHash.length) return false;
-  let diff = 0;
-  for (let i = 0; i < bits.length; i++) diff |= bits[i] ^ expectedHash[i];
-  return diff === 0;
-}
-
-/** Legacy SHA256 (no salt) — used for migration compat only */
-async function hashPinSha256(pin: string): Promise<string> {
-  const data = new TextEncoder().encode(pin);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/** Verify PIN: supports both pbkdf2$... and legacy hex SHA256 */
-async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
-  if (storedHash.startsWith('pbkdf2$')) {
-    return verifyPinPbkdf2(pin, storedHash);
-  }
-  // Legacy SHA256 hex comparison
-  const pinHash = await hashPinSha256(pin);
-  return pinHash === storedHash;
-}
 
 export async function handleAuth(
   method: string,
@@ -134,8 +66,8 @@ export async function handleAuth(
       }
 
       // Auto-upgrade legacy SHA256 hash → PBKDF2
-      if (!user.password_hash.startsWith('pbkdf2$')) {
-        const upgradedHash = await hashPinPbkdf2(pin);
+      if (isLegacyHash(user.password_hash)) {
+        const upgradedHash = await hashPin(pin);
         await executeUpdate(
           context.env.DB,
           'UPDATE users SET password_hash = ? WHERE id = ?',
@@ -167,8 +99,14 @@ export async function handleAuth(
       );
       const defaultClassId = academyRow?.default_class_id || `class-default-${user.academy_id}`;
 
-      return successResponse(
+      const accessMaxAge = parseInt(context.env.JWT_EXPIRES_IN) || 3600;
+      const refreshMaxAge = parseInt(context.env.REFRESH_TOKEN_EXPIRES_IN) || 2592000;
+      const baseResponse = successResponse(
         {
+          // 기본 전송 경로는 httpOnly 쿠키.
+          // 모바일 브라우저(iOS Safari ITP / 3rd-party cookie block)에서 쿠키가
+          // 드롭되는 경우를 위해 body에도 토큰을 포함. 클라이언트가 Authorization
+          // 헤더로 폴백 전송. 서버는 쿠키 우선, 헤더 폴백으로 양쪽 지원.
           accessToken,
           refreshToken,
           user: {
@@ -184,11 +122,25 @@ export async function handleAuth(
         },
         200
       );
+      return appendSetCookie(baseResponse, [
+        serializeCookie(ACCESS_COOKIE, accessToken, { maxAge: accessMaxAge }),
+        serializeCookie(REFRESH_COOKIE, refreshToken, { maxAge: refreshMaxAge }),
+      ]);
     }
 
-    // POST /refresh
+    // POST /refresh — 쿠키에서 우선 읽고, body 호환 지원
     if (method === 'POST' && pathname === '/api/auth/refresh') {
-      const { refreshToken } = await parseAndValidate(request, RefreshTokenSchema);
+      const cookieRefresh = parseCookies(request.headers.get('cookie'))[REFRESH_COOKIE];
+      let refreshToken = cookieRefresh;
+      if (!refreshToken) {
+        // 레거시: body로 전달된 refreshToken 허용
+        try {
+          const parsed = await parseAndValidate(request, RefreshTokenSchema);
+          refreshToken = parsed.refreshToken;
+        } catch {
+          return unauthorizedResponse();
+        }
+      }
 
       logger.logRequest('POST', '/api/auth/refresh', undefined, ipAddress);
 
@@ -197,7 +149,7 @@ export async function handleAuth(
         return unauthorizedResponse();
       }
 
-      const session = await executeFirst<any>(
+      const session = await executeFirst<{ user_id: string }>(
         context.env.DB,
         'SELECT user_id FROM sessions WHERE id = ? AND expires_at > datetime("now")',
         [payload.tokenId]
@@ -210,7 +162,7 @@ export async function handleAuth(
       const user = await executeFirst<any>(
         context.env.DB,
         'SELECT id, email, name, role, academy_id FROM users WHERE id = ?',
-        [(session as any).user_id]
+        [session.user_id]
       );
 
       if (!user) {
@@ -233,16 +185,34 @@ export async function handleAuth(
         [refreshTokenId, user.id, newRefreshToken, expiresAt.toISOString()]
       );
 
-      return successResponse({ accessToken, refreshToken: newRefreshToken });
+      const accessMaxAge = parseInt(context.env.JWT_EXPIRES_IN) || 3600;
+      const refreshMaxAge = parseInt(context.env.REFRESH_TOKEN_EXPIRES_IN) || 2592000;
+      // 쿠키와 함께 body에도 토큰 반환 — 모바일 쿠키 차단 폴백
+      const refreshBase = successResponse({
+        refreshed: true,
+        accessToken,
+        refreshToken: newRefreshToken,
+      });
+      return appendSetCookie(refreshBase, [
+        serializeCookie(ACCESS_COOKIE, accessToken, { maxAge: accessMaxAge }),
+        serializeCookie(REFRESH_COOKIE, newRefreshToken, { maxAge: refreshMaxAge }),
+      ]);
     }
 
-    // POST /logout
+    // POST /logout — 쿠키의 refresh 토큰으로 세션 DB 삭제 + 쿠키 clear
     if (method === 'POST' && pathname === '/api/auth/logout') {
       if (!context.auth) {
         return unauthorizedResponse();
       }
 
-      const { refreshToken } = (await request.json()) as any;
+      const cookieRefresh = parseCookies(request.headers.get('cookie'))[REFRESH_COOKIE];
+      let refreshToken: string | undefined = cookieRefresh;
+      if (!refreshToken) {
+        try {
+          const body = (await request.json()) as any;
+          refreshToken = body?.refreshToken;
+        } catch { /* body 없음 허용 */ }
+      }
 
       if (refreshToken) {
         const payload = await verifyRefreshToken(refreshToken, context.env);
@@ -255,7 +225,8 @@ export async function handleAuth(
         }
       }
 
-      return successResponse({ message: 'Logged out successfully' });
+      const logoutBase = successResponse({ message: 'Logged out successfully' });
+      return appendSetCookie(logoutBase, [clearCookie(ACCESS_COOKIE), clearCookie(REFRESH_COOKIE)]);
     }
 
     return errorResponse('Not found', 404);

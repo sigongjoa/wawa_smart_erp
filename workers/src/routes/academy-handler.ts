@@ -9,6 +9,8 @@ import { requireAuth, requireRole } from '@/middleware/auth';
 import { invalidateTenantCache } from '@/middleware/tenant';
 import { getAcademyId } from '@/utils/context';
 import { logger } from '@/utils/logger';
+import { hashPin } from '@/utils/crypto';
+import { parsePagination, toPagedResult } from '@/utils/pagination';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -30,30 +32,6 @@ const AcceptInviteSchema = z.object({
   name: z.string().min(1, '이름은 필수입니다').max(50),
   pin: z.string().min(4, 'PIN은 최소 4자 이상이어야 합니다').max(20),
 });
-
-// ---------- PIN hashing (PBKDF2) ----------
-const PBKDF2_ITERATIONS = 100_000;
-const SALT_BYTES = 16;
-const HASH_BYTES = 32;
-
-function bufToB64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-async function hashPinPbkdf2(pin: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(pin), { name: 'PBKDF2' }, false, ['deriveBits'],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-    key, HASH_BYTES * 8,
-  );
-  return `pbkdf2$${PBKDF2_ITERATIONS}$${bufToB64(salt.buffer)}$${bufToB64(bits)}`;
-}
 
 /** 6자리 영문+숫자 초대 코드 생성 */
 function generateInviteCode(): string {
@@ -124,7 +102,9 @@ export async function handleAcademy(
       invalidateTenantCache(academyId);
       try {
         await context.env.KV.delete(`academy:${academyId}:info`);
-      } catch { /* ignore */ }
+      } catch (err) {
+        logger.warn('academy KV 무효화 실패', { academyId, error: err instanceof Error ? err.message : String(err) });
+      }
 
       return successResponse({ message: '학원 정보가 수정되었습니다' });
     }
@@ -222,24 +202,58 @@ export async function handleAcademy(
       }, 201);
     }
 
-    // GET /api/academy/invites — 초대 목록 조회
+    // GET /api/academy/invites — 초대 목록 조회 (?limit,offset)
     if (method === 'GET' && pathname === '/api/academy/invites') {
       if (!requireAuth(context) || !requireRole(context, 'admin')) {
         return unauthorizedResponse();
       }
 
       const academyId = getAcademyId(context);
+      const pg = parsePagination(new URL(request.url), { defaultLimit: 50, maxLimit: 200 });
+
       const invites = await executeQuery<any>(
         context.env.DB,
         `SELECT i.*, u.name as created_by_name
          FROM invitations i
          LEFT JOIN users u ON i.created_by = u.id
          WHERE i.academy_id = ?
-         ORDER BY i.created_at DESC LIMIT 50`,
+         ORDER BY i.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [academyId, pg.limit, pg.offset]
+      );
+
+      const totalRow = await executeFirst<{ count: number }>(
+        context.env.DB,
+        'SELECT COUNT(*) as count FROM invitations WHERE academy_id = ?',
         [academyId]
       );
 
-      return successResponse(invites);
+      return successResponse(toPagedResult(invites, pg, totalRow?.count));
+    }
+
+    // DELETE /api/academy/invites/:id — 대기 중인 초대 취소 (used_by가 비어있어야 함)
+    const cancelMatch = pathname.match(/^\/api\/academy\/invites\/([^/]+)$/);
+    if (cancelMatch && method === 'DELETE') {
+      if (!requireAuth(context) || !requireRole(context, 'admin')) {
+        return unauthorizedResponse();
+      }
+      const inviteId = cancelMatch[1];
+      const academyId = getAcademyId(context);
+
+      const invite = await executeFirst<any>(
+        context.env.DB,
+        `SELECT id, used_by FROM invitations WHERE id = ? AND academy_id = ?`,
+        [inviteId, academyId]
+      );
+      if (!invite) return errorResponse('초대를 찾을 수 없습니다', 404);
+      if (invite.used_by) return errorResponse('이미 사용된 초대는 취소할 수 없습니다', 400);
+
+      await executeUpdate(
+        context.env.DB,
+        `UPDATE invitations SET expires_at = datetime('now', '-1 day') WHERE id = ?`,
+        [inviteId]
+      );
+      return successResponse({ message: '초대가 취소되었습니다' });
     }
 
     // ── 초대 수락 (공개) ──
@@ -275,7 +289,7 @@ export async function handleAcademy(
       // 계정 생성
       const userId = `user-${crypto.randomUUID().slice(0, 8)}`;
       const now = new Date().toISOString();
-      const hashedPin = await hashPinPbkdf2(input.pin);
+      const hashedPin = await hashPin(input.pin);
 
       // 학원 slug 조회 (이메일용)
       const academy = await executeFirst<{ slug: string; name: string }>(

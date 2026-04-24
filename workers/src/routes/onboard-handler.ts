@@ -4,9 +4,11 @@
  */
 
 import { RequestContext } from '@/types';
-import { executeFirst, executeInsert, executeUpdate } from '@/utils/db';
+import { executeFirst, executeInsert } from '@/utils/db';
 import { successResponse, errorResponse } from '@/utils/response';
 import { logger } from '@/utils/logger';
+import { shouldBlockTestDataInProd } from '@/middleware/test-data-guard';
+import { hashPin } from '@/utils/crypto';
 import { z } from 'zod';
 
 // slug 규칙: 영문 소문자, 숫자, 하이픈 (3~30자)
@@ -31,30 +33,6 @@ const RESERVED_SLUGS = new Set([
   'dashboard', 'help', 'support', 'docs', 'status', 'cdn',
 ]);
 
-// ---------- PIN hashing (PBKDF2) ----------
-const PBKDF2_ITERATIONS = 100_000;
-const SALT_BYTES = 16;
-const HASH_BYTES = 32;
-
-function bufToB64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-async function hashPinPbkdf2(pin: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(pin), { name: 'PBKDF2' }, false, ['deriveBits'],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-    key, HASH_BYTES * 8,
-  );
-  return `pbkdf2$${PBKDF2_ITERATIONS}$${bufToB64(salt.buffer)}$${bufToB64(bits)}`;
-}
-
 export async function handleOnboard(
   method: string,
   pathname: string,
@@ -70,6 +48,12 @@ export async function handleOnboard(
       // 예약어 체크
       if (RESERVED_SLUGS.has(input.slug)) {
         return errorResponse('사용할 수 없는 학원코드입니다', 400);
+      }
+
+      // prod 에서 테스트 패턴 이름으로 onboard 차단
+      if (shouldBlockTestDataInProd(context.env.ENVIRONMENT, input.ownerName)) {
+        logger.warn(`prod onboard 에서 테스트 패턴 차단: ownerName=${input.ownerName} slug=${input.slug}`);
+        return errorResponse('테스트 패턴 이름으로는 학원을 생성할 수 없습니다', 403);
       }
 
       // slug 중복 확인
@@ -103,7 +87,7 @@ export async function handleOnboard(
       );
 
       // 대표 계정 (admin) 생성
-      const hashedPin = await hashPinPbkdf2(input.pin);
+      const hashedPin = await hashPin(input.pin);
       const uniqueEmail = `${input.slug}_admin@wawa.app`;
 
       await executeInsert(
