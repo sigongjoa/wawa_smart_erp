@@ -1,0 +1,447 @@
+/* ═════════════════════════════════════════════════════════
+   HomePage — "Trainer Card + Ranger Menu"
+   Reference: Pokemon Scarlet/Violet menu, Pokemon Sleep, Apple Fitness+
+   Philosophy: Block. Sharp. Numbers dominate. No icons.
+   ═════════════════════════════════════════════════════════ */
+
+.hp {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 0 0 calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 8px);
+  min-height: 100dvh;
+  background: var(--bg-canvas);
+}
+
+/* ─ Trainer Card Header ────────────────────────────────── */
+.hp-trainer {
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  border-bottom: 2px solid var(--ink);
+  position: relative;
+}
+
+.hp-trainer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--sp-4);
+}
+
+.hp-trainer-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-semi);
+  letter-spacing: 2px;
+  color: var(--ink-40);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: var(--sp-1);
+}
+
+.hp-trainer-name {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 12vw, 56px);
+  font-weight: var(--fw-black);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.hp-trainer-grade {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: var(--bg-canvas);
+  border: 2px solid var(--ink);
+  padding: 4px 10px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  line-height: 1.2;
+  align-self: flex-start;
+  margin-bottom: 6px;
+}
+
+/* ─ Quest Block (오늘의 퀘스트) ───────────────────────── */
+.hp-quest {
+  padding: var(--sp-5) var(--sp-5) var(--sp-6);
+  border-bottom: 1px solid var(--ink-09);
+}
+
+.hp-quest-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.hp-quest-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 2px;
+  color: var(--ink-60);
+  text-transform: uppercase;
+}
+
+.hp-week {
+  display: flex;
+  gap: 4px;
+}
+
+.hp-week-cell {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--ink-20);
+  background: transparent;
+}
+
+.hp-week-cell[data-state="done"] {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.hp-week-cell[data-state="today"] {
+  border-color: var(--ink);
+  border-width: 2px;
+  background: var(--warning);
+}
+
+.hp-quest-body {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-4);
+}
+
+.hp-quest-score {
+  font-family: var(--font-display);
+  font-size: clamp(64px, 18vw, 88px);
+  font-weight: var(--fw-black);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.hp-quest-score-sep {
+  color: var(--ink-20);
+  margin: 0 2px;
+}
+
+.hp-quest-score-target {
+  color: var(--ink-40);
+}
+
+.hp-quest-pct {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: var(--fw-bold);
+  color: var(--ink-60);
+  letter-spacing: 1px;
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+/* ─ Ranger Menu — 2×2 카테고리 타일 ───────────────────── */
+.hp-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--ink);
+  padding: 2px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.hp-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  padding: 14px 14px 12px;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  transition: transform var(--dur-fast) var(--ease-out-quart);
+  font-family: inherit;
+}
+
+.hp-tile:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.hp-tile:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.hp-tile:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -4px;
+}
+
+.hp-tile--water    { background: var(--type-water);    color: #fff; }
+.hp-tile--grass    { background: var(--type-grass);    color: #fff; }
+.hp-tile--electric { background: var(--type-electric); color: var(--ink); }
+.hp-tile--ground   { background: var(--type-ground);   color: #fff; }
+.hp-tile--psychic  { background: var(--type-psychic);  color: var(--ink); }
+.hp-tile--dragon   { background: var(--type-dragon);   color: #fff; }
+
+.hp-tile-type {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.5px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+
+.hp-tile-label {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: var(--fw-black);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.hp-tile-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.hp-tile-value-num {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: var(--fw-black);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.hp-tile-value-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  opacity: 0.75;
+  letter-spacing: 0.5px;
+}
+
+/* ─ Section Block (과제/증명 공용) ────────────────────── */
+.hp-section {
+  padding: var(--sp-5);
+  border-bottom: 1px solid var(--ink-09);
+}
+
+.hp-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--sp-3);
+}
+
+.hp-section-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: var(--fw-black);
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.hp-section-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  color: var(--ink-60);
+  text-transform: uppercase;
+}
+
+.hp-section-link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hp-section-link:hover {
+  color: var(--primary);
+}
+
+/* ─ Row (과제/증명 아이템) ─────────────────────────────── */
+.hp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--ink-09);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  color: var(--ink);
+}
+
+.hp-row:first-of-type { border-top: 0; }
+.hp-row:hover { background: var(--ink-09); }
+.hp-row:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+.hp-row-bar {
+  width: 3px;
+  align-self: stretch;
+  background: var(--type-electric);
+  flex-shrink: 0;
+}
+
+.hp-row-bar--water    { background: var(--type-water); }
+.hp-row-bar--grass    { background: var(--type-grass); }
+.hp-row-bar--electric { background: var(--type-electric); }
+.hp-row-bar--danger   { background: var(--danger); }
+.hp-row-bar--dragon   { background: var(--type-dragon); }
+
+.hp-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hp-row-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
+  color: var(--ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hp-row-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  color: var(--ink-60);
+  letter-spacing: 0.3px;
+}
+
+.hp-row-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  line-height: 1.2;
+  border: 1.5px solid currentColor;
+}
+
+.hp-row-status--danger   { color: var(--danger); }
+.hp-row-status--warning  { color: var(--ink); background: var(--warning); border-color: var(--ink); }
+.hp-row-status--water    { color: var(--type-water); }
+.hp-row-status--dragon   { color: var(--type-dragon); }
+.hp-row-status--success  { color: var(--type-grass); }
+
+/* ─ 빈 상태 ──────────────────────────────────────────── */
+.hp-empty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  color: var(--ink-40);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: var(--sp-4) 0;
+  text-align: center;
+}
+
+/* ─ Proof actions (증명 2 버튼) ────────────────────────── */
+.hp-proof-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.hp-proof-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  padding: 8px 10px;
+  min-height: 36px;
+  border: 1.5px solid var(--ink);
+  background: var(--bg-canvas);
+  color: var(--ink);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background var(--dur-fast) var(--ease-out-quart);
+}
+
+.hp-proof-btn:hover {
+  background: var(--ink);
+  color: var(--bg-canvas);
+}
+
+.hp-proof-btn--solid {
+  background: var(--ink);
+  color: var(--bg-canvas);
+}
+.hp-proof-btn--solid:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ─ Footer signature ───────────────────────────────────── */
+.hp-footer {
+  padding: var(--sp-6) var(--sp-5) var(--sp-4);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-semi);
+  letter-spacing: 3px;
+  color: var(--ink-20);
+  text-transform: uppercase;
+}
+
+/* ─ Page load stagger reveal (독트린: 한 시점 한 모션) ─ */
+.hp > * {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hp-reveal var(--dur-base) var(--ease-out-quart) forwards;
+}
+
+.hp > *:nth-child(1) { animation-delay: 0ms; }
+.hp > *:nth-child(2) { animation-delay: 60ms; }
+.hp > *:nth-child(3) { animation-delay: 120ms; }
+.hp > *:nth-child(4) { animation-delay: 180ms; }
+.hp > *:nth-child(5) { animation-delay: 240ms; }
+.hp > *:nth-child(6) { animation-delay: 300ms; }
+
+@keyframes hp-reveal {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp > * {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
