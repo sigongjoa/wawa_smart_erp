@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { toast } from '../components/Toast';
 
 type Summary = Awaited<ReturnType<typeof api.getHomeroomSummary>>;
 type FollowUp = Summary['follow_ups_due'][number];
@@ -24,6 +25,9 @@ export default function HomeroomFollowUpsPage() {
       .getHomeroomSummary()
       .then((s) => {
         if (!cancelled) setSummary(s);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error('담임 요약 로드 실패: ' + (err?.message || ''));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

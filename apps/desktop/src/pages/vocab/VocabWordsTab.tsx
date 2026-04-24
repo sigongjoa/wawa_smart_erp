@@ -197,20 +197,20 @@ export default function VocabWordsTab() {
             )}
             {!loading && words.map(w => {
               const sName = studentMap.get(w.student_id)?.name || '—';
-              const addedBy = (w as any).added_by === 'student' ? '학생' : '선생님';
+              const addedBy = w.added_by === 'student' ? '학생' : '선생님';
               const isPending = w.status === 'pending';
-              const example = (w as any).example || '';
-              const pos = (w as any).pos;
+              const example = w.example || '';
+              const pos = w.pos;
               return (
                 <tr key={w.id} data-id={w.id}>
                   <td className="vocab-cell-word" title={example || undefined}>
-                    <div className="vocab-cell-english">{(w as any).english}</div>
-                    <div className="vocab-cell-korean">{(w as any).korean}</div>
+                    <div className="vocab-cell-english">{w.english}</div>
+                    <div className="vocab-cell-korean">{w.korean}</div>
                     <div className="vocab-cell-student">{sName}</div>
                   </td>
                   <td className="vocab-cell-meta">
                     {pos && <span className="chip chip--neutral">{POS_LABEL[pos] || pos}</span>}
-                    <span className={`chip chip--${(w as any).added_by === 'student' ? 'accent' : 'outline'}`}>
+                    <span className={`chip chip--${w.added_by === 'student' ? 'accent' : 'outline'}`}>
                       {addedBy}
                     </span>
                     <span className="chip chip--ghost">{BLANK_LABEL[w.blank_type] || w.blank_type}</span>
@@ -241,14 +241,14 @@ export default function VocabWordsTab() {
                       {isPending ? (
                         <>
                           <button className="btn btn-primary btn-sm" onClick={() => handleApprove(w.id)}>승인</button>
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleReject(w.id, (w as any).english)}>거절</button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleReject(w.id, w.english)}>거절</button>
                         </>
                       ) : (
                         <button
                           className="btn-icon-danger"
-                          onClick={() => handleDelete(w.id, (w as any).english)}
-                          title={`'${(w as any).english}' 삭제`}
-                          aria-label={`'${(w as any).english}' 삭제`}
+                          onClick={() => handleDelete(w.id, w.english)}
+                          title={`'${w.english}' 삭제`}
+                          aria-label={`'${w.english}' 삭제`}
                         >×</button>
                       )}
                     </div>

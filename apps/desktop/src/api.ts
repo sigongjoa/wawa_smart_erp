@@ -1791,6 +1791,9 @@ export interface VocabWord {
   review_count: number;
   wrong_count: number;
   created_at: string;
+  // 선택적: 학생이 직접 추가 시 포함될 수 있음
+  example?: string | null;
+  pos?: 'noun' | 'verb' | 'adj' | 'adv' | 'prep' | 'conj' | null;
 }
 
 export interface VocabGrammarQA {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { toast } from '../components/Toast';
 
 type Summary = Awaited<ReturnType<typeof api.getHomeroomSummary>>;
 type Calendar = Awaited<ReturnType<typeof api.getHomeroomCalendar>>;
@@ -28,6 +29,9 @@ export default function HomeroomExamsPage() {
         if (cancelled) return;
         setSummary(s);
         setThisMonth(c);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error('시험 요약 로드 실패: ' + (err?.message || ''));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

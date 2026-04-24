@@ -376,7 +376,9 @@ export default function ExamManagementPage() {
           }
         }
         setAttemptsByStudent(map);
-      } catch { /* ignore */ }
+      } catch (err) {
+        if (!cancelled) toast.error('응시 내역 로드 실패: ' + ((err as Error)?.message || ''));
+      }
     })();
     return () => { cancelled = true; };
   }, [periodId]);
@@ -943,7 +945,8 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
       try {
         const list = await api.getExamPapers(periodId);
         setPapers(list || []);
-      } catch {
+      } catch (err) {
+        toast.error('시험지 로드 실패: ' + ((err as Error)?.message || ''));
         setPapers([]);
       } finally {
         setLoading(false);

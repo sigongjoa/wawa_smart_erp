@@ -99,6 +99,7 @@ export default function ProofOrderingPage() {
     setLoading(true);
     api.getOrdering(proofId!)
       .then(p => { setProblem(p); setItems(p.steps); })
+      .catch((err) => alert('문제 재로드 실패: ' + (err?.message || '')))
       .finally(() => setLoading(false));
   };
 

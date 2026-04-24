@@ -4088,6 +4088,7 @@
     const hungerPct = Math.round(cur.hunger);
     const hungerLow = cur.hunger <= 20;
     const hungerCrit = cur.hunger <= 10;
+    // safe: all interpolations are numeric (Math.round) or boolean — no user input
     host.innerHTML = `
       <span class="vitals-badge" title="교감 ${bondPct}">
         <span>♥</span><span class="bar"><i style="--v:${bondPct}%"></i></span>

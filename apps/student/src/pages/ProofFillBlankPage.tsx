@@ -73,6 +73,7 @@ export default function ProofFillBlankPage() {
         }
         setAnswers(init);
       })
+      .catch((err) => alert('문제 재로드 실패: ' + (err?.message || '')))
       .finally(() => setLoading(false));
   };
 

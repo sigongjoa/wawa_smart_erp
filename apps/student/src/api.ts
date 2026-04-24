@@ -19,8 +19,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const json = await res.json().catch(() => null);
 
   if (res.status === 401) {
+    // 서버가 토큰을 거부 (만료/revoke) — 모든 localStorage 자격증명 제거 후 로그인 페이지로
     localStorage.removeItem('play_token');
+    localStorage.removeItem('play_token_created_at');
     localStorage.removeItem('play_student');
+    localStorage.removeItem('play_slug');
     window.location.hash = '#/login';
     throw new Error('세션이 만료되었습니다');
   }
