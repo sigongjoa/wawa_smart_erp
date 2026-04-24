@@ -1835,17 +1835,22 @@
     position: fixed;
     left: 50%; bottom: 96px;
     transform: translateX(-50%);
-    padding: 10px 14px;
+    padding: 12px 16px;
     background: var(--ink);
     color: #fff;
     border: 2px solid var(--ink);
     border-radius: var(--r-1);
     box-shadow: 3px 3px 0 rgba(20, 22, 30, .25);
-    font: 700 13px/1 var(--disp);
+    font: 700 13px/1.45 var(--disp);
     letter-spacing: .02em;
     z-index: 30;
     opacity: 0; pointer-events: none;
     transition: opacity .2s var(--e-out), transform .2s var(--e-out);
+    max-width: calc(100vw - 32px);
+    width: max-content;
+    white-space: normal;
+    text-align: left;
+    word-break: keep-all;
   }
   .toast-wg[data-show="true"] { opacity: 1; transform: translate(-50%, -4px); }
 
@@ -3981,13 +3986,13 @@
     try { renderWordList?.(); } catch {}
   }).catch(() => {});
 
-  function toast(msg) {
+  function toast(msg, duration = 1800) {
     const t = document.getElementById('toast-wg');
     if (!t) return;
     t.textContent = msg;
     t.dataset.show = 'true';
     clearTimeout(toast._h);
-    toast._h = setTimeout(() => { t.dataset.show = 'false'; }, 1800);
+    toast._h = setTimeout(() => { t.dataset.show = 'false'; }, duration);
   }
 
   function readCreature() {
@@ -5184,15 +5189,20 @@
     try {
       const res = await selfStartPrintJob(10);
       if (res.error) {
-        // 서버가 409 로 내려주는 상세 메시지 전부 표시 (toast 대신 alert 로
-        // 확인 클릭 유도 → 학생이 메시지를 읽을 시간 보장)
-        alert(`시험을 시작할 수 없어요\n\n${res.error}`);
+        // 서버 상세 메시지를 긴 지속시간 토스트로 표시 (6s)
+        toast(res.error, 6000);
         return;
       }
       const data = res.data;
       if (!data?.id || !data?.questions?.length) {
-        alert('시험지 생성 실패\n\n잠시 후 다시 시도해 주세요.');
+        toast('시험지 생성 실패 · 잠시 후 다시 시도해 주세요.', 5000);
         return;
+      }
+      // 기존 진행 중 시험 이어서 풀기 / 오늘 N번째 시험 안내
+      if (data.resumed) {
+        toast('진행 중이던 시험을 이어서 풀어요', 3500);
+      } else if (data.todayIndex && data.todayIndex > 1) {
+        toast(`오늘 ${data.todayIndex}번째 시험 — 다시 도전!`, 3000);
       }
       printState.jobId = data.id;
       printState.questions = (data.questions || []).map(q => ({

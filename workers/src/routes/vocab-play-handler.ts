@@ -220,7 +220,53 @@ async function handleSelfStartPrintJob(
   const body = (await request.json().catch(() => ({}))) as any;
   const maxWords = Math.min(30, Math.max(4, parseInt(body.max_words) || 10));
 
-  // 본인 단어 전체 분포 조회 (상세한 에러 제공용)
+  // 1. 진행 중인 self-start 시험 있으면 resume (중복 생성 방지)
+  const existingActive = await executeFirst<{ id: string; status: string; started_at: string | null }>(
+    db,
+    `SELECT id, status, started_at FROM vocab_print_jobs
+      WHERE academy_id = ? AND student_id = ? AND created_by = ?
+        AND status IN ('pending', 'in_progress')
+      ORDER BY started_at DESC LIMIT 1`,
+    [auth.academyId, auth.studentId, `student:${auth.studentId}`]
+  );
+  if (existingActive) {
+    // 기존 job 의 questions + choices 를 돌려줌 (clientside 가 resume 로 인지)
+    const answers = await executeQuery<any>(
+      db,
+      `SELECT a.word_id, a.selected_index, a.correct_index, a.choices_json,
+              w.english, w.korean
+       FROM vocab_print_answers a
+       JOIN vocab_words w ON w.id = a.word_id
+       WHERE a.print_job_id = ?`,
+      [existingActive.id]
+    );
+    const questions = answers.map((r) => ({
+      wordId: r.word_id,
+      prompt: r.english,
+      choices: safeParse(r.choices_json) || [],
+      selectedIndex: r.selected_index,
+    }));
+    return successResponse({
+      id: existingActive.id,
+      status: existingActive.status,
+      startedAt: existingActive.started_at,
+      submittedAt: null,
+      questions,
+      resumed: true, // 클라이언트에서 "이어서 풀기" 메시지 노출
+    });
+  }
+
+  // 2. 오늘 이미 제출한 self-start 시험 수 (정보 제공용)
+  const todayDone = await executeFirst<{ n: number }>(
+    db,
+    `SELECT COUNT(*) AS n FROM vocab_print_jobs
+      WHERE academy_id = ? AND student_id = ? AND created_by = ?
+        AND status = 'submitted'
+        AND date(submitted_at) = date('now')`,
+    [auth.academyId, auth.studentId, `student:${auth.studentId}`]
+  );
+
+  // 3. 본인 단어 전체 분포 조회 (상세한 에러 제공용)
   const allMine = await executeQuery<{ status: string; box: number | null }>(
     db,
     `SELECT status, box FROM vocab_words
@@ -308,8 +354,26 @@ async function handleSelfStartPrintJob(
   });
   if (stmts.length > 0) await db.batch(stmts);
 
-  // 생성된 job의 문제 목록 그대로 반환 — 클라는 enterPrintTake 로 이어 받기
-  return handleGetPrintJob(jobId, context, auth);
+  // 생성된 job + 오늘 N번째 정보 응답
+  const questions = selected.map((t) => {
+    const q = buildQuestion(t, allPool);
+    return {
+      wordId: t.id,
+      prompt: t.english,
+      choices: q.choices,
+      selectedIndex: null as number | null,
+    };
+  });
+  return successResponse({
+    id: jobId,
+    status: 'in_progress',
+    startedAt: new Date().toISOString(),
+    submittedAt: null,
+    questions,
+    total: questions.length,
+    resumed: false,
+    todayIndex: (todayDone?.n || 0) + 1,
+  });
 }
 
 async function handleListPendingPrintJobs(context: RequestContext, auth: PlayAuth): Promise<Response> {
