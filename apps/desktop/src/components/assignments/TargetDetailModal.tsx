@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Modal from '../Modal';
 import { api } from '../../api';
 import { toast } from '../Toast';
+import AssignmentStatusBadge from './AssignmentStatusBadge';
 
 interface Props {
   targetId: string;
@@ -9,21 +10,6 @@ interface Props {
   onChanged: () => void;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  assigned: '미제출',
-  submitted: '검토 대기',
-  reviewed: '검토 중',
-  needs_resubmit: '재제출 요청',
-  completed: '완료',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  assigned: '#9ca3af',
-  submitted: '#2563eb',
-  reviewed: '#7c3aed',
-  needs_resubmit: '#dc2626',
-  completed: '#16a34a',
-};
 
 interface SubmissionFile {
   key: string;
@@ -132,9 +118,7 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
       <Modal.Body>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
-            <span style={{ background: STATUS_COLOR[target.status] || '#888', color: '#fff', padding: '2px 10px', borderRadius: 12 }}>
-              {STATUS_LABEL[target.status] || target.status}
-            </span>
+            <AssignmentStatusBadge status={target.status} />
             {target.due_at && <span style={{ color: '#888' }}>마감: {new Date(target.due_at).toLocaleString('ko-KR')}</span>}
             {target.last_submitted_at && <span style={{ color: '#888' }}>최근 제출: {new Date(target.last_submitted_at).toLocaleString('ko-KR')}</span>}
           </div>

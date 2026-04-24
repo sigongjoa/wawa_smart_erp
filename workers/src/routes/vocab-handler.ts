@@ -2,6 +2,7 @@
  * Vocab Gacha 교사용 핸들러 (JWT)
  * 단어 CRUD + 문법 Q&A + Gemini AI 답변 + 가중치 출제 + 채점
  */
+import { z } from 'zod';
 import { RequestContext } from '@/types';
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { getAcademyId, getUserId } from '@/utils/context';
@@ -10,6 +11,45 @@ import { executeQuery, executeFirst, executeInsert, executeUpdate, executeDelete
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
+
+// ── 행 타입 ──
+interface VocabWordRow {
+  id: string;
+  academy_id: string;
+  student_id: string;
+  english: string;
+  korean: string;
+  blank_type: 'korean' | 'english' | 'both';
+  status: string;
+  box: number | null;
+  added_by: string;
+  created_at: string;
+  updated_at: string | null;
+}
+interface IdRow { id: string }
+
+// ── Zod 스키마 ──
+const BlankTypeSchema = z.enum(['korean', 'english', 'both']);
+const CreateWordSchema = z.object({
+  student_id: z.string().min(1),
+  english: z.string().trim().min(1).max(200),
+  korean: z.string().trim().min(1).max(200),
+  blank_type: BlankTypeSchema.optional(),
+});
+const UpdateWordSchema = z.object({
+  english: z.string().trim().min(1).max(200).optional(),
+  korean: z.string().trim().min(1).max(200).optional(),
+  blank_type: BlankTypeSchema.optional(),
+  status: z.string().max(50).optional(),
+  box: z.number().int().min(0).max(10).optional(),
+}).refine((v) => Object.keys(v).length > 0, { message: '수정할 필드가 없습니다' });
+
+function zodError(err: unknown): Response | null {
+  if (err instanceof z.ZodError) {
+    return errorResponse(`입력 검증 오류: ${err.errors[0]?.message || 'invalid'}`, 400);
+  }
+  return null;
+}
 
 // ── 단어 CRUD ──
 
@@ -35,7 +75,7 @@ async function handleGetWords(request: Request, context: RequestContext): Promis
   }
   query += ' ORDER BY created_at DESC LIMIT 500';
 
-  const words = await executeQuery<any>(context.env.DB, query, params);
+  const words = await executeQuery<VocabWordRow>(context.env.DB, query, params);
   return successResponse(words);
 }
 
@@ -43,29 +83,31 @@ async function handleCreateWord(request: Request, context: RequestContext): Prom
   if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
     return unauthorizedResponse();
   }
-  const body = await request.json() as any;
   const academyId = getAcademyId(context);
-
-  if (!body.student_id || !body.english?.trim() || !body.korean?.trim()) {
-    return errorResponse('입력 검증 오류: student_id, english, korean은 필수입니다', 400);
+  let data: z.infer<typeof CreateWordSchema>;
+  try {
+    data = CreateWordSchema.parse(await request.json());
+  } catch (err) {
+    const zerr = zodError(err);
+    if (zerr) return zerr;
+    throw err;
   }
 
-  // 학생 검증 (학원 내)
-  const student = await executeFirst<any>(
+  const student = await executeFirst<IdRow>(
     context.env.DB,
     'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
-    [body.student_id, academyId]
+    [data.student_id, academyId]
   );
   if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
 
   const id = generatePrefixedId('vw');
-  const blankType = ['korean', 'english', 'both'].includes(body.blank_type) ? body.blank_type : 'korean';
+  const blankType = data.blank_type ?? 'korean';
 
   await executeInsert(
     context.env.DB,
     `INSERT INTO vocab_words (id, academy_id, student_id, english, korean, blank_type, status, added_by)
      VALUES (?, ?, ?, ?, ?, ?, 'approved', 'teacher')`,
-    [id, academyId, body.student_id, body.english.trim(), body.korean.trim(), blankType]
+    [id, academyId, data.student_id, data.english, data.korean, blankType]
   );
 
   return successResponse({ id }, 201);
@@ -76,25 +118,29 @@ async function handleUpdateWord(request: Request, context: RequestContext, id: s
     return unauthorizedResponse();
   }
   const academyId = getAcademyId(context);
-  const word = await executeFirst<any>(
+  const word = await executeFirst<IdRow>(
     context.env.DB,
     'SELECT id FROM vocab_words WHERE id = ? AND academy_id = ?',
     [id, academyId]
   );
   if (!word) return errorResponse('단어를 찾을 수 없습니다', 404);
 
-  const body = await request.json() as any;
+  let data: z.infer<typeof UpdateWordSchema>;
+  try {
+    data = UpdateWordSchema.parse(await request.json());
+  } catch (err) {
+    const zerr = zodError(err);
+    if (zerr) return zerr;
+    throw err;
+  }
+
   const sets: string[] = [];
   const params: unknown[] = [];
-
-  for (const f of ['english', 'korean', 'blank_type', 'status', 'box']) {
-    if (body[f] !== undefined) {
-      sets.push(`${f} = ?`);
-      params.push(body[f]);
-    }
+  for (const [k, v] of Object.entries(data)) {
+    if (v === undefined) continue;
+    sets.push(`${k} = ?`);
+    params.push(v);
   }
-  if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
-
   sets.push("updated_at = datetime('now')");
   params.push(id);
   await executeUpdate(context.env.DB, `UPDATE vocab_words SET ${sets.join(', ')} WHERE id = ?`, params);
@@ -106,7 +152,7 @@ async function handleDeleteWord(context: RequestContext, id: string): Promise<Re
     return unauthorizedResponse();
   }
   const academyId = getAcademyId(context);
-  const word = await executeFirst<any>(
+  const word = await executeFirst<IdRow>(
     context.env.DB,
     'SELECT id FROM vocab_words WHERE id = ? AND academy_id = ?',
     [id, academyId]

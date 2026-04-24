@@ -8,6 +8,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -227,6 +228,7 @@ export const api = {
     const token = getToken();
     const res = await fetch(`${API_BASE}/api/play/assignments/upload`, {
       method: 'POST',
+      credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: fd,
     });

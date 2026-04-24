@@ -5,27 +5,12 @@ import { useAuthStore } from '../store';
 import Modal from '../components/Modal';
 import AssignmentCreateModal from '../components/assignments/AssignmentCreateModal';
 import TargetDetailModal from '../components/assignments/TargetDetailModal';
+import AssignmentStatusBadge from '../components/assignments/AssignmentStatusBadge';
 
 const KIND_LABEL: Record<string, string> = {
   perf_eval: '수행평가',
   exam_paper: '시험지',
   general: '일반',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  assigned: '미제출',
-  submitted: '검토 대기',
-  reviewed: '검토 중',
-  needs_resubmit: '재제출 요청',
-  completed: '완료',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  assigned: '#9ca3af',
-  submitted: '#2563eb',
-  reviewed: '#7c3aed',
-  needs_resubmit: '#dc2626',
-  completed: '#16a34a',
 };
 
 type Tab = 'inbox' | 'list';
@@ -320,14 +305,7 @@ function InboxTab({
             style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, cursor: 'pointer', minWidth: 0 }}
           >
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  background: STATUS_COLOR[r.status] || '#888', color: '#fff',
-                  padding: '2px 8px', borderRadius: 12, fontSize: 11,
-                }}
-              >
-                {STATUS_LABEL[r.status] || r.status}
-              </span>
+              <AssignmentStatusBadge status={r.status} size="sm" />
               <span style={{ fontSize: 11, color: '#888' }}>{KIND_LABEL[r.kind] || r.kind}</span>
               <strong style={{ fontSize: 14 }}>{r.title}</strong>
             </div>
@@ -515,12 +493,7 @@ function AssignmentDetailModal({
               }}
             >
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{
-                  background: STATUS_COLOR[t.status] || '#888', color: '#fff',
-                  padding: '2px 8px', borderRadius: 10, fontSize: 11,
-                }}>
-                  {STATUS_LABEL[t.status] || t.status}
-                </span>
+                <AssignmentStatusBadge status={t.status} size="sm" />
                 <strong>{t.student_name || '-'}</strong>
                 {t.student_grade && <span style={{ color: '#888', fontSize: 12 }}>{t.student_grade}</span>}
               </div>
