@@ -177,14 +177,18 @@ export default function HomePage() {
         <button
           type="button"
           className="hp-tile hp-tile--ground"
-          disabled={exams.length === 0}
+          data-empty={exams.length === 0}
           onClick={() => {
-            if (exams.length > 0) {
-              const first = exams[0];
-              const ready = first.questionCount > 0;
-              const done = first.attemptStatus === 'submitted' || first.attemptStatus === 'expired';
-              if (ready && !done) navigate(`/exam/${first.assignmentId}`);
+            if (exams.length === 0) {
+              alert('배정된 시험이 없어요.\n선생님께 문의해주세요.');
+              return;
             }
+            const first = exams[0];
+            const ready = first.questionCount > 0;
+            const done = first.attemptStatus === 'submitted' || first.attemptStatus === 'expired';
+            if (ready && !done) navigate(`/exam/${first.assignmentId}`);
+            else if (done) alert('이미 응시한 시험입니다.');
+            else alert('시험지가 아직 준비되지 않았어요.\n선생님께 문의해주세요.');
           }}
         >
           <div className="hp-tile-head">
@@ -192,7 +196,11 @@ export default function HomePage() {
             <span className="hp-tile-label">시험</span>
           </div>
           <div className="hp-tile-value">
-            <span className="hp-tile-value-num">{exams.length}</span>
+            {exams.length > 0 ? (
+              <span className="hp-tile-value-num">{exams.length}</span>
+            ) : (
+              <span className="hp-tile-value-sub">선생님께 문의</span>
+            )}
           </div>
         </button>
       </section>

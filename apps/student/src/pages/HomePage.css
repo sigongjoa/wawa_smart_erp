@@ -167,6 +167,9 @@
 .hp-tile:not(:disabled):hover { border-color: var(--ink); }
 .hp-tile:not(:disabled):active { transform: scale(0.98); }
 .hp-tile:disabled { cursor: default; opacity: 0.5; }
+.hp-tile[data-empty="true"] { background: var(--ink-09); border-style: dashed; }
+.hp-tile[data-empty="true"] .hp-tile-label { color: var(--ink-60); }
+.hp-tile[data-empty="true"] .hp-tile-value-sub { color: var(--ink-60); font-size: 12px; font-weight: var(--fw-bold); }
 .hp-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .hp-tile-head {
