@@ -1615,6 +1615,10 @@ export const api = {
   updateAssignment: (id: string, data: { title?: string; instructions?: string; due_at?: string | null; status?: 'published' | 'closed' }) =>
     request<any>(`/api/assignments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   closeAssignment: (id: string) => request(`/api/assignments/${id}`, { method: 'DELETE' }),
+  hardDeleteAssignment: (id: string) =>
+    request<{ message: string }>(`/api/assignments/${id}?hard=1`, { method: 'DELETE' }),
+  deleteAssignmentTarget: (targetId: string) =>
+    request<{ message: string }>(`/api/assignments/targets/${targetId}`, { method: 'DELETE' }),
   getAssignmentTarget: (targetId: string) =>
     request<{ target: any; submissions: any[]; responses: any[] }>(`/api/assignments/targets/${targetId}`),
   respondToTarget: (targetId: string, data: {
@@ -1637,6 +1641,13 @@ export const api = {
     );
   },
   assignmentFileUrl: (key: string) => `${API_BASE}/api/assignments/file/${encodeURIComponent(key)}`,
+
+  // ── 숙제 학부모 공유 링크 ──
+  createHomeworkParentShare: (targetId: string, days?: number) =>
+    request<{ url: string; path: string; token: string; expires_at: string }>(
+      `/api/assignments/targets/${targetId}/parent-share`,
+      { method: 'POST', body: JSON.stringify({ days }) }
+    ),
 
   // ── 학습자료 아카이브 ──
   listArchives: (params?: { subject?: string; grade?: string; purpose?: string; q?: string; includeArchived?: boolean }) => {

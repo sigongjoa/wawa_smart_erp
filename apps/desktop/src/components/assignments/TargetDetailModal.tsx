@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from '../Modal';
 import { api } from '../../api';
 import { toast } from '../Toast';
@@ -25,12 +25,27 @@ const STATUS_COLOR: Record<string, string> = {
   completed: '#16a34a',
 };
 
+interface SubmissionFile {
+  key: string;
+  name: string;
+  size?: number;
+  mime?: string;
+}
+
+function isImageFile(f: SubmissionFile): boolean {
+  if (f.mime && f.mime.startsWith('image/')) return true;
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic'].includes(ext);
+}
+
 export default function TargetDetailModal({ targetId, onClose, onChanged }: Props) {
   const [data, setData] = useState<{ target: any; submissions: any[]; responses: any[] } | null>(null);
   const [comment, setComment] = useState('');
   const [respondFile, setRespondFile] = useState<{ key: string; fileName: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lightbox, setLightbox] = useState<{ src: string; name: string } | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const load = () => {
     api.getAssignmentTarget(targetId)
@@ -81,6 +96,22 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
     }
   };
 
+  const galleryImages = useMemo<SubmissionFile[]>(() => {
+    if (!data) return [];
+    const acc: SubmissionFile[] = [];
+    for (const s of data.submissions) {
+      for (const f of (s.files || []) as SubmissionFile[]) {
+        if (isImageFile(f)) acc.push(f);
+      }
+    }
+    return acc;
+  }, [data]);
+
+  const canShareWithParent = useMemo(() => {
+    if (!data) return false;
+    return data.responses.length > 0;
+  }, [data]);
+
   if (!data) {
     return (
       <Modal onClose={onClose}>
@@ -115,10 +146,43 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
           )}
           {target.attached_file_key && (
             <div style={{ fontSize: 13 }}>
-              📎 첨부:{' '}
+              첨부:{' '}
               <a href={api.assignmentFileUrl(target.attached_file_key)} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>
                 {target.attached_file_name || target.attached_file_key.split('/').pop()}
               </a>
+            </div>
+          )}
+
+          {/* 이미지 갤러리 */}
+          {galleryImages.length > 0 && (
+            <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>제출 이미지 ({galleryImages.length})</h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                gap: 8,
+              }}>
+                {galleryImages.map((f, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setLightbox({ src: api.assignmentFileUrl(f.key), name: f.name })}
+                    style={{
+                      padding: 0, border: '2px solid #e5e7eb', borderRadius: 8,
+                      overflow: 'hidden', cursor: 'pointer', background: '#fff',
+                      aspectRatio: '1 / 1',
+                    }}
+                    aria-label={`${f.name} 크게 보기`}
+                  >
+                    <img
+                      src={api.assignmentFileUrl(f.key)}
+                      alt={f.name}
+                      loading="lazy"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -147,7 +211,7 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 {respondFile ? (
                   <>
-                    <span style={{ fontSize: 13, color: '#2563eb' }}>📎 {respondFile.fileName}</span>
+                    <span style={{ fontSize: 13, color: '#2563eb' }}>{respondFile.fileName}</span>
                     <button type="button" onClick={() => setRespondFile(null)} style={{ padding: '2px 8px', fontSize: 12, background: '#fff', border: '1px solid #fecaca', color: '#e53e3e', borderRadius: 4, cursor: 'pointer' }}>제거</button>
                   </>
                 ) : (
@@ -179,8 +243,27 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
         </div>
       </Modal.Body>
       <Modal.Footer>
+        {canShareWithParent && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setShareOpen(true)}
+          >
+            학부모 공유
+          </button>
+        )}
         <button type="button" className="btn btn-secondary" onClick={onClose}>닫기</button>
       </Modal.Footer>
+
+      {lightbox && (
+        <ImageLightbox src={lightbox.src} name={lightbox.name} onClose={() => setLightbox(null)} />
+      )}
+      {shareOpen && (
+        <ParentShareModal
+          targetId={targetId}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </Modal>
   );
 }
@@ -205,7 +288,7 @@ function Timeline({ submissions, responses }: { submissions: any[]; responses: a
                   {s.files.map((f: any, i: number) => (
                     <a key={i} href={api.assignmentFileUrl(f.key)} target="_blank" rel="noreferrer"
                        style={{ fontSize: 12, color: '#2563eb', background: '#fff', padding: '2px 8px', borderRadius: 4, border: '1px solid #dbeafe' }}>
-                      📎 {f.name}
+                      {f.name}
                     </a>
                   ))}
                 </div>
@@ -225,12 +308,132 @@ function Timeline({ submissions, responses }: { submissions: any[]; responses: a
             {r.file_key && (
               <a href={api.assignmentFileUrl(r.file_key)} target="_blank" rel="noreferrer"
                  style={{ display: 'inline-block', marginTop: 6, fontSize: 12, color: '#2563eb', background: '#fff', padding: '2px 8px', borderRadius: 4, border: '1px solid #dbeafe' }}>
-                📎 {r.file_name || r.file_key.split('/').pop()}
+                {r.file_name || r.file_key.split('/').pop()}
               </a>
             )}
           </div>
         );
       })}
     </div>
+  );
+}
+
+function ImageLightbox({ src, name, onClose }: { src: string; name: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div
+      role="dialog"
+      aria-label={`${name} 크게 보기`}
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,0.88)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24, cursor: 'zoom-out',
+      }}
+    >
+      <img
+        src={src}
+        alt={name}
+        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', border: '4px solid #fff' }}
+      />
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        aria-label="닫기"
+        style={{
+          position: 'absolute', top: 16, right: 16,
+          width: 44, height: 44, borderRadius: 22,
+          background: '#fff', border: '2px solid #000',
+          fontSize: 20, fontWeight: 700, cursor: 'pointer',
+        }}
+      >×</button>
+    </div>
+  );
+}
+
+function ParentShareModal({ targetId, onClose }: { targetId: string; onClose: () => void }) {
+  const [days, setDays] = useState(14);
+  const [creating, setCreating] = useState(false);
+  const [result, setResult] = useState<{ url: string; expires_at: string } | null>(null);
+
+  const create = async () => {
+    setCreating(true);
+    try {
+      const res = await api.createHomeworkParentShare(targetId, days);
+      setResult({ url: res.url, expires_at: res.expires_at });
+      try { await navigator.clipboard.writeText(res.url); toast.success('링크가 복사되었습니다'); }
+      catch { /* ignore */ }
+    } catch (err: any) {
+      toast.error(err.message || '링크 생성 실패');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const copy = async () => {
+    if (!result) return;
+    try { await navigator.clipboard.writeText(result.url); toast.success('복사되었습니다'); }
+    catch { toast.error('복사 실패'); }
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <Modal.Header>학부모 공유 링크</Modal.Header>
+      <Modal.Body>
+        {!result ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#4a5568' }}>
+              이 과제의 제출물과 피드백을 학부모에게 읽기 전용으로 공유합니다.
+            </p>
+            <label style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span>링크 유효 기간</span>
+              <select
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+                style={{ padding: '8px 10px', fontSize: 14, border: '1.5px solid #cbd5e1', borderRadius: 6 }}
+              >
+                <option value={7}>7일</option>
+                <option value={14}>14일</option>
+                <option value={30}>30일</option>
+                <option value={60}>60일</option>
+              </select>
+            </label>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 13, color: '#16a34a' }}>링크가 생성되고 클립보드에 복사되었습니다.</div>
+            <input
+              readOnly
+              value={result.url}
+              onFocus={(e) => e.currentTarget.select()}
+              style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid #cbd5e1', borderRadius: 6, fontFamily: 'monospace' }}
+            />
+            <div style={{ fontSize: 12, color: '#6b7280' }}>
+              만료: {new Date(result.expires_at).toLocaleString('ko-KR')}
+            </div>
+          </div>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        {result ? (
+          <>
+            <button type="button" className="btn btn-secondary" onClick={copy}>다시 복사</button>
+            <button type="button" className="btn btn-primary" onClick={onClose}>완료</button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>취소</button>
+            <button type="button" className="btn btn-primary" onClick={create} disabled={creating}>
+              {creating ? '생성 중...' : '링크 생성'}
+            </button>
+          </>
+        )}
+      </Modal.Footer>
+    </Modal>
   );
 }

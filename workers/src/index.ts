@@ -43,6 +43,7 @@ import { handleAssignments } from '@/routes/assignments-handler';
 import { handlePlayAssignments } from '@/routes/play-assignments-handler';
 import { handleLive, handlePlayLive } from '@/routes/live-handler';
 import { handleParentReport } from '@/routes/parent-report-handler';
+import { handleParentHomework } from '@/routes/parent-homework-handler';
 import { handleArchive } from '@/routes/archive-handler';
 import { expireExpiredAttempts } from '@/cron/expire-exam-attempts';
 import { tenantMiddleware } from '@/middleware/tenant';
@@ -148,6 +149,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학부모 자료 아카이브 조회/다운로드 (HMAC 토큰 기반 공개)
       if (pathname.startsWith('/api/parent-archives/')) {
         return addCorsHeaders(await handleArchive(method, pathname, request, context), env, origin);
+      }
+
+      // 학부모 숙제 피드백 조회/파일 (HMAC 토큰 기반 공개)
+      if (pathname.startsWith('/api/parent-homework/')) {
+        return addCorsHeaders(await handleParentHomework(method, pathname, request, context), env, origin);
       }
 
       // 인증 체크 (logout, 다른 protected routes)

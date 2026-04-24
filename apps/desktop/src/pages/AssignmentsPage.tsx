@@ -129,6 +129,38 @@ export default function AssignmentsPage() {
     }
   };
 
+  const hardDeleteAssignment = async (id: string, title: string) => {
+    if (!confirm(
+      `"${title}" 과제를 완전 삭제하시겠습니까?\n\n⚠ 모든 제출물과 피드백도 함께 영구 삭제되며 복구할 수 없습니다.`
+    )) return;
+    try {
+      await api.hardDeleteAssignment(id);
+      toast.success('과제가 완전 삭제되었습니다');
+      setSelectedAssignmentId(null);
+      setAssignmentDetail(null);
+      loadList();
+      loadInbox();
+      loadStats();
+    } catch (err: any) {
+      toast.error(err.message || '삭제 실패');
+    }
+  };
+
+  const deleteTarget = async (targetId: string, studentName: string, title: string) => {
+    if (!confirm(
+      `"${studentName}"의 "${title}" 제출을 완전 삭제하시겠습니까?\n\n⚠ 제출 이미지와 피드백도 함께 영구 삭제됩니다.`
+    )) return;
+    try {
+      await api.deleteAssignmentTarget(targetId);
+      toast.success('삭제되었습니다');
+      loadInbox();
+      loadList();
+      loadStats();
+    } catch (err: any) {
+      toast.error(err.message || '삭제 실패');
+    }
+  };
+
   const statsCards = useMemo(
     () => [
       { key: 'inbox', label: '회신 대기', value: stats.inbox_count || 0, color: '#2563eb' },
@@ -185,6 +217,7 @@ export default function AssignmentsPage() {
           rows={inbox}
           loading={loading}
           onSelect={(targetId) => setSelectedTargetId(targetId)}
+          onDelete={deleteTarget}
         />
       )}
 
@@ -200,6 +233,8 @@ export default function AssignmentsPage() {
           onStatusFilter={setStatusFilter}
           onMineOnly={setMineOnly}
           onSelect={openAssignmentDetail}
+          onClose={closeAssignment}
+          onDelete={hardDeleteAssignment}
         />
       )}
 
@@ -226,6 +261,7 @@ export default function AssignmentsPage() {
           assignment={assignmentDetail}
           onClose={() => { setSelectedAssignmentId(null); setAssignmentDetail(null); }}
           onCloseAssignment={() => closeAssignment(assignmentDetail.id, assignmentDetail.title)}
+          onHardDelete={() => hardDeleteAssignment(assignmentDetail.id, assignmentDetail.title)}
           onSelectTarget={(targetId) => setSelectedTargetId(targetId)}
         />
       )}
@@ -255,8 +291,12 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function InboxTab({
-  rows, loading, onSelect,
-}: { rows: any[]; loading: boolean; onSelect: (targetId: string) => void }) {
+  rows, loading, onSelect, onDelete,
+}: {
+  rows: any[]; loading: boolean;
+  onSelect: (targetId: string) => void;
+  onDelete: (targetId: string, studentName: string, title: string) => void;
+}) {
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>로딩 중...</div>;
   if (rows.length === 0) {
     return (
@@ -270,14 +310,16 @@ function InboxTab({
       {rows.map((r) => (
         <div
           key={r.target_id}
-          onClick={() => onSelect(r.target_id)}
           style={{
             background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: 12,
-            cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div
+            onClick={() => onSelect(r.target_id)}
+            style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, cursor: 'pointer', minWidth: 0 }}
+          >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <span
                 style={{
                   background: STATUS_COLOR[r.status] || '#888', color: '#fff',
@@ -298,11 +340,25 @@ function InboxTab({
               )}
             </div>
           </div>
-          {r.due_at && (
-            <span style={{ fontSize: 12, color: isOverdue(r.due_at) ? '#dc2626' : '#888' }}>
-              마감: {new Date(r.due_at).toLocaleDateString('ko-KR')}
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {r.due_at && (
+              <span style={{ fontSize: 12, color: isOverdue(r.due_at) ? '#dc2626' : '#888' }}>
+                마감: {new Date(r.due_at).toLocaleDateString('ko-KR')}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(r.target_id, r.student_name || '-', r.title); }}
+              aria-label={`${r.student_name || ''} ${r.title} 삭제`}
+              style={{
+                padding: '6px 10px', fontSize: 12, fontWeight: 600,
+                background: '#fff', color: '#dc2626',
+                border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
+              }}
+            >
+              삭제
+            </button>
+          </div>
         </div>
       ))}
     </div>
@@ -311,11 +367,13 @@ function InboxTab({
 
 function ListTab({
   rows, loading, kindFilter, statusFilter, mineOnly, isAdmin,
-  onKindFilter, onStatusFilter, onMineOnly, onSelect,
+  onKindFilter, onStatusFilter, onMineOnly, onSelect, onClose, onDelete,
 }: {
   rows: any[]; loading: boolean; kindFilter: string; statusFilter: string; mineOnly: boolean; isAdmin: boolean;
   onKindFilter: (v: string) => void; onStatusFilter: (v: string) => void; onMineOnly: (v: boolean) => void;
   onSelect: (id: string) => void;
+  onClose: (id: string, title: string) => void;
+  onDelete: (id: string, title: string) => void;
 }) {
   return (
     <div>
@@ -351,14 +409,16 @@ function ListTab({
           {rows.map((a) => (
             <div
               key={a.id}
-              onClick={() => onSelect(a.id)}
               style={{
                 background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: 12,
-                cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div
+                onClick={() => onSelect(a.id)}
+                style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, cursor: 'pointer', minWidth: 0 }}
+              >
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 11, color: '#666', background: '#f3f4f6', padding: '2px 6px', borderRadius: 4 }}>
                     {KIND_LABEL[a.kind] || a.kind}
                   </span>
@@ -378,9 +438,35 @@ function ListTab({
                   )}
                 </div>
               </div>
-              <span style={{ fontSize: 11, color: '#888' }}>
-                {new Date(a.created_at).toLocaleDateString('ko-KR')}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <span style={{ fontSize: 11, color: '#888' }}>
+                  {new Date(a.created_at).toLocaleDateString('ko-KR')}
+                </span>
+                {a.status === 'published' && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onClose(a.id, a.title); }}
+                    style={{
+                      padding: '6px 10px', fontSize: 12, fontWeight: 600,
+                      background: '#fff', color: '#4b5563',
+                      border: '1.5px solid #d1d5db', borderRadius: 6, cursor: 'pointer',
+                    }}
+                  >
+                    닫기
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onDelete(a.id, a.title); }}
+                  style={{
+                    padding: '6px 10px', fontSize: 12, fontWeight: 600,
+                    background: '#fff', color: '#dc2626',
+                    border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
+                  }}
+                >
+                  삭제
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -390,11 +476,12 @@ function ListTab({
 }
 
 function AssignmentDetailModal({
-  assignment, onClose, onCloseAssignment, onSelectTarget,
+  assignment, onClose, onCloseAssignment, onHardDelete, onSelectTarget,
 }: {
   assignment: any;
   onClose: () => void;
   onCloseAssignment: () => void;
+  onHardDelete: () => void;
   onSelectTarget: (targetId: string) => void;
 }) {
   const targets = (assignment.targets || []) as any[];
@@ -450,11 +537,20 @@ function AssignmentDetailModal({
         </div>
       </Modal.Body>
       <Modal.Footer>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onHardDelete}
+          style={{ color: '#dc2626', borderColor: '#fecaca' }}
+        >
+          완전 삭제
+        </button>
         {assignment.status === 'published' && (
-          <button type="button" className="btn btn-secondary" onClick={onCloseAssignment} style={{ color: '#dc2626' }}>
+          <button type="button" className="btn btn-secondary" onClick={onCloseAssignment}>
             과제 닫기
           </button>
         )}
+        <div style={{ flex: 1 }} />
         <button type="button" className="btn btn-secondary" onClick={onClose}>닫기</button>
       </Modal.Footer>
     </Modal>
