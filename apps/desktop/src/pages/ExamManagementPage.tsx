@@ -81,7 +81,7 @@ function AbsenteeView({
       {absentOnly.length > 0 && (
         <section>
           <h3 className="exam-absentee-heading exam-absentee-heading--absent">
-            🟡 결시 ({absentOnly.length}명) — 재시험 배정 필요
+            결시 ({absentOnly.length}명) — 재시험 배정 필요
           </h3>
           <div className="exam-absentee-grid">
             {absentOnly.map(a => (
@@ -114,7 +114,7 @@ function AbsenteeView({
       {rescheduled.length > 0 && (
         <section>
           <h3 className="exam-absentee-heading exam-absentee-heading--rescheduled">
-            🔵 재시험 예정 ({rescheduled.length}명)
+            재시험 예정 ({rescheduled.length}명)
           </h3>
           <table className="exam-table exam-table--resched">
             <thead>
@@ -736,7 +736,7 @@ export default function ExamManagementPage() {
                     ) : s.drive_link ? (
                       <span className="exam-link-compact">
                         <a href={s.drive_link} target="_blank" rel="noreferrer" className="exam-link-open">
-                          📎 열기
+                          열기
                         </a>
                         <button
                           type="button"
@@ -785,7 +785,7 @@ export default function ExamManagementPage() {
                         title="클릭하여 시험 날짜 변경"
                       >
                         {s.rescheduled_date
-                          ? `📅 ${s.rescheduled_date.slice(5)}`
+                          ? s.rescheduled_date.slice(5)
                           : s.exam_date
                             ? s.exam_date.slice(5)
                             : '날짜 변경 +'}
@@ -962,7 +962,7 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
           background: '#eef0f8', color: '#2d3a8c', border: '1px solid #2d3a8c',
           cursor: 'pointer', fontWeight: 600, fontSize: 13,
         }}
-      >📝 영어 문제 입력 {open ? '▴' : '▾'}</button>
+      >영어 문제 입력 {open ? '▴' : '▾'}</button>
       {open && (
         <div style={{
           position: 'absolute', right: 0, top: '110%', zIndex: 20,

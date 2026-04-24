@@ -288,7 +288,7 @@ export default function BoardPage() {
                         <div className="board-card-top">
                           <span className="board-cat" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                           {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
-                          {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정 해제">📌</button>}
+                          {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정 해제">고정 해제</button>}
                           <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}>×</button>
                         </div>
                         <div className="board-card-title">{n.title}</div>
@@ -384,7 +384,7 @@ export default function BoardPage() {
                       <div className="board-notice-item-top">
                         <span className="board-cat board-cat--sm" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                         <span className="board-notice-date">{formatDate(n.created_at)}</span>
-                        {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정">📌</button>}
+                        {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정">고정</button>}
                         <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}>×</button>
                       </div>
                       <div className="board-notice-item-title">{n.title}</div>

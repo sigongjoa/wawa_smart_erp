@@ -161,7 +161,6 @@ export default function GachaPage() {
 
       {phase === 'done' && (
         <div className="play-done">
-          <div className="play-done-icon">🎉</div>
           <h2>{error ? '오류' : count >= 10 ? '오늘의 카드 완료!' : '카드가 없습니다'}</h2>
           {error && <p className="play-error">{error}</p>}
           <p>{count}장 학습 완료</p>

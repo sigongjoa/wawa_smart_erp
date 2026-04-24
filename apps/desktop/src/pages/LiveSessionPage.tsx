@@ -181,7 +181,8 @@ export default function LiveSessionPage() {
           ← 학생 프로필
         </button>
         <h2 style={{ margin: 0, fontSize: 18 }}>
-          🔴 라이브 — {studentName} <span style={{ color: 'var(--text-tertiary)' }}>· {session.subject}</span>
+          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#dc2626', marginRight: 8, verticalAlign: 'middle' }} aria-hidden="true" />
+          라이브 — {studentName} <span style={{ color: 'var(--text-tertiary)' }}>· {session.subject}</span>
         </h2>
         <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
           ⏱ {fmtElapsed(session.started_at)} <span style={{ visibility: 'hidden' }}>{tick}</span>
@@ -218,7 +219,7 @@ export default function LiveSessionPage() {
         {/* 좌: 교사 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'auto' }}>
           <section className="dashboard-section" style={{ padding: 10 }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>📋 문제</h3>
+            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>문제</h3>
             <textarea
               className="form-input"
               rows={2}
@@ -283,7 +284,7 @@ export default function LiveSessionPage() {
         {/* 우: 학생 미러 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'auto' }}>
           <section className="dashboard-section" style={{ padding: 10 }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>👁 학생 화면 (실시간)</h3>
+            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>학생 화면 (실시간)</h3>
             {state.student.text ? (
               <div style={{
                 whiteSpace: 'pre-wrap',

@@ -119,7 +119,14 @@ export default function HomePage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 22 }}>{finished ? '✅' : (inProgress ? '🟡' : '📝')}</span>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: finished ? '#94a3b8' : (inProgress ? '#d69e2e' : '#2d3a8c'),
+                      flexShrink: 0,
+                    }}
+                  />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, color: '#1a202c', marginBottom: 2 }}>{ex.title}</div>
                     <div style={{ fontSize: 12, color: '#4a5568' }}>
@@ -143,19 +150,16 @@ export default function HomePage() {
       {/* 모드 선택 */}
       <div className="home-modes">
         <button className="home-mode-card" onClick={() => navigate('/gacha')}>
-          <span className="home-mode-icon">🎴</span>
-          <span className="home-mode-label">가차 카드</span>
+          <span className="home-mode-label">카드</span>
           <span className="home-mode-count">{session?.cards_drawn || 0}/{session?.cards_target || 10}장</span>
         </button>
 
         <div className="home-mode-card home-mode-card--proof">
-          <span className="home-mode-icon">📋</span>
           <span className="home-mode-label">증명 연습</span>
           <span className="home-mode-count">{session?.proofs_done || 0}/{session?.proofs_target || 5}개</span>
         </div>
 
         <button className="home-mode-card" onClick={() => { window.location.href = '/word-gacha/'; }}>
-          <span className="home-mode-icon">📖</span>
           <span className="home-mode-label">영단어</span>
           <span className="home-mode-count">단어 / 문법 / 교재 / 수행평가</span>
         </button>

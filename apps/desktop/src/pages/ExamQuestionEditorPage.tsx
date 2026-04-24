@@ -117,7 +117,7 @@ export default function ExamQuestionEditorPage() {
         >← 돌아가기</button>
       </div>
       <h1 style={{ fontSize: 22, margin: '4px 0 20px', color: '#1a202c' }}>
-        📝 문제 입력 {paperTitleQ && <span style={{ color: '#4a5568', fontWeight: 400 }}>— {paperTitleQ}</span>}
+        문제 입력 {paperTitleQ && <span style={{ color: '#4a5568', fontWeight: 400 }}>— {paperTitleQ}</span>}
       </h1>
 
       <div style={{

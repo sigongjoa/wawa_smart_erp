@@ -76,6 +76,7 @@ img { max-width: 100%; height: auto; }
 .btn-primary {
   background: var(--primary); color: var(--text-on-primary);
   border: none; border-radius: var(--radius-sm); padding: 12px 24px;
+  min-height: 44px;
   font-size: 16px; font-weight: 600;
   transition: background 0.15s;
 }
@@ -86,6 +87,7 @@ img { max-width: 100%; height: auto; }
 .btn-secondary {
   background: var(--bg); color: var(--primary);
   border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 24px;
+  min-height: 44px;
   font-size: 16px; font-weight: 600;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -93,24 +95,26 @@ img { max-width: 100%; height: auto; }
 
 .btn-ghost {
   background: none; color: var(--text-secondary); border: none;
-  padding: 8px 12px; font-size: 15px; font-weight: 500;
+  padding: 10px 16px; min-height: 44px; font-size: 15px; font-weight: 500;
   transition: color 0.15s;
 }
 .btn-ghost:hover { color: var(--text); }
 
 .btn-sm {
-  padding: 8px 16px; font-size: 14px;
+  padding: 10px 16px; min-height: 40px; font-size: 14px;
 }
 
 .btn-success {
   background: var(--success); color: #fff; border: none;
   border-radius: var(--radius-sm); padding: 14px 24px;
+  min-height: 48px;
   font-size: 16px; font-weight: 600;
 }
 
 .btn-fail {
   background: var(--danger); color: #fff; border: none;
   border-radius: var(--radius-sm); padding: 14px 24px;
+  min-height: 48px;
   font-size: 16px; font-weight: 600;
 }
 
@@ -120,7 +124,7 @@ img { max-width: 100%; height: auto; }
 .login-page {
   display: flex; align-items: center; justify-content: center;
   min-height: 100dvh; padding: 24px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: var(--bg);
 }
 
 .login-card {
@@ -345,7 +349,7 @@ img { max-width: 100%; height: auto; }
   display: flex; flex-direction: column; gap: 12px;
 }
 .play-answer-input {
-  width: 100%; padding: 14px 16px; font-size: 18px;
+  width: 100%; padding: 14px 16px; min-height: 48px; font-size: 18px;
   border: 2px solid var(--border); border-radius: var(--radius);
   background: var(--bg-card); color: var(--text);
   outline: none; text-align: center;
@@ -507,14 +511,15 @@ img { max-width: 100%; height: auto; }
 }
 
 .fillblank-input {
-  display: inline-block; width: 100px;
-  padding: 4px 8px; font-size: 16px; font-weight: 600;
+  display: inline-block; min-width: 96px; width: auto;
+  padding: 8px 12px; min-height: 40px; font-size: 16px; font-weight: 600;
   border: none; border-bottom: 2.5px solid var(--primary);
   background: var(--primary-surface); color: var(--primary);
   text-align: center; outline: none;
   border-radius: 4px 4px 0 0;
   margin: 0 4px; vertical-align: baseline;
   transition: border-color 0.15s, background 0.15s;
+  field-sizing: content;
 }
 .fillblank-input:focus {
   background: #dde0f3; border-color: var(--primary-hover);
@@ -570,5 +575,5 @@ img { max-width: 100%; height: auto; }
   .home-proof-item { flex-direction: column; align-items: stretch; }
   .home-proof-actions { justify-content: flex-end; }
   .ordering-step { padding: 12px 10px; }
-  .fillblank-input { width: 80px; }
+  .fillblank-input { min-width: 72px; }
 }

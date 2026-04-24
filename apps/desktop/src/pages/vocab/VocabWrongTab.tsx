@@ -106,7 +106,7 @@ export default function VocabWrongTab() {
   if (groups.length === 0) {
     return (
       <div className="vocab-empty-state" style={{ padding: 48 }}>
-        <div className="vocab-empty-state__title">오답이 없어요 🎉</div>
+        <div className="vocab-empty-state__title">오답이 없어요</div>
         <p className="vocab-empty-state__hint">학생들이 단어를 잘 외우고 있어요.</p>
       </div>
     );

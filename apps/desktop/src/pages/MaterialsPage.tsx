@@ -234,7 +234,7 @@ export default function MaterialsPage() {
                     ) : m.file_url ? (
                       <div className="materials-file-link">
                         <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="materials-open-link" data-testid={`file-link-${m.id}`}>
-                          📎 열기
+                          열기
                         </a>
                         <button
                           className="materials-edit-link"
@@ -306,7 +306,7 @@ export default function MaterialsPage() {
                     </div>
                   ) : m.file_url ? (
                     <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="materials-open-link">
-                      📎 열기
+                      열기
                     </a>
                   ) : (
                     <button className="materials-add-file" onClick={() => { setEditingFile(m.id); setFileUrlDraft(''); }}>

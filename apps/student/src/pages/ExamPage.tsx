@@ -378,8 +378,14 @@ export default function ExamPage() {
     return (
       <div style={{ maxWidth: 520, margin: '0 auto', padding: 20, minHeight: '100vh' }}>
         <div style={{ textAlign: 'center', marginTop: 20, marginBottom: 30 }}>
-          <div style={{ fontSize: 56, marginBottom: 10 }}>{pct >= 80 ? '🎉' : (pct >= 60 ? '👍' : '📘')}</div>
-          <div style={{ fontSize: 36, fontWeight: 800, color: '#2d3a8c', marginBottom: 4 }}>
+          <div style={{
+            fontSize: 14, fontWeight: 700, letterSpacing: 2,
+            color: pct >= 80 ? '#10b981' : (pct >= 60 ? '#2d3a8c' : '#dc2626'),
+            marginBottom: 12,
+          }}>
+            {pct >= 80 ? 'GREAT' : (pct >= 60 ? 'GOOD' : 'TRY AGAIN')}
+          </div>
+          <div style={{ fontSize: 48, fontWeight: 800, color: '#2d3a8c', marginBottom: 4 }}>
             {correct} / {total}
           </div>
           <div style={{ fontSize: 16, color: '#4a5568' }}>{score}점 · 정답률 {pct}%</div>
@@ -398,7 +404,7 @@ export default function ExamPage() {
                   color: b.correct ? '#065f46' : '#991b1b',
                   borderRadius: 6, fontSize: 12, fontWeight: 600,
                 }}>
-                  {b.questionNo} {b.correct ? '✅' : '❌'}
+                  {b.questionNo} {b.correct ? 'O' : 'X'}
                 </div>
               ))}
             </div>

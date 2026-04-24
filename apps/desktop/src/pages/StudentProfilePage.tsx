@@ -143,7 +143,8 @@ export default function StudentProfilePage() {
                   }
                 }}
               >
-                🔴 라이브 시작
+                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#dc2626', marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true" />
+                라이브 시작
               </button>
             )}
             <button

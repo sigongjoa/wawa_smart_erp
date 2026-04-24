@@ -326,7 +326,7 @@ export default function TeacherNotesPanel({ studentId }: Props) {
                   )}
                   {n.source === 'live_session' && (
                     <span className="badge" style={{ background: '#dc2626', color: '#fff' }}>
-                      🔴 라이브
+                      LIVE
                     </span>
                   )}
                   {n.tags && n.tags.length > 0 && n.tags.map((t) => (

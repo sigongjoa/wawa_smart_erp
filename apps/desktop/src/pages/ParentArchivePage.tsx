@@ -92,7 +92,6 @@ export default function ParentArchivePage() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div style={{ background: '#fff', padding: 32, borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', maxWidth: 420, textAlign: 'center' }}>
-          <div style={{ fontSize: 48 }}>🔒</div>
           <h2 style={{ margin: '12px 0' }}>접근할 수 없습니다</h2>
           <p style={{ color: '#666' }}>{error || '링크가 올바르지 않거나 만료되었습니다.'}</p>
           <p style={{ color: '#999', fontSize: 13, marginTop: 16 }}>학원에 문의해 새 링크를 요청해 주세요.</p>

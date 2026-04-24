@@ -15,10 +15,13 @@ export function corsHeaders(env: Env, origin?: string): Record<string, string> {
     'https://master.wawa-learn.pages.dev',
   ];
 
+  // localhost/127.0.0.1 + 포트만 허용 (subdomain bypass 방지)
+  const LOCALHOST_REGEX = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
   // 요청 origin이 있으면 확인
   if (origin) {
-    // 개발 환경 또는 localhost는 허용
-    if (isDev || origin.includes('localhost')) {
+    // 개발 환경에서만 localhost 허용 (정확한 매칭)
+    if (isDev && LOCALHOST_REGEX.test(origin)) {
       allowedOrigin = origin;
     }
     // 화이트리스트에 있는 도메인만 허용

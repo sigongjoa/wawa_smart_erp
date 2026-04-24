@@ -268,7 +268,7 @@ export default function ExamPapersPage() {
                     <td>
                       {p.file_key ? (
                         <a href={api.examPaperFileUrl(p.file_key)} target="_blank" rel="noreferrer" aria-label={`${p.title} 파일 열기`}>
-                          <span aria-hidden="true">📄</span> 열기
+                          열기
                         </a>
                       ) : '-'}
                     </td>
@@ -302,7 +302,7 @@ export default function ExamPapersPage() {
                 <div className="exam-paper-card-actions">
                   {p.file_key && (
                     <a className="btn btn-sm btn-ghost" href={api.examPaperFileUrl(p.file_key)} target="_blank" rel="noreferrer" aria-label={`${p.title} 파일 열기`}>
-                      <span aria-hidden="true">📄</span> 파일 열기
+                      파일 열기
                     </a>
                   )}
                   <button className="btn btn-sm btn-ghost" onClick={() => openDetail(p.id)}>상세</button>

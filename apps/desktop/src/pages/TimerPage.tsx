@@ -647,7 +647,7 @@ export default function TimerPage() {
                           disabled={!isToday}
                           type="button"
                         >
-                          <span aria-hidden="true">{isToday ? '▶ ' : '📅 '}</span>
+                          <span aria-hidden="true">{isToday ? '▶ ' : '· '}</span>
                           {isToday ? '임시 수업 체크인' : '임시 수업 예정'} · {ad.startTime}~{ad.endTime}
                           {ad.reason && ` (${ad.reason})`}
                         </button>
@@ -665,7 +665,7 @@ export default function TimerPage() {
                             type="button"
                             aria-label={`${s.name} 보강 체크인 원결석 ${mk.originalDate}`}
                           >
-                            <span aria-hidden="true">{isToday ? '▶ ' : '📅 '}</span>
+                            <span aria-hidden="true">{isToday ? '▶ ' : '· '}</span>
                             {isToday ? '보강 체크인' : '보강 예정'} · {mk.className} {timeRange} (원결석 {mk.originalDate})
                           </button>
                         );

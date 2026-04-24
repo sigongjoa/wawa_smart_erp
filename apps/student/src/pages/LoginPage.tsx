@@ -96,7 +96,6 @@ export default function LoginPage() {
                   className={`academy-item${selectedAcademy?.slug === a.slug ? ' selected' : ''}`}
                   onClick={() => { setSelectedAcademy(a); setShowModal(false); }}
                 >
-                  <span className="academy-icon">🏫</span>
                   <span className="academy-name">{a.name}</span>
                 </li>
               ))}

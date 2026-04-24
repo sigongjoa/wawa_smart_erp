@@ -166,9 +166,9 @@ export default function ArchivePage() {
                 ))}
               </div>
               <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-muted)', display: 'flex', gap: 12 }}>
-                <span>📎 {a.file_count}</span>
-                <span>📤 {a.dist_count}</span>
-                <span>⬇ {a.download_count}</span>
+                <span>파일 {a.file_count}</span>
+                <span>배포 {a.dist_count}</span>
+                <span>다운로드 {a.download_count}</span>
               </div>
               <div style={{ marginTop: 6, fontSize: 11, color: 'var(--color-text-muted)' }}>
                 {new Date(a.created_at).toLocaleDateString('ko-KR')}

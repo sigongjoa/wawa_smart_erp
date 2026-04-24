@@ -186,7 +186,7 @@ export default function ExamResultPage() {
 
       {shownBreakdown.length === 0 && filter === 'wrong' && (
         <div className="exam-result-empty">
-          <strong>모두 정답이에요 🎉</strong>
+          <strong>모두 정답이에요</strong>
         </div>
       )}
     </div>
