@@ -82,18 +82,20 @@ export default function HomePage() {
   const progressPct = totalTarget > 0 ? Math.min(100, Math.round((totalDone / totalTarget) * 100)) : 0;
   const isCompleted = totalDone >= totalTarget;
 
-  // 가장 급한 학습: 진도 이어갈 수 있으면 단어/증명, 아니면 첫 과제
+  // 가장 급한 학습: 영단어 → 증명 → 과제 순
+  const goWordGacha = () => { window.location.href = '/word-gacha/'; };
   const primaryAction = (() => {
-    if (!isCompleted && (session?.cards_drawn ?? 0) < (session?.cards_target ?? 10)) {
-      return { label: '단어 카드 계속하기', go: () => navigate('/gacha') };
+    if (pendingAssignments.some((a) => a.status === 'needs_resubmit')) {
+      const urgent = pendingAssignments.find((a) => a.status === 'needs_resubmit')!;
+      return { label: '재제출 과제 확인', go: () => navigate(`/assignments/${urgent.target_id}`) };
     }
-    if (!isCompleted && proofs.length > 0) {
+    if (proofs.length > 0 && (session?.proofs_done ?? 0) < (session?.proofs_target ?? 5)) {
       return { label: '증명 풀러가기', go: () => navigate(`/proof/${proofs[0].id}/ordering`) };
     }
     if (pendingAssignments.length > 0) {
       return { label: '과제 확인하기', go: () => navigate(`/assignments/${pendingAssignments[0].target_id}`) };
     }
-    return { label: '학습 현황 보기', go: () => navigate('/dex') };
+    return { label: '영단어 하러 가기', go: goWordGacha };
   })();
 
   return (
@@ -131,15 +133,14 @@ export default function HomePage() {
         <button
           type="button"
           className="hp-tile hp-tile--water"
-          onClick={() => navigate('/gacha')}
+          onClick={goWordGacha}
         >
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
-            <span className="hp-tile-label">단어</span>
+            <span className="hp-tile-label">영단어</span>
           </div>
           <div className="hp-tile-value">
-            <span className="hp-tile-value-num">{session?.cards_drawn ?? 0}</span>
-            <span className="hp-tile-value-sub">/ {session?.cards_target ?? 10}</span>
+            <span className="hp-tile-value-sub">하러 가기 →</span>
           </div>
         </button>
 
