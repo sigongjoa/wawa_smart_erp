@@ -11,6 +11,12 @@ import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
 import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
+import {
+  handleListSchedules,
+  handleCreateSchedule,
+  handleImportExamPeriod,
+  handleDeleteSchedule,
+} from './student/schedules';
 
 // ==================== 헬퍼: 담당 학생 체크 ====================
 async function teacherOwnsStudent(
@@ -364,19 +370,21 @@ async function handleGetStudentProfile(
       return errorResponse('학생을 찾을 수 없습니다', 404);
     }
 
-    // 담당 선생님 조회
+    // 담당 선생님 + 담임 플래그 조회
     const teachers = await executeQuery<any>(
       context.env.DB,
-      `SELECT u.id, u.name FROM student_teachers st
+      `SELECT u.id, u.name, st.is_homeroom FROM student_teachers st
        JOIN users u ON st.teacher_id = u.id
        WHERE st.student_id = ? AND u.academy_id = ?`,
       [studentId, academyId]
     );
+    const homeroom = teachers.find((t: any) => t.is_homeroom === 1) || null;
 
     return successResponse({
       ...student,
       subjects: student.subjects ? JSON.parse(student.subjects) : [],
       teachers,
+      homeroom_teacher: homeroom ? { id: homeroom.id, name: homeroom.name } : null,
     });
   } catch (error) {
     logger.error('학생 프로필 조회 오류', error instanceof Error ? error : new Error(String(error)));
@@ -581,6 +589,624 @@ async function handleSetStudentTeachers(
   return successResponse({ student_id: studentId, teacher_ids: teacherIds });
 }
 
+// ==================== 담임(homeroom) 지정 ====================
+// 합의서 4-5: 학생당 담임 1명, admin/센터장이 배정/전환
+async function handleSetHomeroom(
+  request: Request,
+  context: RequestContext,
+  studentId: string
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const body = (await request.json()) as any;
+  const teacherId: string | null = body.teacher_id ?? null;
+
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+    [studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
+  // 전원 해제 (담임 플래그만 초기화)
+  await executeUpdate(
+    context.env.DB,
+    'UPDATE student_teachers SET is_homeroom = 0 WHERE student_id = ?',
+    [studentId]
+  );
+
+  if (teacherId) {
+    const teacher = await executeFirst<any>(
+      context.env.DB,
+      'SELECT id FROM users WHERE id = ? AND academy_id = ?',
+      [teacherId, academyId]
+    );
+    if (!teacher) return errorResponse('유효하지 않은 선생님입니다', 400);
+
+    // 담당 매핑이 없으면 생성, 있으면 담임 플래그만 세팅
+    await executeInsert(
+      context.env.DB,
+      'INSERT OR IGNORE INTO student_teachers (student_id, teacher_id, is_homeroom) VALUES (?, ?, 1)',
+      [studentId, teacherId]
+    );
+    await executeUpdate(
+      context.env.DB,
+      'UPDATE student_teachers SET is_homeroom = 1 WHERE student_id = ? AND teacher_id = ?',
+      [studentId, teacherId]
+    );
+  }
+
+  return successResponse({ student_id: studentId, homeroom_teacher_id: teacherId });
+}
+
+// ==================== 학부모 상담 (4-1) ====================
+// 공유 정책: 학생의 모든 담당 선생님(student_teachers) + admin이 열람/작성 가능
+
+const ConsultationSchema = z.object({
+  channel: z.enum(['phone', 'sms', 'kakao', 'in_person', 'other']),
+  category: z.enum(['monthly', 'pre_exam', 'post_exam', 'ad_hoc']).default('monthly'),
+  consulted_at: z.string().min(1),
+  subjects: z.array(z.string()).optional(),
+  summary: z.string().min(1, '상담 내용은 필수입니다'),
+  parent_sentiment: z.enum(['positive', 'neutral', 'concerned']).nullable().optional(),
+  follow_up: z.string().nullable().optional(),
+  follow_up_due: z.string().nullable().optional(),
+});
+
+async function canAccessStudent(
+  context: RequestContext,
+  studentId: string
+): Promise<boolean> {
+  const role = context.auth!.role;
+  if (role === 'admin') return true;
+  return await teacherOwnsStudent(context.env.DB, context.auth!.userId, studentId);
+}
+
+async function handleListConsultations(
+  request: Request,
+  context: RequestContext,
+  studentId: string
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  const academyId = getAcademyId(context);
+
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+    [studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+  if (!(await canAccessStudent(context, studentId))) {
+    return errorResponse('담당 학생만 열람할 수 있습니다', 403);
+  }
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 200);
+
+  const rows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT c.*, u.name AS author_name
+     FROM consultations c
+     LEFT JOIN users u ON c.author_id = u.id
+     WHERE c.student_id = ? AND c.academy_id = ?
+     ORDER BY c.consulted_at DESC
+     LIMIT ?`,
+    [studentId, academyId, limit]
+  );
+
+  return successResponse(
+    rows.map((r) => ({ ...r, subjects: r.subjects ? JSON.parse(r.subjects) : [] }))
+  );
+}
+
+async function handleCreateConsultation(
+  request: Request,
+  context: RequestContext,
+  studentId: string
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const authorId = context.auth!.userId;
+
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+    [studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+  if (!(await canAccessStudent(context, studentId))) {
+    return errorResponse('담당 학생만 상담을 기록할 수 있습니다', 403);
+  }
+
+  try {
+    const body = (await request.json()) as any;
+    const input = ConsultationSchema.parse(body);
+    const id = generatePrefixedId('cons');
+    await executeInsert(
+      context.env.DB,
+      `INSERT INTO consultations
+       (id, academy_id, student_id, author_id, channel, category, consulted_at,
+        subjects, summary, parent_sentiment, follow_up, follow_up_due)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        academyId,
+        studentId,
+        authorId,
+        input.channel,
+        input.category,
+        input.consulted_at,
+        input.subjects ? JSON.stringify(input.subjects) : null,
+        input.summary,
+        input.parent_sentiment ?? null,
+        input.follow_up ?? null,
+        input.follow_up_due ?? null,
+      ]
+    );
+    return successResponse({ id });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return errorResponse('입력 검증 오류: ' + error.errors.map((e) => e.message).join(', '), 400);
+    }
+    return handleRouteError(error, '상담 기록 생성');
+  }
+}
+
+async function handleDeleteConsultation(
+  context: RequestContext,
+  studentId: string,
+  consultationId: string
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const row = await executeFirst<any>(
+    context.env.DB,
+    'SELECT author_id FROM consultations WHERE id = ? AND student_id = ? AND academy_id = ?',
+    [consultationId, studentId, academyId]
+  );
+  if (!row) return errorResponse('상담 기록을 찾을 수 없습니다', 404);
+
+  // 작성자 본인 또는 admin만 삭제
+  if (context.auth!.role !== 'admin' && row.author_id !== context.auth!.userId) {
+    return errorResponse('작성자만 삭제할 수 있습니다', 403);
+  }
+  await executeDelete(context.env.DB, 'DELETE FROM consultations WHERE id = ?', [consultationId]);
+  return successResponse({ id: consultationId, deleted: true });
+}
+
+// ==================== 교과 선생님 메모 (student_teacher_notes) ====================
+
+const NOTE_CATEGORIES = ['attitude', 'understanding', 'homework', 'exam', 'etc'] as const;
+const NOTE_SENTIMENTS = ['positive', 'neutral', 'concern'] as const;
+const NOTE_SOURCES = ['manual', 'post_class', 'post_exam', 'post_assignment', 'live_session'] as const;
+const NOTE_VISIBILITIES = ['staff', 'homeroom_only', 'parent_share'] as const;
+
+const TeacherNoteSchema = z.object({
+  subject: z.string().min(1, '과목은 필수입니다').max(40),
+  category: z.enum(NOTE_CATEGORIES),
+  sentiment: z.enum(NOTE_SENTIMENTS),
+  tags: z.array(z.string().max(40)).max(10).optional(),
+  content: z.string().min(1, '본문은 필수입니다').max(1000),
+  source: z.enum(NOTE_SOURCES).optional(),
+  source_ref_id: z.string().nullable().optional(),
+  visibility: z.enum(NOTE_VISIBILITIES).optional(),
+});
+
+const TeacherNoteUpdateSchema = TeacherNoteSchema.partial();
+
+/** YYYY-MM 형식 period_tag 생성 (월 단위 요약 인덱스) */
+function currentPeriodTag(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+async function isHomeroomOf(
+  db: any,
+  teacherId: string,
+  studentId: string
+): Promise<boolean> {
+  const row = await executeFirst<{ n: number }>(
+    db,
+    'SELECT 1 AS n FROM student_teachers WHERE teacher_id = ? AND student_id = ? AND is_homeroom = 1 LIMIT 1',
+    [teacherId, studentId]
+  );
+  return !!row;
+}
+
+async function handleListNotes(
+  request: Request,
+  context: RequestContext,
+  studentId: string
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  const academyId = getAcademyId(context);
+
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+    [studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
+  // 조회 권한: 담당 교과 선생님 + 담임 + admin
+  if (!(await canAccessStudent(context, studentId))) {
+    return errorResponse('담당 학생만 열람할 수 있습니다', 403);
+  }
+
+  const url = new URL(request.url);
+  const subject = url.searchParams.get('subject');
+  const period = url.searchParams.get('period'); // YYYY-MM
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 200);
+
+  const where: string[] = ['n.student_id = ?', 'n.academy_id = ?'];
+  const params: any[] = [studentId, academyId];
+  if (subject) { where.push('n.subject = ?'); params.push(subject); }
+  if (period)  { where.push('n.period_tag = ?'); params.push(period); }
+  params.push(limit);
+
+  const rows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT n.*, u.name AS author_name
+     FROM student_teacher_notes n
+     LEFT JOIN users u ON n.author_id = u.id
+     WHERE ${where.join(' AND ')}
+     ORDER BY n.created_at DESC
+     LIMIT ?`,
+    params
+  );
+
+  return successResponse(
+    rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }))
+  );
+}
+
+async function handleCreateNote(
+  request: Request,
+  context: RequestContext,
+  studentId: string
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const authorId = context.auth!.userId;
+
+  const student = await executeFirst<any>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+    [studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
+  // 작성 권한: 담당 교과 선생님 + admin (담임만 있는 경우엔 담임 자격으로도 허용)
+  if (!(await canAccessStudent(context, studentId))) {
+    return errorResponse('담당 학생만 메모를 작성할 수 있습니다', 403);
+  }
+
+  try {
+    const body = (await request.json()) as any;
+    const input = TeacherNoteSchema.parse(body);
+    const id = generatePrefixedId('stn');
+    const tagsJson = input.tags && input.tags.length > 0 ? JSON.stringify(input.tags) : null;
+    await executeInsert(
+      context.env.DB,
+      `INSERT INTO student_teacher_notes
+       (id, academy_id, student_id, author_id, subject, category, sentiment,
+        tags, content, source, source_ref_id, visibility, period_tag)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        academyId,
+        studentId,
+        authorId,
+        input.subject,
+        input.category,
+        input.sentiment,
+        tagsJson,
+        input.content,
+        input.source ?? 'manual',
+        input.source_ref_id ?? null,
+        input.visibility ?? 'staff',
+        currentPeriodTag(),
+      ]
+    );
+    logger.logSecurity('NOTE_CREATED', 'low', { noteId: id, studentId, authorId });
+    return successResponse({ id });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return errorResponse('입력 검증 오류: ' + error.errors.map((e) => e.message).join(', '), 400);
+    }
+    return handleRouteError(error, '교과 메모 생성');
+  }
+}
+
+async function handleUpdateNote(
+  request: Request,
+  context: RequestContext,
+  studentId: string,
+  noteId: string
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  const academyId = getAcademyId(context);
+
+  const row = await executeFirst<any>(
+    context.env.DB,
+    'SELECT author_id, created_at FROM student_teacher_notes WHERE id = ? AND student_id = ? AND academy_id = ?',
+    [noteId, studentId, academyId]
+  );
+  if (!row) return errorResponse('메모를 찾을 수 없습니다', 404);
+
+  // 작성자 본인 또는 admin만 수정
+  if (context.auth!.role !== 'admin' && row.author_id !== context.auth!.userId) {
+    return errorResponse('작성자만 수정할 수 있습니다', 403);
+  }
+  // 24시간 내 수정만 (admin 예외)
+  if (context.auth!.role !== 'admin') {
+    const created = new Date(row.created_at + 'Z').getTime();
+    if (Date.now() - created > 24 * 3600 * 1000) {
+      return errorResponse('작성 24시간이 지난 메모는 수정할 수 없습니다', 403);
+    }
+  }
+
+  try {
+    const body = (await request.json()) as any;
+    const input = TeacherNoteUpdateSchema.parse(body);
+    const sets: string[] = [];
+    const params: any[] = [];
+    if (input.subject !== undefined)    { sets.push('subject = ?');    params.push(input.subject); }
+    if (input.category !== undefined)   { sets.push('category = ?');   params.push(input.category); }
+    if (input.sentiment !== undefined)  { sets.push('sentiment = ?');  params.push(input.sentiment); }
+    if (input.tags !== undefined)       {
+      sets.push('tags = ?');
+      params.push(input.tags && input.tags.length > 0 ? JSON.stringify(input.tags) : null);
+    }
+    if (input.content !== undefined)    { sets.push('content = ?');    params.push(input.content); }
+    if (input.visibility !== undefined) { sets.push('visibility = ?'); params.push(input.visibility); }
+    if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+    sets.push("updated_at = datetime('now')");
+    params.push(noteId);
+    await executeUpdate(
+      context.env.DB,
+      `UPDATE student_teacher_notes SET ${sets.join(', ')} WHERE id = ?`,
+      params
+    );
+    return successResponse({ id: noteId, updated: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return errorResponse('입력 검증 오류: ' + error.errors.map((e) => e.message).join(', '), 400);
+    }
+    return handleRouteError(error, '교과 메모 수정');
+  }
+}
+
+async function handleDeleteNote(
+  context: RequestContext,
+  studentId: string,
+  noteId: string
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  const academyId = getAcademyId(context);
+  const row = await executeFirst<any>(
+    context.env.DB,
+    'SELECT author_id FROM student_teacher_notes WHERE id = ? AND student_id = ? AND academy_id = ?',
+    [noteId, studentId, academyId]
+  );
+  if (!row) return errorResponse('메모를 찾을 수 없습니다', 404);
+  if (context.auth!.role !== 'admin' && row.author_id !== context.auth!.userId) {
+    return errorResponse('작성자만 삭제할 수 있습니다', 403);
+  }
+  await executeDelete(context.env.DB, 'DELETE FROM student_teacher_notes WHERE id = ?', [noteId]);
+  logger.logSecurity('NOTE_DELETED', 'low', { noteId, studentId });
+  return successResponse({ id: noteId, deleted: true });
+}
+
+// 담임 대시보드: 학생×과목 메모 매트릭스 (period 기준)
+async function handleHomeroomNotesOverview(
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  const academyId = getAcademyId(context);
+  const teacherId = context.auth!.userId;
+  const url = new URL(request.url);
+  const period = url.searchParams.get('period') || currentPeriodTag();
+
+  const homeroomStudents = await executeQuery<any>(
+    context.env.DB,
+    `SELECT s.id, s.name, s.grade
+     FROM student_teachers st
+     JOIN students s ON s.id = st.student_id
+     WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
+     ORDER BY s.name`,
+    [teacherId, academyId]
+  );
+
+  if (homeroomStudents.length === 0) {
+    return successResponse({ period, students: [] });
+  }
+
+  const studentIds = homeroomStudents.map((s: any) => s.id);
+  const ph = studentIds.map(() => '?').join(',');
+
+  // 학생×과목별 집계
+  const aggRows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT n.student_id, n.subject,
+            COUNT(*) as cnt,
+            SUM(CASE WHEN n.sentiment='positive' THEN 1 ELSE 0 END) as pos,
+            SUM(CASE WHEN n.sentiment='neutral'  THEN 1 ELSE 0 END) as neu,
+            SUM(CASE WHEN n.sentiment='concern'  THEN 1 ELSE 0 END) as con
+     FROM student_teacher_notes n
+     WHERE n.academy_id = ? AND n.period_tag = ? AND n.student_id IN (${ph})
+     GROUP BY n.student_id, n.subject`,
+    [academyId, period, ...studentIds]
+  );
+
+  // 학생별 그룹핑
+  const byStudent = new Map<string, any[]>();
+  for (const r of aggRows) {
+    if (!byStudent.has(r.student_id)) byStudent.set(r.student_id, []);
+    byStudent.get(r.student_id)!.push({
+      subject: r.subject,
+      count: r.cnt,
+      sentiment_counts: { positive: r.pos, neutral: r.neu, concern: r.con },
+    });
+  }
+
+  const students = homeroomStudents.map((s: any) => {
+    const subjects = byStudent.get(s.id) || [];
+    const concern_count = subjects.reduce((a, b) => a + (b.sentiment_counts?.concern || 0), 0);
+    const total_notes = subjects.reduce((a, b) => a + b.count, 0);
+    return {
+      id: s.id,
+      name: s.name,
+      grade: s.grade,
+      by_subject: subjects,
+      concern_count,
+      total_notes,
+    };
+  });
+
+  return successResponse({ period, students });
+}
+
+// (homeroom 사용 추적 — TS 미사용 경고 회피)
+void isHomeroomOf;
+
+// ==================== 담임 대시보드 (4-5 + 4-1 이행 점검) ====================
+// GET /api/homeroom/summary - 현재 로그인 선생님 기준
+//   - 담임 학생 수, 이번 달 상담 완료/미완료, 7일 내 후속 상담, 다가오는 시험 일정
+async function handleHomeroomSummary(context: RequestContext): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  const academyId = getAcademyId(context);
+  const teacherId = context.auth!.userId;
+
+  // 담임인 학생 목록
+  const homeroomStudents = await executeQuery<any>(
+    context.env.DB,
+    `SELECT s.id, s.name, s.grade
+     FROM student_teachers st
+     JOIN students s ON s.id = st.student_id
+     WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
+     ORDER BY s.name`,
+    [teacherId, academyId]
+  );
+
+  if (homeroomStudents.length === 0) {
+    return successResponse({
+      homeroom_count: 0,
+      this_month_consulted: [],
+      this_month_pending: [],
+      follow_ups_due: [],
+      upcoming_exams: [],
+    });
+  }
+
+  const studentIds = homeroomStudents.map((s: any) => s.id);
+  const ph = studentIds.map(() => '?').join(',');
+
+  // 이번 달(YYYY-MM) 상담이 있었던 학생
+  const yearMonth = new Date().toISOString().slice(0, 7);
+  const consultedRows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT DISTINCT student_id FROM consultations
+     WHERE academy_id = ? AND student_id IN (${ph})
+       AND substr(consulted_at, 1, 7) = ?`,
+    [academyId, ...studentIds, yearMonth]
+  );
+  const consultedSet = new Set(consultedRows.map((r: any) => r.student_id));
+  const thisMonthConsulted = homeroomStudents.filter((s: any) => consultedSet.has(s.id));
+  const thisMonthPending = homeroomStudents.filter((s: any) => !consultedSet.has(s.id));
+
+  // 7일 내 후속 상담 예정
+  const today = new Date().toISOString().slice(0, 10);
+  const weekLater = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const followUps = await executeQuery<any>(
+    context.env.DB,
+    `SELECT c.id, c.student_id, c.follow_up, c.follow_up_due, s.name AS student_name
+     FROM consultations c
+     JOIN students s ON s.id = c.student_id
+     WHERE c.academy_id = ? AND c.student_id IN (${ph})
+       AND c.follow_up_due IS NOT NULL
+       AND c.follow_up_due >= ? AND c.follow_up_due <= ?
+     ORDER BY c.follow_up_due ASC`,
+    [academyId, ...studentIds, today, weekLater]
+  );
+
+  // 다가오는 시험 (external schedules kind=exam, 14일 이내)
+  const twoWeeksLater = new Date(Date.now() + 14 * 86400000).toISOString();
+  const upcomingExams = await executeQuery<any>(
+    context.env.DB,
+    `SELECT e.id, e.student_id, e.title, e.starts_at, s.name AS student_name
+     FROM student_external_schedules e
+     JOIN students s ON s.id = e.student_id
+     WHERE e.academy_id = ? AND e.student_id IN (${ph})
+       AND e.kind = 'exam' AND e.starts_at IS NOT NULL
+       AND e.starts_at >= ? AND e.starts_at <= ?
+     ORDER BY e.starts_at ASC`,
+    [academyId, ...studentIds, new Date().toISOString(), twoWeeksLater]
+  );
+
+  return successResponse({
+    homeroom_count: homeroomStudents.length,
+    this_month_consulted: thisMonthConsulted,
+    this_month_pending: thisMonthPending,
+    follow_ups_due: followUps,
+    upcoming_exams: upcomingExams,
+  });
+}
+
+// GET /api/homeroom/calendar?month=YYYY-MM - 담임 학생 × 월별 상담 매트릭스
+async function handleHomeroomCalendar(
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context)) return unauthorizedResponse();
+  const academyId = getAcademyId(context);
+  const teacherId = context.auth!.userId;
+  const url = new URL(request.url);
+  const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
+
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
+  }
+
+  const students = await executeQuery<any>(
+    context.env.DB,
+    `SELECT s.id, s.name, s.grade
+     FROM student_teachers st
+     JOIN students s ON s.id = st.student_id
+     WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
+     ORDER BY s.name`,
+    [teacherId, academyId]
+  );
+
+  if (students.length === 0) return successResponse({ month, students: [], consultations: [] });
+
+  const ph = students.map(() => '?').join(',');
+  const studentIds = students.map((s: any) => s.id);
+
+  const rows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT id, student_id, category, channel, consulted_at, summary
+     FROM consultations
+     WHERE academy_id = ? AND student_id IN (${ph})
+       AND substr(consulted_at, 1, 7) = ?
+     ORDER BY consulted_at ASC`,
+    [academyId, ...studentIds, month]
+  );
+
+  return successResponse({ month, students, consultations: rows });
+}
+
+// 외부 일정(schedules) 도메인은 student/schedules.ts 로 분리됨
+// (import 는 파일 상단에서 수행)
+
 // ==================== 메인 핸들러 ====================
 
 export async function handleStudent(
@@ -590,6 +1216,20 @@ export async function handleStudent(
   context: RequestContext
 ): Promise<Response> {
   try {
+    // /api/homeroom/summary, /api/homeroom/calendar (담임 대시보드)
+    if (pathname === '/api/homeroom/summary') {
+      if (method === 'GET') return await handleHomeroomSummary(context);
+      return errorResponse('Method not allowed', 405);
+    }
+    if (pathname === '/api/homeroom/calendar') {
+      if (method === 'GET') return await handleHomeroomCalendar(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+    if (pathname === '/api/homeroom/notes-overview') {
+      if (method === 'GET') return await handleHomeroomNotesOverview(request, context);
+      return errorResponse('Method not allowed', 405);
+    }
+
     // /api/student
     if (pathname === '/api/student') {
       if (method === 'POST') return await handleCreateStudent(request, context);
@@ -601,6 +1241,69 @@ export async function handleStudent(
     const teachersMatch = pathname.match(/^\/api\/student\/([^/]+)\/teachers$/);
     if (teachersMatch) {
       if (method === 'PUT') return await handleSetStudentTeachers(request, context, teachersMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/homeroom (담임 지정/전환, admin)
+    const homeroomMatch = pathname.match(/^\/api\/student\/([^/]+)\/homeroom$/);
+    if (homeroomMatch) {
+      if (method === 'PUT') return await handleSetHomeroom(request, context, homeroomMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/notes (교과 선생님 메모)
+    const notesMatch = pathname.match(/^\/api\/student\/([^/]+)\/notes$/);
+    if (notesMatch) {
+      if (method === 'GET')  return await handleListNotes(request, context, notesMatch[1]);
+      if (method === 'POST') return await handleCreateNote(request, context, notesMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+    const noteItemMatch = pathname.match(/^\/api\/student\/([^/]+)\/notes\/([^/]+)$/);
+    if (noteItemMatch) {
+      if (method === 'PATCH')  return await handleUpdateNote(request, context, noteItemMatch[1], noteItemMatch[2]);
+      if (method === 'DELETE') return await handleDeleteNote(context, noteItemMatch[1], noteItemMatch[2]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/consultations (학부모 상담 로그, 공유)
+    const consultationsMatch = pathname.match(/^\/api\/student\/([^/]+)\/consultations$/);
+    if (consultationsMatch) {
+      if (method === 'GET') return await handleListConsultations(request, context, consultationsMatch[1]);
+      if (method === 'POST') return await handleCreateConsultation(request, context, consultationsMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/consultations/:cid
+    const consultationItemMatch = pathname.match(/^\/api\/student\/([^/]+)\/consultations\/([^/]+)$/);
+    if (consultationItemMatch) {
+      if (method === 'DELETE')
+        return await handleDeleteConsultation(context, consultationItemMatch[1], consultationItemMatch[2]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/schedules (외부 일정, 공유)
+    const schedulesMatch = pathname.match(/^\/api\/student\/([^/]+)\/schedules$/);
+    if (schedulesMatch) {
+      if (method === 'GET') return await handleListSchedules(context, schedulesMatch[1], canAccessStudent);
+      if (method === 'POST') return await handleCreateSchedule(request, context, schedulesMatch[1], canAccessStudent);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/schedules/from-exam-period/:periodId
+    const importExamMatch = pathname.match(
+      /^\/api\/student\/([^/]+)\/schedules\/from-exam-period\/([^/]+)$/
+    );
+    if (importExamMatch) {
+      if (method === 'POST')
+        return await handleImportExamPeriod(context, importExamMatch[1], importExamMatch[2], canAccessStudent);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/student/:id/schedules/:sid
+    const scheduleItemMatch = pathname.match(/^\/api\/student\/([^/]+)\/schedules\/([^/]+)$/);
+    if (scheduleItemMatch) {
+      if (method === 'DELETE')
+        return await handleDeleteSchedule(context, scheduleItemMatch[1], scheduleItemMatch[2]);
       return errorResponse('Method not allowed', 405);
     }
 
