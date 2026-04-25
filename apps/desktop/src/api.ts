@@ -148,6 +148,28 @@ async function uploadRequest<T>(path: string, formData: FormData): Promise<T> {
   return (json?.data ?? json) as T;
 }
 
+/**
+ * 페이징 응답의 정식 스키마. 서버 utils/pagination.ts의 PagedResult와 동기화 유지.
+ * 페이징 엔드포인트는 항상 이 모양을 반환하며, list 헬퍼로 .items만 풀어서 사용.
+ */
+export interface PagedResult<T> {
+  items: T[];
+  pagination: {
+    total?: number;
+    limit: number;
+    offset: number;
+    nextOffset: number | null;
+  };
+}
+
+/** 페이징 응답을 호출하고 .items만 추출 — 페이징 메타가 필요한 곳만 list() 직접 사용 */
+async function listRequest<T>(path: string, options?: RequestInit): Promise<T[]> {
+  const r = await request<PagedResult<T> | T[]>(path, options);
+  // 점진적 마이그레이션 안전장치: 이미 array로 오는 엔드포인트와 PagedResult 둘 다 지원
+  if (Array.isArray(r)) return r;
+  return Array.isArray(r?.items) ? r.items : [];
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -435,7 +457,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  getInvites: () => request<any[]>('/api/academy/invites'),
+  getInvites: () => listRequest<any>('/api/academy/invites'),
   cancelInvite: (id: string) =>
     request(`/api/academy/invites/${id}`, { method: 'DELETE' }),
 
@@ -1486,12 +1508,12 @@ export const api = {
 
   // ── Vocab Gacha (영단어 학습) ──
 
-  getVocabWords: (params?: { student_id?: string; status?: string }) => {
+  getVocabWords: (params?: { student_id?: string; status?: string }): Promise<VocabWord[]> => {
     const qp = new URLSearchParams();
     if (params?.student_id) qp.set('student_id', params.student_id);
     if (params?.status) qp.set('status', params.status);
     const qs = qp.toString();
-    return request<VocabWord[]>(`/api/vocab/words${qs ? '?' + qs : ''}`);
+    return listRequest<VocabWord>(`/api/vocab/words${qs ? '?' + qs : ''}`);
   },
   createVocabWord: (data: { student_id: string; english: string; korean: string; blank_type?: string }) =>
     request<{ id: string }>('/api/vocab/words', { method: 'POST', body: JSON.stringify(data) }),
@@ -1501,7 +1523,7 @@ export const api = {
     request(`/api/vocab/words/${id}`, { method: 'DELETE' }),
 
   getVocabGrammar: (status?: string) =>
-    request<VocabGrammarQA[]>(`/api/vocab/grammar${status ? '?status=' + status : ''}`),
+    listRequest<VocabGrammarQA>(`/api/vocab/grammar${status ? '?status=' + status : ''}`),
   createVocabGrammar: (data: { question: string; answer?: string; student_id?: string }) =>
     request<{ id: string }>('/api/vocab/grammar', { method: 'POST', body: JSON.stringify(data) }),
   updateVocabGrammar: (id: string, data: { question?: string; answer?: string; include_in_print?: boolean }) =>
@@ -1525,13 +1547,7 @@ export const api = {
       body: JSON.stringify({ words }),
     }),
 
-  pickVocabPrint: (data: { student_id: string; max_words?: number }) =>
-    request<VocabPrintPickResult>('/api/vocab/print/pick', { method: 'POST', body: JSON.stringify(data) }),
-  assignVocabPrint: (data: { student_ids: string[]; max_words?: number }) =>
-    request<{
-      created: Array<{ job_id: string; student_id: string; student_name: string; word_count: number }>;
-      skipped: Array<{ student_id: string; reason: string }>;
-    }>('/api/vocab/print/assign', { method: 'POST', body: JSON.stringify(data) }),
+  // pickVocabPrint, assignVocabPrint, gradeVocabPrint: 셀프-서브 모델로 대체되어 제거 (045)
   listVocabPrintJobs: (params?: { status?: string; days?: number }) => {
     const qp = new URLSearchParams();
     if (params?.status) qp.set('status', params.status);
@@ -1545,11 +1561,27 @@ export const api = {
     request(`/api/vocab/print/jobs/${jobId}/void`, { method: 'POST', body: JSON.stringify({}) }),
   deleteVocabPrintJob: (jobId: string) =>
     request(`/api/vocab/print/jobs/${jobId}`, { method: 'DELETE' }),
-  gradeVocabPrint: (data: { job_id: string; results: { word_id: string; correct: 0 | 1 }[] }) =>
-    request<{ job_id: string; correct: number; wrong: number }>('/api/vocab/print/grade', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+
+  // ── Vocab Exam Policy ──
+  listVocabPolicies: () =>
+    request<VocabExamPolicy[]>('/api/vocab/policy'),
+  getVocabEffectivePolicy: (params: { student?: string; teacher?: string }) => {
+    const qp = new URLSearchParams();
+    if (params.student) qp.set('student', params.student);
+    if (params.teacher) qp.set('teacher', params.teacher);
+    return request<VocabExamPolicy>(`/api/vocab/policy/effective?${qp.toString()}`);
+  },
+  upsertVocabPolicy: (
+    scope: 'academy' | 'teacher' | 'student',
+    scopeId: string,
+    data: Partial<VocabExamPolicyInput>
+  ) =>
+    request<{ id: string; created?: boolean; updated?: boolean }>(
+      `/api/vocab/policy/${scope}/${encodeURIComponent(scopeId)}`,
+      { method: 'PUT', body: JSON.stringify(data) }
+    ),
+  deleteVocabPolicy: (scope: 'teacher' | 'student', scopeId: string) =>
+    request(`/api/vocab/policy/${scope}/${encodeURIComponent(scopeId)}`, { method: 'DELETE' }),
 
   // ── 시험 결시 개별 타이머 (exam_attempts) ──
 
@@ -1598,9 +1630,9 @@ export const api = {
     if (params?.kind) qp.set('kind', params.kind);
     if (params?.mine) qp.set('mine', '1');
     const q = qp.toString();
-    return request<any[]>(`/api/assignments${q ? `?${q}` : ''}`);
+    return listRequest<any>(`/api/assignments${q ? `?${q}` : ''}`);
   },
-  getAssignmentInbox: () => request<any[]>('/api/assignments/inbox'),
+  getAssignmentInbox: () => listRequest<any>('/api/assignments/inbox'),
   getAssignmentStats: () => request<any>('/api/assignments/stats'),
   getAssignment: (id: string) => request<any>(`/api/assignments/${id}`),
   createAssignment: (data: {
@@ -1658,7 +1690,7 @@ export const api = {
     if (params?.q) qs.set('q', params.q);
     if (params?.includeArchived) qs.set('includeArchived', '1');
     const q = qs.toString();
-    return request<ArchiveListItem[]>(`/api/archives${q ? '?' + q : ''}`);
+    return listRequest<ArchiveListItem>(`/api/archives${q ? '?' + q : ''}`);
   },
   getArchive: (id: string) => request<ArchiveDetail>(`/api/archives/${id}`),
   createArchive: (data: ArchiveCreateInput) =>
@@ -1828,11 +1860,33 @@ export interface VocabTextbookWord {
   sentence: string | null;
 }
 
-export interface VocabPrintPickResult {
-  job_id: string;
-  student: { id: string; name: string };
-  words: VocabWord[];
-  grammar: VocabGrammarQA[];
+export interface VocabExamPolicyInput {
+  vocab_count: number;
+  context_count: number;
+  grammar_count: number;
+  writing_enabled: boolean;
+  writing_type: string | null;
+  box_filter: string;
+  source: 'student_pool' | 'textbook' | 'mixed';
+  textbook_id: string | null;
+  time_limit_sec: number;
+  cooldown_min: number;
+  daily_limit: number;
+  active_from: string | null;
+  active_to: string | null;
+  word_cooldown_min: number;
+  ai_grading: boolean;
+  enabled: boolean;
+}
+
+export interface VocabExamPolicy extends VocabExamPolicyInput {
+  id: string;
+  academy_id: string;
+  scope: 'academy' | 'teacher' | 'student';
+  scope_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string | null;
 }
 
 export interface VocabPrintJobSummary {

@@ -16,6 +16,8 @@ const LiveSessionPage = lazy(() => import('./pages/LiveSessionPage'));
 const MyArchivePage = lazy(() => import('./pages/MyArchivePage'));
 const DexPage = lazy(() => import('./pages/DexPage'));
 const MePage = lazy(() => import('./pages/MePage'));
+const VocabExamPage = lazy(() => import('./pages/VocabExamPage'));
+const VocabExamResultPage = lazy(() => import('./pages/VocabExamResultPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -45,6 +47,8 @@ export default function App() {
           <Route path="/live/:id" element={<ProtectedRoute><LiveSessionPage /></ProtectedRoute>} />
           <Route path="/proof/:proofId/ordering" element={<ProtectedRoute><ProofOrderingPage /></ProtectedRoute>} />
           <Route path="/proof/:proofId/fillblank" element={<ProtectedRoute><ProofFillBlankPage /></ProtectedRoute>} />
+          <Route path="/vocab/exam/:jobId" element={<ProtectedRoute><VocabExamPage /></ProtectedRoute>} />
+          <Route path="/vocab/exam/:jobId/result" element={<ProtectedRoute><VocabExamResultPage /></ProtectedRoute>} />
           <Route path="/gacha" element={<ProtectedRoute><GachaPage /></ProtectedRoute>} />
 
           {/* 탭바 있음 */}

@@ -28,6 +28,7 @@ const VocabAdminPage = lazy(() => import('./pages/VocabAdminPage'));
 const VocabWordsTab = lazy(() => import('./pages/vocab/VocabWordsTab'));
 const VocabWrongTab = lazy(() => import('./pages/vocab/VocabWrongTab'));
 const VocabGradeTab = lazy(() => import('./pages/vocab/VocabGradeTab'));
+const VocabPolicyTab = lazy(() => import('./pages/vocab/VocabPolicyTab'));
 const ExamResultPage = lazy(() => import('./pages/ExamResultPage'));
 const ExamTimerPage = lazy(() => import('./pages/ExamTimerPage'));
 const ProgressPage = lazy(() => import('./pages/ProgressPage'));
@@ -101,6 +102,7 @@ export default function App() {
               <Route index element={<VocabWordsTab />} />
               <Route path="wrong" element={<VocabWrongTab />} />
               <Route path="grading" element={<VocabGradeTab />} />
+              <Route path="policy" element={<VocabPolicyTab />} />
             </Route>
             <Route path="/exam-result/:attemptId" element={<ExamResultPage />} />
             <Route path="/progress" element={<ProgressPage />} />

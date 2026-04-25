@@ -31,16 +31,26 @@ export function parsePagination(
   return { limit, offset };
 }
 
+/**
+ * 페이징 응답의 정식 스키마.
+ *
+ * 응답 envelope이 ApiResponse<PagedResult<T>>이므로 최종 JSON은
+ *   { success: true, data: { items: [...], pagination: { ... } }, timestamp: ... }
+ *
+ * "data: T[]"로 두면 envelope의 data와 충돌해 이중 wrap이 되므로 반드시 items 사용.
+ */
 export interface PagedResult<T> {
-  data: T[];
-  total?: number;
-  limit: number;
-  offset: number;
-  nextOffset: number | null;
+  items: T[];
+  pagination: {
+    total?: number;       // 전체 행수 (선택)
+    limit: number;
+    offset: number;
+    nextOffset: number | null;
+  };
 }
 
 export function toPagedResult<T>(rows: T[], pagination: Pagination, total?: number): PagedResult<T> {
   const { limit, offset } = pagination;
   const nextOffset = rows.length < limit ? null : offset + limit;
-  return { data: rows, total, limit, offset, nextOffset };
+  return { items: rows, pagination: { total, limit, offset, nextOffset } };
 }

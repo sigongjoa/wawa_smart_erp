@@ -179,6 +179,27 @@ export const api = {
   getVocabTextbookWords: (id: string) =>
     request<VocabTextbookWordItem[]>(`/api/play/vocab/textbooks/${id}/words`),
 
+  // ── Vocab Exam (셀프-서브 시험) ──
+  getVocabExamAvailability: () =>
+    request<VocabExamAvailability>('/api/play/vocab/exam/availability'),
+  startVocabSelfExam: (max_words?: number) =>
+    request<VocabSelfStartResponse>('/api/play/vocab/print/self-start', {
+      method: 'POST',
+      body: JSON.stringify(max_words ? { max_words } : {}),
+    }),
+  getVocabExam: (jobId: string) =>
+    request<VocabExamDetail>(`/api/play/vocab/print/${jobId}`),
+  saveVocabAnswer: (jobId: string, wordId: string, selected_index: number | null) =>
+    request<{ savedAt: string }>(`/api/play/vocab/print/${jobId}/answers/${wordId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ selected_index }),
+    }),
+  submitVocabExam: (jobId: string) =>
+    request<{ correct: number; total: number; submittedAt: string; alreadySubmitted?: boolean }>(
+      `/api/play/vocab/print/${jobId}/submit`,
+      { method: 'POST' }
+    ),
+
   // ── 시험 응시 타이머 (PIN 인증) ──
 
   getActiveExamAttempt: () =>
@@ -424,6 +445,56 @@ export interface VocabGrammarItem {
   student_id: string | null;
   created_at: string;
   answered_at: string | null;
+}
+
+export interface VocabExamAvailability {
+  available: boolean;
+  reason?: 'disabled' | 'cooldown' | 'daily_limit' | 'inactive_hours';
+  retryAt?: string;
+  message?: string;
+  todayCount: number;
+  inProgressId: string | null;
+  policy: {
+    vocab_count: number;
+    writing_enabled: boolean;
+    writing_type: string | null;
+    time_limit_sec: number;
+    cooldown_min: number;
+    daily_limit: number;
+    active_from: string | null;
+    active_to: string | null;
+  };
+}
+
+export interface VocabExamQuestion {
+  wordId: string;
+  prompt: string;
+  choices: string[];
+  selectedIndex: number | null;
+}
+
+export interface VocabExamDetail {
+  id: string;
+  status: 'pending' | 'in_progress' | 'submitted' | 'voided';
+  startedAt: string | null;
+  submittedAt: string | null;
+  questions: VocabExamQuestion[];
+  total: number;
+  autoCorrect?: number;
+  autoTotal?: number;
+  breakdown?: Array<{
+    wordId: string;
+    prompt: string;
+    choices: string[];
+    selectedIndex: number | null;
+    correctIndex: number;
+    correct: boolean;
+  }>;
+}
+
+export interface VocabSelfStartResponse extends VocabExamDetail {
+  resumed: boolean;
+  todayIndex?: number;
 }
 
 export interface VocabTextbookItem {

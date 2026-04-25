@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { api, type VocabPrintJobSummary, type VocabPrintJobAnswerRow } from '../../api';
 import { toast } from '../../components/Toast';
 import Modal from '../../components/Modal';
@@ -34,14 +34,14 @@ export default function VocabGradeTab() {
   const [jobs, setJobs] = useState<VocabPrintJobSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<StatusFilter>('all');
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
 
+  // 셀프-서브 모델: 교사 출제 사라지고 정책만 관리. 헤더에 정책 페이지 링크.
   useEffect(() => {
     setHeaderAction(
-      <button type="button" className="btn btn-primary" onClick={() => setPickerOpen(true)}>
-        <span aria-hidden="true">＋</span> 시험지 배정
-      </button>
+      <Link to="/vocab/policy" className="btn btn-secondary">
+        정책 설정
+      </Link>
     );
     return () => setHeaderAction(null);
   }, [setHeaderAction]);
@@ -143,11 +143,13 @@ export default function VocabGradeTab() {
 
       {filtered.length === 0 ? (
         <div className="vocab-empty-state" style={{ padding: 48 }}>
-          <div className="vocab-empty-state__title">시험지가 없어요</div>
-          <p className="vocab-empty-state__hint">학생을 선택해 시험지를 배정해 보세요.</p>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setPickerOpen(true)}>
-            시험지 배정
-          </button>
+          <div className="vocab-empty-state__title">아직 응시 기록이 없어요</div>
+          <p className="vocab-empty-state__hint">
+            학생들이 학생 앱에서 직접 시험을 시작하면 여기에 결과가 쌓입니다.
+          </p>
+          <Link to="/vocab/policy" className="btn btn-secondary btn-sm">
+            정책 설정 →
+          </Link>
         </div>
       ) : (
         <div className="vocab-table-wrap">
@@ -214,17 +216,6 @@ export default function VocabGradeTab() {
         </div>
       )}
 
-      {pickerOpen && (
-        <AssignModal
-          onClose={() => setPickerOpen(false)}
-          onAssigned={(n) => {
-            setPickerOpen(false);
-            toast.success(`${n}명에게 배정됨`);
-            load();
-          }}
-        />
-      )}
-
       {detailJobId && (
         <DetailModal
           jobId={detailJobId}
@@ -235,107 +226,7 @@ export default function VocabGradeTab() {
   );
 }
 
-// ── 학생 배정 모달 ──────────────────────────────────────
-function AssignModal({ onClose, onAssigned }: { onClose: () => void; onAssigned: (count: number) => void; }) {
-  const [students, setStudents] = useState<Array<{ id: string; name: string; grade?: string | null }>>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [maxWords, setMaxWords] = useState(20);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const list = await api.getGachaStudents();
-        setStudents((list || []).map((s: any) => ({ id: s.id, name: s.name, grade: s.grade })));
-      } catch { setStudents([]); }
-      finally { setLoading(false); }
-    })();
-  }, []);
-
-  const toggle = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const submit = async () => {
-    if (selected.size === 0) return;
-    setBusy(true);
-    try {
-      const res = await api.assignVocabPrint({
-        student_ids: [...selected],
-        max_words: maxWords,
-      });
-      if (res.created.length === 0) {
-        toast.error('배정된 학생이 없어요 (승인된 단어 부족)');
-        setBusy(false);
-        return;
-      }
-      if (res.skipped.length > 0) {
-        toast.info(`${res.skipped.length}명은 출제할 단어 부족으로 제외됨`);
-      }
-      onAssigned(res.created.length);
-    } catch (e: any) {
-      toast.error(e?.message || '배정 실패');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Modal onClose={onClose} className="vocab-grade-picker-modal">
-      <Modal.Header>시험지 배정</Modal.Header>
-      <Modal.Body>
-        <div className="vocab-grade-picker-body">
-          <label className="form-field">
-            <span className="form-label">학생당 단어 수</span>
-            <select className="form-input" value={maxWords} onChange={e => setMaxWords(Number(e.target.value))}>
-              {[10, 15, 20, 25, 30].map(n => <option key={n} value={n}>{n}개</option>)}
-            </select>
-          </label>
-          <div className="form-field">
-            <span className="form-label">학생 ({selected.size} 명 선택됨)</span>
-            {loading ? (
-              <div className="vocab-empty">불러오는 중…</div>
-            ) : students.length === 0 ? (
-              <div className="vocab-empty">담당 학생이 없어요</div>
-            ) : (
-              <ul className="vocab-grade-picker-list">
-                {students.map(s => {
-                  const on = selected.has(s.id);
-                  return (
-                    <li key={s.id}>
-                      <label className={`vocab-grade-picker-item ${on ? 'is-on' : ''}`}>
-                        <input type="checkbox" checked={on} onChange={() => toggle(s.id)} />
-                        <span>{s.name}</span>
-                        {s.grade && <span className="vocab-grade-picker-grade">{s.grade}</span>}
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-          <div className="vocab-grade-picker-quick">
-            <button type="button" className="btn-link" onClick={() => setSelected(new Set(students.map(s => s.id)))}>전체</button>
-            <button type="button" className="btn-link" onClick={() => setSelected(new Set())}>해제</button>
-          </div>
-        </div>
-      </Modal.Body>
-      <Modal.Footer>
-        <button className="btn btn-secondary" onClick={onClose} disabled={busy}>취소</button>
-        <button
-          className="btn btn-primary"
-          onClick={submit}
-          disabled={busy || selected.size === 0}
-        >{busy ? '배정 중…' : `${selected.size}명에게 배정`}</button>
-      </Modal.Footer>
-    </Modal>
-  );
-}
+// 배정 모달은 셀프-서브 모델로 전환되며 제거됨 (학생이 직접 시작)
 
 // ── 상세 모달 (문항별 breakdown) ─────────────────────────
 function DetailModal({ jobId, onClose }: { jobId: string; onClose: () => void; }) {

@@ -1,0 +1,234 @@
+.vexam-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.vexam-loading,
+.vexam-error {
+  text-align: center;
+  margin-top: 4rem;
+  font-size: 1rem;
+  color: #475569;
+}
+.vexam-error { color: #b91c1c; }
+
+.vexam-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.vexam-progress { color: #1e40af; }
+.vexam-answered { color: #64748b; font-weight: 500; }
+.vexam-timer {
+  font-variant-numeric: tabular-nums;
+  background: #ecfdf5;
+  color: #065f46;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+.vexam-timer-urgent {
+  background: #fef2f2;
+  color: #991b1b;
+  animation: vexam-pulse 1s infinite;
+}
+@keyframes vexam-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.vexam-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.vexam-prompt {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem 1rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.vexam-en {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+.vexam-en-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.vexam-choices {
+  display: grid;
+  gap: 0.75rem;
+}
+.vexam-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.vexam-choice:hover {
+  border-color: #94a3b8;
+}
+.vexam-choice-selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+.vexam-choice-no {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #475569;
+  flex-shrink: 0;
+}
+.vexam-choice-selected .vexam-choice-no {
+  background: #2563eb;
+  color: white;
+}
+.vexam-choice-text { flex: 1; }
+
+.vexam-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+.vexam-btn {
+  flex: 1;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #1e293b;
+  color: white;
+}
+.vexam-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.vexam-btn-ghost {
+  background: white;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+}
+.vexam-btn-primary {
+  background: #2563eb;
+}
+
+/* Result page */
+.vresult-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem 1rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.vresult-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.vresult-num {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #1e40af;
+  font-variant-numeric: tabular-nums;
+}
+.vresult-slash {
+  font-size: 1.5rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.vresult-pct {
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  color: #475569;
+}
+.vresult-msg {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.vresult-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.vresult-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+.vresult-correct { border-left: 4px solid #22c55e; }
+.vresult-wrong { border-left: 4px solid #ef4444; }
+.vresult-no {
+  width: 1.6rem; height: 1.6rem;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+.vresult-body { flex: 1; min-width: 0; }
+.vresult-prompt {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+.vresult-answer {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+.vresult-mine {
+  color: #b91c1c;
+  text-decoration: line-through;
+}
+.vresult-mark {
+  font-size: 1.25rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.vresult-correct .vresult-mark { color: #22c55e; }
+.vresult-wrong .vresult-mark { color: #ef4444; }
+
+.vresult-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}

@@ -1,5 +1,6 @@
 import { useAuthStore } from '../store';
 import { useNavigate } from 'react-router-dom';
+import VocabExamCard from '../components/VocabExamCard';
 
 export default function MePage() {
   const student = useAuthStore((s) => s.auth?.student);
@@ -28,6 +29,8 @@ export default function MePage() {
             </div>
           )}
         </section>
+
+        <VocabExamCard />
 
         <button type="button" className="btn-danger-outline" onClick={handleLogout}>
           로그아웃

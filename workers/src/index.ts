@@ -37,6 +37,7 @@ import { handleExamPaper } from '@/routes/exam-paper-handler';
 import { handleProgress } from '@/routes/progress-handler';
 import { handleVocab } from '@/routes/vocab-handler';
 import { handleVocabPlay } from '@/routes/vocab-play-handler';
+import { handleVocabPolicy } from '@/routes/vocab-policy-handler';
 import { handleExamPlay } from '@/routes/exam-play-handler';
 import { handleExamAttempt } from '@/routes/exam-attempt-handler';
 import { handleAssignments } from '@/routes/assignments-handler';
@@ -280,6 +281,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 진도/이해도 관리
       if (pathname.startsWith('/api/progress')) {
         return addCorsHeaders(await handleProgress(method, pathname, request, context), env, origin);
+      }
+
+      // Vocab Exam Policy (정책 CRUD) — /api/vocab/policy 가 /api/vocab/ 보다 먼저
+      if (pathname.startsWith('/api/vocab/policy')) {
+        return addCorsHeaders(await handleVocabPolicy(method, pathname, request, context), env, origin);
       }
 
       // Vocab Gacha (영단어 학습)

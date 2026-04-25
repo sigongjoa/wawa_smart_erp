@@ -8,6 +8,7 @@ import { generatePrefixedId } from '@/utils/id';
 import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/utils/db';
 import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
 import { handleRouteError } from '@/utils/error-handler';
+import { resolveVocabPolicy, checkAvailability, parseBoxFilter } from '@/utils/vocab-policy';
 
 interface PlayAuth {
   studentId: string;
@@ -285,9 +286,45 @@ async function handlePatchWordProgress(
 const PRINT_ACTIVE = ['pending', 'in_progress'];
 
 /**
- * 학생이 직접 시험지 생성 + 시작 — 선생님 배정 없이 스스로 응시
- * body: { max_words?: number }
- * 선생님 assign 플로우와 동일한 pick 로직 (box 가중치) 재사용.
+ * 응시 가능 여부 + 정책 요약
+ */
+async function handleAvailability(context: RequestContext, auth: PlayAuth): Promise<Response> {
+  const db = context.env.DB;
+  const policy = await resolveVocabPolicy(db, auth.academyId, auth.teacherId, auth.studentId);
+  const avail = await checkAvailability(db, policy, auth.academyId, auth.studentId);
+
+  // 진행 중 시험 있으면 알림
+  const inProgress = await executeFirst<{ id: string }>(
+    db,
+    `SELECT id FROM vocab_print_jobs
+      WHERE academy_id = ? AND student_id = ? AND status IN ('pending','in_progress')
+      ORDER BY created_at DESC LIMIT 1`,
+    [auth.academyId, auth.studentId]
+  );
+
+  return successResponse({
+    available: avail.ok,
+    reason: avail.reason,
+    retryAt: avail.retryAt,
+    message: avail.message,
+    todayCount: avail.todayCount,
+    inProgressId: inProgress?.id ?? null,
+    policy: {
+      vocab_count: policy.vocab_count,
+      writing_enabled: !!policy.writing_enabled,
+      writing_type: policy.writing_type,
+      time_limit_sec: policy.time_limit_sec,
+      cooldown_min: policy.cooldown_min,
+      daily_limit: policy.daily_limit,
+      active_from: policy.active_from,
+      active_to: policy.active_to,
+    },
+  });
+}
+
+/**
+ * 학생이 직접 시험지 생성 + 시작 — 정책 기반 차단/풀 구성
+ * body: { max_words?: number } (정책 vocab_count보다 작은 경우만 적용)
  */
 async function handleSelfStartPrintJob(
   request: Request,
@@ -303,7 +340,18 @@ async function handleSelfStartPrintJob(
     if (zerr) return zerr;
     throw err;
   }
-  const maxWords = parsed.max_words ?? 10;
+
+  // 정책 resolve + 가용성 체크
+  const policy = await resolveVocabPolicy(db, auth.academyId, auth.teacherId, auth.studentId);
+  const avail = await checkAvailability(db, policy, auth.academyId, auth.studentId);
+  if (!avail.ok) {
+    return errorResponse(avail.message ?? '지금은 응시할 수 없습니다', 429);
+  }
+
+  // 정책 vocab_count를 기본, max_words 가 더 작으면 그걸 사용 (학생 입장에선 줄이는 것만 허용)
+  const maxWords = Math.min(parsed.max_words ?? policy.vocab_count, policy.vocab_count);
+  const allowedBoxes = parseBoxFilter(policy.box_filter);
+  const boxPlaceholders = allowedBoxes.map(() => '?').join(',');
 
   // 1. 진행 중인 self-start 시험 있으면 resume (중복 생성 방지)
   const existingActive = await executeFirst<{ id: string; status: string; started_at: string | null }>(
@@ -362,11 +410,16 @@ async function handleSelfStartPrintJob(
   const approvedMine = allMine.filter((w) => w.status === 'approved').length;
   const masteredMine = allMine.filter((w) => w.status === 'approved' && (w.box ?? 0) >= 5).length;
 
+  // 정책 box_filter + word_cooldown_min 적용
+  const cooldownClause = policy.word_cooldown_min > 0
+    ? `AND (last_quizzed_at IS NULL OR datetime(last_quizzed_at) <= datetime('now', '-${policy.word_cooldown_min} minutes'))`
+    : '';
   const candidates = await executeQuery<any>(
     db,
     `SELECT * FROM vocab_words
-      WHERE academy_id = ? AND student_id = ? AND status = 'approved' AND box < 5`,
-    [auth.academyId, auth.studentId]
+      WHERE academy_id = ? AND student_id = ? AND status = 'approved'
+        AND box IN (${boxPlaceholders}) ${cooldownClause}`,
+    [auth.academyId, auth.studentId, ...allowedBoxes]
   );
   if (candidates.length < 1) {
     if (totalMine === 0) {
@@ -415,12 +468,22 @@ async function handleSelfStartPrintJob(
   await executeInsert(
     db,
     `INSERT INTO vocab_print_jobs
-       (id, academy_id, student_id, word_ids_json, created_by, status, started_at)
-     VALUES (?, ?, ?, ?, ?, 'in_progress', datetime('now'))`,
+       (id, academy_id, student_id, word_ids_json, created_by, status, started_at, policy_id)
+     VALUES (?, ?, ?, ?, ?, 'in_progress', datetime('now'), ?)`,
     [jobId, auth.academyId, auth.studentId,
      JSON.stringify(selected.map(w => w.id)),
-     `student:${auth.studentId}`]
+     `student:${auth.studentId}`,
+     policy.id]
   );
+
+  // last_quizzed_at 갱신 — 동일 단어 cooldown 적용용
+  if (selected.length > 0) {
+    const placeholders = selected.map(() => '?').join(',');
+    await db.prepare(
+      `UPDATE vocab_words SET last_quizzed_at = datetime('now')
+        WHERE academy_id = ? AND id IN (${placeholders})`
+    ).bind(auth.academyId, ...selected.map(w => w.id)).run();
+  }
 
   // choices snapshot 생성 (start 로직과 동일). pool LIMIT 제거 — 전체 approved에서 distractor 샘플링
   const allPool = await executeQuery<any>(
@@ -806,6 +869,10 @@ export async function handleVocabPlay(
     }
     if (pathname === '/api/play/vocab/print/self-start') {
       if (method === 'POST') return await handleSelfStartPrintJob(request, context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    if (pathname === '/api/play/vocab/exam/availability') {
+      if (method === 'GET') return await handleAvailability(context, auth);
       return errorResponse('Method not allowed', 405);
     }
     const startMatch = pathname.match(/^\/api\/play\/vocab\/print\/([^/]+)\/start$/);
