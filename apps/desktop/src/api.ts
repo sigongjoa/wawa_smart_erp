@@ -1201,9 +1201,15 @@ export const api = {
     request(`/api/gacha/students/${id}`, { method: 'DELETE' }),
 
   resetGachaStudentPin: (id: string, pin: string) =>
-    request(`/api/gacha/students/${id}/reset-pin`, {
+    request<{ id: string; pinReset: boolean }>(`/api/gacha/students/${id}/reset-pin`, {
       method: 'POST',
       body: JSON.stringify({ pin }),
+    }),
+  /** 서버가 4자리 랜덤 PIN 생성 후 응답에 한 번만 평문 포함 (강사가 학생에게 전달용) */
+  generateGachaStudentPin: (id: string) =>
+    request<{ id: string; pinReset: boolean; pin: string }>(`/api/gacha/students/${id}/reset-pin`, {
+      method: 'POST',
+      body: JSON.stringify({ generate: true }),
     }),
 
   // ── 가차 카드 관리 ──
@@ -1938,6 +1944,9 @@ export interface GachaStudent {
   name: string;
   grade: string;
   status: string;
+  /** 서버에서 항상 빈 문자열 또는 hex hash. 평문 PIN은 한 번도 노출되지 않음. */
+  pin_hash?: string;
+  pin_salt?: string;
   card_count?: number;
   proof_count?: number;
   session_count?: number;

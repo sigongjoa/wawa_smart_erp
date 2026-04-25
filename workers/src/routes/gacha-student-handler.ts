@@ -252,10 +252,21 @@ async function handleResetPin(request: Request, context: RequestContext, student
     return unauthorizedResponse();
   }
   const academyId = getAcademyId(context);
-  const body = await request.json() as any;
+  const body = await request.json().catch(() => ({})) as any;
 
-  if (!body.pin || !/^\d{4}$/.test(body.pin)) {
-    return errorResponse('입력 검증 오류: PIN은 4자리 숫자여야 ���니다', 400);
+  // 두 모드: (a) body.pin 직접 지정  (b) body.generate=true → 서버가 4자리 랜덤 생성 후 응답에 노출
+  let pin: string;
+  if (body.generate === true) {
+    // 0000~9999 균등 — 단방향 해시는 보존, 평문은 응답에 한 번만 포함
+    const buf = new Uint8Array(2);
+    crypto.getRandomValues(buf);
+    const n = ((buf[0] << 8) | buf[1]) % 10000;
+    pin = String(n).padStart(4, '0');
+  } else {
+    if (!body.pin || !/^\d{4}$/.test(body.pin)) {
+      return errorResponse('입력 검증 오류: PIN은 4자리 숫자여야 합니다', 400);
+    }
+    pin = body.pin;
   }
 
   const student = await executeFirst<any>(
@@ -264,11 +275,11 @@ async function handleResetPin(request: Request, context: RequestContext, student
     [studentId, academyId]
   );
   if (!student) {
-    return errorResponse('학생�� 찾을 수 없습니��', 404);
+    return errorResponse('학생을 찾을 수 없습니다', 404);
   }
 
   const salt = generateSalt();
-  const pinHash = await hashPin(body.pin, salt);
+  const pinHash = await hashPin(pin, salt);
 
   await executeUpdate(
     context.env.DB,
@@ -276,7 +287,12 @@ async function handleResetPin(request: Request, context: RequestContext, student
     [pinHash, salt, new Date().toISOString(), studentId]
   );
 
-  return successResponse({ id: studentId, pinReset: true });
+  // generate=true 일 때만 평문 포함 (강사가 학생에게 전달용, 한 번만 노출)
+  return successResponse({
+    id: studentId,
+    pinReset: true,
+    ...(body.generate === true ? { pin } : {}),
+  });
 }
 
 // ── 메인 라우터 ──

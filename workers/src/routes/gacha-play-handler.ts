@@ -100,20 +100,28 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
     return errorResponse('로그인 시도 횟수 초과. 잠시 후 다시 시도해주세요.', 429);
   }
 
-  // 학생 조회
-  const student = await executeFirst<any>(
+  // 학생 조회 — 동명이인 가능성 (학원 내 같은 이름 학생 N명) → 모두 가져와 PIN 일치하는 학생 선택
+  const candidates = await executeQuery<any>(
     context.env.DB,
     'SELECT * FROM gacha_students WHERE academy_id = ? AND name = ? AND status = ?',
     [academy.id, name.trim(), 'active']
   );
-  if (!student) {
+  if (candidates.length === 0) {
     return errorResponse('학생을 찾을 수 없습니다', 404);
   }
 
-  // PIN 검증
-  const pinHash = await hashPin(pin, student.pin_salt);
-  if (pinHash !== student.pin_hash) {
-    logger.logSecurity('PLAY_LOGIN_FAILED', 'medium', { name, academySlug: academy_slug, ip });
+  // PIN 검증 — 후보 학생 중 PIN 해시 일치하는 학생 찾음
+  let student: any = null;
+  for (const c of candidates) {
+    if (!c.pin_salt || !c.pin_hash) continue; // PIN 미설정 학생 스킵
+    const pinHash = await hashPin(pin, c.pin_salt);
+    if (pinHash === c.pin_hash) {
+      student = c;
+      break;
+    }
+  }
+  if (!student) {
+    logger.logSecurity('PLAY_LOGIN_FAILED', 'medium', { name, academySlug: academy_slug, ip, candidates: candidates.length });
     return errorResponse('PIN이 올바르지 않습니다', 401);
   }
 

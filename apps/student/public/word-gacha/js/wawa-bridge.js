@@ -195,10 +195,40 @@ let _saveTimer = null;
 let _lastSavedJson = '';
 let _pendingJson = '';
 let _firstPendingAt = 0;
+let _ownerStudentId = '';   // 현재 캐시 주인 (학생 전환 감지용)
 const DEBOUNCE_MS = 1200;
 const MAX_DEFER_MS = 4000;
 
+/**
+ * 학생 전환/로그아웃 시 모듈 캐시 강제 리셋. cross-student state 누수 방지.
+ * - 로그아웃: store.ts의 logout()에서 호출
+ * - 로그인 직후: 새 학생 ID로 _ownerStudentId 갱신
+ */
+export function resetServerStateCache(newStudentId = '') {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  _lastSavedJson = '';
+  _pendingJson = '';
+  _firstPendingAt = 0;
+  _ownerStudentId = newStudentId || '';
+}
+
+function getCurrentStudentId() {
+  try {
+    const s = JSON.parse(localStorage.getItem('play_student') || 'null');
+    return s?.id || '';
+  } catch { return ''; }
+}
+
 async function _doSave(json) {
+  // 학생 전환 감지: 저장 직전에 _ownerStudentId !== 현재 로그인 학생이면 캐시 리셋 후 abort
+  const currentSid = getCurrentStudentId();
+  if (_ownerStudentId && currentSid && _ownerStudentId !== currentSid) {
+    console.warn('[wawa-bridge] student switched mid-save — aborting cross-student PUT', {
+      cacheOwner: _ownerStudentId, current: currentSid,
+    });
+    resetServerStateCache(currentSid);
+    return;
+  }
   _lastSavedJson = json;
   try {
     await authedFetch('/api/play/vocab/state', { method: 'PUT', body: json });
@@ -210,6 +240,15 @@ async function _doSave(json) {
 
 export function saveServerState(stateObj, { immediate = false } = {}) {
   if (!stateObj || typeof stateObj !== 'object') return;
+  // 학생 전환 감지: 첫 PUT에서 owner 미지정이면 현재 학생으로 lock
+  const currentSid = getCurrentStudentId();
+  if (!currentSid) return; // 로그인 안 됨 — sync 스킵
+  if (_ownerStudentId && _ownerStudentId !== currentSid) {
+    // 학생 전환이 logout/login 중간에 일어남 — 캐시 리셋
+    resetServerStateCache(currentSid);
+  }
+  if (!_ownerStudentId) _ownerStudentId = currentSid;
+
   const json = JSON.stringify(stateObj);
   if (json === _lastSavedJson) return;
   _pendingJson = json;
@@ -240,6 +279,12 @@ function flushOnHide() {
   if (!_pendingJson || _pendingJson === _lastSavedJson) return;
   const token = getToken();
   if (!token) return;
+  // 학생 전환 후 잔여 _pendingJson은 flush 금지 (cross-student PUT 방지)
+  const currentSid = getCurrentStudentId();
+  if (_ownerStudentId && currentSid && _ownerStudentId !== currentSid) {
+    resetServerStateCache(currentSid);
+    return;
+  }
   clearTimeout(_saveTimer); _saveTimer = null;
   try {
     fetch(`${API_BASE}/api/play/vocab/state`, {
@@ -256,6 +301,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushOnHide();
 });
 window.addEventListener('pagehide', flushOnHide);
+
+// store.ts logout/login 시 발생: 모듈 캐시 강제 리셋 (cross-student 누수 방지)
+window.addEventListener('wawa:auth-reset', () => {
+  resetServerStateCache(getCurrentStudentId());
+});
 
 export function flushServerState(stateObj) {
   if (stateObj) saveServerState(stateObj, { immediate: true });

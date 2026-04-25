@@ -29,6 +29,8 @@ export default function GachaStudentPage() {
   // PIN 초기화
   const [resetPinId, setResetPinId] = useState<string | null>(null);
   const [newPin, setNewPin] = useState('');
+  const [generatedPin, setGeneratedPin] = useState<string | null>(null);
+  const [pinBusy, setPinBusy] = useState(false);
 
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
 
@@ -97,15 +99,41 @@ export default function GachaStudentPage() {
   };
 
   const handleResetPin = async () => {
-    if (!resetPinId || !newPin) return;
+    if (!resetPinId || newPin.length !== 4) return;
+    setPinBusy(true);
     try {
       await api.resetGachaStudentPin(resetPinId, newPin);
-      toast.success('PIN 초기화 완료');
-      setResetPinId(null); setNewPin('');
+      toast.success(`PIN 초기화 완료 (${newPin})`);
+      setResetPinId(null); setNewPin(''); setGeneratedPin(null);
+      load();
     } catch (err) {
       toast.error('PIN 초기화 실패: ' + (err as Error).message);
+    } finally {
+      setPinBusy(false);
     }
   };
+
+  const handleGeneratePin = async () => {
+    if (!resetPinId) return;
+    setPinBusy(true);
+    try {
+      const res = await api.generateGachaStudentPin(resetPinId);
+      setGeneratedPin(res.pin);
+      toast.success(`PIN 생성됨: ${res.pin}`);
+      load();
+    } catch (err) {
+      toast.error('PIN 생성 실패: ' + (err as Error).message);
+    } finally {
+      setPinBusy(false);
+    }
+  };
+
+  function copyPin(pin: string) {
+    void navigator.clipboard.writeText(pin).then(
+      () => toast.success('PIN 클립보드 복사됨'),
+      () => toast.error('복사 실패')
+    );
+  }
 
   return (
     <div className="gacha-page">
@@ -168,20 +196,51 @@ export default function GachaStudentPage() {
 
       {/* PIN 초기화 모달 */}
       {resetPinId && (
-        <div className="gacha-modal-overlay" onClick={() => setResetPinId(null)}>
+        <div className="gacha-modal-overlay" onClick={() => { setResetPinId(null); setGeneratedPin(null); setNewPin(''); }}>
           <div className="gacha-modal" onClick={e => e.stopPropagation()}>
-            <h3>PIN 초기화</h3>
-            <input
-              placeholder="새 PIN (4자리)"
-              value={newPin}
-              onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              maxLength={4}
-              autoFocus
-            />
-            <div className="gacha-form-actions">
-              <button className="btn-secondary" onClick={() => setResetPinId(null)}>취소</button>
-              <button className="btn-primary" onClick={handleResetPin} disabled={newPin.length !== 4}>초기화</button>
-            </div>
+            <h3>PIN 재설정</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 12px' }}>
+              <strong>{students.find(s => s.id === resetPinId)?.name}</strong> 학생의 PIN.
+              저장된 PIN은 단방향 해시라 보기는 불가하며, 새 값으로만 변경할 수 있습니다.
+            </p>
+
+            {generatedPin ? (
+              <div className="gacha-pin-display">
+                <div className="gacha-pin-display-label">새 PIN</div>
+                <div className="gacha-pin-display-value">{generatedPin}</div>
+                <button className="btn-sm btn-primary" onClick={() => copyPin(generatedPin)}>복사</button>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 12 }}>
+                  이 PIN은 한 번만 표시됩니다. 학생에게 즉시 안내해주세요.
+                </p>
+                <div className="gacha-form-actions">
+                  <button className="btn-primary" onClick={() => { setResetPinId(null); setGeneratedPin(null); setNewPin(''); }}>완료</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <input
+                  placeholder="새 PIN 4자리 직접 입력"
+                  value={newPin}
+                  onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  maxLength={4}
+                  autoFocus
+                />
+                <div className="gacha-form-actions" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={handleGeneratePin}
+                    disabled={pinBusy}
+                    title="서버가 4자리 랜덤 PIN 생성"
+                  >🎲 자동 생성</button>
+                  <button className="btn-secondary" onClick={() => setResetPinId(null)}>취소</button>
+                  <button
+                    className="btn-primary"
+                    onClick={handleResetPin}
+                    disabled={pinBusy || newPin.length !== 4}
+                  >{pinBusy ? '저장 중…' : '저장'}</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -213,6 +272,11 @@ export default function GachaStudentPage() {
                     <span className={`gacha-student-status gacha-student-status--${s.status}`}>
                       {s.status === 'active' ? '활성' : '비활성'}
                     </span>
+                    {(!s.pin_hash || s.pin_hash.length === 0) && (
+                      <span className="gacha-student-status gacha-student-status--no-pin" title="PIN 미설정 — 학생 로그인 불가">
+                        PIN 미설정
+                      </span>
+                    )}
                   </div>
                   <div className="gacha-student-stats">
                     <span>카드 {s.card_count ?? 0}장</span>
