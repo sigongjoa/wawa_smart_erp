@@ -384,6 +384,37 @@ async function ensureCsatWordsForStudent(
 }
 
 /**
+ * 본인에게 노출되어야 할 vocab 카탈로그 목록.
+ * - csat-megastudy-2025 는 항상 포함 (레거시 기본)
+ * - student_vocab_catalogs 매핑된 카탈로그 추가
+ */
+async function handleListMyCatalogs(
+  context: RequestContext,
+  auth: PlayAuth
+): Promise<Response> {
+  const db = context.env.DB;
+  // csat-megastudy-2025 만 default 노출, 그 외(medical-* 포함)는 매핑된 학생만
+  const rows = await executeQuery<{
+    id: string; title: string; word_count: number;
+  }>(
+    db,
+    `SELECT id, title, word_count FROM vocab_catalogs
+       WHERE id = 'csat-megastudy-2025'
+          OR id IN (SELECT catalog_id FROM student_vocab_catalogs WHERE student_id = ?)
+       ORDER BY (id = 'csat-megastudy-2025') DESC, id ASC`,
+    [auth.studentId]
+  );
+  return successResponse({
+    catalogs: rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      word_count: r.word_count,
+      is_default: r.id === 'csat-megastudy-2025',
+    })),
+  });
+}
+
+/**
  * 학생이 직접 시험지 생성 + 시작 — 정책 기반 차단/풀 구성
  * body: { max_words?: number, source?: 'mywords'|'csat', tier?: 1|2|3, catalog_id? }
  */
@@ -402,18 +433,36 @@ async function handleSelfStartPrintJob(
     throw err;
   }
 
-  // 정책 resolve + 가용성 체크
+  const catalogId = parsed.catalog_id ?? 'csat-megastudy-2025';
+  // medical-* 카탈로그는 반복 응시 허용 (쿨다운/일일 한도 우회)
+  // Why: 의학용어는 반복 암기가 핵심이라 일반 어휘 시험과 다른 정책 적용
+  const isUnlimited = parsed.source === 'csat' && catalogId.startsWith('medical-');
+
+  // 비기본 카탈로그(medical-* 포함)는 학생-카탈로그 매핑 확인 (가시성/권한 게이팅)
+  // 의학용어는 명시 배정된 학생(장혜연·장혜정)에게만 허용
+  if (parsed.source === 'csat' && catalogId !== 'csat-megastudy-2025') {
+    const allowed = await executeFirst<{ ok: number }>(
+      db,
+      `SELECT 1 AS ok FROM student_vocab_catalogs WHERE student_id = ? AND catalog_id = ?`,
+      [auth.studentId, catalogId]
+    );
+    if (!allowed) return errorResponse('카탈로그 접근 권한 없음', 403);
+  }
+
+  // 정책 resolve + 가용성 체크 (의학용어는 우회)
   const policy = await resolveVocabPolicy(db, auth.academyId, auth.teacherId, auth.studentId);
-  const avail = await checkAvailability(db, policy, auth.academyId, auth.studentId);
-  if (!avail.ok) {
-    return errorResponse(avail.message ?? '지금은 응시할 수 없습니다', 429);
+  if (!isUnlimited) {
+    const avail = await checkAvailability(db, policy, auth.academyId, auth.studentId);
+    if (!avail.ok) {
+      return errorResponse(avail.message ?? '지금은 응시할 수 없습니다', 429);
+    }
   }
 
   // CSAT (공유 카탈로그) 시험: 카탈로그 단어를 학생 vocab_words 에 시드하여
   // 기존 my-words 흐름에 합류시킨다. 학생은 카탈로그 단어를 자기 단어장에 갖게 되어
   // 자연스러운 복습 루프로 연결.
   if (parsed.source === 'csat') {
-    await ensureCsatWordsForStudent(db, auth, parsed.catalog_id ?? 'csat-megastudy-2025', parsed.tier);
+    await ensureCsatWordsForStudent(db, auth, catalogId, parsed.tier);
   }
 
   // 정책 vocab_count를 기본, max_words 가 더 작으면 그걸 사용 (학생 입장에선 줄이는 것만 허용)
@@ -478,8 +527,8 @@ async function handleSelfStartPrintJob(
   const approvedMine = allMine.filter((w) => w.status === 'approved').length;
   const masteredMine = allMine.filter((w) => w.status === 'approved' && (w.box ?? 0) >= 5).length;
 
-  // 정책 box_filter + word_cooldown_min 적용
-  const cooldownClause = policy.word_cooldown_min > 0
+  // 정책 box_filter + word_cooldown_min 적용 (의학용어는 단어 쿨다운도 우회)
+  const cooldownClause = (policy.word_cooldown_min > 0 && !isUnlimited)
     ? `AND (last_quizzed_at IS NULL OR datetime(last_quizzed_at) <= datetime('now', '-${policy.word_cooldown_min} minutes'))`
     : '';
   // CSAT 모드: 방금 시드한 카탈로그 출신 단어로만 풀 한정
@@ -491,7 +540,7 @@ async function handleSelfStartPrintJob(
        )`
     : '';
   const csatParams: unknown[] = parsed.source === 'csat'
-    ? (parsed.tier ? [parsed.catalog_id ?? 'csat-megastudy-2025', parsed.tier] : [parsed.catalog_id ?? 'csat-megastudy-2025'])
+    ? (parsed.tier ? [catalogId, parsed.tier] : [catalogId])
     : [];
   const candidates = await executeQuery<any>(
     db,
@@ -977,6 +1026,10 @@ export async function handleVocabPlay(
     }
     if (pathname === '/api/play/vocab/print/self-start') {
       if (method === 'POST') return await handleSelfStartPrintJob(request, context, auth);
+      return errorResponse('Method not allowed', 405);
+    }
+    if (pathname === '/api/play/vocab/my-catalogs') {
+      if (method === 'GET') return await handleListMyCatalogs(context, auth);
       return errorResponse('Method not allowed', 405);
     }
     if (pathname === '/api/play/vocab/exam/availability') {

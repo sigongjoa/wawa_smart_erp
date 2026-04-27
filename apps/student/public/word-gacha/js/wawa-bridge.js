@@ -377,6 +377,13 @@ export async function selfStartPrintJob(opts = 10) {
   return { ok: true, data: json?.data ?? null };
 }
 
+export async function getMyCatalogs() {
+  const res = await authedFetch('/api/play/vocab/my-catalogs');
+  if (!res || !res.ok) return null;
+  const json = await res.json().catch(() => ({}));
+  return json?.data?.catalogs ?? null;
+}
+
 export async function getTodayStats() {
   const res = await authedFetch('/api/play/vocab/stats/today');
   if (!res || !res.ok) return null;

@@ -203,7 +203,8 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding-bottom: 76px;
+    /* tabbar 높이(76px) + iOS 홈 인디케이터 safe area 만큼 추가 — 마지막 콘텐츠가 탭바에 가리지 않도록 */
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
   main.app::-webkit-scrollbar { display: none; }
 
@@ -218,6 +219,10 @@
   body[data-screen="print"]    nav.tabbar,
   body[data-screen="print"]    .dialog,
   body[data-screen="print"]    .evo-panel { display: none !important; }
+
+  /* 시트(시험 옵션) 열려있는 동안에는 탭바 숨김 — backdrop 뒤에 비치는 시각적 잔영 차단 */
+  body:has(.csat-sheet-backdrop[aria-hidden="false"]) nav.tabbar,
+  body:has(.med-sheet-backdrop[aria-hidden="false"]) nav.tabbar { display: none !important; }
 
   @keyframes screen-in {
     from { opacity: 0; transform: translateY(6px); }
@@ -2550,6 +2555,104 @@
     margin-top: 10px;
     background: linear-gradient(90deg, #047857, #059669);
   }
+  .mywords-exam-btn--medical {
+    margin-top: 10px;
+    background: linear-gradient(90deg, #0e7490, #0891b2);
+  }
+
+  /* ── 의학용어 시험 옵션 모달 (중앙 정렬, 청록 액센트) ── */
+  .med-sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+  .med-sheet-backdrop[aria-hidden="false"] { display: flex; }
+  .med-sheet {
+    width: 100%; max-width: 420px;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 18px;
+    animation: medModalIn .2s var(--e-out);
+  }
+  @keyframes medModalIn {
+    from { opacity: 0; transform: translateY(12px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .med-sheet h3 {
+    margin: 0 0 4px;
+    font: 800 17px/1.2 var(--disp);
+    color: var(--ink);
+  }
+  .med-sheet .med-sub {
+    margin: 0 0 14px;
+    font: 600 12px/1.4 var(--body);
+    color: var(--ink-3);
+  }
+  .med-group { margin-bottom: 14px; }
+  .med-group .med-label {
+    display: block;
+    font: 800 12px/1 var(--disp);
+    color: var(--ink-2);
+    margin-bottom: 8px;
+  }
+  .med-tier-btn, .med-size-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 12px;
+    margin: 0 6px 6px 0;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    box-shadow: 2px 2px 0 var(--ink);
+    cursor: pointer;
+    font: 700 13px/1 var(--body);
+    color: var(--ink);
+    transition: transform .1s var(--e-out);
+  }
+  .med-tier-btn[aria-pressed="true"], .med-size-btn[aria-pressed="true"] {
+    background: linear-gradient(90deg, #0e7490, #0891b2);
+    color: #fff;
+  }
+  .med-tier-btn:active, .med-size-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+  .med-sheet .med-actions {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  .med-sheet .med-cancel {
+    flex: 0 0 90px;
+    padding: 12px;
+    background: #fff;
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    box-shadow: 2px 2px 0 var(--ink);
+    font: 800 14px/1 var(--disp);
+    cursor: pointer;
+  }
+  .med-sheet .med-go {
+    flex: 1;
+    padding: 12px;
+    background: linear-gradient(90deg, #0e7490, #0891b2);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    box-shadow: 2px 2px 0 var(--ink);
+    font: 800 15px/1 var(--disp);
+    cursor: pointer;
+  }
+  .med-sheet .med-go:disabled { opacity: .6; cursor: wait; }
+  .med-meta {
+    margin-top: 8px;
+    font: 600 11px/1.3 var(--body);
+    color: var(--ink-3);
+  }
 
   /* ── 수능 시험 옵션 시트 ── */
   .csat-sheet-backdrop {
@@ -2566,6 +2669,8 @@
     border-top-left-radius: 16px; border-top-right-radius: 16px;
     box-shadow: 0 -3px 0 var(--ink);
     padding: 16px;
+    /* iOS 홈 인디케이터/하단 시스템 영역 회피 — 액션 버튼이 탭 가능 영역에 남도록 */
+    padding-bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
     animation: csatSheetUp .18s var(--e-out);
   }
   @keyframes csatSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -2826,8 +2931,86 @@
     border-color: var(--pri);
   }
 
-  /* 결과 */
+  /* 결과 — 제출 후 통합 모달 (오버레이 + 카드) */
   .print-take-result {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 110;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+  .print-take-result:not([hidden]) { display: flex; }
+  .print-take-result-card {
+    width: 100%; max-width: 420px;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 24px 20px;
+    text-align: center;
+    animation: medModalIn .22s var(--e-out);
+  }
+  /* 제출 후 모달 내 한 번 더 컨트롤 (의학용어 전용) */
+  .print-take-result-replay {
+    margin: 16px 0 12px;
+    padding: 14px;
+    background: #f0fdfa;
+    border: 1.5px solid #5eead4;
+    border-radius: 12px;
+    text-align: left;
+  }
+  .print-take-result-replay-title {
+    font: 800 13px/1 var(--disp);
+    color: #0f766e;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .print-take-result-replay .rep-group { margin-bottom: 10px; }
+  .print-take-result-replay .rep-label {
+    display: block;
+    font: 800 11px/1 var(--disp);
+    color: var(--ink-2);
+    margin-bottom: 6px;
+  }
+  .rep-tier-btn, .rep-size-btn {
+    display: inline-flex; align-items: center;
+    padding: 7px 11px;
+    margin: 0 5px 5px 0;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 9px;
+    box-shadow: 1.5px 1.5px 0 var(--ink);
+    cursor: pointer;
+    font: 700 12px/1 var(--body);
+    color: var(--ink);
+  }
+  .rep-tier-btn[aria-pressed="true"], .rep-size-btn[aria-pressed="true"] {
+    background: linear-gradient(90deg, #0e7490, #0891b2);
+    color: #fff;
+  }
+  .rep-tier-btn:active, .rep-size-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: .5px .5px 0 var(--ink);
+  }
+  .print-take-result-replay-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(90deg, #0e7490, #0891b2);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    box-shadow: 2px 2px 0 var(--ink);
+    font: 800 14px/1 var(--disp);
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .print-take-result-replay-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+  .print-take-result-replay-btn:disabled { opacity: .6; cursor: wait; }
+  /* 레거시 인라인 컨테이너 스타일 — 카드 내부에서는 더이상 사용 안 함 */
+  .print-take-result-legacy-inline {
     margin-top: 20px;
     padding: 24px 20px;
     background: #f7fafc;
@@ -3397,6 +3580,11 @@
             <span class="lbl">수능 영단어 시험치기</span>
             <span class="sub">메가스터디 빈출 단어 · 빈도등급 선택</span>
           </button>
+          <button type="button" class="mywords-exam-btn mywords-exam-btn--medical" id="btn-medical-exam" hidden>
+            <span aria-hidden="true">🩺</span>
+            <span class="lbl">의학용어 시험치기</span>
+            <span class="sub">보건계열 핵심 용어 · 무제한 반복 응시</span>
+          </button>
           <button type="button" class="mywords-exam-btn mywords-exam-btn--add" id="btn-add-word-inline">
             <span aria-hidden="true">＋</span>
             <span class="lbl">단어 추가</span>
@@ -3430,6 +3618,36 @@
             <div class="csat-actions">
               <button type="button" class="csat-cancel" id="csat-cancel">취소</button>
               <button type="button" class="csat-go" id="csat-go">시험 시작 →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 의학용어 시험 옵션 시트 (보건고 학생) -->
+        <div class="med-sheet-backdrop" id="med-sheet" aria-hidden="true" role="dialog" aria-labelledby="med-sheet-title">
+          <div class="med-sheet">
+            <h3 id="med-sheet-title">🩺 의학용어 시험</h3>
+            <p class="med-sub">보건계열 기초 의학용어 · 횟수 제한 없이 반복 응시 가능</p>
+
+            <div class="med-group">
+              <span class="med-label">난이도</span>
+              <button type="button" class="med-tier-btn" data-tier="1" aria-pressed="true">1등급 (핵심)</button>
+              <button type="button" class="med-tier-btn" data-tier="2" aria-pressed="false">2등급 (빈출)</button>
+              <button type="button" class="med-tier-btn" data-tier="3" aria-pressed="false">3등급 (확장)</button>
+              <button type="button" class="med-tier-btn" data-tier="0" aria-pressed="false">전체 무작위</button>
+            </div>
+
+            <div class="med-group">
+              <span class="med-label">문항수</span>
+              <button type="button" class="med-size-btn" data-size="10" aria-pressed="true">10문제</button>
+              <button type="button" class="med-size-btn" data-size="20" aria-pressed="false">20문제</button>
+              <button type="button" class="med-size-btn" data-size="30" aria-pressed="false">30문제</button>
+            </div>
+
+            <p class="med-meta">의학용어는 반복 학습이 핵심이라 쿨다운/일일 한도 없이 계속 응시 가능합니다.</p>
+
+            <div class="med-actions">
+              <button type="button" class="med-cancel" id="med-cancel">취소</button>
+              <button type="button" class="med-go" id="med-go">시험 시작 →</button>
             </div>
           </div>
         </div>
@@ -3796,17 +4014,40 @@
       </div>
       <div class="print-take-dots" id="print-take-dots" aria-hidden="true"></div>
 
-      <!-- 결과 오버레이 -->
-      <div class="print-take-result" id="print-take-result" hidden>
-        <div class="print-take-result-icon" id="print-take-result-icon">🎉</div>
-        <div class="print-take-result-score">
-          <span id="print-take-result-correct">0</span>
-          <span class="sep">/</span>
-          <span id="print-take-result-total">0</span>
+      <!-- 결과 통합 모달 (제출 직후 등장) — 점수 + 리워드 + (의학용어) 한 번 더 -->
+      <div class="print-take-result" id="print-take-result" hidden role="dialog" aria-labelledby="print-take-result-title">
+        <div class="print-take-result-card">
+          <div class="print-take-result-icon" id="print-take-result-icon">🎉</div>
+          <div id="print-take-result-title" class="sr-only">시험 결과</div>
+          <div class="print-take-result-score">
+            <span id="print-take-result-correct">0</span>
+            <span class="sep">/</span>
+            <span id="print-take-result-total">0</span>
+          </div>
+          <div class="print-take-result-pct" id="print-take-result-pct">0%</div>
+          <div class="print-take-result-wrong" id="print-take-result-wrong"></div>
+
+          <!-- 의학용어 한 번 더 (isMedical 일 때만 노출) -->
+          <div class="print-take-result-replay" id="print-take-result-replay" hidden>
+            <div class="print-take-result-replay-title">🩺 한 번 더 풀어볼래?</div>
+            <div class="rep-group">
+              <span class="rep-label">난이도</span>
+              <button type="button" class="rep-tier-btn" data-tier="1" aria-pressed="true">1등급 (핵심)</button>
+              <button type="button" class="rep-tier-btn" data-tier="2" aria-pressed="false">2등급 (빈출)</button>
+              <button type="button" class="rep-tier-btn" data-tier="3" aria-pressed="false">3등급 (확장)</button>
+              <button type="button" class="rep-tier-btn" data-tier="0" aria-pressed="false">전체</button>
+            </div>
+            <div class="rep-group">
+              <span class="rep-label">문항수</span>
+              <button type="button" class="rep-size-btn" data-size="10" aria-pressed="true">10</button>
+              <button type="button" class="rep-size-btn" data-size="20" aria-pressed="false">20</button>
+              <button type="button" class="rep-size-btn" data-size="30" aria-pressed="false">30</button>
+            </div>
+            <button type="button" class="print-take-result-replay-btn" id="print-take-result-replay-btn">한 번 더 풀기 →</button>
+          </div>
+
+          <button type="button" class="print-take-result-home" id="print-take-result-home">종료</button>
         </div>
-        <div class="print-take-result-pct" id="print-take-result-pct">0%</div>
-        <div class="print-take-result-wrong" id="print-take-result-wrong"></div>
-        <button type="button" class="print-take-result-home" id="print-take-result-home">홈으로</button>
       </div>
     </section>
 
@@ -4046,6 +4287,7 @@
     loadServerTextbooks, loadTextbookWords,
     isSyncDisabled,
     loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob, selfStartPrintJob, getTodayStats,
+    getMyCatalogs,
     authedFetch,
   } from './js/wawa-bridge.js';
 
@@ -5388,6 +5630,7 @@
       }
       if (data.resumed) toast('진행 중이던 시험을 이어서 풀어요', 3500);
       printState.jobId = data.id;
+      printState.isMedical = false;
       printState.questions = (data.questions || []).map(q => ({
         wordId: q.wordId, prompt: q.prompt,
         choices: q.choices || [], selectedIndex: q.selectedIndex,
@@ -5509,6 +5752,7 @@
           toast('진행 중이던 시험을 이어서 풀어요', 3500);
         }
         printState.jobId = data.id;
+        printState.isMedical = false;
         printState.questions = (data.questions || []).map(q => ({
           wordId: q.wordId,
           prompt: q.prompt,
@@ -5531,6 +5775,127 @@
         go.textContent = origText;
       }
     });
+  })();
+
+  // 의학용어 시험 (보건고 학생) — 1회차는 default(1등급/10문제)로 즉시 시작
+  // 시험 제출 후에만 모달 자동 노출 → 같은/다른 난이도로 바로 한 번 더 응시
+  // 백엔드에서 medical-* 카탈로그는 쿨다운/일일 한도 우회 → 무제한 반복
+  async function startMedicalExam(tier, size, triggerEl) {
+    const btn = triggerEl ?? document.getElementById('btn-medical-exam');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '생성 중…';
+    }
+    try {
+      const res = await selfStartPrintJob({
+        source: 'csat',
+        catalogId: 'medical-health-vocational-2026',
+        tier: tier || undefined,  // 0 → undefined (전체 무작위)
+        maxWords: size || 10,
+      });
+      if (res.error) { toast(res.error, 6000); return; }
+      const data = res.data;
+      if (!data?.id || !data?.questions?.length) {
+        toast('의학용어 시험지 생성 실패 · 잠시 후 다시 시도해 주세요.', 5000);
+        return;
+      }
+      if (data.resumed) toast('진행 중이던 시험을 이어서 풀어요', 3500);
+      printState.jobId = data.id;
+      printState.questions = (data.questions || []).map(q => ({
+        wordId: q.wordId, prompt: q.prompt,
+        choices: q.choices || [], selectedIndex: q.selectedIndex,
+      }));
+      printState.idx = 0;
+      printState.isMedical = true;
+      printState.medicalTier = tier || 0;
+      printState.medicalSize = size || 10;
+      document.getElementById('print-take-result').hidden = true;
+      // 모달 닫기 (재응시 진입 시)
+      document.getElementById('med-sheet')?.setAttribute('aria-hidden', 'true');
+      document.body.dataset.screen = 'print';
+      document.querySelector('main.app')?.scrollTo({ top: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      renderPrintTake();
+    } catch (e) {
+      console.warn('[medical-exam] failed', e);
+      toast('의학용어 시험지 생성 실패');
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+    }
+  }
+
+  (function setupMedicalExam() {
+    const btn = document.getElementById('btn-medical-exam');
+    const sheet = document.getElementById('med-sheet');
+    const cancel = document.getElementById('med-cancel');
+    const go = document.getElementById('med-go');
+    if (!btn || !sheet || !go) return;
+
+    // 모달을 body 직속으로 이동 — 부모(.screen[data-s="learn"])가 다른 화면 진입 시
+    // display:none 으로 사라지면 함께 숨겨지는 문제 회피 (시험 종료 후 재오픈 시 필수)
+    if (sheet.parentElement !== document.body) {
+      document.body.appendChild(sheet);
+    }
+    // csat 모달도 동일 처리
+    const csatSheet = document.getElementById('csat-sheet');
+    if (csatSheet && csatSheet.parentElement !== document.body) {
+      document.body.appendChild(csatSheet);
+    }
+
+    function closeSheet() { sheet.setAttribute('aria-hidden', 'true'); }
+    cancel?.addEventListener('click', closeSheet);
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
+
+    function setupGroup(selector) {
+      const all = sheet.querySelectorAll(selector);
+      all.forEach((el) => {
+        el.addEventListener('click', () => {
+          all.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+          el.setAttribute('aria-pressed', 'true');
+        });
+      });
+    }
+    setupGroup('.med-tier-btn');
+    setupGroup('.med-size-btn');
+
+    function getSelected(selector, attr) {
+      const el = sheet.querySelector(`${selector}[aria-pressed="true"]`);
+      return el ? el.getAttribute(attr) : null;
+    }
+
+    // 메인 버튼: 모달 없이 default(1등급, 10문제)로 바로 시작
+    btn.addEventListener('click', () => startMedicalExam(1, 10, btn));
+
+    // 모달의 시험 시작 버튼: 선택된 옵션으로 시작 (재응시 시에만 노출)
+    go.addEventListener('click', async () => {
+      const tierRaw = getSelected('.med-tier-btn', 'data-tier');
+      const sizeRaw = getSelected('.med-size-btn', 'data-size');
+      const tier = tierRaw && tierRaw !== '0' ? Number(tierRaw) : 0;
+      const size = sizeRaw ? Number(sizeRaw) : 10;
+      const origText = go.textContent;
+      go.disabled = true;
+      go.textContent = '생성 중…';
+      try {
+        await startMedicalExam(tier, size, null);
+      } finally {
+        go.disabled = false;
+        go.textContent = origText;
+      }
+    });
+  })();
+
+  // 카탈로그 가시성 — 의학용어 카탈로그가 본인에게 배정돼 있으면 버튼 노출
+  (async function applyCatalogVisibility() {
+    try {
+      const list = await getMyCatalogs();
+      if (!Array.isArray(list)) return;
+      const hasMedical = list.some((c) => typeof c?.id === 'string' && c.id.startsWith('medical-'));
+      const btn = document.getElementById('btn-medical-exam');
+      if (btn && hasMedical) btn.hidden = false;
+    } catch (e) {
+      console.warn('[catalog-visibility] failed', e);
+    }
   })();
 
   async function enterPrintTake(jobId) {
@@ -5664,17 +6029,14 @@
       renderPrintTake();
       return;
     }
-    // 마지막 문제 → 제출
+    // 마지막 문제 → 제출 (확인 다이얼로그 제거 — iOS Brave 등에서 native confirm 차단 시
+    // 함수가 그대로 return 되어 제출이 일어나지 않던 문제 회피. 제출 버튼 클릭 자체가 의도.)
     if (printState.submitting) return;
     const nextBtn = document.getElementById('print-take-next');
     const answered = printState.questions.filter(x => x.selectedIndex !== null && x.selectedIndex !== undefined).length;
     if (answered < total) {
-      if (!confirm(`${total - answered}문항이 비어있어요. 그래도 제출할까요?`)) return;
-    } else {
-      if (!confirm('제출하시겠어요? 제출 후에는 수정할 수 없어요.')) return;
+      toast(`${total - answered}문항이 비어있어요 — 비워둔 채로 제출됩니다`, 3000);
     }
-    // 재확인 (confirm 중 중복 진입 방지)
-    if (printState.submitting) return;
     printState.submitting = true;
     if (nextBtn) nextBtn.disabled = true;
     try {
@@ -5800,6 +6162,24 @@
       });
     }
 
+    // 의학용어면 한 번 더 섹션 노출 + 마지막 옵션 사전 선택
+    const replay = document.getElementById('print-take-result-replay');
+    if (replay) {
+      if (printState.isMedical) {
+        const lastTier = printState.medicalTier ?? 1;
+        const lastSize = printState.medicalSize ?? 10;
+        replay.querySelectorAll('.rep-tier-btn').forEach((b) => {
+          b.setAttribute('aria-pressed', String(Number(b.getAttribute('data-tier')) === lastTier));
+        });
+        replay.querySelectorAll('.rep-size-btn').forEach((b) => {
+          b.setAttribute('aria-pressed', String(Number(b.getAttribute('data-size')) === lastSize));
+        });
+        replay.hidden = false;
+      } else {
+        replay.hidden = true;
+      }
+    }
+
     box.hidden = false;
     refreshPrintAlert();  // 목록 새로고침
 
@@ -5826,6 +6206,40 @@
     document.body.dataset.screen = 'home';
     window.__refreshServerWords?.();
   });
+
+  // 결과 모달을 body 직속으로 이동 — print 화면이 아닌 곳에서도 보이도록 (모바일 캐시/렌더 안전성)
+  (function portalResultModal() {
+    const box = document.getElementById('print-take-result');
+    if (box && box.parentElement !== document.body) {
+      document.body.appendChild(box);
+    }
+  })();
+
+  // 결과 모달 내 "한 번 더 풀기" — 즉시 startMedicalExam 호출
+  (function setupResultReplay() {
+    const replay = document.getElementById('print-take-result-replay');
+    const replayBtn = document.getElementById('print-take-result-replay-btn');
+    if (!replay || !replayBtn) return;
+    function setupGroup(selector) {
+      replay.querySelectorAll(selector).forEach((el) => {
+        el.addEventListener('click', () => {
+          replay.querySelectorAll(selector).forEach((x) => x.setAttribute('aria-pressed', 'false'));
+          el.setAttribute('aria-pressed', 'true');
+        });
+      });
+    }
+    setupGroup('.rep-tier-btn');
+    setupGroup('.rep-size-btn');
+    replayBtn.addEventListener('click', async () => {
+      const tEl = replay.querySelector('.rep-tier-btn[aria-pressed="true"]');
+      const sEl = replay.querySelector('.rep-size-btn[aria-pressed="true"]');
+      const tier = tEl ? Number(tEl.getAttribute('data-tier')) : 1;
+      const size = sEl ? Number(sEl.getAttribute('data-size')) : 10;
+      // 결과 모달 닫고 새 시험 시작
+      document.getElementById('print-take-result').hidden = true;
+      await startMedicalExam(tier, size, replayBtn);
+    });
+  })();
 
   // ── HUD 갱신 — profile 기반 ──
   function renderHud() {
