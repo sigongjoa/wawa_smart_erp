@@ -10,6 +10,8 @@ import { executeQuery, executeFirst, executeInsert, executeUpdate, executeDelete
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
+import { parsePagination } from '@/utils/pagination';
+import { paginatedList } from '@/utils/paginatedList';
 
 // ── 입력 검증 ──
 
@@ -64,29 +66,25 @@ async function handleGetCards(request: Request, context: RequestContext): Promis
   const topic = url.searchParams.get('topic');
   const grade = url.searchParams.get('grade');
 
-  let query = 'SELECT * FROM gacha_cards WHERE academy_id = ?';
-  const params: unknown[] = [academyId];
+  const pg = parsePagination(url, { defaultLimit: 50, maxLimit: 200 });
 
-  if (!isAdmin) {
-    query += ' AND teacher_id = ?';
-    params.push(userId);
-  }
-  if (studentId) {
-    query += ' AND student_id = ?';
-    params.push(studentId);
-  }
-  if (topic) {
-    query += ' AND topic = ?';
-    params.push(topic);
-  }
-  if (grade) {
-    query += ' AND grade = ?';
-    params.push(grade);
-  }
-  query += ' ORDER BY created_at DESC LIMIT 200';
+  const result = await paginatedList<any>({
+    db: context.env.DB,
+    table: 'gacha_cards',
+    baseFilters: [
+      { sql: 'academy_id = ?', param: academyId },
+      !isAdmin ? { sql: 'teacher_id = ?', param: userId } : null,
+      studentId && studentId !== 'all' ? { sql: 'student_id = ?', param: studentId } : null,
+    ],
+    extraFilters: [
+      topic ? { sql: 'topic = ?', param: topic } : null,
+      grade ? { sql: 'grade = ?', param: grade } : null,
+    ],
+    orderBy: 'created_at DESC',
+    pagination: pg,
+  });
 
-  const cards = await executeQuery<any>(context.env.DB, query, params);
-  return successResponse(cards);
+  return successResponse(result);
 }
 
 async function handleCreateCard(request: Request, context: RequestContext): Promise<Response> {

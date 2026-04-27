@@ -26,6 +26,20 @@ import { Pagination, PagedResult, toPagedResult } from './pagination';
 
 export type Filter = { sql: string; param?: unknown } | null | false | undefined;
 
+/**
+ * countsBy.column / orderBy / table / selectColumns / join 은 SQL에 그대로 보간되므로
+ * 호출부에서 사용자 입력을 직접 넘기면 안 됨. 컬럼명은 다음 패턴만 허용:
+ *   word_chars (a-z, A-Z, 0-9, _)  + 선택적 alias prefix ("s.", "j." 등)
+ * 예: 'status', 's.status', 'j.status'.
+ */
+const SAFE_IDENT_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)?$/;
+
+function assertSafeColumn(col: string, label: string): void {
+  if (!SAFE_IDENT_RE.test(col)) {
+    throw new Error(`paginatedList: ${label} must be a safe identifier (a-z 0-9 _ with optional alias.), got: ${col}`);
+  }
+}
+
 export interface PaginatedListOptions {
   db: D1Database;
   table: string;
@@ -73,8 +87,9 @@ export async function paginatedList<T>(
   // counts (baseFilters 만)
   let counts: { all: number } & Record<string, number> = { all: 0 };
   if (opts.countsBy) {
+    assertSafeColumn(opts.countsBy.column, 'countsBy.column');
     const sumExprs = opts.countsBy.values
-      .map(v => `SUM(CASE WHEN ${opts.countsBy!.column} = '${v.replace(/'/g, "''")}' THEN 1 ELSE 0 END) AS "${v}"`)
+      .map(v => `SUM(CASE WHEN ${opts.countsBy!.column} = '${v.replace(/'/g, "''")}' THEN 1 ELSE 0 END) AS "${v.replace(/"/g, '')}"`)
       .join(', ');
     const row = await executeFirst<Record<string, number>>(
       opts.db,

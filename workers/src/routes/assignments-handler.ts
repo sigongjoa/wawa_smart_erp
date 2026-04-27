@@ -16,6 +16,7 @@ import { generatePrefixedId } from '@/utils/id';
 import { logger } from '@/utils/logger';
 import { signShareToken, resolveShareSecret, checkShareRateLimit } from '@/utils/share-token';
 import { parsePagination, toPagedResult } from '@/utils/pagination';
+import { paginatedList } from '@/utils/paginatedList';
 
 const KIND = ['perf_eval', 'exam_paper', 'general'] as const;
 const STATUS = ['published', 'closed'] as const;
@@ -139,27 +140,24 @@ export async function handleAssignments(
     // ── 인박스: GET /api/assignments/inbox ──
     // 회신 대기(=submitted) 타깃 목록. teacher: 본인 발행 과제만, admin: 전체
     if (method === 'GET' && pathname === '/api/assignments/inbox') {
-      const pg = parsePagination(new URL(request.url), { defaultLimit: 100, maxLimit: 500 });
-      const params: any[] = [academyId];
-      let where = `t.academy_id = ? AND t.status IN ('submitted','needs_resubmit')`;
-      if (role !== 'admin') {
-        where += ` AND a.created_by = ?`;
-        params.push(userId);
-      }
-      const rows = await executeQuery<any>(
-        context.env.DB,
-        `SELECT t.id as target_id, t.assignment_id, t.student_id, t.status, t.last_submitted_at,
-                a.title, a.kind, a.due_at, a.created_by,
-                gs.name as student_name, gs.grade as student_grade
-         FROM assignment_targets t
-         JOIN assignments a ON a.id = t.assignment_id
-         LEFT JOIN gacha_students gs ON gs.id = t.student_id
-         WHERE ${where}
-         ORDER BY t.last_submitted_at DESC NULLS LAST
-         LIMIT ? OFFSET ?`,
-        [...params, pg.limit, pg.offset]
-      );
-      return successResponse(toPagedResult(rows, pg));
+      const pg = parsePagination(new URL(request.url), { defaultLimit: 50, maxLimit: 200 });
+      const result = await paginatedList<any>({
+        db: context.env.DB,
+        table: 'assignment_targets t',
+        selectColumns: `t.id as target_id, t.assignment_id, t.student_id, t.status, t.last_submitted_at,
+                        a.title, a.kind, a.due_at, a.created_by,
+                        gs.name as student_name, gs.grade as student_grade`,
+        join: 'JOIN assignments a ON a.id = t.assignment_id LEFT JOIN gacha_students gs ON gs.id = t.student_id',
+        baseFilters: [
+          { sql: 't.academy_id = ?', param: academyId },
+          { sql: "t.status IN ('submitted','needs_resubmit')" },
+          role !== 'admin' ? { sql: 'a.created_by = ?', param: userId } : null,
+        ],
+        countsBy: { column: 't.status', values: ['submitted', 'needs_resubmit'] },
+        orderBy: 't.last_submitted_at DESC',
+        pagination: pg,
+      });
+      return successResponse(result);
     }
 
     // ── 통계: GET /api/assignments/stats ──
@@ -185,35 +183,27 @@ export async function handleAssignments(
       const statusFilter = url.searchParams.get('status');
       const kindFilter = url.searchParams.get('kind');
       const mine = url.searchParams.get('mine') === '1';
-      const pg = parsePagination(url, { defaultLimit: 100, maxLimit: 500 });
+      const pg = parsePagination(url, { defaultLimit: 50, maxLimit: 200 });
 
-      const params: any[] = [academyId];
-      let where = `academy_id = ?`;
-      if (statusFilter && (STATUS as readonly string[]).includes(statusFilter)) {
-        where += ` AND status = ?`;
-        params.push(statusFilter);
-      }
-      if (kindFilter && (KIND as readonly string[]).includes(kindFilter)) {
-        where += ` AND kind = ?`;
-        params.push(kindFilter);
-      }
-      if (mine) {
-        where += ` AND created_by = ?`;
-        params.push(userId);
-      }
-      const rows = await executeQuery<any>(
-        context.env.DB,
-        `SELECT a.*,
-                (SELECT COUNT(*) FROM assignment_targets t WHERE t.assignment_id = a.id) as target_count,
-                (SELECT COUNT(*) FROM assignment_targets t WHERE t.assignment_id = a.id AND t.status = 'submitted') as submitted_count,
-                (SELECT COUNT(*) FROM assignment_targets t WHERE t.assignment_id = a.id AND t.status = 'completed') as completed_count
-         FROM assignments a
-         WHERE ${where}
-         ORDER BY a.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [...params, pg.limit, pg.offset]
-      );
-      return successResponse(toPagedResult(rows, pg));
+      const result = await paginatedList<any>({
+        db: context.env.DB,
+        table: 'assignments a',
+        selectColumns: `a.*,
+                        (SELECT COUNT(*) FROM assignment_targets t WHERE t.assignment_id = a.id) as target_count,
+                        (SELECT COUNT(*) FROM assignment_targets t WHERE t.assignment_id = a.id AND t.status = 'submitted') as submitted_count,
+                        (SELECT COUNT(*) FROM assignment_targets t WHERE t.assignment_id = a.id AND t.status = 'completed') as completed_count`,
+        baseFilters: [
+          { sql: 'academy_id = ?', param: academyId },
+          mine ? { sql: 'created_by = ?', param: userId } : null,
+        ],
+        extraFilters: [
+          statusFilter && (STATUS as readonly string[]).includes(statusFilter) ? { sql: 'status = ?', param: statusFilter } : null,
+          kindFilter && (KIND as readonly string[]).includes(kindFilter) ? { sql: 'kind = ?', param: kindFilter } : null,
+        ],
+        orderBy: 'a.created_at DESC',
+        pagination: pg,
+      });
+      return successResponse(result);
     }
 
     // ── 발행: POST /api/assignments ──
