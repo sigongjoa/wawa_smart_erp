@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import FilePreviewModal from '../components/FilePreviewModal';
 import './ParentLessonsPage.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -19,6 +20,7 @@ interface LessonItemFile {
   file_role: FileRole;
   size_bytes: number;
   version: number;
+  mime_type?: string | null;
 }
 
 interface LessonItem {
@@ -50,6 +52,10 @@ export default function ParentLessonsPage() {
   const [data, setData] = useState<ViewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewFile, setPreviewFile] = useState<LessonItemFile | null>(null);
+
+  const fileUrl = (fileId: string, inline: boolean) =>
+    `${API_BASE}/api/parent/students/${studentId}/lessons/${encodeURIComponent(fileId)}/download?token=${encodeURIComponent(token)}${inline ? '&inline=1' : ''}`;
 
   useEffect(() => {
     if (!studentId || !token) {
@@ -131,9 +137,18 @@ export default function ParentLessonsPage() {
                             {(f.size_bytes / 1024).toFixed(0)} KB · v{f.version}
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFile(f)}
+                          className="parent-lessons-preview"
+                          aria-label={`${f.file_name} 미리보기`}
+                          title="미리보기"
+                        >
+                          미리보기
+                        </button>
                         {it.parent_can_download ? (
                           <a
-                            href={`${API_BASE}/api/parent/students/${studentId}/lessons/${encodeURIComponent(f.id)}/download?token=${encodeURIComponent(token)}`}
+                            href={fileUrl(f.id, false)}
                             className="parent-lessons-download"
                             aria-label={`${f.file_name} 다운로드`}
                           >
@@ -159,6 +174,17 @@ export default function ParentLessonsPage() {
           본 링크는 학원에서 발급한 임시 링크입니다. 문제가 있으시면 학원으로 연락 주세요.
         </footer>
       </div>
+
+      {previewFile && (
+        <FilePreviewModal
+          fileName={previewFile.file_name}
+          mimeType={previewFile.mime_type ?? null}
+          previewUrl={fileUrl(previewFile.id, true)}
+          downloadUrl={fileUrl(previewFile.id, false)}
+          authMode="public"
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 }

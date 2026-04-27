@@ -1,5 +1,72 @@
 /* StudentLessonsPage — 진도+자료+학부모 노출 통합 페이지 */
 
+/* ── 파일 미리보기 모달 ─────────────────────────────── */
+.file-preview-modal .modal-content {
+  max-width: 1200px;
+  width: 92vw;
+  height: 86vh;
+  max-height: 900px;
+}
+.file-preview-title {
+  display: inline-block;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.file-preview-frame-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.file-preview-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--bg-secondary);
+}
+.file-preview-img,
+.file-preview-video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.file-preview-audio {
+  width: 80%;
+}
+.file-preview-loading,
+.file-preview-unsupported {
+  text-align: center;
+  padding: var(--sp-12);
+  color: var(--text-secondary);
+}
+.file-preview-unsupported-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--sp-2);
+}
+.file-preview-unsupported-desc {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+@media (max-width: 768px) {
+  .file-preview-modal .modal-content {
+    width: 100vw;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .file-preview-title { max-width: 70vw; }
+}
+
 /* page-subtitle 은 디자인 시스템에 없어서 페이지 단위로 정의 */
 .page-subtitle {
   margin: var(--sp-1) 0 0;
@@ -12,9 +79,73 @@
   display: flex;
   gap: var(--sp-2);
   align-items: center;
+  flex-wrap: wrap;
+}
+.lessons-student-search {
+  width: 140px;
+  font-size: 13px;
 }
 .lessons-student-select {
   min-width: 180px;
+}
+
+/* 좌측 리스트 검색·정렬·보관 토글 */
+.lessons-list-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+}
+.lessons-list-search {
+  font-size: 13px;
+  padding: var(--sp-2) var(--sp-3);
+}
+.lessons-list-sort {
+  font-size: 12px;
+  padding: var(--sp-1) var(--sp-2);
+}
+.lessons-list-archive-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* 보관 항목 행 */
+.lessons-list-item-wrap {
+  position: relative;
+}
+.lessons-list-item-wrap[data-archived] .lessons-list-item {
+  opacity: 0.55;
+}
+.lessons-chip--archived {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+.lessons-list-restore {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-3);
+  padding: 2px var(--sp-2);
+  font-size: 11px;
+  background: var(--primary-surface);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  z-index: 1;
+}
+.lessons-list-restore:hover { background: var(--primary); color: var(--text-on-primary); }
+
+/* 상세 헤더 액션 — 복제 + 보관 */
+.lessons-detail-head-actions {
+  display: flex;
+  gap: var(--sp-1);
+  flex-shrink: 0;
 }
 
 .lessons-grid {
@@ -161,15 +292,104 @@
   align-items: flex-start;
   gap: var(--sp-3);
 }
+.lessons-detail-head-main {
+  flex: 1;
+  min-width: 0;
+}
 .lessons-detail-eyebrow {
   font-size: 12px;
   color: var(--text-tertiary);
   margin-bottom: var(--sp-1);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
 }
+.lessons-detail-eyebrow-sep { color: var(--text-tertiary); }
+.lessons-detail-eyebrow-textbook { font-size: 12px; color: var(--text-tertiary); }
+.lessons-detail-eyebrow-chip { font-size: 12px; }
 .lessons-detail-title {
   margin: 0;
   font-size: 18px;
   color: var(--text-primary);
+  font-weight: 700;
+  display: block;
+}
+
+/* ── 인라인 편집 가능 필드 ─────────────────────── */
+.lessons-editable-display {
+  display: inline-block;
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: var(--radius-xs);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lessons-editable-display:hover {
+  border-color: var(--border-primary);
+  background: var(--bg-tertiary);
+}
+.lessons-editable-display:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 0;
+}
+.lessons-editable-display.is-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-weight: 400;
+}
+.lessons-editable-input,
+.lessons-editable-textarea {
+  font: inherit;
+}
+.lessons-editable-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.lessons-editable-select {
+  width: auto;
+  padding: 2px var(--sp-2);
+  font-size: 12px;
+}
+
+/* 메타 블록 — 라벨 + 값 행 */
+.lessons-meta-row {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+  padding: var(--sp-1) 0;
+  font-size: 13px;
+}
+.lessons-meta-row--block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-1);
+}
+.lessons-meta-label {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  flex: 0 0 80px;
+}
+.lessons-meta-value {
+  flex: 1;
+  color: var(--text-primary);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lessons-meta-value--block {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 /* 섹션 카드 — 디자인 시스템의 .section 보다 가벼운 컨테이너 */
@@ -235,17 +455,17 @@
   color: var(--success);
 }
 
-/* 자료 메타 */
+/* 자료 메타 — 인라인 편집 행 */
 .lessons-meta-block {
   font-size: 13px;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-.lessons-meta-block p {
-  margin: var(--sp-1) 0 0;
-  white-space: pre-wrap;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
 }
 
 /* 첨부 파일 */
@@ -279,6 +499,28 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 클릭 가능한 파일명 (편집 트리거) */
+.lessons-file-name-edit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: var(--radius-xs);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+}
+.lessons-file-name-edit:hover {
+  border-color: var(--border-primary);
+  background: var(--bg-tertiary);
+}
+.lessons-file-name-edit:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 0;
 }
 .lessons-file-meta {
   font-size: 11px;

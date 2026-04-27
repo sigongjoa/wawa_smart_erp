@@ -215,6 +215,7 @@ function rowToItem(row: LessonItemRow, files: LessonItemFileRow[] = []) {
     created_by: row.created_by,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    archived_at: row.archived_at,
     files: files
       .filter((f) => f.lesson_item_id === row.id)
       .map((f) => ({
@@ -262,7 +263,7 @@ export async function handleLessonItems(
       }>(db, 'SELECT id, name, grade, school, academy_id FROM students WHERE id = ?', [studentId]);
       if (!student) return notFoundResponse();
 
-      // GET 다운로드
+      // GET 다운로드 / 미리보기
       if (method === 'GET' && fileIdForDownload) {
         const file = await executeFirst<LessonItemFileRow & { _vis: number; _can: number; _sid: string }>(
           db,
@@ -276,10 +277,12 @@ export async function handleLessonItems(
         if (!file._can) return errorResponse('다운로드가 허용되지 않은 자료입니다', 403);
         const obj = await context.env.BUCKET.get(file.r2_key);
         if (!obj) return notFoundResponse();
+        const inline = url.searchParams.get('inline') === '1';
         return new Response(obj.body, {
           headers: {
             'Content-Type': file.mime_type || 'application/octet-stream',
-            'Content-Disposition': `attachment; filename="${encodeURIComponent(file.file_name)}"`,
+            'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(file.file_name)}"`,
+            'Cache-Control': inline ? 'private, max-age=300' : 'no-cache',
           },
         });
       }
@@ -642,10 +645,13 @@ export async function handleLessonItems(
       if (!file || file._academy !== academyId) return notFoundResponse();
       const obj = await context.env.BUCKET.get(file.r2_key);
       if (!obj) return notFoundResponse();
+      const url2 = new URL(request.url);
+      const inline = url2.searchParams.get('inline') === '1';
       return new Response(obj.body, {
         headers: {
           'Content-Type': file.mime_type || 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${encodeURIComponent(file.file_name)}"`,
+          'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(file.file_name)}"`,
+          'Cache-Control': inline ? 'private, max-age=300' : 'no-cache',
         },
       });
     }
@@ -730,6 +736,10 @@ export async function handleLessonItems(
         updates.push('parent_can_download = ?');
         params.push(body.parent_can_download ? 1 : 0);
       }
+      // 보관 복원: archived_at = null 허용 (다른 값은 무시)
+      if ('archived_at' in body && body.archived_at === null) {
+        updates.push('archived_at = NULL');
+      }
       if (updates.length === 0) return successResponse({ ok: true });
       updates.push('updated_by = ?', "updated_at = datetime('now')");
       params.push(userId, item.id);
@@ -802,6 +812,35 @@ export async function handleLessonItems(
       });
     }
 
+    // PATCH /api/lesson-items/:id/files/:fileId — 파일명 변경
+    if (method === 'PATCH' && idFileDelMatch) {
+      const [, itemId, fileId] = idFileDelMatch;
+      const item = await loadItem(itemId);
+      if (!item) return notFoundResponse();
+      const guard = await ensureCanWrite(item);
+      if (guard) return guard;
+      const file = await executeFirst<LessonItemFileRow>(
+        db,
+        'SELECT * FROM lesson_item_files WHERE id = ? AND lesson_item_id = ?',
+        [fileId, itemId]
+      );
+      if (!file) return notFoundResponse();
+      const body = (await request.json().catch(() => ({}))) as { file_name?: string };
+      if (typeof body.file_name !== 'string') return errorResponse('file_name 필수', 400);
+      const trimmed = body.file_name.trim();
+      if (trimmed.length === 0) return errorResponse('file_name 비어있을 수 없음', 400);
+      if (trimmed.length > 256) return errorResponse('file_name max length 256', 400);
+      // 제어문자/슬래시 제거 (R2 키와 무관, 표시 전용 이름)
+      const sanitized = trimmed.replace(/[ -\\/]/g, '');
+      if (!sanitized) return errorResponse('file_name에 표시 가능 문자 없음', 400);
+      await executeUpdate(
+        db,
+        'UPDATE lesson_item_files SET file_name = ? WHERE id = ?',
+        [sanitized, fileId]
+      );
+      return successResponse({ ok: true, file_name: sanitized });
+    }
+
     // DELETE /api/lesson-items/:id/files/:fileId
     if (method === 'DELETE' && idFileDelMatch) {
       const [, itemId, fileId] = idFileDelMatch;
@@ -825,6 +864,53 @@ export async function handleLessonItems(
       }
       await executeUpdate(db, 'DELETE FROM lesson_item_files WHERE id = ?', [fileId]);
       return successResponse({ ok: true });
+    }
+
+    // POST /api/lesson-items/:id/duplicate — 메타 복제 (파일 제외)
+    // body: { student_id?: string } — 다른 학생에게 복제 가능, 기본은 같은 학생
+    const idDuplicateMatch = pathname.match(/^\/api\/lesson-items\/([^/]+)\/duplicate$/);
+    if (method === 'POST' && idDuplicateMatch) {
+      const item = await loadItem(idDuplicateMatch[1]);
+      if (!item) return notFoundResponse();
+      const guard = await ensureCanWrite(item);
+      if (guard) return guard;
+      const body = (await request.json().catch(() => ({}))) as { student_id?: string };
+      const targetStudentId = body.student_id || item.student_id;
+      // 다른 학생일 경우 권한·상태 검증
+      if (targetStudentId !== item.student_id) {
+        if (!isAdmin && !(await teacherOwnsStudent(db, userId, targetStudentId))) {
+          return errorResponse('대상 학생에 대한 권한이 없습니다', 403);
+        }
+        const target = await executeFirst<{ status: string }>(
+          db, 'SELECT status FROM students WHERE id = ? AND academy_id = ?',
+          [targetStudentId, academyId]
+        );
+        if (!target) return errorResponse('대상 학생을 찾을 수 없습니다', 404);
+        if (target.status === 'inactive' || target.status === 'graduated') {
+          return errorResponse(`비활성 학생(${target.status})에는 복제할 수 없습니다`, 400);
+        }
+      }
+      const newId = generateId();
+      // 메타만 복제. 이해도/메모/학부모노출/source/curriculum_item_id는 초기화.
+      await executeUpdate(
+        db,
+        `INSERT INTO student_lesson_items
+         (id, academy_id, student_id, textbook, unit_name, kind, order_idx,
+          title, purpose, topic, description, tags, coverage_category,
+          status, source,
+          created_by, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'todo', 'manual', ?, ?)`,
+        [
+          newId, academyId, targetStudentId,
+          item.textbook, item.unit_name, item.kind, item.order_idx,
+          item.title, item.purpose, item.topic, item.description, item.tags, item.coverage_category,
+          userId, userId,
+        ]
+      );
+      const row = await executeFirst<LessonItemRow>(
+        db, 'SELECT * FROM student_lesson_items WHERE id = ?', [newId]
+      );
+      return createdResponse(rowToItem(row!));
     }
 
     // POST /api/lesson-items/:id/share — 학부모 링크

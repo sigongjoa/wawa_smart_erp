@@ -1662,6 +1662,16 @@ export const api = {
     }),
   archiveLessonItem: (id: string) =>
     request<{ ok: boolean }>(`/api/lesson-items/${id}`, { method: 'DELETE' }),
+  restoreLessonItem: (id: string) =>
+    request<LessonItem>(`/api/lesson-items/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ archived_at: null }),
+    }),
+  duplicateLessonItem: (id: string, target?: { student_id?: string }) =>
+    request<LessonItem>(`/api/lesson-items/${id}/duplicate`, {
+      method: 'POST',
+      body: JSON.stringify(target ?? {}),
+    }),
   reorderLessonItems: (items: Array<{ id: string; order_idx: number }>) =>
     request<{ ok: boolean }>('/api/lesson-items/reorder', {
       method: 'POST',
@@ -1675,6 +1685,11 @@ export const api = {
   },
   deleteLessonItemFile: (itemId: string, fileId: string) =>
     request<{ ok: boolean }>(`/api/lesson-items/${itemId}/files/${fileId}`, { method: 'DELETE' }),
+  renameLessonItemFile: (itemId: string, fileId: string, file_name: string) =>
+    request<{ ok: boolean; file_name: string }>(`/api/lesson-items/${itemId}/files/${fileId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ file_name }),
+    }),
   createLessonItemParentShare: (itemId: string) =>
     request<{ student_id: string; path: string; token: string; expires_at: string }>(
       `/api/lesson-items/${itemId}/share`,
@@ -1786,6 +1801,7 @@ export interface LessonItem {
   created_by: string;
   created_at: string;
   updated_at: string;
+  archived_at?: string | null;
   files: LessonItemFile[];
 }
 

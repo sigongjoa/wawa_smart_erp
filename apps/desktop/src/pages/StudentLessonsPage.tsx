@@ -13,6 +13,7 @@ import {
 } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
+import FilePreviewModal from '../components/FilePreviewModal';
 import './StudentLessonsPage.css';
 import './CurriculumPage.css';
 
@@ -80,8 +81,63 @@ export default function StudentLessonsPage() {
   const [draft, setDraft] = useState<Partial<LessonItemCreateInput>>({});
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
 
-  const curriculumItems = useMemo(() => items.filter((i) => i.source === 'curriculum'), [items]);
-  const otherItems = useMemo(() => items.filter((i) => i.source !== 'curriculum'), [items]);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [previewFile, setPreviewFile] = useState<LessonItem['files'][number] | null>(null);
+
+  // 검색·정렬·보관 토글
+  const [searchQ, setSearchQ] = useState('');
+  type SortMode = 'updated' | 'order' | 'understanding_low' | 'understanding_high' | 'status';
+  const [sortMode, setSortMode] = useState<SortMode>('updated');
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+
+  // 검색·정렬 적용된 list
+  const visibleItems = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    const filtered = q
+      ? items.filter((i) => {
+          const fields = [i.title, i.unit_name, i.textbook, i.topic, i.purpose, i.description];
+          return fields.some((f) => f && f.toLowerCase().includes(q));
+        })
+      : items;
+    const sorted = filtered.slice();
+    switch (sortMode) {
+      case 'order':
+        sorted.sort((a, b) => a.order_idx - b.order_idx);
+        break;
+      case 'understanding_low':
+        sorted.sort((a, b) => (a.understanding ?? 999) - (b.understanding ?? 999));
+        break;
+      case 'understanding_high':
+        sorted.sort((a, b) => (b.understanding ?? -1) - (a.understanding ?? -1));
+        break;
+      case 'status': {
+        const order: Record<string, number> = { todo: 0, in_progress: 1, done: 2 };
+        sorted.sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
+        break;
+      }
+      case 'updated':
+      default:
+        sorted.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+        break;
+    }
+    return sorted;
+  }, [items, searchQ, sortMode]);
+
+  const curriculumItems = useMemo(() => visibleItems.filter((i) => i.source === 'curriculum'), [visibleItems]);
+  const otherItems = useMemo(() => visibleItems.filter((i) => i.source !== 'curriculum'), [visibleItems]);
+
+  // 학생 검색 필터
+  const filteredStudents = useMemo(() => {
+    const q = studentSearch.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) =>
+      s.name.toLowerCase().includes(q) ||
+      (s.grade ?? '').toLowerCase().includes(q) ||
+      (s.school ?? '').toLowerCase().includes(q)
+    );
+  }, [students, studentSearch]);
 
   const selected = useMemo(
     () => items.find((i) => i.id === selectedId) ?? null,
@@ -105,7 +161,10 @@ export default function StudentLessonsPage() {
     }
     setLoading(true);
     try {
-      const rows = await api.listLessonItems({ studentId: selectedStudent });
+      const rows = await api.listLessonItems({
+        studentId: selectedStudent,
+        includeArchived,
+      });
       setItems(rows);
       setSelectedId((prev) => (prev && rows.some((r) => r.id === prev) ? prev : rows[0]?.id ?? null));
     } catch (err) {
@@ -114,17 +173,19 @@ export default function StudentLessonsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedStudent]);
+  }, [selectedStudent, includeArchived]);
 
   useEffect(() => { loadStudents(); }, [loadStudents]);
   useEffect(() => { loadItems(); }, [loadItems]);
 
+  // 생성 가능 여부 — 진도면 단원명 필수, 자료/시험대비면 제목 필수
+  const draftKind = draft.kind ?? 'unit';
+  const canCreate = draftKind === 'free'
+    ? !!(draft.title && draft.title.trim())
+    : !!(draft.unit_name && draft.unit_name.trim());
+
   const handleCreate = async () => {
-    if (!selectedStudent) return;
-    if (!draft.title && !draft.unit_name) {
-      toast.error('제목 또는 단원명을 입력하세요');
-      return;
-    }
+    if (!selectedStudent || !canCreate) return;
     try {
       const created = await api.createLessonItem({
         student_id: selectedStudent,
@@ -164,11 +225,44 @@ export default function StudentLessonsPage() {
     if (!ok) return;
     try {
       await api.archiveLessonItem(id);
-      setItems((prev) => prev.filter((i) => i.id !== id));
-      if (selectedId === id) setSelectedId(null);
+      // includeArchived가 true면 화면에 남기되 archived_at 갱신
+      if (includeArchived) loadItems();
+      else {
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        if (selectedId === id) setSelectedId(null);
+      }
       toast.success('보관 완료');
     } catch (err) {
       toast.error('실패: ' + (err as Error).message);
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      const restored = await api.restoreLessonItem(id);
+      setItems((prev) => prev.map((i) => (i.id === id ? restored : i)));
+      toast.success('복원됨');
+    } catch (err) {
+      toast.error('복원 실패: ' + (err as Error).message);
+    }
+  };
+
+  const handleDuplicate = async (targetStudentId?: string) => {
+    if (!selected) return;
+    try {
+      const dup = await api.duplicateLessonItem(selected.id,
+        targetStudentId && targetStudentId !== selected.student_id ? { student_id: targetStudentId } : undefined
+      );
+      if (!targetStudentId || targetStudentId === selected.student_id) {
+        setItems((prev) => [dup, ...prev]);
+        setSelectedId(dup.id);
+        toast.success('복제 완료');
+      } else {
+        toast.success(`${students.find((s) => s.id === targetStudentId)?.name ?? '대상 학생'}에게 복제됨`);
+      }
+      setDuplicateOpen(false);
+    } catch (err) {
+      toast.error('복제 실패: ' + (err as Error).message);
     }
   };
 
@@ -195,7 +289,27 @@ export default function StudentLessonsPage() {
     }
   };
 
-  const [shareCopied, setShareCopied] = useState(false);
+  const handleRenameFile = async (fileId: string, newName: string) => {
+    if (!selected) return;
+    try {
+      const r = await api.renameLessonItemFile(selected.id, fileId, newName);
+      // 부분 업데이트 — 전체 재호출 대신 파일 이름만 갱신
+      setItems((prev) => prev.map((it) =>
+        it.id !== selected.id
+          ? it
+          : {
+              ...it,
+              files: it.files.map((f) =>
+                f.id === fileId ? { ...f, file_name: r.file_name } : f
+              ),
+            }
+      ));
+      toast.success('이름 변경됨');
+    } catch (err) {
+      toast.error('실패: ' + (err as Error).message);
+    }
+  };
+
   const handleShare = async () => {
     if (!selected) return;
     try {
@@ -218,6 +332,16 @@ export default function StudentLessonsPage() {
           <p className="page-subtitle">진도·자료·학부모 노출을 한 화면에서 관리합니다.</p>
         </div>
         <div className="lessons-toolbar">
+          <label className="sr-only" htmlFor="lessons-student-search">학생 검색</label>
+          <input
+            id="lessons-student-search"
+            type="search"
+            className="input lessons-student-search"
+            placeholder="학생 검색…"
+            value={studentSearch}
+            onChange={(e) => setStudentSearch(e.target.value)}
+            aria-label="학생 검색"
+          />
           <label className="sr-only" htmlFor="lessons-student">학생 선택</label>
           <select
             id="lessons-student"
@@ -225,8 +349,8 @@ export default function StudentLessonsPage() {
             value={selectedStudent}
             onChange={(e) => setSelectedStudent(e.target.value)}
           >
-            {students.length === 0 && <option value="">담당 학생 없음</option>}
-            {students.map((s) => (
+            {filteredStudents.length === 0 && <option value="">{students.length === 0 ? '담당 학생 없음' : '검색 결과 없음'}</option>}
+            {filteredStudents.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}{s.grade ? ` (${s.grade})` : ''}
               </option>
@@ -253,7 +377,39 @@ export default function StudentLessonsPage() {
         {/* 좌: 리스트 */}
         <div className="lessons-list-panel" role="region" aria-label="학습 항목 목록">
           <div className="lessons-list-header" aria-live="polite">
-            {loading ? '불러오는 중…' : `${items.length}개 항목`}
+            {loading
+              ? '불러오는 중…'
+              : `${visibleItems.length}개 항목${searchQ ? ` (전체 ${items.length}개 중)` : ''}`}
+          </div>
+          <div className="lessons-list-controls">
+            <input
+              type="search"
+              className="input lessons-list-search"
+              placeholder="검색 (제목/단원/교재…)"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              aria-label="항목 검색"
+            />
+            <select
+              className="input lessons-list-sort"
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              aria-label="정렬"
+            >
+              <option value="updated">최근 업데이트순</option>
+              <option value="order">순서(order_idx)</option>
+              <option value="understanding_low">이해도 낮은순</option>
+              <option value="understanding_high">이해도 높은순</option>
+              <option value="status">상태별</option>
+            </select>
+            <label className="lessons-list-archive-toggle">
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={(e) => setIncludeArchived(e.target.checked)}
+              />
+              보관 포함
+            </label>
           </div>
           <div className="lessons-list-scroll">
             {items.length === 0 && !loading ? (
@@ -270,7 +426,12 @@ export default function StudentLessonsPage() {
                   hidden={curriculumItems.length === 0}
                 />
                 {curriculumItems.map((it) => (
-                  <LessonListItem key={it.id} item={it} active={it.id === selectedId} onSelect={() => setSelectedId(it.id)} />
+                  <LessonListItem
+                    key={it.id} item={it}
+                    active={it.id === selectedId}
+                    onSelect={() => setSelectedId(it.id)}
+                    onRestore={() => handleRestore(it.id)}
+                  />
                 ))}
                 <LessonSectionHeader
                   label={`📝 시험대비·기타 (${otherItems.length})`}
@@ -279,7 +440,12 @@ export default function StudentLessonsPage() {
                   hidden={otherItems.length === 0}
                 />
                 {otherItems.map((it) => (
-                  <LessonListItem key={it.id} item={it} active={it.id === selectedId} onSelect={() => setSelectedId(it.id)} />
+                  <LessonListItem
+                    key={it.id} item={it}
+                    active={it.id === selectedId}
+                    onSelect={() => setSelectedId(it.id)}
+                    onRestore={() => handleRestore(it.id)}
+                  />
                 ))}
               </>
             )}
@@ -300,9 +466,12 @@ export default function StudentLessonsPage() {
               onPatch={(p) => patch(selected.id, p)}
               onUpload={handleUpload}
               onDeleteFile={handleDeleteFile}
+              onRenameFile={handleRenameFile}
+              onPreviewFile={(f) => setPreviewFile(f)}
               onShare={handleShare}
               shareCopied={shareCopied}
               onArchive={() => handleArchive(selected.id)}
+              onDuplicate={() => setDuplicateOpen(true)}
             />
           )}
         </div>
@@ -338,9 +507,12 @@ export default function StudentLessonsPage() {
                     />
                   </label>
                   <label>
-                    <span className="lessons-form-field-label">단원/유형명</span>
+                    <span className="lessons-form-field-label">
+                      단원/유형명 <span style={{ color: 'var(--danger)' }}>*</span>
+                    </span>
                     <input
                       className="input"
+                      autoFocus
                       placeholder="예: 이차함수의 그래프"
                       value={draft.unit_name ?? ''}
                       onChange={(e) => setDraft({ ...draft, unit_name: e.target.value })}
@@ -349,9 +521,12 @@ export default function StudentLessonsPage() {
                 </>
               )}
               <label>
-                <span className="lessons-form-field-label">자료 제목 (선택)</span>
+                <span className="lessons-form-field-label">
+                  자료 제목 {draftKind === 'free' && <span style={{ color: 'var(--danger)' }}>*</span>}
+                </span>
                 <input
                   className="input"
+                  autoFocus={draftKind === 'free'}
                   placeholder="예: 이차함수 오답 보강"
                   value={draft.title ?? ''}
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -378,8 +553,19 @@ export default function StudentLessonsPage() {
             </div>
           </Modal.Body>
           <Modal.Footer>
+            {!canCreate && (
+              <span style={{ flex: 1, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                {draftKind === 'free' ? '제목을 입력하세요' : '단원/유형명을 입력하세요'}
+              </span>
+            )}
             <button className="btn btn-ghost" onClick={() => setShowCreate(false)}>취소</button>
-            <button className="btn btn-primary" onClick={handleCreate}>생성</button>
+            <button
+              className="btn btn-primary"
+              onClick={handleCreate}
+              disabled={!canCreate}
+            >
+              생성
+            </button>
           </Modal.Footer>
         </Modal>
       )}
@@ -389,6 +575,27 @@ export default function StudentLessonsPage() {
           studentId={selectedStudent}
           onClose={() => setShowApply(false)}
           onApplied={() => { setShowApply(false); loadItems(); }}
+        />
+      )}
+
+      {duplicateOpen && selected && (
+        <DuplicateLessonModal
+          item={selected}
+          students={students}
+          onClose={() => setDuplicateOpen(false)}
+          onDuplicate={handleDuplicate}
+        />
+      )}
+
+      {previewFile && (
+        <FilePreviewModal
+          fileName={previewFile.file_name}
+          mimeType={previewFile.mime_type}
+          previewUrl={`${api.lessonItemFileDownloadUrl(previewFile.id)}?inline=1`}
+          downloadUrl={api.lessonItemFileDownloadUrl(previewFile.id)}
+          authMode="jwt"
+          authToken={localStorage.getItem('auth_access_token') ?? undefined}
+          onClose={() => setPreviewFile(null)}
         />
       )}
 
@@ -429,15 +636,19 @@ function LessonListItem({
   item,
   active,
   onSelect,
+  onRestore,
 }: {
   item: LessonItem;
   active: boolean;
   onSelect: () => void;
+  onRestore?: () => void;
 }) {
   const stage = understandingStage(item.understanding);
   const statusChipClass = STATUS_CHIP_CLASS[item.status];
   const titleText = item.title || item.unit_name || '(제목 없음)';
+  const isArchived = !!(item as any).archived_at;
   return (
+    <div className="lessons-list-item-wrap" data-archived={isArchived || undefined}>
     <button
       className="lessons-list-item"
       aria-current={active ? 'true' : undefined}
@@ -448,6 +659,7 @@ function LessonListItem({
         <span className={`lessons-chip ${statusChipClass}`}>{STATUS_LABEL[item.status]}</span>
         {item.visible_to_parent && <span className="lessons-chip lessons-chip--parent">학부모공개</span>}
         {item.files.length > 0 && <span className="lessons-chip">📎 {item.files.length}</span>}
+        {isArchived && <span className="lessons-chip lessons-chip--archived">보관됨</span>}
       </div>
       <div className="lessons-list-title">{titleText}</div>
       {item.textbook && <div className="lessons-list-sub">{item.textbook}</div>}
@@ -463,6 +675,17 @@ function LessonListItem({
         {item.understanding != null ? `이해도 ${item.understanding}점, ${STAGE_LABEL[stage]}` : '이해도 미평가'}
       </span>
     </button>
+    {isArchived && onRestore && (
+      <button
+        type="button"
+        className="lessons-list-restore"
+        onClick={(e) => { e.stopPropagation(); onRestore(); }}
+        aria-label={`${titleText} 복원`}
+      >
+        복원
+      </button>
+    )}
+    </div>
   );
 }
 
@@ -473,12 +696,15 @@ interface DetailPanelProps {
   onPatch: (p: LessonItemPatch) => Promise<LessonItem | null>;
   onUpload: (file: File, role: LessonFileRole) => void;
   onDeleteFile: (fileId: string) => void;
+  onRenameFile: (fileId: string, newName: string) => Promise<void>;
+  onPreviewFile: (file: LessonItem['files'][number]) => void;
   onShare: () => void;
   shareCopied: boolean;
   onArchive: () => void;
+  onDuplicate: () => void;
 }
 
-function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, shareCopied, onArchive }: DetailPanelProps) {
+function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onRenameFile, onPreviewFile, onShare, shareCopied, onArchive, onDuplicate }: DetailPanelProps) {
   const [understanding, setUnderstanding] = useState<number>(item.understanding ?? 0);
   const [note, setNote] = useState<string>(item.note ?? '');
   const [savedHint, setSavedHint] = useState<string>('');
@@ -502,15 +728,60 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, shareCopi
   return (
     <div className="lessons-detail-stack">
       <div className="lessons-detail-head">
-        <div>
+        <div className="lessons-detail-head-main">
           <div className="lessons-detail-eyebrow">
-            {KIND_LABEL[item.kind]}{item.textbook ? ` · ${item.textbook}` : ''}
+            <EditableField
+              kind="select"
+              value={item.kind}
+              options={[
+                { value: 'unit', label: '단원' },
+                { value: 'type', label: '유형' },
+                { value: 'free', label: '자료' },
+              ]}
+              ariaLabel="유형 변경"
+              displayClass="lessons-detail-eyebrow-chip"
+              onSave={async (v) => { await onPatch({ kind: v as LessonItemKind }); flashSaved(); }}
+            />
+            {item.kind !== 'free' && (
+              <>
+                <span className="lessons-detail-eyebrow-sep">·</span>
+                <EditableField
+                  kind="text"
+                  value={item.textbook ?? ''}
+                  placeholder="교재 (예: 쎈 중2-1)"
+                  ariaLabel="교재 변경"
+                  displayClass="lessons-detail-eyebrow-textbook"
+                  onSave={async (v) => { await onPatch({ textbook: v.trim() || null }); flashSaved(); }}
+                />
+              </>
+            )}
           </div>
-          <h2 className="lessons-detail-title">{titleText}</h2>
+          <EditableField
+            kind="text"
+            value={titleText}
+            placeholder={item.kind === 'free' ? '자료 제목' : '단원/유형명'}
+            ariaLabel={item.kind === 'free' ? '자료 제목 변경' : '단원/유형명 변경'}
+            displayClass="lessons-detail-title"
+            onSave={async (v) => {
+              const trimmed = v.trim();
+              if (!trimmed) return;
+              if (item.kind === 'free') {
+                await onPatch({ title: trimmed });
+              } else {
+                await onPatch({ unit_name: trimmed });
+              }
+              flashSaved();
+            }}
+          />
         </div>
-        <button className="btn btn-sm lessons-archive-btn" onClick={onArchive} aria-label="이 항목 보관">
-          보관
-        </button>
+        <div className="lessons-detail-head-actions">
+          <button className="btn btn-sm" onClick={onDuplicate} aria-label="이 항목 복제">
+            복제
+          </button>
+          <button className="btn btn-sm lessons-archive-btn" onClick={onArchive} aria-label="이 항목 보관">
+            보관
+          </button>
+        </div>
       </div>
 
       {/* 진도/이해도 */}
@@ -582,14 +853,42 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, shareCopi
         </div>
       </section>
 
-      {/* 자료 메타 */}
-      {(item.purpose || item.topic || item.description) && (
-        <section className="lessons-meta-block" aria-label="자료 메타">
-          {item.purpose && <div>제작 사유: {item.purpose}</div>}
-          {item.topic && <div>주제: {item.topic}</div>}
-          {item.description && <p>{item.description}</p>}
-        </section>
-      )}
+      {/* 자료 메타 — 인라인 편집, 빈 값도 placeholder로 노출 */}
+      <section className="lessons-meta-block" aria-label="자료 메타">
+        <div className="lessons-meta-row">
+          <span className="lessons-meta-label">제작 사유</span>
+          <EditableField
+            kind="text"
+            value={item.purpose ?? ''}
+            placeholder="예: 오답 보강, 심화"
+            ariaLabel="제작 사유 변경"
+            displayClass="lessons-meta-value"
+            onSave={async (v) => { await onPatch({ purpose: v.trim() || null }); flashSaved(); }}
+          />
+        </div>
+        <div className="lessons-meta-row">
+          <span className="lessons-meta-label">주제</span>
+          <EditableField
+            kind="text"
+            value={item.topic ?? ''}
+            placeholder="예: 이차함수"
+            ariaLabel="주제 변경"
+            displayClass="lessons-meta-value"
+            onSave={async (v) => { await onPatch({ topic: v.trim() || null }); flashSaved(); }}
+          />
+        </div>
+        <div className="lessons-meta-row lessons-meta-row--block">
+          <span className="lessons-meta-label">설명</span>
+          <EditableField
+            kind="textarea"
+            value={item.description ?? ''}
+            placeholder="자료에 대한 설명을 적으세요"
+            ariaLabel="설명 변경"
+            displayClass="lessons-meta-value lessons-meta-value--block"
+            onSave={async (v) => { await onPatch({ description: v.trim() || null }); flashSaved(); }}
+          />
+        </div>
+      </section>
 
       {/* 첨부 파일 */}
       <section className="lessons-section" aria-labelledby="lessons-files-label">
@@ -604,25 +903,13 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, shareCopi
         ) : (
           <ul className="lessons-files">
             {item.files.map((f) => (
-              <li key={f.id} className="lessons-file-row">
-                <span className="lessons-file-role">{ROLE_LABEL[f.file_role]}</span>
-                <div className="lessons-file-info">
-                  <div className="lessons-file-name">{f.file_name}</div>
-                  <div className="lessons-file-meta">{(f.size_bytes / 1024).toFixed(0)} KB · v{f.version}</div>
-                </div>
-                <a
-                  href={api.lessonItemFileDownloadUrl(f.id)}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="btn btn-sm btn-ghost"
-                  aria-label={`${f.file_name} 다운로드`}
-                >⬇</a>
-                <button
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => onDeleteFile(f.id)}
-                  aria-label={`${f.file_name} 삭제`}
-                >✕</button>
-              </li>
+              <FileRow
+                key={f.id}
+                file={f}
+                onDelete={() => onDeleteFile(f.id)}
+                onRename={(newName) => onRenameFile(f.id, newName)}
+                onPreview={() => onPreviewFile(f)}
+              />
             ))}
           </ul>
         )}
@@ -661,6 +948,279 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, shareCopi
 }
 
 // ─── 파일 업로드 버튼 (역할 선택) ─────────────────
+
+// ─── 항목 복제 모달 ─────────────────────────────
+
+function DuplicateLessonModal({
+  item, students, onClose, onDuplicate,
+}: {
+  item: LessonItem;
+  students: Student[];
+  onClose: () => void;
+  onDuplicate: (targetStudentId?: string) => Promise<void> | void;
+}) {
+  const [target, setTarget] = useState<string>(item.student_id);
+  const [search, setSearch] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) => s.name.toLowerCase().includes(q));
+  }, [students, search]);
+
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      await onDuplicate(target === item.student_id ? undefined : target);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <Modal.Header>항목 복제</Modal.Header>
+      <Modal.Body>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            원본: <strong>{item.title || item.unit_name || '(제목 없음)'}</strong>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            메타(제목·단원명·교재·사유 등)는 복제됩니다. 첨부 파일·이해도·메모·학부모 노출은 초기화됩니다.
+          </div>
+          <label>
+            <span className="lessons-form-field-label">대상 학생 검색</span>
+            <input
+              className="input"
+              autoFocus
+              type="search"
+              placeholder="학생 이름…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <label>
+            <span className="lessons-form-field-label">대상 학생 선택</span>
+            <select
+              className="input"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+            >
+              {filtered.length === 0 && <option value="">검색 결과 없음</option>}
+              {filtered.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}{s.grade ? ` (${s.grade})` : ''}
+                  {s.id === item.student_id ? ' — 같은 학생' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <button className="btn btn-ghost" onClick={onClose} disabled={submitting}>취소</button>
+        <button className="btn btn-primary" onClick={submit} disabled={submitting || !target}>
+          {submitting ? '복제 중…' : '복제'}
+        </button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+// ─── 인라인 편집 가능 필드 (text / textarea / select) ───────
+
+type EditableFieldProps =
+  | {
+      kind: 'text' | 'textarea';
+      value: string;
+      placeholder?: string;
+      ariaLabel: string;
+      displayClass?: string;
+      onSave: (newValue: string) => Promise<void> | void;
+    }
+  | {
+      kind: 'select';
+      value: string;
+      options: Array<{ value: string; label: string }>;
+      placeholder?: undefined;
+      ariaLabel: string;
+      displayClass?: string;
+      onSave: (newValue: string) => Promise<void> | void;
+    };
+
+function EditableField(props: EditableFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(props.value);
+
+  useEffect(() => {
+    setDraft(props.value);
+  }, [props.value]);
+
+  const commit = async () => {
+    if (draft !== props.value) {
+      await props.onSave(draft);
+    }
+    setEditing(false);
+  };
+
+  if (props.kind === 'select') {
+    // select는 항상 편집 모드 (드롭다운 자체)
+    return (
+      <select
+        className="input lessons-editable-select"
+        value={props.value}
+        aria-label={props.ariaLabel}
+        onChange={async (e) => { await props.onSave(e.target.value); }}
+      >
+        {props.options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    );
+  }
+
+  if (editing) {
+    if (props.kind === 'textarea') {
+      return (
+        <textarea
+          className="input lessons-editable-textarea"
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setDraft(props.value);
+              setEditing(false);
+            }
+          }}
+          aria-label={props.ariaLabel}
+          placeholder={props.placeholder}
+          rows={3}
+        />
+      );
+    }
+    return (
+      <input
+        className="input lessons-editable-input"
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') {
+            setDraft(props.value);
+            setEditing(false);
+          }
+        }}
+        aria-label={props.ariaLabel}
+        placeholder={props.placeholder}
+      />
+    );
+  }
+
+  const isEmpty = !props.value || props.value.trim() === '';
+  return (
+    <button
+      type="button"
+      className={`lessons-editable-display ${props.displayClass ?? ''}${isEmpty ? ' is-empty' : ''}`}
+      onClick={() => setEditing(true)}
+      aria-label={`${props.ariaLabel} (현재값: ${isEmpty ? '비어있음' : props.value})`}
+      title="클릭하여 편집"
+    >
+      {isEmpty ? (props.placeholder ?? '클릭하여 입력') : props.value}
+    </button>
+  );
+}
+
+// ─── 파일 행 — 인라인 이름 편집 + 다운로드 + 삭제 ───
+
+interface FileRowProps {
+  file: LessonItem['files'][number];
+  onDelete: () => void;
+  onRename: (newName: string) => Promise<void> | void;
+  onPreview: () => void;
+}
+
+function FileRow({ file, onDelete, onRename, onPreview }: FileRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(file.file_name);
+
+  useEffect(() => { setDraft(file.file_name); }, [file.file_name]);
+
+  const commit = async () => {
+    const v = draft.trim();
+    if (!v || v === file.file_name) {
+      setEditing(false);
+      setDraft(file.file_name);
+      return;
+    }
+    await onRename(v);
+    setEditing(false);
+  };
+
+  return (
+    <li className="lessons-file-row">
+      <span className="lessons-file-role">{ROLE_LABEL[file.file_role]}</span>
+      <div className="lessons-file-info">
+        {editing ? (
+          <input
+            className="input"
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              if (e.key === 'Escape') {
+                setDraft(file.file_name);
+                setEditing(false);
+              }
+            }}
+            aria-label={`${file.file_name} 이름 변경`}
+          />
+        ) : (
+          <button
+            type="button"
+            className="lessons-file-name lessons-file-name-edit"
+            onClick={() => setEditing(true)}
+            aria-label={`${file.file_name} 이름 편집`}
+            title="클릭하여 이름 편집"
+          >
+            {file.file_name}
+          </button>
+        )}
+        <div className="lessons-file-meta">
+          {(file.size_bytes / 1024).toFixed(0)} KB · v{file.version}
+        </div>
+      </div>
+      {!editing && (
+        <>
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={onPreview}
+            aria-label={`${file.file_name} 미리보기`}
+            title="미리보기"
+          >👁</button>
+          <a
+            href={api.lessonItemFileDownloadUrl(file.id)}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="btn btn-sm btn-ghost"
+            aria-label={`${file.file_name} 다운로드`}
+          >⬇</a>
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={onDelete}
+            aria-label={`${file.file_name} 삭제`}
+          >✕</button>
+        </>
+      )}
+    </li>
+  );
+}
 
 // ─── 커리큘럼 적용 모달 ─────────────────────────────
 

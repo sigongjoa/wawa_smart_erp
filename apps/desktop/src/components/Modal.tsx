@@ -16,6 +16,8 @@ function ModalRoot({ children, onClose, className, labelledBy }: ModalProps) {
   const titleId = useId();
 
   useEffect(() => {
+    // 모달 마운트 시 자동 포커스는 호출자의 React `autoFocus` prop이 처리.
+    // 이 컴포넌트는 ESC 닫기와 Tab 포커스 트랩만 담당 (a11y).
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -39,17 +41,7 @@ function ModalRoot({ children, onClose, className, labelledBy }: ModalProps) {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    const timer = setTimeout(() => {
-      const first = contentRef.current?.querySelector<HTMLElement>(
-        'button, input, select, textarea'
-      );
-      first?.focus();
-    }, 50);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      clearTimeout(timer);
-    };
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
   return (
