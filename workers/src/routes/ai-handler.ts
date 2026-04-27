@@ -5,7 +5,9 @@
 import { RequestContext } from '@/types';
 import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/response';
 import { requireAuth } from '@/middleware/auth';
+import { getUserId } from '@/utils/context';
 import { logger } from '@/utils/logger';
+import { geminiGenerate } from '@/utils/gemini';
 import { z } from 'zod';
 
 // 정기고사 문맥 주입용 옵션
@@ -54,11 +56,6 @@ async function handleGenerateComment(
       return unauthorizedResponse();
     }
 
-    const apiKey = context.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return errorResponse('Gemini API 키가 설정되지 않았습니다', 500);
-    }
-
     const body = await request.json() as any;
     const input = GenerateCommentSchema.parse(body);
 
@@ -90,35 +87,17 @@ ${input.existingComment ? `선생님 메모: "${input.existingComment}" — 이 
 - 긍정적이고 격려하는 톤 유지
 - 코멘트만 출력 (제목, 라벨, 번호 없이 자연스러운 문장으로)`;
 
-    const geminiRes = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          },
-        }),
-      }
-    );
+    const result = await geminiGenerate({
+      env: context.env,
+      userId: getUserId(context),
+      kind: 'ai-comment',
+      prompt,
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+    });
+    if (result.blocked) return result.blocked;
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      logger.error('Gemini API 오류', new Error(errText));
-      return errorResponse('AI 코멘트 생성에 실패했습니다', 502);
-    }
-
-    const geminiData = await geminiRes.json() as any;
-    const comment = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!comment) {
-      return errorResponse('AI 응답이 비어있습니다', 502);
-    }
-
-    return successResponse({ comment });
+    return successResponse({ comment: result.text });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return errorResponse('입력 검증 오류: ' + error.errors.map(e => e.message).join(', '), 400);
@@ -139,11 +118,6 @@ async function handleGenerateSummary(
   try {
     if (!requireAuth(context)) {
       return unauthorizedResponse();
-    }
-
-    const apiKey = context.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return errorResponse('Gemini API 키가 설정되지 않았습니다', 500);
     }
 
     const body = await request.json() as any;
@@ -188,35 +162,17 @@ ${scoreList}
 - 코멘트만 출력 (제목, 번호, 기호 없이)
 - 400~500자 엄수`;
 
-    const geminiRes = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          },
-        }),
-      }
-    );
+    const result = await geminiGenerate({
+      env: context.env,
+      userId: getUserId(context),
+      kind: 'ai-summary',
+      prompt,
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+    });
+    if (result.blocked) return result.blocked;
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      logger.error('Gemini API 오류 (총평)', new Error(errText));
-      return errorResponse('AI 총평 생성에 실패했습니다', 502);
-    }
-
-    const geminiData = await geminiRes.json() as any;
-    const summary = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!summary) {
-      return errorResponse('AI 응답이 비어있습니다', 502);
-    }
-
-    return successResponse({ summary });
+    return successResponse({ summary: result.text });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return errorResponse('입력 검증 오류: ' + error.errors.map(e => e.message).join(', '), 400);
@@ -241,11 +197,6 @@ async function handleMeetingSummary(
 ): Promise<Response> {
   try {
     if (!requireAuth(context)) return unauthorizedResponse();
-
-    const apiKey = context.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return errorResponse('Gemini API 키가 설정되지 않았습니다', 500);
-    }
 
     const body = await request.json() as any;
     const input = MeetingSummarySchema.parse(body);
@@ -275,33 +226,16 @@ ${input.transcript}
 ## 출력 (순수 JSON만, 마크다운 코드블록 없이)
 {"summary":"...","keyDecisions":["..."],"extractedActions":[{"title":"...","assigneeName":"...","dueDate":"..."}]}`;
 
-    const geminiRes = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 2048,
-          },
-        }),
-      }
-    );
-
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      logger.error('Gemini API 오류 (회의 요약)', new Error(errText));
-      return errorResponse('AI 회의 요약 생성에 실패했습니다', 502);
-    }
-
-    const geminiData = await geminiRes.json() as any;
-    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!rawText) {
-      return errorResponse('AI 응답이 비어있습니다', 502);
-    }
+    const result = await geminiGenerate({
+      env: context.env,
+      userId: getUserId(context),
+      kind: 'meeting-summary',
+      prompt,
+      temperature: 0.3,
+      maxOutputTokens: 2048,
+    });
+    if (result.blocked) return result.blocked;
+    const rawText = result.text!;
 
     // JSON 파싱 (코드블록 제거)
     const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();

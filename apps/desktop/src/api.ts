@@ -1488,12 +1488,31 @@ export const api = {
     }),
 
   // pickVocabPrint, assignVocabPrint, gradeVocabPrint: 셀프-서브 모델로 대체되어 제거 (045)
-  listVocabPrintJobs: (params?: { status?: string; days?: number }) => {
+  listVocabPrintJobs: (params?: { status?: string; days?: number; student_id?: string; limit?: number; offset?: number }) => {
     const qp = new URLSearchParams();
     if (params?.status) qp.set('status', params.status);
     if (params?.days) qp.set('days', String(params.days));
+    if (params?.student_id) qp.set('student_id', params.student_id);
+    if (params?.limit != null) qp.set('limit', String(params.limit));
+    if (params?.offset != null) qp.set('offset', String(params.offset));
     const q = qp.toString();
     return request<VocabPrintJobSummary[]>(`/api/vocab/print/jobs${q ? '?' + q : ''}`);
+  },
+
+  /** counts/total 포함 풀 응답 — 페이지바 있는 화면용 */
+  listVocabPrintJobsPage: (params?: { status?: string; days?: number; student_id?: string; limit?: number; offset?: number }): Promise<
+    PagedResult<VocabPrintJobSummary> & {
+      counts: { all: number; pending: number; in_progress: number; submitted: number; voided: number };
+    }
+  > => {
+    const qp = new URLSearchParams();
+    if (params?.status) qp.set('status', params.status);
+    if (params?.days) qp.set('days', String(params.days));
+    if (params?.student_id) qp.set('student_id', params.student_id);
+    if (params?.limit != null) qp.set('limit', String(params.limit));
+    if (params?.offset != null) qp.set('offset', String(params.offset));
+    const q = qp.toString();
+    return request(`/api/vocab/print/jobs${q ? '?' + q : ''}`);
   },
   getVocabPrintJobAnswers: (jobId: string) =>
     request<VocabPrintJobDetail>(`/api/vocab/print/jobs/${jobId}/answers`),

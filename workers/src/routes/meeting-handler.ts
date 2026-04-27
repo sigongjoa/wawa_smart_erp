@@ -13,6 +13,7 @@ import { requireAuth } from '@/middleware/auth';
 import { executeQuery, executeFirst, executeInsert, executeDelete, executeUpdate } from '@/utils/db';
 import { logger } from '@/utils/logger';
 import { generateId } from '@/utils/id';
+import { geminiGenerate } from '@/utils/gemini';
 import { z } from 'zod';
 
 // ─── Schemas ───
@@ -83,8 +84,8 @@ async function callGeminiSummary(
   transcript: string,
   title: string,
   participants: string[],
-  apiKey: string,
-): Promise<{ summary: string; keyDecisions: string[]; extractedActions: Array<{ title: string; assigneeName: string | null; dueDate: string | null }> }> {
+  context: RequestContext,
+): Promise<{ summary: string; keyDecisions: string[]; extractedActions: Array<{ title: string; assigneeName: string | null; dueDate: string | null }> } | { _blocked: Response }> {
   const participantList = participants.length > 0 ? participants.join(', ') : '미지정';
 
   const prompt = `당신은 학원 강사 회의 내용을 정리하는 비서입니다.
@@ -108,29 +109,16 @@ ${transcript}
 ## 출력 (순수 JSON만, 마크다운 코드블록 없이)
 {"summary":"...","keyDecisions":["..."],"extractedActions":[{"title":"...","assigneeName":"...","dueDate":"..."}]}`;
 
-  const geminiRes = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-      }),
-    }
-  );
-
-  if (!geminiRes.ok) {
-    const errText = await geminiRes.text();
-    throw new Error(`Gemini API 오류: ${geminiRes.status} - ${errText}`);
-  }
-
-  const geminiData = await geminiRes.json() as any;
-  const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-  if (!rawText) {
-    throw new Error('Gemini 응답이 비어있습니다');
-  }
+  const result = await geminiGenerate({
+    env: context.env,
+    userId: context.auth!.userId,
+    kind: 'meeting-summary',
+    prompt,
+    temperature: 0.3,
+    maxOutputTokens: 2048,
+  });
+  if (result.blocked) return { _blocked: result.blocked };
+  const rawText = result.text!;
 
   const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
   try {
@@ -270,22 +258,21 @@ async function handleUploadAndProcess(
     `UPDATE meetings SET transcript = ?, status = 'summarizing', updated_at = datetime('now') WHERE id = ?`,
     [transcript, id]);
 
-  // 3) Gemini AI 요약
-  const geminiKey = context.env.GEMINI_API_KEY;
-  if (!geminiKey) {
-    await executeUpdate(context.env.DB,
-      `UPDATE meetings SET status = 'error', error_message = 'Gemini API 키 미설정', updated_at = datetime('now') WHERE id = ?`, [id]);
-    return errorResponse('Gemini API 키가 설정되지 않았습니다', 500);
-  }
-
+  // 3) Gemini AI 요약 — 게이트웨이가 한도/키/에러 모두 처리
   const participants: string[] = meeting.participants ? JSON.parse(meeting.participants) : [];
 
   let aiResult;
   try {
-    aiResult = await callGeminiSummary(transcript, meeting.title, participants, geminiKey);
+    const r = await callGeminiSummary(transcript, meeting.title, participants, context);
+    if ('_blocked' in r) {
+      await executeUpdate(context.env.DB,
+        `UPDATE meetings SET status = 'done', error_message = 'AI 요약 차단됨 (한도/키 미설정)', updated_at = datetime('now') WHERE id = ?`,
+        [id]);
+      return r._blocked;
+    }
+    aiResult = r;
   } catch (err: any) {
     logger.error('Gemini 요약 실패', err);
-    // 녹취록은 있으므로 부분 성공 처리
     await executeUpdate(context.env.DB,
       `UPDATE meetings SET status = 'done', error_message = ?, updated_at = datetime('now') WHERE id = ?`,
       ['요약 생성 실패: ' + err.message, id]);
@@ -342,13 +329,17 @@ async function handleTranscribeText(
     `UPDATE meetings SET transcript = ?, status = 'summarizing', updated_at = datetime('now') WHERE id = ?`,
     [transcript, id]);
 
-  const geminiKey = context.env.GEMINI_API_KEY;
-  if (!geminiKey) return errorResponse('Gemini API 키 미설정', 500);
-
   const participants: string[] = meeting.participants ? JSON.parse(meeting.participants) : [];
   let aiResult;
   try {
-    aiResult = await callGeminiSummary(transcript, meeting.title, participants, geminiKey);
+    const r = await callGeminiSummary(transcript, meeting.title, participants, context);
+    if ('_blocked' in r) {
+      await executeUpdate(context.env.DB,
+        `UPDATE meetings SET status = 'done', error_message = 'AI 요약 차단됨', updated_at = datetime('now') WHERE id = ?`,
+        [id]);
+      return r._blocked;
+    }
+    aiResult = r;
   } catch (err: any) {
     logger.error('Gemini 요약 실패', err);
     await executeUpdate(context.env.DB,
