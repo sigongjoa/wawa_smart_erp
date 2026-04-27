@@ -34,11 +34,13 @@ const KIND_LABEL: Record<LessonItemKind, string> = {
   free: '자료',
 };
 
+// DB enum (main/answer/solution/extra)은 유지하고 표기만 사용자 흐름에 맞게 매핑.
+// 학원에서 한 자료 = 문제(본편) + 답지 + 해설 + 교안(부자료) 세트로 운영.
 const ROLE_LABEL: Record<LessonFileRole, string> = {
-  main: '본편',
-  answer: '정답',
+  main: '문제',
+  answer: '답지',
   solution: '해설',
-  extra: '부자료',
+  extra: '교안',
 };
 
 type UnderstandingStage = 'low' | 'mid' | 'high' | 'none';
@@ -833,10 +835,10 @@ function FileUploadButton({ onUpload }: { onUpload: (file: File, role: LessonFil
         value={role}
         onChange={(e) => setRole(e.target.value as LessonFileRole)}
       >
-        <option value="main">본편</option>
-        <option value="answer">정답</option>
+        <option value="main">문제</option>
+        <option value="answer">답지</option>
         <option value="solution">해설</option>
-        <option value="extra">부자료</option>
+        <option value="extra">교안</option>
       </select>
       <span className="btn btn-sm btn-primary lessons-upload-button">
         + 업로드

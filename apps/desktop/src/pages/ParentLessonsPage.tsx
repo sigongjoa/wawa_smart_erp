@@ -7,10 +7,10 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 type FileRole = 'main' | 'answer' | 'solution' | 'extra';
 
 const ROLE_LABEL: Record<FileRole, string> = {
-  main: '본편',
-  answer: '정답',
+  main: '문제',
+  answer: '답지',
   solution: '해설',
-  extra: '부자료',
+  extra: '교안',
 };
 
 interface LessonItemFile {
