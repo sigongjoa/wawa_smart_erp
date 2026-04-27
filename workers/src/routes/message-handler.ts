@@ -9,6 +9,8 @@ import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse 
 import { requireAuth } from '@/middleware/auth';
 import { SendMessageSchema, parseAndValidate } from '@/schemas/validation';
 import { logger } from '@/utils/logger';
+import { parsePagination } from '@/utils/pagination';
+import { paginatedList } from '@/utils/paginatedList';
 
 interface Message {
   id: string;
@@ -71,37 +73,30 @@ export async function handleMessage(
     // GET /api/message/inbox
     if (method === 'GET' && pathname === '/api/message/inbox') {
       if (!requireAuth(context)) return unauthorizedResponse();
-
-      const userId = context.auth!.userId;
-
-      const messages = await executeQuery<Message>(
-        context.env.DB,
-        `SELECT * FROM messages
-         WHERE recipient_id = ?
-         ORDER BY created_at DESC
-         LIMIT 100`,
-        [userId]
-      );
-
-      return successResponse(messages);
+      const pg = parsePagination(new URL(request.url), { defaultLimit: 50, maxLimit: 200 });
+      const result = await paginatedList<Message>({
+        db: context.env.DB,
+        table: 'messages',
+        baseFilters: [{ sql: 'recipient_id = ?', param: context.auth!.userId }],
+        countsBy: { column: 'is_read', values: ['0', '1'] },
+        orderBy: 'created_at DESC',
+        pagination: pg,
+      });
+      return successResponse(result);
     }
 
     // GET /api/message/sent
     if (method === 'GET' && pathname === '/api/message/sent') {
       if (!requireAuth(context)) return unauthorizedResponse();
-
-      const userId = context.auth!.userId;
-
-      const messages = await executeQuery<Message>(
-        context.env.DB,
-        `SELECT * FROM messages
-         WHERE sender_id = ?
-         ORDER BY created_at DESC
-         LIMIT 100`,
-        [userId]
-      );
-
-      return successResponse(messages);
+      const pg = parsePagination(new URL(request.url), { defaultLimit: 50, maxLimit: 200 });
+      const result = await paginatedList<Message>({
+        db: context.env.DB,
+        table: 'messages',
+        baseFilters: [{ sql: 'sender_id = ?', param: context.auth!.userId }],
+        orderBy: 'created_at DESC',
+        pagination: pg,
+      });
+      return successResponse(result);
     }
 
     // GET /api/message/conversation/:userId
@@ -110,18 +105,29 @@ export async function handleMessage(
 
       const conversationUserId = pathname.split('/')[4];
       const currentUserId = context.auth!.userId;
+      const pg = parsePagination(new URL(request.url), { defaultLimit: 100, maxLimit: 500 });
 
-      const messages = await executeQuery<Message>(
+      // 양방향 conversation은 OR 두 쌍이라 paginatedList 단순 필터로 표현 어려움 → 직접 쿼리 + total 추가
+      const totalRow = await executeFirst<{ n: number }>(
+        context.env.DB,
+        `SELECT COUNT(*) AS n FROM messages
+         WHERE (sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)`,
+        [currentUserId, conversationUserId, conversationUserId, currentUserId]
+      );
+      const items = await executeQuery<Message>(
         context.env.DB,
         `SELECT * FROM messages
          WHERE (sender_id = ? AND recipient_id = ?)
             OR (sender_id = ? AND recipient_id = ?)
          ORDER BY created_at ASC
-         LIMIT 200`,
-        [currentUserId, conversationUserId, conversationUserId, currentUserId]
+         LIMIT ? OFFSET ?`,
+        [currentUserId, conversationUserId, conversationUserId, currentUserId, pg.limit, pg.offset]
       );
-
-      return successResponse(messages);
+      return successResponse({
+        items,
+        pagination: { total: Number(totalRow?.n ?? 0), limit: pg.limit, offset: pg.offset,
+                      nextOffset: items.length < pg.limit ? null : pg.offset + pg.limit },
+      });
     }
 
     // PATCH /api/message/:id/read

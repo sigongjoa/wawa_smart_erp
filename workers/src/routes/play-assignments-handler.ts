@@ -9,6 +9,8 @@ import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse,
 import { executeQuery, executeFirst, executeUpdate } from '@/utils/db';
 import { generatePrefixedId } from '@/utils/id';
 import { logger } from '@/utils/logger';
+import { parsePagination } from '@/utils/pagination';
+import { paginatedList } from '@/utils/paginatedList';
 
 interface PlayAuth {
   studentId: string;
@@ -116,24 +118,27 @@ export async function handlePlayAssignments(
 
     // ── 목록: GET /api/play/assignments ──
     if (method === 'GET' && pathname === '/api/play/assignments') {
-      const rows = await executeQuery<any>(
-        context.env.DB,
-        `SELECT t.id as target_id, t.assignment_id, t.status, t.assigned_at, t.last_submitted_at, t.last_reviewed_at,
-                a.title, a.kind, a.due_at, a.instructions,
-                a.attached_file_key, a.attached_file_name, a.status as assignment_status,
-                (SELECT COUNT(*) FROM assignment_responses r WHERE r.target_id = t.id) as response_count,
-                (SELECT MAX(created_at) FROM assignment_responses r WHERE r.target_id = t.id) as latest_response_at
-         FROM assignment_targets t
-         JOIN assignments a ON a.id = t.assignment_id
-         WHERE t.student_id = ? AND t.academy_id = ? AND a.status = 'published'
-         ORDER BY
-           CASE t.status WHEN 'needs_resubmit' THEN 0 WHEN 'assigned' THEN 1 WHEN 'submitted' THEN 2 WHEN 'reviewed' THEN 3 ELSE 4 END,
-           a.due_at ASC NULLS LAST,
-           t.assigned_at DESC
-         LIMIT 200`,
-        [auth.studentId, auth.academyId]
-      );
-      return successResponse(rows);
+      const pg = parsePagination(new URL(request.url), { defaultLimit: 50, maxLimit: 200 });
+      const result = await paginatedList<any>({
+        db: context.env.DB,
+        table: 'assignment_targets t',
+        selectColumns: `t.id as target_id, t.assignment_id, t.status, t.assigned_at, t.last_submitted_at, t.last_reviewed_at,
+                        a.title, a.kind, a.due_at, a.instructions,
+                        a.attached_file_key, a.attached_file_name, a.status as assignment_status,
+                        (SELECT COUNT(*) FROM assignment_responses r WHERE r.target_id = t.id) as response_count,
+                        (SELECT MAX(created_at) FROM assignment_responses r WHERE r.target_id = t.id) as latest_response_at`,
+        join: 'JOIN assignments a ON a.id = t.assignment_id',
+        baseFilters: [
+          { sql: 't.student_id = ?', param: auth.studentId },
+          { sql: 't.academy_id = ?', param: auth.academyId },
+          { sql: "a.status = 'published'" },
+        ],
+        countsBy: { column: 't.status', values: ['needs_resubmit', 'assigned', 'submitted', 'reviewed'] },
+        orderBy: `CASE t.status WHEN 'needs_resubmit' THEN 0 WHEN 'assigned' THEN 1 WHEN 'submitted' THEN 2 WHEN 'reviewed' THEN 3 ELSE 4 END,
+                  a.due_at ASC, t.assigned_at DESC`,
+        pagination: pg,
+      });
+      return successResponse(result);
     }
 
     // ── 단건: GET /api/play/assignments/:targetId ──

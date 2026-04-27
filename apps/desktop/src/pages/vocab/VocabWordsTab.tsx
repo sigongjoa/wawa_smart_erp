@@ -4,6 +4,9 @@ import { api, VocabWord } from '../../api';
 import { toast } from '../../components/Toast';
 import VocabWordModal from './VocabWordModal';
 import type { VocabOutletContext } from '../VocabAdminPage';
+import { MetricTabs } from '../../components/list/MetricTabs';
+import { Pager } from '../../components/list/Pager';
+import { EmptyState } from '../../components/list/EmptyState';
 
 type GachaStudentLite = { id: string; name: string; grade?: string | null };
 
@@ -163,47 +166,20 @@ export default function VocabWordsTab() {
   }, []);
 
   const hasFilter = !!(filterStudent || filterStatus || searchQ);
-  const page = Math.floor(offset / PAGE_SIZE) + 1;
-  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : offset + 1;
   const rangeEnd = Math.min(offset + PAGE_SIZE, total);
 
   return (
     <>
-      {/* 메트릭 (counts 기반 — 학생 필터는 적용, 상태 필터 무시) */}
-      <div className="vocab-metrics" role="tablist" aria-label="상태 필터">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={filterStatus === ''}
-          className={`vocab-metric ${filterStatus === '' ? 'vocab-metric--active' : ''}`}
-          onClick={() => setFilterStatus('')}
-        >
-          <span className="vocab-metric-value">{counts.all}</span>
-          <span className="vocab-metric-label">전체</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={filterStatus === 'pending'}
-          className={`vocab-metric vocab-metric--warning ${filterStatus === 'pending' ? 'vocab-metric--active' : ''} ${counts.pending === 0 ? 'vocab-metric--empty' : ''}`}
-          onClick={() => setFilterStatus('pending')}
-          disabled={counts.pending === 0 && filterStatus !== 'pending'}
-        >
-          <span className="vocab-metric-value">{counts.pending}</span>
-          <span className="vocab-metric-label">대기</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={filterStatus === 'approved'}
-          className={`vocab-metric ${filterStatus === 'approved' ? 'vocab-metric--active' : ''}`}
-          onClick={() => setFilterStatus('approved')}
-        >
-          <span className="vocab-metric-value">{counts.approved}</span>
-          <span className="vocab-metric-label">승인</span>
-        </button>
-      </div>
+      <MetricTabs
+        active={filterStatus || 'all'}
+        onChange={k => setFilterStatus(k === 'all' ? '' : (k as 'pending' | 'approved'))}
+        tabs={[
+          { key: 'all', label: '전체', count: counts.all },
+          { key: 'pending', label: '대기', count: counts.pending, tone: 'warning', disableWhenZero: true },
+          { key: 'approved', label: '승인', count: counts.approved },
+        ]}
+      />
 
       {/* 필터 바: 학생 + 검색 + 초기화 */}
       <div className="vocab-filter-bar">
@@ -263,9 +239,13 @@ export default function VocabWordsTab() {
               <tr><td colSpan={7} className="vocab-empty">
                 <EmptyState
                   hasFilter={hasFilter}
-                  totalAll={counts.all}
+                  hasAnyData={counts.all > 0}
+                  filteredTitle="조건에 맞는 단어가 없어요"
+                  filteredHint="필터를 바꾸거나 초기화해보세요."
+                  emptyTitle="아직 단어가 없어요"
+                  emptyHint="학생이 제출하거나 선생님이 직접 추가할 수 있어요."
                   onClearFilter={clearFilters}
-                  onAdd={() => setModalOpen(true)}
+                  primary={{ label: '첫 단어 추가하기', onClick: () => setModalOpen(true) }}
                 />
               </td></tr>
             )}
@@ -348,39 +328,7 @@ export default function VocabWordsTab() {
         </table>
       </div>
 
-      {/* 페이지바 */}
-      {total > PAGE_SIZE && (
-        <div
-          className="vocab-pager"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            padding: '12px 0',
-            fontSize: 13,
-            color: '#475569',
-          }}
-        >
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={offset === 0 || loading}
-            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-          >
-            ‹ 이전
-          </button>
-          <span>{page} / {lastPage}</span>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={offset + PAGE_SIZE >= total || loading}
-            onClick={() => setOffset(offset + PAGE_SIZE)}
-          >
-            다음 ›
-          </button>
-        </div>
-      )}
+      <Pager total={total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} loading={loading} />
 
       <datalist id="vocab-words-category-suggest">
         <option value="기초" />
@@ -402,35 +350,3 @@ export default function VocabWordsTab() {
   );
 }
 
-function EmptyState({
-  hasFilter,
-  totalAll,
-  onClearFilter,
-  onAdd,
-}: {
-  hasFilter: boolean;
-  totalAll: number;
-  onClearFilter: () => void;
-  onAdd: () => void;
-}) {
-  if (hasFilter && totalAll > 0) {
-    return (
-      <div className="vocab-empty-state">
-        <div className="vocab-empty-state__title">조건에 맞는 단어가 없어요</div>
-        <p className="vocab-empty-state__hint">필터를 바꾸거나 초기화해보세요.</p>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={onClearFilter}>
-          필터 초기화
-        </button>
-      </div>
-    );
-  }
-  return (
-    <div className="vocab-empty-state">
-      <div className="vocab-empty-state__title">아직 단어가 없어요</div>
-      <p className="vocab-empty-state__hint">학생이 제출하거나 선생님이 직접 추가할 수 있어요.</p>
-      <button type="button" className="btn btn-primary btn-sm" onClick={onAdd}>
-        첫 단어 추가하기
-      </button>
-    </div>
-  );
-}
