@@ -32,7 +32,12 @@ import { requireAuth } from '@/middleware/auth';
 import { getAcademyId, getUserId } from '@/utils/context';
 import { generateId } from '@/utils/id';
 import { logger } from '@/utils/logger';
-import { signShareToken, verifyShareToken, resolveShareSecret } from '@/utils/share-token';
+import {
+  signShareToken,
+  verifyShareToken,
+  resolveShareSecret,
+  checkShareRateLimit,
+} from '@/utils/share-token';
 
 // ─────────────── 타입 ───────────────
 
@@ -80,6 +85,77 @@ const ALLOWED_KINDS = ['unit', 'type', 'free'] as const;
 const ALLOWED_STATUS = ['todo', 'in_progress', 'done'] as const;
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const SHARE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30일
+const SHARE_RATE_LIMIT = 20; // 시간당 학부모 링크 발급 상한 (per teacher)
+
+// 텍스트 필드 길이 상한 — D1 row를 비대화시켜 GET 응답 폭증·메모리 DoS 막기
+const FIELD_MAX_LEN = {
+  textbook: 128,
+  unit_name: 256,
+  title: 256,
+  purpose: 64,
+  topic: 128,
+  description: 8192,
+  note: 4096,
+  coverage_category: 128,
+} as const;
+const TAGS_MAX_JSON_LEN = 1024;
+const TAG_MAX_LEN = 32;
+const TAGS_MAX_COUNT = 16;
+
+interface FieldError {
+  field: string;
+  reason: string;
+}
+
+/** 텍스트 필드 검증. body[key]가 있으면 string|null이어야 하고 길이 한도 이내. */
+function validateTextField(body: Record<string, any>, key: keyof typeof FIELD_MAX_LEN): FieldError | null {
+  if (!(key in body)) return null;
+  const v = body[key];
+  if (v === null || v === undefined) return null;
+  if (typeof v !== 'string') return { field: key, reason: 'must be string or null' };
+  if (v.length > FIELD_MAX_LEN[key]) {
+    return { field: key, reason: `max length ${FIELD_MAX_LEN[key]} (got ${v.length})` };
+  }
+  return null;
+}
+
+/** understanding 0~100 정수 또는 null */
+function validateUnderstanding(body: Record<string, any>): FieldError | null {
+  if (!('understanding' in body)) return null;
+  const v = body.understanding;
+  if (v === null || v === undefined) return null;
+  if (typeof v !== 'number' || !Number.isFinite(v)) return { field: 'understanding', reason: 'must be number 0~100' };
+  if (v < 0 || v > 100) return { field: 'understanding', reason: 'out of range (0~100)' };
+  return null;
+}
+
+/** tags: string[]만 허용, 개수/길이/직렬화 크기 제한 */
+function validateTags(body: Record<string, any>): FieldError | null {
+  if (!('tags' in body)) return null;
+  const v = body.tags;
+  if (v === null || v === undefined) return null;
+  if (!Array.isArray(v)) return { field: 'tags', reason: 'must be array' };
+  if (v.length > TAGS_MAX_COUNT) return { field: 'tags', reason: `max ${TAGS_MAX_COUNT} tags` };
+  for (const t of v) {
+    if (typeof t !== 'string') return { field: 'tags', reason: 'all entries must be string' };
+    if (t.length > TAG_MAX_LEN) return { field: 'tags', reason: `tag max length ${TAG_MAX_LEN}` };
+  }
+  if (JSON.stringify(v).length > TAGS_MAX_JSON_LEN) return { field: 'tags', reason: 'serialized too large' };
+  return null;
+}
+
+/** 모든 텍스트/숫자 필드 일괄 검증. 첫 에러를 반환. */
+function validateBody(body: Record<string, any>): FieldError | null {
+  for (const key of Object.keys(FIELD_MAX_LEN) as (keyof typeof FIELD_MAX_LEN)[]) {
+    const e = validateTextField(body, key);
+    if (e) return e;
+  }
+  return validateUnderstanding(body) || validateTags(body);
+}
+
+function fieldErrorResponse(e: FieldError): Response {
+  return errorResponse(`${e.field}: ${e.reason}`, 400);
+}
 
 // ─────────────── 헬퍼 ───────────────
 
@@ -319,6 +395,8 @@ export async function handleLessonItems(
       if (!isAdmin && !(await teacherOwnsStudent(db, userId, body.student_id))) {
         return errorResponse('해당 학생에 대한 권한이 없습니다', 403);
       }
+      const validationError = validateBody(body);
+      if (validationError) return fieldErrorResponse(validationError);
       const kind = body.kind && (ALLOWED_KINDS as readonly string[]).includes(body.kind)
         ? body.kind
         : 'unit';
@@ -393,6 +471,15 @@ export async function handleLessonItems(
       };
       if (!body.student_id || !body.category) {
         return errorResponse('student_id, category가 필요합니다', 400);
+      }
+      if (typeof body.category !== 'string' || body.category.length > FIELD_MAX_LEN.coverage_category) {
+        return errorResponse(`category: max length ${FIELD_MAX_LEN.coverage_category}`, 400);
+      }
+      if (body.title && (typeof body.title !== 'string' || body.title.length > FIELD_MAX_LEN.title)) {
+        return errorResponse(`title: max length ${FIELD_MAX_LEN.title}`, 400);
+      }
+      if (body.purpose && (typeof body.purpose !== 'string' || body.purpose.length > FIELD_MAX_LEN.purpose)) {
+        return errorResponse(`purpose: max length ${FIELD_MAX_LEN.purpose}`, 400);
       }
       if (!isAdmin && !(await teacherOwnsStudent(db, userId, body.student_id))) {
         return errorResponse('해당 학생에 대한 권한이 없습니다', 403);
@@ -487,6 +574,8 @@ export async function handleLessonItems(
       const guard = await ensureCanWrite(item);
       if (guard) return guard;
       const body = (await request.json().catch(() => ({}))) as Record<string, any>;
+      const validationError = validateBody(body);
+      if (validationError) return fieldErrorResponse(validationError);
 
       const updates: string[] = [];
       const params: any[] = [];
@@ -629,6 +718,11 @@ export async function handleLessonItems(
       if (!item) return notFoundResponse();
       const guard = await ensureCanWrite(item);
       if (guard) return guard;
+      // 시간당 발급 상한 — 무한 토큰 발급 + 후일 회수 불가 위험 차단
+      const allowed = await checkShareRateLimit(context.env.KV, userId, 'lessons', SHARE_RATE_LIMIT);
+      if (!allowed) {
+        return errorResponse(`학부모 링크 발급 한도 초과 (시간당 ${SHARE_RATE_LIMIT}회)`, 429);
+      }
       const secret = resolveShareSecret(context.env);
       if (!secret) return errorResponse('share secret not configured', 500);
       const expiresAt = Date.now() + SHARE_TTL_MS;
