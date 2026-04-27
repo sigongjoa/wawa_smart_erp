@@ -24,7 +24,6 @@ import { handleSettings } from '@/routes/settings-handler';
 import { handleAI } from '@/routes/ai-handler';
 import { handleAbsence } from '@/routes/absence-handler';
 import { handleBoard } from '@/routes/board-handler';
-import { handleMaterials } from '@/routes/materials-handler';
 import { handleOnboard } from '@/routes/onboard-handler';
 import { handleAcademy } from '@/routes/academy-handler';
 import { handleMeeting } from '@/routes/meeting-handler';
@@ -34,7 +33,6 @@ import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
 import { handleExamPaper } from '@/routes/exam-paper-handler';
-import { handleProgress } from '@/routes/progress-handler';
 import { handleVocab } from '@/routes/vocab-handler';
 import { handleVocabPlay } from '@/routes/vocab-play-handler';
 import { handleVocabPolicy } from '@/routes/vocab-policy-handler';
@@ -45,7 +43,7 @@ import { handlePlayAssignments } from '@/routes/play-assignments-handler';
 import { handleLive, handlePlayLive } from '@/routes/live-handler';
 import { handleParentReport } from '@/routes/parent-report-handler';
 import { handleParentHomework } from '@/routes/parent-homework-handler';
-import { handleArchive } from '@/routes/archive-handler';
+import { handleLessonItems } from '@/routes/lesson-items-handler';
 import { expireExpiredAttempts } from '@/cron/expire-exam-attempts';
 import { tenantMiddleware } from '@/middleware/tenant';
 
@@ -137,9 +135,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       if (pathname.startsWith('/api/play/live')) {
         return addCorsHeaders(await handlePlayLive(method, pathname, request, context), env, origin);
       }
-      if (pathname.startsWith('/api/play/archives')) {
-        return addCorsHeaders(await handleArchive(method, pathname, request, context), env, origin);
-      }
       if (pathname.startsWith('/api/play/')) {
         return addCorsHeaders(await handleGachaPlay(method, pathname, request, context), env, origin);
       }
@@ -149,9 +144,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleParentReport(method, pathname, request, context), env, origin);
       }
 
-      // 학부모 자료 아카이브 조회/다운로드 (HMAC 토큰 기반 공개)
-      if (pathname.startsWith('/api/parent-archives/')) {
-        return addCorsHeaders(await handleArchive(method, pathname, request, context), env, origin);
+      // 학부모 학습 기록 조회/다운로드 (HMAC 공개)
+      if (pathname.match(/^\/api\/parent\/students\/[^/]+\/lessons/)) {
+        return addCorsHeaders(await handleLessonItems(method, pathname, request, context), env, origin);
       }
 
       // 학부모 숙제 피드백 조회/파일 (HMAC 토큰 기반 공개)
@@ -240,13 +235,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleMeeting(method, pathname, request, context), env, origin);
       }
 
-      if (pathname.startsWith('/api/materials')) {
-        return addCorsHeaders(await handleMaterials(method, pathname, request, context), env, origin);
-      }
-
-      // 학습자료 아카이브 (교재 제작/배포 이력)
-      if (pathname.startsWith('/api/archives')) {
-        return addCorsHeaders(await handleArchive(method, pathname, request, context), env, origin);
+      // 학생별 학습 기록 (진도+자료+학부모 노출 통합)
+      if (pathname.startsWith('/api/lesson-items')) {
+        return addCorsHeaders(await handleLessonItems(method, pathname, request, context), env, origin);
       }
 
       // 가차 학생/카드 관리 (JWT 인증)
@@ -276,11 +267,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 시험지 관리 (중간/기말/수행평가 유인물)
       if (pathname.startsWith('/api/exam-papers')) {
         return addCorsHeaders(await handleExamPaper(method, pathname, request, context), env, origin);
-      }
-
-      // 진도/이해도 관리
-      if (pathname.startsWith('/api/progress')) {
-        return addCorsHeaders(await handleProgress(method, pathname, request, context), env, origin);
       }
 
       // Vocab Exam Policy (정책 CRUD) — /api/vocab/policy 가 /api/vocab/ 보다 먼저

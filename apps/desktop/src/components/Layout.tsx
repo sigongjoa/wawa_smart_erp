@@ -21,10 +21,10 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'student',
     label: '학생',
     iconClass: 'nav-icon--student',
-    paths: ['/student', '/progress', '/exams', '/report', '/assignments'],
+    paths: ['/student', '/lessons', '/exams', '/report', '/assignments'],
     items: [
       { to: '/student', label: '학생 관리' },
-      { to: '/progress', label: '진도 관리' },
+      { to: '/lessons', label: '학습 기록' },
       { to: '/exams', label: '정기고사' },
       { to: '/assignments', label: '과제 회수·첨삭' },
       { to: '/report', label: '평가/리포트' },
@@ -67,24 +67,14 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: 'content',
-    label: '자료',
-    iconClass: 'nav-icon--materials',
-    paths: ['/materials', '/exam-papers', '/archives'],
-    items: [
-      { to: '/materials', label: '교재' },
-      { to: '/exam-papers', label: '시험지' },
-      { to: '/archives', label: '자료 아카이브' },
-    ],
-  },
-  {
     key: 'schedule',
     label: '학원 일정',
     iconClass: 'nav-icon--meeting',
-    paths: ['/board', '/meeting'],
+    paths: ['/board', '/meeting', '/exam-papers'],
     items: [
       { to: '/board', label: '보드' },
       { to: '/meeting', label: '회의 요약' },
+      { to: '/exam-papers', label: '시험지' },
     ],
   },
 ];

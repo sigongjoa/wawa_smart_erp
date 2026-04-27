@@ -396,18 +396,6 @@ export interface RealtimeSession {
   subject?: string | null;
 }
 
-export interface MaterialItem {
-  id: string;
-  student_id: string;
-  student_name: string;
-  title: string;
-  memo: string;
-  status: 'todo' | 'done';
-  file_url: string;
-  created_at: string;
-  completed_at: string | null;
-}
-
 export const api = {
   // Auth — 1차는 httpOnly 쿠키, 폴백으로 body의 accessToken/refreshToken을
   // localStorage에 저장하고 Authorization 헤더로 전송 (모바일 쿠키 차단 대응)
@@ -1099,87 +1087,6 @@ export const api = {
   deleteMeeting: (id: string) =>
     request(`/api/meeting/${id}`, { method: 'DELETE' }),
 
-  // ── 교재 관리 ──
-  getMaterials: (params?: { status?: string; studentId?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.status) qs.set('status', params.status);
-    if (params?.studentId) qs.set('studentId', params.studentId);
-    const q = qs.toString();
-    return request<MaterialItem[]>(`/api/materials${q ? '?' + q : ''}`);
-  },
-
-  createMaterial: (data: { studentId: string; title: string; memo?: string }) =>
-    request<{ id: string }>('/api/materials', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  updateMaterial: (id: string, data: { status?: string; fileUrl?: string; title?: string; memo?: string }) =>
-    request('/api/materials/' + id, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-
-  deleteMaterial: (id: string) =>
-    request('/api/materials/' + id, { method: 'DELETE' }),
-
-  // ── 진도/이해도 관리 ──
-  progressTextbooks: () =>
-    request<Array<{ textbook: string; unit_count: number }>>('/api/progress/textbooks'),
-
-  deleteProgressTextbook: (name: string) =>
-    request(`/api/progress/textbooks?name=${encodeURIComponent(name)}`, { method: 'DELETE' }),
-
-  progressUnits: (textbook: string, kind: 'unit' | 'type' = 'unit') =>
-    request<Array<{ id: string; textbook: string; name: string; kind: string; order_idx: number }>>(
-      `/api/progress/units?textbook=${encodeURIComponent(textbook)}&kind=${kind}`
-    ),
-
-  createProgressUnit: (data: { textbook: string; name: string; kind?: 'unit' | 'type' }) =>
-    request<{ id: string }>('/api/progress/units', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  updateProgressUnit: (id: string, data: { name?: string; order_idx?: number }) =>
-    request(`/api/progress/units/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-
-  deleteProgressUnit: (id: string) =>
-    request(`/api/progress/units/${id}`, { method: 'DELETE' }),
-
-  reorderProgressUnits: (ids: string[]) =>
-    request('/api/progress/units/reorder', {
-      method: 'POST',
-      body: JSON.stringify({ ids }),
-    }),
-
-  getStudentProgress: (studentId: string, textbook: string, kind: 'unit' | 'type' = 'unit') =>
-    request<Array<{
-      unit_id: string;
-      name: string;
-      order_idx: number;
-      kind: string;
-      understanding: number | null;
-      status: string | null;
-      note: string | null;
-      updated_at: string | null;
-    }>>(
-      `/api/progress/students/${studentId}?textbook=${encodeURIComponent(textbook)}&kind=${kind}`
-    ),
-
-  patchStudentProgress: (
-    studentId: string,
-    unitId: string,
-    data: { understanding?: number | null; status?: string; note?: string | null }
-  ) =>
-    request(`/api/progress/students/${studentId}/units/${unitId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-
   // ── 가차 학생 관리 ──
 
   getGachaStudents: (scope?: 'all' | 'mine') =>
@@ -1521,9 +1428,9 @@ export const api = {
     const qs = qp.toString();
     return listRequest<VocabWord>(`/api/vocab/words${qs ? '?' + qs : ''}`);
   },
-  createVocabWord: (data: { student_id: string; english: string; korean: string; blank_type?: string }) =>
+  createVocabWord: (data: { student_id: string; english: string; korean: string; blank_type?: string; category?: string | null }) =>
     request<{ id: string }>('/api/vocab/words', { method: 'POST', body: JSON.stringify(data) }),
-  updateVocabWord: (id: string, data: Partial<{ english: string; korean: string; blank_type: string; status: string; box: number }>) =>
+  updateVocabWord: (id: string, data: Partial<{ english: string; korean: string; blank_type: string; status: string; box: number; category: string | null }>) =>
     request(`/api/vocab/words/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteVocabWord: (id: string) =>
     request(`/api/vocab/words/${id}`, { method: 'DELETE' }),
@@ -1687,132 +1594,126 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ days }) }
     ),
 
-  // ── 학습자료 아카이브 ──
-  listArchives: (params?: { subject?: string; grade?: string; purpose?: string; q?: string; includeArchived?: boolean }) => {
+  // ── Student Lesson Items ──
+  listLessonItems: (params?: {
+    studentId?: string;
+    textbook?: string;
+    kind?: LessonItemKind;
+    q?: string;
+    includeArchived?: boolean;
+  }) => {
     const qs = new URLSearchParams();
-    if (params?.subject) qs.set('subject', params.subject);
-    if (params?.grade) qs.set('grade', params.grade);
-    if (params?.purpose) qs.set('purpose', params.purpose);
+    if (params?.studentId) qs.set('student_id', params.studentId);
+    if (params?.textbook) qs.set('textbook', params.textbook);
+    if (params?.kind) qs.set('kind', params.kind);
     if (params?.q) qs.set('q', params.q);
-    if (params?.includeArchived) qs.set('includeArchived', '1');
+    if (params?.includeArchived) qs.set('include_archived', '1');
     const q = qs.toString();
-    return listRequest<ArchiveListItem>(`/api/archives${q ? '?' + q : ''}`);
+    return listRequest<LessonItem>(`/api/lesson-items${q ? '?' + q : ''}`);
   },
-  getArchive: (id: string) => request<ArchiveDetail>(`/api/archives/${id}`),
-  createArchive: (data: ArchiveCreateInput) =>
-    request<{ id: string }>('/api/archives', { method: 'POST', body: JSON.stringify(data) }),
-  updateArchive: (id: string, patch: Partial<ArchiveCreateInput>) =>
-    request<{ ok: boolean }>(`/api/archives/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-  archiveArchive: (id: string) =>
-    request<{ ok: boolean }>(`/api/archives/${id}`, { method: 'DELETE' }),
-  uploadArchiveFile: (archiveId: string, file: File, role: ArchiveFileRole) => {
+  getLessonItem: (id: string) => request<LessonItem>(`/api/lesson-items/${id}`),
+  createLessonItem: (data: LessonItemCreateInput) =>
+    request<LessonItem>('/api/lesson-items', { method: 'POST', body: JSON.stringify(data) }),
+  updateLessonItem: (id: string, patch: LessonItemPatch) =>
+    request<LessonItem>(`/api/lesson-items/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  archiveLessonItem: (id: string) =>
+    request<{ ok: boolean }>(`/api/lesson-items/${id}`, { method: 'DELETE' }),
+  reorderLessonItems: (items: Array<{ id: string; order_idx: number }>) =>
+    request<{ ok: boolean }>('/api/lesson-items/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
+  uploadLessonItemFile: (itemId: string, file: File, role: LessonFileRole = 'main') => {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('role', role);
-    return uploadRequest<ArchiveFileItem>(`/api/archives/${archiveId}/files`, fd);
+    return uploadRequest<LessonItemFile>(`/api/lesson-items/${itemId}/files`, fd);
   },
-  deleteArchiveFile: (archiveId: string, fileId: string) =>
-    request<{ ok: boolean }>(`/api/archives/${archiveId}/files/${fileId}`, { method: 'DELETE' }),
-  distributeArchive: (archiveId: string, data: ArchiveDistributeInput) =>
-    request<{ id: string }>(`/api/archives/${archiveId}/distribute`, {
+  deleteLessonItemFile: (itemId: string, fileId: string) =>
+    request<{ ok: boolean }>(`/api/lesson-items/${itemId}/files/${fileId}`, { method: 'DELETE' }),
+  createLessonItemParentShare: (itemId: string) =>
+    request<{ student_id: string; path: string; token: string; expires_at: string }>(
+      `/api/lesson-items/${itemId}/share`,
+      { method: 'POST' }
+    ),
+  createLessonFromCoverage: (data: {
+    student_id: string;
+    category: string;
+    title?: string;
+    purpose?: string;
+  }) =>
+    request<LessonItem>('/api/lesson-items/from-coverage', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  revokeArchiveDistribution: (archiveId: string, distId: string) =>
-    request<{ ok: boolean }>(`/api/archives/${archiveId}/distributions/${distId}`, { method: 'DELETE' }),
-  getArchiveLog: (archiveId: string) =>
-    request<ArchiveAccessLogItem[]>(`/api/archives/${archiveId}/log`),
-  createArchiveParentShare: (archiveId: string, studentId: string, days?: number) =>
-    request<{ url: string; path: string; token: string; expires_at: string }>(
-      `/api/archives/${archiveId}/share`,
-      { method: 'POST', body: JSON.stringify({ studentId, days }) }
-    ),
-  archiveFileDownloadUrl: (fileId: string) =>
-    `${API_BASE}/api/archives/download/${encodeURIComponent(fileId)}`,
+  lessonItemFileDownloadUrl: (fileId: string) =>
+    `${API_BASE}/api/lesson-items/download/${encodeURIComponent(fileId)}`,
 };
 
-// ── 학습자료 아카이브 타입 ──
+// ── Student Lesson Items (진도+자료+학부모노출 통합 도메인) ──
 
-export type ArchiveFileRole = 'main' | 'answer' | 'solution' | 'extra';
-export type ArchiveScope = 'student' | 'class' | 'academy';
+export type LessonItemKind = 'unit' | 'type' | 'free';
+export type LessonItemStatus = 'todo' | 'in_progress' | 'done';
+export type LessonFileRole = 'main' | 'answer' | 'solution' | 'extra';
 
-export interface ArchiveListItem {
+export interface LessonItemFile {
   id: string;
-  academy_id: string;
-  title: string;
-  subject: string | null;
-  grade: string | null;
-  topic: string | null;
-  purpose: string;
-  description: string | null;
-  tags: string[];
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  archived_at: string | null;
-  file_count: number;
-  dist_count: number;
-  download_count: number;
-}
-
-export interface ArchiveCreateInput {
-  title: string;
-  purpose: string;
-  subject?: string | null;
-  grade?: string | null;
-  topic?: string | null;
-  description?: string | null;
-  tags?: string[];
-}
-
-export interface ArchiveFileItem {
-  id: string;
-  archive_id: string;
   file_name: string;
-  file_role: ArchiveFileRole;
+  file_role: LessonFileRole;
   mime_type: string | null;
   size_bytes: number;
   version: number;
-  uploaded_at?: string;
-  uploaded_by?: string;
-  r2_key?: string;
+  uploaded_at: string;
 }
 
-export interface ArchiveDistributionItem {
+export interface LessonItem {
   id: string;
-  archive_id: string;
   academy_id: string;
-  scope: ArchiveScope;
-  scope_id: string | null;
-  can_download: number;
-  distributed_by: string;
-  distributed_at: string;
-  expires_at: string | null;
-  target_name: string | null;
+  student_id: string;
+  textbook: string | null;
+  unit_name: string | null;
+  kind: LessonItemKind;
+  order_idx: number;
+  understanding: number | null;
+  status: LessonItemStatus;
+  note: string | null;
+  title: string | null;
+  purpose: string | null;
+  topic: string | null;
+  description: string | null;
+  tags: string[];
+  coverage_category: string | null;
+  visible_to_parent: boolean;
+  parent_can_download: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  files: LessonItemFile[];
 }
 
-export interface ArchiveDetail extends ArchiveListItem {
-  files: ArchiveFileItem[];
-  distributions: ArchiveDistributionItem[];
+export interface LessonItemCreateInput {
+  student_id: string;
+  textbook?: string | null;
+  unit_name?: string | null;
+  kind?: LessonItemKind;
+  order_idx?: number;
+  understanding?: number | null;
+  status?: LessonItemStatus;
+  note?: string | null;
+  title?: string | null;
+  purpose?: string | null;
+  topic?: string | null;
+  description?: string | null;
+  tags?: string[];
+  coverage_category?: string | null;
+  visible_to_parent?: boolean;
+  parent_can_download?: boolean;
 }
 
-export interface ArchiveDistributeInput {
-  scope: ArchiveScope;
-  scope_id?: string | null;
-  can_download?: boolean;
-  expires_at?: string | null;
-}
-
-export interface ArchiveAccessLogItem {
-  id: string;
-  archive_id: string;
-  file_id: string | null;
-  accessor_type: 'student' | 'parent' | 'staff';
-  accessor_id: string | null;
-  accessor_name: string | null;
-  action: 'view' | 'download';
-  accessed_at: string;
-}
+export type LessonItemPatch = Partial<Omit<LessonItemCreateInput, 'student_id'>>;
 
 // ── Vocab Gacha 타입 ──
 
@@ -1832,6 +1733,7 @@ export interface VocabWord {
   // 선택적: 학생이 직접 추가 시 포함될 수 있음
   example?: string | null;
   pos?: 'noun' | 'verb' | 'adj' | 'adv' | 'prep' | 'conj' | null;
+  category?: string | null;
 }
 
 export interface VocabGrammarQA {
@@ -2041,6 +1943,7 @@ export interface ExamQuestionDto {
   choices: string[];        // 5개
   correctChoice: number;    // 1..5
   points?: number;
+  category?: string | null; // 문제 유형 — 커버리지 집계의 분류 축
 }
 
 export interface ExamAssignment {

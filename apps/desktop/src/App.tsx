@@ -15,7 +15,6 @@ const BoardPage = lazy(() => import('./pages/BoardPage'));
 const StudentListPage = lazy(() => import('./pages/StudentListPage'));
 const StudentProfilePage = lazy(() => import('./pages/StudentProfilePage'));
 const LiveSessionPage = lazy(() => import('./pages/LiveSessionPage'));
-const MaterialsPage = lazy(() => import('./pages/MaterialsPage'));
 const MeetingPage = lazy(() => import('./pages/MeetingPage'));
 const GachaStudentPage = lazy(() => import('./pages/GachaStudentPage'));
 const GachaCardPage = lazy(() => import('./pages/GachaCardPage'));
@@ -31,7 +30,6 @@ const VocabGradeTab = lazy(() => import('./pages/vocab/VocabGradeTab'));
 const VocabPolicyTab = lazy(() => import('./pages/vocab/VocabPolicyTab'));
 const ExamResultPage = lazy(() => import('./pages/ExamResultPage'));
 const ExamTimerPage = lazy(() => import('./pages/ExamTimerPage'));
-const ProgressPage = lazy(() => import('./pages/ProgressPage'));
 const AcademyPage = lazy(() => import('./pages/AcademyPage'));
 const AssignmentsPage = lazy(() => import('./pages/AssignmentsPage'));
 const HomeroomPage = lazy(() => import('./pages/HomeroomPage'));
@@ -39,9 +37,9 @@ const HomeroomConsultationsPage = lazy(() => import('./pages/HomeroomConsultatio
 const HomeroomFollowUpsPage = lazy(() => import('./pages/HomeroomFollowUpsPage'));
 const HomeroomExamsPage = lazy(() => import('./pages/HomeroomExamsPage'));
 const ParentReportPage = lazy(() => import('./pages/ParentReportPage'));
-const ArchivePage = lazy(() => import('./pages/ArchivePage'));
-const ParentArchivePage = lazy(() => import('./pages/ParentArchivePage'));
 const ParentHomeworkPage = lazy(() => import('./pages/ParentHomeworkPage'));
+const StudentLessonsPage = lazy(() => import('./pages/StudentLessonsPage'));
+const ParentLessonsPage = lazy(() => import('./pages/ParentLessonsPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -69,7 +67,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/parent-report/:studentId" element={<ParentReportPage />} />
-          <Route path="/parent/archives/:studentId" element={<ParentArchivePage />} />
+          <Route path="/parent/student/:studentId" element={<ParentLessonsPage />} />
           <Route path="/parent-homework/:targetId" element={<ParentHomeworkPage />} />
           <Route
             element={
@@ -85,8 +83,6 @@ export default function App() {
             <Route path="/student" element={<StudentListPage />} />
             <Route path="/student/:id" element={<StudentProfilePage />} />
             <Route path="/live/:id" element={<LiveSessionPage />} />
-            <Route path="/materials" element={<MaterialsPage />} />
-            <Route path="/archives" element={<ArchivePage />} />
             <Route path="/meeting" element={<MeetingPage />} />
             <Route path="/board" element={<BoardPage />} />
             <Route path="/settings" element={<SettingsPage />} />
@@ -105,7 +101,7 @@ export default function App() {
               <Route path="policy" element={<VocabPolicyTab />} />
             </Route>
             <Route path="/exam-result/:attemptId" element={<ExamResultPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/lessons" element={<StudentLessonsPage />} />
             <Route path="/assignments" element={<AssignmentsPage />} />
             <Route path="/homeroom" element={<HomeroomPage />} />
             <Route path="/homeroom/consultations" element={<HomeroomConsultationsPage />} />
