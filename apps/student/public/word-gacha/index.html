@@ -1503,8 +1503,12 @@
      Tab bar
      ================================================================== */
   .tabbar {
-    position: absolute;
+    /* viewport에 고정 — 스크롤·iOS URL바 변동에 영향받지 않음 */
+    position: fixed;
     bottom: 0; left: 0; right: 0;
+    /* 데스크톱에서 .device(420px)와 폭 맞추기 위한 가운데 정렬 */
+    margin: 0 auto;
+    max-width: 420px;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     background: var(--ink);
@@ -1575,22 +1579,7 @@
   /* ==================================================================
      Alive r1 — FAB / modal / onboarding / vitals
      ================================================================== */
-  .fab-add {
-    position: fixed;
-    right: max(16px, calc(50% - 210px + 16px));
-    bottom: 72px;
-    width: 56px; height: 56px;
-    background: var(--pri);
-    color: #fff;
-    border: 2px solid var(--ink);
-    border-radius: 50%;
-    box-shadow: 3px 3px 0 var(--ink);
-    font: 800 28px/1 var(--disp);
-    display: grid; place-items: center;
-    z-index: 20;
-    transition: transform .12s var(--e-out);
-  }
-  .fab-add:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  /* 단어 추가 FAB 제거됨 — 인라인 버튼(.mywords-exam-btn--add)으로 대체 */
 
   dialog.modal-wg {
     width: min(92%, 360px);
@@ -2553,6 +2542,102 @@
     font: 600 11px/1 var(--body);
     opacity: 0.85;
   }
+  .mywords-exam-btn--csat {
+    margin-top: 10px;
+    background: linear-gradient(90deg, #c2410c, #ea580c);
+  }
+  .mywords-exam-btn--add {
+    margin-top: 10px;
+    background: linear-gradient(90deg, #047857, #059669);
+  }
+
+  /* ── 수능 시험 옵션 시트 ── */
+  .csat-sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    display: none; align-items: flex-end; justify-content: center;
+    z-index: 100;
+  }
+  .csat-sheet-backdrop[aria-hidden="false"] { display: flex; }
+  .csat-sheet {
+    width: 100%; max-width: 480px;
+    background: #fff;
+    border: 2px solid var(--ink); border-bottom: 0;
+    border-top-left-radius: 16px; border-top-right-radius: 16px;
+    box-shadow: 0 -3px 0 var(--ink);
+    padding: 16px;
+    animation: csatSheetUp .18s var(--e-out);
+  }
+  @keyframes csatSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .csat-sheet h3 {
+    margin: 0 0 4px;
+    font: 800 17px/1.2 var(--disp);
+    color: var(--ink);
+  }
+  .csat-sheet .csat-sub {
+    margin: 0 0 14px;
+    font: 600 12px/1.4 var(--body);
+    color: var(--ink-3);
+  }
+  .csat-group { margin-bottom: 14px; }
+  .csat-group .csat-label {
+    display: block;
+    font: 800 12px/1 var(--disp);
+    color: var(--ink-2);
+    margin-bottom: 8px;
+  }
+  .csat-tier-btn, .csat-size-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 12px;
+    margin: 0 6px 6px 0;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    box-shadow: 2px 2px 0 var(--ink);
+    cursor: pointer;
+    font: 700 13px/1 var(--body);
+    color: var(--ink);
+    transition: transform .1s var(--e-out);
+  }
+  .csat-tier-btn[aria-pressed="true"], .csat-size-btn[aria-pressed="true"] {
+    background: linear-gradient(90deg, #c2410c, #ea580c);
+    color: #fff;
+  }
+  .csat-tier-btn:active, .csat-size-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+  .csat-sheet .csat-actions {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  .csat-sheet .csat-cancel {
+    flex: 0 0 90px;
+    padding: 12px;
+    background: #fff;
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    box-shadow: 2px 2px 0 var(--ink);
+    font: 800 14px/1 var(--disp);
+    cursor: pointer;
+  }
+  .csat-sheet .csat-go {
+    flex: 1;
+    padding: 12px;
+    background: linear-gradient(90deg, #c2410c, #ea580c);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    box-shadow: 2px 2px 0 var(--ink);
+    font: 800 15px/1 var(--disp);
+    cursor: pointer;
+  }
+  .csat-sheet .csat-go:disabled { opacity: .6; cursor: wait; }
+  .csat-meta {
+    margin-top: 8px;
+    font: 600 11px/1.3 var(--body);
+    color: var(--ink-3);
+  }
 
   /* ── Phase 3b: 시험지 알림 카드 ── */
   .print-alert {
@@ -3307,6 +3392,46 @@
             <span class="lbl">시험 치기</span>
             <span class="sub">내 단어 최대 10문제</span>
           </button>
+          <button type="button" class="mywords-exam-btn mywords-exam-btn--csat" id="btn-csat-exam">
+            <span aria-hidden="true">🎯</span>
+            <span class="lbl">수능 영단어 시험치기</span>
+            <span class="sub">메가스터디 빈출 단어 · 빈도등급 선택</span>
+          </button>
+          <button type="button" class="mywords-exam-btn mywords-exam-btn--add" id="btn-add-word-inline">
+            <span aria-hidden="true">＋</span>
+            <span class="lbl">단어 추가</span>
+            <span class="sub">새 단어를 내 단어장에 등록</span>
+          </button>
+        </div>
+
+        <!-- 수능 시험 옵션 시트 -->
+        <div class="csat-sheet-backdrop" id="csat-sheet" aria-hidden="true" role="dialog" aria-labelledby="csat-sheet-title">
+          <div class="csat-sheet">
+            <h3 id="csat-sheet-title">🎯 수능 영단어 시험</h3>
+            <p class="csat-sub">메가스터디 무료 PDF 기반 빈출 단어 · 학원 학습용</p>
+
+            <div class="csat-group">
+              <span class="csat-label">난이도 (빈도등급)</span>
+              <button type="button" class="csat-tier-btn" data-tier="1" aria-pressed="false">1등급 (빈출)</button>
+              <button type="button" class="csat-tier-btn" data-tier="2" aria-pressed="true">2등급 (중)</button>
+              <button type="button" class="csat-tier-btn" data-tier="3" aria-pressed="false">3등급 (어려움)</button>
+              <button type="button" class="csat-tier-btn" data-tier="0" aria-pressed="false">전체 무작위</button>
+            </div>
+
+            <div class="csat-group">
+              <span class="csat-label">문항수</span>
+              <button type="button" class="csat-size-btn" data-size="10" aria-pressed="true">10문제</button>
+              <button type="button" class="csat-size-btn" data-size="20" aria-pressed="false">20문제</button>
+              <button type="button" class="csat-size-btn" data-size="30" aria-pressed="false">30문제</button>
+            </div>
+
+            <p class="csat-meta">시험 단어는 자동으로 내 단어장에 추가되어 다음 가챠/시험에서 다시 만날 수 있어요.</p>
+
+            <div class="csat-actions">
+              <button type="button" class="csat-cancel" id="csat-cancel">취소</button>
+              <button type="button" class="csat-go" id="csat-go">시험 시작 →</button>
+            </div>
+          </div>
         </div>
 
         <div class="filter-bar" role="group" aria-label="단어 상태 필터" id="mywords-filter">
@@ -3705,10 +3830,8 @@
     </button>
   </nav>
 
-  <!-- 단어 추가 FAB — mywords 서브팬 활성 시만 노출 -->
-  <button type="button" class="fab-add" id="btn-add-word" aria-label="단어 추가" hidden>
-    <span aria-hidden="true">+</span>
-  </button>
+  <!-- 단어 추가 FAB 제거됨 — 내 단어장 안 인라인 버튼(#btn-add-word-inline)이 대체 -->
+
 
   <!-- Toast for r1 actions -->
   <div class="toast-wg" id="toast-wg" role="status" aria-live="polite"></div>
@@ -3872,6 +3995,10 @@
     });
     if (sub) selectSub(screen, sub);
     document.querySelector('main.app').scrollTo({ top: 0, behavior: 'instant' });
+    // 도감/단어장 진입 시 서버 갱신본 끌어오기 (시험 후 즉시 반영)
+    if (screen === 'dex' || screen === 'learn') {
+      window.__refreshServerWords?.();
+    }
   }
 
   function selectSub(screen, sub) {
@@ -3904,7 +4031,7 @@
 </script>
 
 <script type="module">
-  import { createStore, seed, migrate, KEYS } from './js/state.js';
+  import { createStore, seed, migrate, purgeLegacySeed, KEYS } from './js/state.js';
   import { addWord } from './js/vocab.js';
   import {
     createCreature, tick, interact, moodOf, moodRefined, evolutionProgress,
@@ -3919,10 +4046,12 @@
     loadServerTextbooks, loadTextbookWords,
     isSyncDisabled,
     loadPrintPending, loadPrintJob, startPrintJob, savePrintAnswer, submitPrintJob, selfStartPrintJob, getTodayStats,
+    authedFetch,
   } from './js/wawa-bridge.js';
 
   // sync-banner 제거됨: 로컬 모드 여부는 내부 _syncDisabled 플래그로만 관리
   import { startQuiz, answer as quizAnswer, finishQuiz, EXP_PER_CORRECT, COIN_PER_CORRECT, HP_MAX } from './js/quiz.js';
+  import { DEX_UNLOCK_BOX, syncSeen, isUnlocked, countByType } from './js/dex.js';
 
   const CREATURE_KEY = 'wg.v1.creature';
 
@@ -3977,18 +4106,23 @@
 
   seed(store);
   migrate(store);
+  // 기존 단말에 남은 시드 더미(w001~w012) 청소 — 도감/통계 정확성 회복
+  purgeLegacySeed(rawStore);
 
-  loadServerWords().then(serverWords => {
-    if (!Array.isArray(serverWords)) return;
-    const local = rawStore.get(KEYS.words) ?? [];
-    const merged = [...serverWords];
-    for (const w of local) {
-      if (!w?.word) continue;
-      if (!merged.some(s => s.word?.toLowerCase() === w.word.toLowerCase())) merged.push(w);
-    }
-    rawStore.set(KEYS.words, merged);
-    try { renderWordList?.(); } catch {}
-  }).catch(() => {});
+  // 서버 단어 로드 → 도감/단어장 갱신. 시드를 더 이상 보존하지 않음 (서버가 진실의 원천).
+  async function refreshServerWords() {
+    try {
+      const serverWords = await loadServerWords();
+      if (!Array.isArray(serverWords)) return;
+      rawStore.set(KEYS.words, serverWords);
+      try { renderWordList?.(); } catch {}
+      try { renderDexCounts?.(); } catch {}
+    } catch (e) { console.warn('[wawa-bridge] refreshServerWords failed', e); }
+  }
+  // boot 시 1회
+  refreshServerWords();
+  // 다른 진입점에서 재호출 가능하도록 노출
+  window.__refreshServerWords = refreshServerWords;
 
   function toast(msg, duration = 1800) {
     const t = document.getElementById('toast-wg');
@@ -4258,13 +4392,20 @@
   }
 
   // 품사 분류 + dex 카운트 갱신
+  // dex.js 의 syncSeen/countByType 사용 — box>=DEX_UNLOCK_BOX 단어는 자동으로 seen 에도 포함
   function renderDexCounts() {
-    const words = store.get(KEYS.words) ?? [];
+    const words = (store.get(KEYS.words) ?? []).map(w => ({ ...w, pos: w.pos || 'noun' }));
+    // 시험 직후 box>=5 단어가 seen 에 자동 합류 (도감 마스터 카운트와 흐릿/잠금 상태 일관성)
+    const seen = syncSeen(words, store.get(KEYS.seen) ?? []);
+    if ((seen.length || 0) !== ((store.get(KEYS.seen) ?? []).length || 0)) {
+      store.set(KEYS.seen, seen);
+    }
     const types = ['noun', 'verb', 'adj', 'adv', 'prep', 'conj'];
+    const mastery = countByType(words, seen);  // 마스터(box>=5) 카운트
     let totalMastered = 0;
     for (const t of types) {
-      const list = words.filter(w => (w.pos || 'noun') === t);
-      const mastered = list.filter(w => (w.box ?? 1) >= 5).length;
+      const list = words.filter(w => w.pos === t);
+      const mastered = mastery[t] ?? 0;
       totalMastered += mastered;
       const numEl = document.querySelector(`[data-dex-num="${t}"]`);
       const countEl = document.querySelector(`[data-dex-count="${t}"]`);
@@ -4279,7 +4420,7 @@
     const heroBar = document.getElementById('dex-hero-bar');
     const total = words.length;
     const pct = total > 0 ? Math.round((totalMastered / total) * 100) : 0;
-    if (heroBig) heroBig.firstChild.nodeValue = String(totalMastered);
+    if (heroBig && heroBig.firstChild) heroBig.firstChild.nodeValue = String(totalMastered);
     if (heroTotal) heroTotal.textContent = `/ ${total}`;
     if (heroPct) heroPct.textContent = `${pct}%`;
     if (heroBar) heroBar.style.width = pct + '%';
@@ -4289,30 +4430,17 @@
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function updateFabVisibility() {
-    const fab = document.getElementById('btn-add-word');
-    if (!fab) return;
-    const mywordsActive = document.querySelector('.screen[data-s="learn"] .subpane[data-sub="mywords"]')?.classList.contains('active');
-    const onLearn = document.body.dataset.screen === 'learn';
-    fab.hidden = !(onLearn && mywordsActive);
-  }
-  // Observe subpane class changes to toggle FAB
-  const learnSection = document.querySelector('.screen[data-s="learn"]');
-  if (learnSection) {
-    const mo = new MutationObserver(updateFabVisibility);
-    learnSection.querySelectorAll('.subpane').forEach(p => mo.observe(p, { attributes: true, attributeFilter: ['class'] }));
-  }
-  // Observe body data-screen
-  new MutationObserver(updateFabVisibility).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
-  updateFabVisibility();
+  // 단어 추가 FAB(플로팅) 제거됨 — 인라인 버튼이 대체
 
-  document.getElementById('btn-add-word')?.addEventListener('click', () => {
+  function openAddWordDialog() {
     const dlg = document.getElementById('dlg-add-word');
+    if (!dlg) return;
     dlg.querySelector('#form-add-word').reset();
     document.getElementById('err-add-word').textContent = '';
     dlg.showModal();
     setTimeout(() => dlg.querySelector('#aw-word').focus(), 50);
-  });
+  }
+  document.getElementById('btn-add-word-inline')?.addEventListener('click', openAddWordDialog);
 
   document.getElementById('btn-add-cancel')?.addEventListener('click', () => {
     document.getElementById('dlg-add-word').close();
@@ -4352,8 +4480,8 @@
   const SEED_ID = /^w0\d{2}$/;
 
   function unlockState(word, seenIds) {
-    if ((word.box ?? 1) >= 5) return 'unlocked';
-    if (seenIds.has(word.id)) return 'seen';
+    if ((word.box ?? 1) >= DEX_UNLOCK_BOX) return 'unlocked';
+    if (isUnlocked(word.id, seenIds)) return 'seen';
     return 'locked';
   }
 
@@ -4417,11 +4545,17 @@
     const words = store.get(KEYS.words) ?? [];
     const w = words.find(x => x.id === wordId);
     if (!w) return;
-    const history = store.get(KEYS.quizHistory) ?? [];
-    const wh = history.filter(h => h.wordId === wordId);
-    const correct = wh.filter(h => h.correct).length;
-    const wrong = wh.length - correct;
-    const acc = wh.length === 0 ? 0 : Math.round(correct / wh.length * 100);
+    // 서버 카운터 우선(전체 시험 흐름 반영) — 없으면 로컬 quizHistory 폴백
+    const localHistory = (store.get(KEYS.quizHistory) ?? []).filter(h => h.wordId === wordId);
+    const localCorrect = localHistory.filter(h => h.correct).length;
+    const localWrong = localHistory.length - localCorrect;
+    const serverWrong = Number.isFinite(w.wrongCount) ? w.wrongCount : null;
+    const serverReview = Number.isFinite(w.reviewCount) ? w.reviewCount : null;
+    const wrong = serverWrong != null ? serverWrong : localWrong;
+    // 서버 review_count는 총 응시 횟수. 정답 = review - wrong.
+    const totalAttempts = serverReview != null ? serverReview : (localHistory.length);
+    const correct = Math.max(0, totalAttempts - wrong);
+    const acc = totalAttempts === 0 ? 0 : Math.round(correct / totalAttempts * 100);
 
     document.getElementById('cd-word').textContent = w.word;
     document.getElementById('cd-meaning').textContent = w.meaning;
@@ -4436,10 +4570,16 @@
     document.getElementById('cd-acc').textContent = String(acc);
 
     const mem = document.getElementById('cd-memory');
-    const ago = daysBetween(w.addedAt, new Date().toISOString());
-    mem.textContent = w.addedAt
-      ? (ago === 0 ? '오늘 처음 만났어요!' : ago === 1 ? '어제 처음 만났어요' : `${ago}일 전 처음 만났어요`)
-      : '기억이 희미해요…';
+    const nowIso = new Date().toISOString();
+    const lastIso = w.lastQuizzedAt || w.addedAt;
+    const ago = daysBetween(lastIso, nowIso);
+    if (w.lastQuizzedAt) {
+      mem.textContent = ago === 0 ? '오늘 시험에서 만났어요' : ago === 1 ? '어제 시험에서 만났어요' : `${ago}일 전 시험에서 만났어요`;
+    } else if (w.addedAt) {
+      mem.textContent = ago === 0 ? '오늘 처음 만났어요!' : ago === 1 ? '어제 처음 만났어요' : `${ago}일 전 처음 만났어요`;
+    } else {
+      mem.textContent = '기억이 희미해요…';
+    }
 
     const ex = document.getElementById('cd-example');
     ex.textContent = w.example ? `"${w.example}"` : '';
@@ -5161,30 +5301,109 @@
 
   async function refreshPrintAlert() {
     const alert = document.getElementById('print-alert');
-    if (!alert || isSyncDisabled()) return;
+    if (!alert) return;
+    if (isSyncDisabled()) { alert.hidden = true; return; }
+    const title = alert.querySelector('.print-alert-title');
+    const desc = document.getElementById('print-alert-desc');
+    const btn = document.getElementById('print-alert-btn');
     try {
+      // 1) 진행 중 시험 우선 — "이어 풀기"
       const list = await loadPrintPending();
-      if (!list || list.length === 0) {
-        alert.hidden = true;
+      if (list && list.length > 0) {
+        const job = list[0];
+        alert.hidden = false;
+        if (title) title.textContent = '진행 중인 단어 시험';
+        if (desc) desc.textContent = `${job.word_count}문항 · 이어 풀기`;
+        if (btn) btn.textContent = '이어 풀기 →';
+        alert.dataset.mode = 'resume';
+        alert.dataset.jobId = job.job_id;
         return;
       }
-      const job = list[0]; // 가장 최근
-      alert.hidden = false;
-      const desc = document.getElementById('print-alert-desc');
-      if (desc) {
-        const status = job.status === 'in_progress' ? '이어 풀기' : '선생님이 출제';
-        desc.textContent = `${job.word_count}문항 · ${status}`;
+      // 2) 셀프-서브 시험 응시 가능성
+      const r = await authedFetch('/api/play/vocab/exam/availability');
+      if (!r || !r.ok) { alert.hidden = true; return; }
+      const data = (await r.json().catch(() => ({})))?.data;
+      if (!data) { alert.hidden = true; return; }
+      delete alert.dataset.jobId;
+      if (data.available) {
+        alert.hidden = false;
+        if (title) title.textContent = '오늘의 단어 시험';
+        if (desc) {
+          const left = data.policy?.daily_limit > 0
+            ? ` · 오늘 ${data.todayCount}/${data.policy.daily_limit}회`
+            : '';
+          desc.textContent = `${data.policy?.vocab_count ?? 10}문항${left}`;
+        }
+        if (btn) {
+          btn.textContent = '시험 시작 →';
+          btn.disabled = false;
+        }
+        alert.dataset.mode = 'start';
+      } else {
+        // cooldown/limit/시간대 차단 → 사유 표시
+        alert.hidden = false;
+        if (title) title.textContent = '단어 시험';
+        if (desc) desc.textContent = data.message || '지금은 응시할 수 없어요';
+        if (btn) {
+          btn.textContent = '대기 중';
+          btn.disabled = true;
+        }
+        alert.dataset.mode = 'blocked';
       }
-      alert.dataset.jobId = job.job_id;
     } catch (e) {
       console.warn('[print] alert refresh failed', e);
+      alert.hidden = true;
     }
   }
 
-  document.getElementById('print-alert-btn')?.addEventListener('click', () => {
+  // 학생 전환/로그아웃 시 alert + dataset 강제 정리 (cross-student 잔존 방지)
+  window.addEventListener('wawa:auth-reset', () => {
     const alert = document.getElementById('print-alert');
-    const jobId = alert?.dataset.jobId;
-    if (jobId) enterPrintTake(jobId);
+    if (alert) {
+      alert.hidden = true;
+      delete alert.dataset.jobId;
+    }
+    queueMicrotask(refreshPrintAlert);
+  });
+
+  document.getElementById('print-alert-btn')?.addEventListener('click', async () => {
+    const alert = document.getElementById('print-alert');
+    if (!alert || alert.dataset.mode === 'blocked') return;
+    // 이어 풀기
+    if (alert.dataset.mode === 'resume') {
+      const jobId = alert.dataset.jobId;
+      if (jobId) enterPrintTake(jobId);
+      return;
+    }
+    // 새 시험 시작 (홈 1-click 셀프-서브)
+    const btn = document.getElementById('print-alert-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '생성 중…'; }
+    try {
+      const res = await selfStartPrintJob(10);
+      if (res.error) { toast(res.error, 6000); refreshPrintAlert(); return; }
+      const data = res.data;
+      if (!data?.id || !data?.questions?.length) {
+        toast('시험지 생성 실패 · 잠시 후 다시 시도해 주세요.', 5000);
+        return;
+      }
+      if (data.resumed) toast('진행 중이던 시험을 이어서 풀어요', 3500);
+      printState.jobId = data.id;
+      printState.questions = (data.questions || []).map(q => ({
+        wordId: q.wordId, prompt: q.prompt,
+        choices: q.choices || [], selectedIndex: q.selectedIndex,
+      }));
+      printState.idx = 0;
+      document.getElementById('print-take-result').hidden = true;
+      document.body.dataset.screen = 'print';
+      document.querySelector('main.app')?.scrollTo({ top: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      renderPrintTake();
+    } catch (e) {
+      console.warn('[print-alert] self-start failed', e);
+      toast('시험지 생성 실패');
+    } finally {
+      refreshPrintAlert();
+    }
   });
 
   // 내 단어장 상단 "시험 치기" — self-start
@@ -5222,6 +5441,9 @@
       printState.idx = 0;
       document.getElementById('print-take-result').hidden = true;
       document.body.dataset.screen = 'print';
+      // 단어가 많아 단어장이 스크롤된 상태에서 진입하면 시험지 첫 문항이 화면 밖에 가려짐 → 강제 스크롤 리셋
+      document.querySelector('main.app')?.scrollTo({ top: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
       renderPrintTake();
     } catch (e) {
       console.warn('[self-exam] failed', e);
@@ -5231,6 +5453,85 @@
       btn.innerHTML = origHtml;
     }
   });
+
+  // 수능 영단어 시험 — 시트 열기 + 옵션 선택 → self-start (source=csat)
+  (function setupCsatExam() {
+    const btn = document.getElementById('btn-csat-exam');
+    const sheet = document.getElementById('csat-sheet');
+    const cancel = document.getElementById('csat-cancel');
+    const go = document.getElementById('csat-go');
+    if (!btn || !sheet || !go) return;
+
+    function openSheet() { sheet.setAttribute('aria-hidden', 'false'); }
+    function closeSheet() { sheet.setAttribute('aria-hidden', 'true'); }
+    btn.addEventListener('click', openSheet);
+    cancel?.addEventListener('click', closeSheet);
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
+
+    function setupGroup(selector) {
+      const all = sheet.querySelectorAll(selector);
+      all.forEach((el) => {
+        el.addEventListener('click', () => {
+          all.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+          el.setAttribute('aria-pressed', 'true');
+        });
+      });
+    }
+    setupGroup('.csat-tier-btn');
+    setupGroup('.csat-size-btn');
+
+    function getSelected(selector, attr) {
+      const el = sheet.querySelector(`${selector}[aria-pressed="true"]`);
+      return el ? el.getAttribute(attr) : null;
+    }
+
+    go.addEventListener('click', async () => {
+      const tierRaw = getSelected('.csat-tier-btn', 'data-tier');
+      const sizeRaw = getSelected('.csat-size-btn', 'data-size');
+      const tier = tierRaw && tierRaw !== '0' ? Number(tierRaw) : undefined;
+      const size = sizeRaw ? Number(sizeRaw) : 10;
+
+      go.disabled = true;
+      const origText = go.textContent;
+      go.textContent = '생성 중…';
+      try {
+        const res = await selfStartPrintJob({ source: 'csat', tier, maxWords: size });
+        if (res.error) {
+          toast(res.error, 6000);
+          return;
+        }
+        const data = res.data;
+        if (!data?.id || !data?.questions?.length) {
+          toast('수능 시험지 생성 실패 · 잠시 후 다시 시도해 주세요.', 5000);
+          return;
+        }
+        if (data.resumed) {
+          toast('진행 중이던 시험을 이어서 풀어요', 3500);
+        }
+        printState.jobId = data.id;
+        printState.questions = (data.questions || []).map(q => ({
+          wordId: q.wordId,
+          prompt: q.prompt,
+          choices: q.choices || [],
+          selectedIndex: q.selectedIndex,
+        }));
+        printState.idx = 0;
+        document.getElementById('print-take-result').hidden = true;
+        document.body.dataset.screen = 'print';
+        closeSheet();
+        // 단어장이 스크롤된 상태에서 진입하면 시험지 첫 문항이 화면 밖으로 밀려남 → 리셋
+        document.querySelector('main.app')?.scrollTo({ top: 0, behavior: 'instant' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        renderPrintTake();
+      } catch (e) {
+        console.warn('[csat-exam] failed', e);
+        toast('수능 시험지 생성 실패');
+      } finally {
+        go.disabled = false;
+        go.textContent = origText;
+      }
+    });
+  })();
 
   async function enterPrintTake(jobId) {
     // jobId 포맷 검증 — 서버가 사용하는 prefixed id (예: vpj-abc123) 또는 uuid 형태만
@@ -5248,6 +5549,8 @@
       printState.idx = 0;
       document.getElementById('print-take-result').hidden = true;
       document.body.dataset.screen = 'print';
+      document.querySelector('main.app')?.scrollTo({ top: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
       renderPrintTake();
     } catch (e) {
       console.warn('[print] enter failed', e);
@@ -5499,16 +5802,29 @@
 
     box.hidden = false;
     refreshPrintAlert();  // 목록 새로고침
+
+    // 시험 결과 후: 출제된 단어를 seen에 추가 + 서버 단어/도감 즉시 갱신
+    try {
+      const seen = new Set(store.get(KEYS.seen) ?? []);
+      for (const q of (printState.questions || [])) {
+        if (q?.wordId) seen.add(q.wordId);
+      }
+      store.set(KEYS.seen, [...seen]);
+    } catch (e) { console.warn('[print] seen update failed', e); }
+    // 서버 box/wrong_count 갱신분 끌어오기 — 도감/단어장 즉시 반영
+    window.__refreshServerWords?.();
   }
 
   document.getElementById('print-take-back')?.addEventListener('click', async () => {
     await flushPendingAnswers();
     document.body.dataset.screen = 'home';
     refreshPrintAlert();
+    window.__refreshServerWords?.();
   });
   document.getElementById('print-take-result-home')?.addEventListener('click', () => {
     document.getElementById('print-take-result').hidden = true;
     document.body.dataset.screen = 'home';
+    window.__refreshServerWords?.();
   });
 
   // ── HUD 갱신 — profile 기반 ──

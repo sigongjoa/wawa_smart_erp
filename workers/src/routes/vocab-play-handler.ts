@@ -74,6 +74,12 @@ const PatchProgressSchema = z.object({
 
 const SelfStartSchema = z.object({
   max_words: z.number().int().min(4).max(30).optional(),
+  // 출제 출처 — 'mywords'(기본, 학생 단어장) | 'csat'(공유 카탈로그)
+  source: z.enum(['mywords', 'csat']).optional(),
+  // CSAT 전용: 빈도 등급 (1=쉬움, 2=중, 3=어려움). 미지정 시 mixed.
+  tier: z.number().int().min(1).max(3).optional(),
+  // CSAT 카탈로그 id (기본 'csat-megastudy-2025')
+  catalog_id: z.string().optional(),
 });
 
 function handleZodError(err: unknown): Response | null {
@@ -123,7 +129,8 @@ function isAllowedOrigin(request: Request): boolean {
 async function handleGetMyWords(context: RequestContext, auth: PlayAuth): Promise<Response> {
   const words = await executeQuery<VocabWordRow>(
     context.env.DB,
-    `SELECT id, english, korean, pos, example, box, blank_type, status, review_count, wrong_count, created_at
+    `SELECT id, english, korean, pos, example, box, blank_type, status,
+            review_count, wrong_count, last_quizzed_at, origin_catalog_word_id, created_at
      FROM vocab_words
      WHERE academy_id = ? AND student_id = ?
      ORDER BY created_at DESC LIMIT 500`,
@@ -142,10 +149,12 @@ async function handleAddMyWord(request: Request, context: RequestContext, auth: 
     throw err;
   }
   const id = generatePrefixedId('vw');
+  // 셀프-서브 모델: 학생 추가 단어는 자동 승인 → 즉시 시험 풀에 포함.
+  // 교사 승인 단계 제거(routine 오버헤드 제거). 품질 관리는 사후 편집/삭제로.
   await executeInsert(
     context.env.DB,
     `INSERT INTO vocab_words (id, academy_id, student_id, english, korean, pos, example, status, added_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 'student')`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', 'student')`,
     [id, auth.academyId, auth.studentId, data.english, data.korean, data.pos ?? null, data.example ?? null]
   );
   return successResponse({ id }, 201);
@@ -323,8 +332,60 @@ async function handleAvailability(context: RequestContext, auth: PlayAuth): Prom
 }
 
 /**
+ * CSAT 카탈로그 단어를 학생 vocab_words 에 시드 (idempotent).
+ * tier 미지정 시 모든 tier에서 표본 추출 (max 60개), 지정 시 해당 tier 전체.
+ * 이미 학생에게 동일 origin_catalog_word_id가 있으면 skip.
+ */
+async function ensureCsatWordsForStudent(
+  db: D1Database,
+  auth: PlayAuth,
+  catalogId: string,
+  tier?: number
+): Promise<void> {
+  const tierClause = tier ? 'AND tier = ?' : '';
+  const tierParams = tier ? [tier] : [];
+  const limit = tier ? 250 : 120;
+  const catalogWords = await executeQuery<{
+    id: string; english: string; korean: string; pos: string | null; example: string | null;
+  }>(
+    db,
+    `SELECT id, english, korean, pos, example FROM vocab_catalog_words
+      WHERE catalog_id = ? ${tierClause}
+      ORDER BY rank ASC LIMIT ?`,
+    [catalogId, ...tierParams, limit]
+  );
+  if (catalogWords.length === 0) return;
+
+  // 이미 시드된 catalog word id 목록
+  const existingRows = await executeQuery<{ origin_catalog_word_id: string }>(
+    db,
+    `SELECT origin_catalog_word_id FROM vocab_words
+      WHERE academy_id = ? AND student_id = ?
+        AND origin_catalog_word_id IS NOT NULL`,
+    [auth.academyId, auth.studentId]
+  );
+  const seeded = new Set(existingRows.map((r) => r.origin_catalog_word_id));
+
+  const toInsert = catalogWords.filter((cw) => !seeded.has(cw.id));
+  if (toInsert.length === 0) return;
+
+  const stmts = toInsert.map((cw) => {
+    const id = generatePrefixedId('vw');
+    return db.prepare(
+      `INSERT INTO vocab_words
+         (id, academy_id, student_id, english, korean, pos, example, status, added_by, origin_catalog_word_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', 'catalog', ?)`
+    ).bind(
+      id, auth.academyId, auth.studentId,
+      cw.english, cw.korean, cw.pos, cw.example, cw.id
+    );
+  });
+  if (stmts.length > 0) await db.batch(stmts);
+}
+
+/**
  * 학생이 직접 시험지 생성 + 시작 — 정책 기반 차단/풀 구성
- * body: { max_words?: number } (정책 vocab_count보다 작은 경우만 적용)
+ * body: { max_words?: number, source?: 'mywords'|'csat', tier?: 1|2|3, catalog_id? }
  */
 async function handleSelfStartPrintJob(
   request: Request,
@@ -346,6 +407,13 @@ async function handleSelfStartPrintJob(
   const avail = await checkAvailability(db, policy, auth.academyId, auth.studentId);
   if (!avail.ok) {
     return errorResponse(avail.message ?? '지금은 응시할 수 없습니다', 429);
+  }
+
+  // CSAT (공유 카탈로그) 시험: 카탈로그 단어를 학생 vocab_words 에 시드하여
+  // 기존 my-words 흐름에 합류시킨다. 학생은 카탈로그 단어를 자기 단어장에 갖게 되어
+  // 자연스러운 복습 루프로 연결.
+  if (parsed.source === 'csat') {
+    await ensureCsatWordsForStudent(db, auth, parsed.catalog_id ?? 'csat-megastudy-2025', parsed.tier);
   }
 
   // 정책 vocab_count를 기본, max_words 가 더 작으면 그걸 사용 (학생 입장에선 줄이는 것만 허용)
@@ -414,14 +482,31 @@ async function handleSelfStartPrintJob(
   const cooldownClause = policy.word_cooldown_min > 0
     ? `AND (last_quizzed_at IS NULL OR datetime(last_quizzed_at) <= datetime('now', '-${policy.word_cooldown_min} minutes'))`
     : '';
+  // CSAT 모드: 방금 시드한 카탈로그 출신 단어로만 풀 한정
+  const csatClause = parsed.source === 'csat'
+    ? `AND origin_catalog_word_id IS NOT NULL
+       AND origin_catalog_word_id IN (
+         SELECT id FROM vocab_catalog_words
+          WHERE catalog_id = ? ${parsed.tier ? 'AND tier = ?' : ''}
+       )`
+    : '';
+  const csatParams: unknown[] = parsed.source === 'csat'
+    ? (parsed.tier ? [parsed.catalog_id ?? 'csat-megastudy-2025', parsed.tier] : [parsed.catalog_id ?? 'csat-megastudy-2025'])
+    : [];
   const candidates = await executeQuery<any>(
     db,
     `SELECT * FROM vocab_words
       WHERE academy_id = ? AND student_id = ? AND status = 'approved'
-        AND box IN (${boxPlaceholders}) ${cooldownClause}`,
-    [auth.academyId, auth.studentId, ...allowedBoxes]
+        AND box IN (${boxPlaceholders}) ${cooldownClause} ${csatClause}`,
+    [auth.academyId, auth.studentId, ...allowedBoxes, ...csatParams]
   );
   if (candidates.length < 1) {
+    if (parsed.source === 'csat') {
+      return errorResponse(
+        '수능 단어 시드가 비어있어요. 잠시 후 다시 시도해 주세요.',
+        409
+      );
+    }
     if (totalMine === 0) {
       return errorResponse(
         '아직 등록된 단어가 없어요. "내 단어장" 에서 단어를 추가하거나 선생님께 문의해주세요.',
@@ -465,15 +550,19 @@ async function handleSelfStartPrintJob(
 
   // job 생성 — created_by 는 학생 자신 (self-start 구분용)
   const jobId = generatePrefixedId('vpj');
+  const jobSource = parsed.source === 'csat'
+    ? (parsed.tier ? `csat-tier${parsed.tier}` : 'csat-mixed')
+    : 'mywords';
   await executeInsert(
     db,
     `INSERT INTO vocab_print_jobs
-       (id, academy_id, student_id, word_ids_json, created_by, status, started_at, policy_id)
-     VALUES (?, ?, ?, ?, ?, 'in_progress', datetime('now'), ?)`,
+       (id, academy_id, student_id, word_ids_json, created_by, status, started_at, policy_id, source)
+     VALUES (?, ?, ?, ?, ?, 'in_progress', datetime('now'), ?, ?)`,
     [jobId, auth.academyId, auth.studentId,
      JSON.stringify(selected.map(w => w.id)),
      `student:${auth.studentId}`,
-     policy.id]
+     policy.id,
+     jobSource]
   );
 
   // last_quizzed_at 갱신 — 동일 단어 cooldown 적용용
@@ -485,33 +574,43 @@ async function handleSelfStartPrintJob(
     ).bind(auth.academyId, ...selected.map(w => w.id)).run();
   }
 
-  // choices snapshot 생성 (start 로직과 동일). pool LIMIT 제거 — 전체 approved에서 distractor 샘플링
-  const allPool = await executeQuery<any>(
-    db,
-    `SELECT id, english, korean FROM vocab_words
-      WHERE academy_id = ? AND status = 'approved'`,
-    [auth.academyId]
-  );
-  const stmts = selected.map(t => {
-    const q = buildQuestion(t, allPool);
-    return db.prepare(
+  // choices snapshot 생성 (start 로직과 동일). pool LIMIT 제거 — 전체 approved에서 distractor 샘플링.
+  // buildQuestion 은 단어당 *한 번만* 호출 — DB 저장본과 클라 응답본이 동일한 셔플을 공유해야 한다.
+  // (이전: 두 번 호출 → 학생이 본 화면의 정답 위치와 DB의 correct_index 가 어긋나 정답을 골라도 오답 판정됨)
+  // distractor 풀: CSAT 모드면 동일 학생의 카탈로그 출신 단어로 한정
+  // (mywords 풀과 섞이면 난이도 균형이 깨지고 한국어 뜻 풀에 어색한 답이 섞일 수 있음)
+  const allPool = parsed.source === 'csat'
+    ? await executeQuery<any>(
+        db,
+        `SELECT id, english, korean FROM vocab_words
+          WHERE academy_id = ? AND student_id = ? AND status = 'approved'
+            AND origin_catalog_word_id IS NOT NULL`,
+        [auth.academyId, auth.studentId]
+      )
+    : await executeQuery<any>(
+        db,
+        `SELECT id, english, korean FROM vocab_words
+          WHERE academy_id = ? AND status = 'approved'`,
+        [auth.academyId]
+      );
+  const built = selected.map(t => ({ t, q: buildQuestion(t, allPool) }));
+
+  const stmts = built.map(({ t, q }) =>
+    db.prepare(
       `INSERT INTO vocab_print_answers (print_job_id, word_id, correct_index, choices_json)
        VALUES (?, ?, ?, ?)
        ON CONFLICT(print_job_id, word_id) DO NOTHING`
-    ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices));
-  });
+    ).bind(jobId, t.id, q.correctIndex, JSON.stringify(q.choices))
+  );
   if (stmts.length > 0) await db.batch(stmts);
 
-  // 생성된 job + 오늘 N번째 정보 응답
-  const questions = selected.map((t) => {
-    const q = buildQuestion(t, allPool);
-    return {
-      wordId: t.id,
-      prompt: t.english,
-      choices: q.choices,
-      selectedIndex: null as number | null,
-    };
-  });
+  // 생성된 job + 오늘 N번째 정보 응답 — 위에서 만든 동일한 q를 재사용
+  const questions = built.map(({ t, q }) => ({
+    wordId: t.id,
+    prompt: t.english,
+    choices: q.choices,
+    selectedIndex: null as number | null,
+  }));
   return successResponse({
     id: jobId,
     status: 'in_progress',
@@ -700,11 +799,20 @@ async function handleSaveAnswer(
   if (selected === undefined) return errorResponse('selected_index는 0..3 또는 null', 400);
 
   // word_id가 이 잡의 소유 문항인지 명시 검증 — URL 변조 방지
-  const owned = await executeFirst<any>(
+  // self-start 직후 batch insert 와 read 간 D1 consistency lag 방어: 1회 retry
+  let owned = await executeFirst<any>(
     db,
     `SELECT 1 AS ok FROM vocab_print_answers WHERE print_job_id = ? AND word_id = ?`,
     [jobId, wordId]
   );
+  if (!owned) {
+    await new Promise((r) => setTimeout(r, 100));
+    owned = await executeFirst<any>(
+      db,
+      `SELECT 1 AS ok FROM vocab_print_answers WHERE print_job_id = ? AND word_id = ?`,
+      [jobId, wordId]
+    );
+  }
   if (!owned) return errorResponse('이 시험지의 문항이 아닙니다', 404);
 
   const result = await db.prepare(

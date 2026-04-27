@@ -57,7 +57,7 @@ function setSyncDisabled(disabled, reason) {
   } catch {}
 }
 
-async function authedFetch(path, init = {}) {
+export async function authedFetch(path, init = {}) {
   const token = getToken();
   if (!token) {
     setSyncDisabled(true, 'no-token');
@@ -101,8 +101,11 @@ function toClient(row) {
     example: row.example || '',
     box: row.box ?? 1,
     wrongCount: row.wrong_count ?? 0,
+    reviewCount: row.review_count ?? 0,
+    lastQuizzedAt: row.last_quizzed_at || null,
     addedAt: row.created_at,
     status: row.status || 'approved',
+    originCatalogWordId: row.origin_catalog_word_id || null,
   };
 }
 
@@ -347,10 +350,24 @@ export async function savePrintAnswer(jobId, wordId, selectedIndex) {
   return res.ok;
 }
 
-export async function selfStartPrintJob(maxWords = 10) {
+/**
+ * 시험지 생성 + 시작.
+ * @param {number|object} opts
+ *   - number: 기존 호출 호환 (max_words만 지정)
+ *   - object: { maxWords?, source?: 'mywords'|'csat', tier?: 1|2|3, catalogId? }
+ */
+export async function selfStartPrintJob(opts = 10) {
+  const body = typeof opts === 'number'
+    ? { max_words: opts }
+    : {
+        max_words: opts.maxWords ?? 10,
+        ...(opts.source ? { source: opts.source } : {}),
+        ...(opts.tier ? { tier: opts.tier } : {}),
+        ...(opts.catalogId ? { catalog_id: opts.catalogId } : {}),
+      };
   const res = await authedFetch('/api/play/vocab/print/self-start', {
     method: 'POST',
-    body: JSON.stringify({ max_words: maxWords }),
+    body: JSON.stringify(body),
   });
   if (!res) return { error: 'offline' };
   const json = await res.json().catch(() => ({}));

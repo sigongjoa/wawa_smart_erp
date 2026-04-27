@@ -21,20 +21,12 @@ export const DEFAULT_PROFILE = {
   lastActiveDate: null,
 };
 
-export const SEED_WORDS = [
-  { id: 'w001', word: 'identity',   meaning: '정체성',       pos: 'noun', example: 'Find your identity.',         box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w002', word: 'friendship', meaning: '우정',         pos: 'noun', example: 'A true friendship lasts.',    box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w003', word: 'nature',     meaning: '자연',         pos: 'noun', example: 'Protect nature.',             box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w004', word: 'culture',    meaning: '문화',         pos: 'noun', example: 'Korean culture is unique.',   box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w005', word: 'explore',    meaning: '탐험하다',     pos: 'verb', example: 'Explore new places.',         box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w006', word: 'achieve',    meaning: '성취하다',     pos: 'verb', example: 'Achieve your goals.',         box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w007', word: 'brave',      meaning: '용감한',       pos: 'adj',  example: 'Be brave.',                   box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w008', word: 'gentle',     meaning: '상냥한',       pos: 'adj',  example: 'A gentle breeze.',            box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w009', word: 'quickly',    meaning: '빠르게',       pos: 'adv',  example: 'Run quickly.',                box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w010', word: 'between',    meaning: '사이에',       pos: 'prep', example: 'Between you and me.',         box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w011', word: 'although',   meaning: '비록 ~일지라도', pos: 'conj', example: 'Although it rained, we went.', box: 1, wrongCount: 0, addedAt: null },
-  { id: 'w012', word: 'technology', meaning: '기술',         pos: 'noun', example: 'Modern technology.',          box: 1, wrongCount: 0, addedAt: null },
-];
+// 시드 단어 제거됨 — 모든 단어는 서버 vocab_words 또는 카탈로그에서만 가져옴.
+// 도감/통계가 가짜 데이터에 오염되지 않도록 빈 배열 유지.
+export const SEED_WORDS = [];
+
+// 기존 학생 localStorage에 남아있던 더미 시드 식별용 — boot 시 청소에 사용
+export const LEGACY_SEED_ID = /^w0\d{2}$/;
 
 // 키별 기대 스키마 — parsed 값이 shape에 맞지 않으면 null 로 처리해 기본값 fallback 유도
 const VALIDATORS = {
@@ -72,10 +64,24 @@ export function createStore(storage) {
 
 export function seed(store) {
   if (!store.has(KEYS.profile))     store.set(KEYS.profile, { ...DEFAULT_PROFILE });
-  if (!store.has(KEYS.words))       store.set(KEYS.words, SEED_WORDS.map(w => ({ ...w, addedAt: new Date().toISOString() })));
+  if (!store.has(KEYS.words))       store.set(KEYS.words, []);
   if (!store.has(KEYS.quizHistory)) store.set(KEYS.quizHistory, []);
   if (!store.has(KEYS.badges))      store.set(KEYS.badges, []);
   if (!store.has(KEYS.seen))        store.set(KEYS.seen, []);
+}
+
+/**
+ * 기존 학생 단말의 localStorage에 남아있던 시드 더미(w001~w012)를 청소.
+ * 한 번만 실행하면 되지만 idempotent — 이미 깨끗한 단말에선 no-op.
+ * boot 시 매번 호출해도 무해.
+ */
+export function purgeLegacySeed(store) {
+  const words = store.get(KEYS.words);
+  if (!Array.isArray(words) || words.length === 0) return;
+  const cleaned = words.filter(w => !(w?.id && LEGACY_SEED_ID.test(w.id)));
+  if (cleaned.length !== words.length) {
+    store.set(KEYS.words, cleaned);
+  }
 }
 
 export function migrate(store) {
