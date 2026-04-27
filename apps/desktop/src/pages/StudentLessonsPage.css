@@ -1,0 +1,346 @@
+/* StudentLessonsPage — 진도+자료+학부모 노출 통합 페이지 */
+
+/* page-subtitle 은 디자인 시스템에 없어서 페이지 단위로 정의 */
+.page-subtitle {
+  margin: var(--sp-1) 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ── 레이아웃 ─────────────────────────────── */
+.lessons-toolbar {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.lessons-student-select {
+  min-width: 180px;
+}
+
+.lessons-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  min-height: 480px;
+}
+
+@media (max-width: 768px) {
+  .lessons-grid {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .lessons-detail.is-empty-on-mobile {
+    display: none;
+  }
+}
+
+/* ── 좌측 리스트 ─────────────────────────────── */
+.lessons-list-panel {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+.lessons-list-header {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.lessons-list-scroll {
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+@media (max-width: 768px) {
+  .lessons-list-scroll {
+    max-height: none;
+  }
+}
+
+.lessons-list-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3) var(--sp-4);
+  border: none;
+  border-bottom: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.lessons-list-item:hover {
+  background: var(--bg-tertiary);
+}
+.lessons-list-item:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+.lessons-list-item[aria-current='true'] {
+  background: var(--primary-surface);
+  border-left: 3px solid var(--primary);
+  padding-left: calc(var(--sp-4) - 3px);
+}
+
+.lessons-list-meta {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-1);
+}
+.lessons-list-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.lessons-list-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.lessons-list-progress {
+  margin-top: var(--sp-2);
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.lessons-list-progress-bar {
+  height: 100%;
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+/* 상태 칩 (좌측 리스트 메타용) */
+.lessons-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.lessons-chip--success {
+  background: var(--success-surface);
+  color: var(--success);
+}
+.lessons-chip--warning {
+  background: var(--warning-surface);
+  color: var(--warning);
+}
+.lessons-chip--info {
+  background: var(--info-surface);
+  color: var(--info);
+}
+.lessons-chip--parent {
+  background: var(--accent-surface);
+  color: var(--accent-hover);
+}
+
+/* ── 우측 상세 ─────────────────────────────── */
+.lessons-detail {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5);
+  background: var(--bg-secondary);
+}
+.lessons-detail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.lessons-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+.lessons-detail-eyebrow {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-1);
+}
+.lessons-detail-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+/* 섹션 카드 — 디자인 시스템의 .section 보다 가벼운 컨테이너 */
+.lessons-section {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+  background: var(--bg-secondary);
+}
+.lessons-section-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-2);
+}
+.lessons-section-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-2);
+}
+
+/* 이해도 슬라이더 */
+.lessons-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.lessons-slider-row input[type='range'] {
+  flex: 1;
+  accent-color: var(--primary);
+}
+.lessons-slider-value {
+  min-width: 64px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.lessons-slider-stage {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: var(--sp-1);
+  text-align: right;
+}
+.lessons-status-group {
+  margin-top: var(--sp-3);
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* 메모 */
+.lessons-textarea {
+  resize: vertical;
+}
+.lessons-autosave-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: var(--sp-1);
+  min-height: 14px;
+}
+.lessons-autosave-hint--saved {
+  color: var(--success);
+}
+
+/* 자료 메타 */
+.lessons-meta-block {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lessons-meta-block p {
+  margin: var(--sp-1) 0 0;
+  white-space: pre-wrap;
+}
+
+/* 첨부 파일 */
+.lessons-files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.lessons-file-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+.lessons-file-role {
+  background: var(--bg-secondary);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.lessons-file-info {
+  flex: 1;
+  font-size: 13px;
+  min-width: 0;
+}
+.lessons-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lessons-file-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.lessons-upload-row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.lessons-upload-role-select {
+  font-size: 12px;
+  padding: var(--sp-1) var(--sp-2);
+  width: auto;
+}
+.lessons-upload-button {
+  position: relative;
+}
+.lessons-upload-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.lessons-upload-button:focus-within {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* 학부모 공개 */
+.lessons-parent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.lessons-parent-row[data-disabled='true'] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.lessons-parent-share-btn {
+  margin-top: var(--sp-3);
+}
+
+/* ── 폼 (생성 모달 본문) ─────────────────────── */
+.lessons-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.lessons-form-field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-1);
+  font-weight: 500;
+}
+
+/* ── 위험 동작 (보관) ────────────────────────── */
+.lessons-archive-btn {
+  color: var(--danger);
+}

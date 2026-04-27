@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   api,
   LessonItem,
@@ -10,11 +10,19 @@ import {
   Student,
 } from '../api';
 import { toast, useConfirm } from '../components/Toast';
+import Modal from '../components/Modal';
+import './StudentLessonsPage.css';
 
 const STATUS_LABEL: Record<LessonItemStatus, string> = {
   todo: '미시작',
   in_progress: '진행중',
   done: '완료',
+};
+
+const STATUS_CHIP_CLASS: Record<LessonItemStatus, string> = {
+  todo: '',
+  in_progress: 'lessons-chip--info',
+  done: 'lessons-chip--success',
 };
 
 const KIND_LABEL: Record<LessonItemKind, string> = {
@@ -30,12 +38,30 @@ const ROLE_LABEL: Record<LessonFileRole, string> = {
   extra: '부자료',
 };
 
-function understandingColor(v: number | null): string {
-  if (v == null) return 'var(--bg-tertiary)';
-  if (v < 40) return 'var(--danger)';
-  if (v < 70) return 'var(--warning)';
-  return 'var(--success)';
+type UnderstandingStage = 'low' | 'mid' | 'high' | 'none';
+
+function understandingStage(v: number | null): UnderstandingStage {
+  if (v == null) return 'none';
+  if (v < 40) return 'low';
+  if (v < 70) return 'mid';
+  return 'high';
 }
+
+function understandingColor(v: number | null): string {
+  switch (understandingStage(v)) {
+    case 'low': return 'var(--danger)';
+    case 'mid': return 'var(--warning)';
+    case 'high': return 'var(--success)';
+    default: return 'var(--bg-tertiary)';
+  }
+}
+
+const STAGE_LABEL: Record<UnderstandingStage, string> = {
+  low: '위험',
+  mid: '보통',
+  high: '양호',
+  none: '미평가',
+};
 
 export default function StudentLessonsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -71,29 +97,18 @@ export default function StudentLessonsPage() {
     try {
       const rows = await api.listLessonItems({ studentId: selectedStudent });
       setItems(rows);
-      if (rows.length > 0 && !rows.some((r) => r.id === selectedId)) {
-        setSelectedId(rows[0].id);
-      } else if (rows.length === 0) {
-        setSelectedId(null);
-      }
+      setSelectedId((prev) => (prev && rows.some((r) => r.id === prev) ? prev : rows[0]?.id ?? null));
     } catch (err) {
       toast.error('불러오기 실패: ' + (err as Error).message);
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [selectedStudent, selectedId]);
-
-  useEffect(() => {
-    loadStudents();
-  }, [loadStudents]);
-
-  useEffect(() => {
-    loadItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStudent]);
 
-  // ── 항목 생성 ─────────────────
+  useEffect(() => { loadStudents(); }, [loadStudents]);
+  useEffect(() => { loadItems(); }, [loadItems]);
+
   const handleCreate = async () => {
     if (!selectedStudent) return;
     if (!draft.title && !draft.unit_name) {
@@ -122,13 +137,14 @@ export default function StudentLessonsPage() {
     }
   };
 
-  // ── 항목 패치 ─────────────────
   const patch = async (id: string, p: LessonItemPatch) => {
     try {
       const updated = await api.updateLessonItem(id, p);
       setItems((prev) => prev.map((i) => (i.id === id ? updated : i)));
+      return updated;
     } catch (err) {
       toast.error('저장 실패: ' + (err as Error).message);
+      return null;
     }
   };
 
@@ -145,7 +161,6 @@ export default function StudentLessonsPage() {
     }
   };
 
-  // ── 파일 업로드 ─────────────────
   const handleUpload = async (file: File, role: LessonFileRole) => {
     if (!selected) return;
     try {
@@ -169,13 +184,16 @@ export default function StudentLessonsPage() {
     }
   };
 
+  const [shareCopied, setShareCopied] = useState(false);
   const handleShare = async () => {
     if (!selected) return;
     try {
       const r = await api.createLessonItemParentShare(selected.id);
       const url = `${window.location.origin}/#${r.path}`;
       await navigator.clipboard.writeText(url);
+      setShareCopied(true);
       toast.success('학부모 링크 복사됨 (30일 유효)');
+      setTimeout(() => setShareCopied(false), 2000);
     } catch (err) {
       toast.error('실패: ' + (err as Error).message);
     }
@@ -188,17 +206,18 @@ export default function StudentLessonsPage() {
           <h1 className="page-title">학생 학습 기록</h1>
           <p className="page-subtitle">진도·자료·학부모 노출을 한 화면에서 관리합니다.</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="lessons-toolbar">
+          <label className="sr-only" htmlFor="lessons-student">학생 선택</label>
           <select
-            className="input"
+            id="lessons-student"
+            className="input lessons-student-select"
             value={selectedStudent}
             onChange={(e) => setSelectedStudent(e.target.value)}
-            style={{ minWidth: 180 }}
           >
+            {students.length === 0 && <option value="">담당 학생 없음</option>}
             {students.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
-                {s.grade ? ` (${s.grade})` : ''}
+                {s.name}{s.grade ? ` (${s.grade})` : ''}
               </option>
             ))}
           </select>
@@ -212,109 +231,35 @@ export default function StudentLessonsPage() {
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '360px 1fr',
-          gap: 16,
-          marginTop: 16,
-          minHeight: 480,
-        }}
-      >
+      <div className="lessons-grid">
         {/* 좌: 리스트 */}
-        <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '10px 12px',
-              borderBottom: '1px solid var(--border-color)',
-              fontSize: 13,
-              color: 'var(--text-secondary)',
-            }}
-          >
+        <div className="lessons-list-panel" role="region" aria-label="학습 항목 목록">
+          <div className="lessons-list-header" aria-live="polite">
             {loading ? '불러오는 중…' : `${items.length}개 항목`}
           </div>
-          <div style={{ maxHeight: 'calc(100vh - 260px)', overflowY: 'auto' }}>
+          <div className="lessons-list-scroll">
             {items.length === 0 && !loading ? (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-                항목이 없습니다.
+              <div className="empty-state">
+                <div className="empty-state-title">항목이 없습니다</div>
+                <div className="empty-state-desc">우측 상단 + 새 항목으로 시작하세요.</div>
               </div>
             ) : (
-              items.map((it) => (
-                <button
-                  key={it.id}
-                  onClick={() => setSelectedId(it.id)}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '12px 14px',
-                    border: 'none',
-                    borderBottom: '1px solid var(--border-color)',
-                    background:
-                      it.id === selectedId ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      alignItems: 'center',
-                      fontSize: 11,
-                      color: 'var(--text-muted)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span>{KIND_LABEL[it.kind]}</span>
-                    <span>·</span>
-                    <span>{STATUS_LABEL[it.status]}</span>
-                    {it.visible_to_parent && <span style={{ color: 'var(--success)' }}>· 학부모공개</span>}
-                    {it.files.length > 0 && <span>· 📎 {it.files.length}</span>}
-                  </div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>
-                    {it.title || it.unit_name || '(제목 없음)'}
-                  </div>
-                  {it.textbook && (
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                      {it.textbook}
-                    </div>
-                  )}
-                  {it.understanding != null && (
-                    <div
-                      style={{
-                        marginTop: 6,
-                        height: 4,
-                        background: 'var(--bg-tertiary)',
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${it.understanding}%`,
-                          height: '100%',
-                          background: understandingColor(it.understanding),
-                        }}
-                      />
-                    </div>
-                  )}
-                </button>
-              ))
+              items.map((it) => <LessonListItem
+                key={it.id}
+                item={it}
+                active={it.id === selectedId}
+                onSelect={() => setSelectedId(it.id)}
+              />)
             )}
           </div>
         </div>
 
         {/* 우: 상세 */}
-        <div
-          style={{
-            border: '1px solid var(--border-color)',
-            borderRadius: 8,
-            padding: 20,
-            background: 'var(--bg-primary)',
-          }}
-        >
+        <div className="lessons-detail" role="region" aria-label="선택 항목 상세">
           {!selected ? (
-            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 60 }}>
-              항목을 선택하세요.
+            <div className="empty-state">
+              <div className="empty-state-title">항목을 선택하세요</div>
+              <div className="empty-state-desc">왼쪽 목록에서 항목을 선택하면 상세를 볼 수 있습니다.</div>
             </div>
           ) : (
             <DetailPanel
@@ -324,6 +269,7 @@ export default function StudentLessonsPage() {
               onUpload={handleUpload}
               onDeleteFile={handleDeleteFile}
               onShare={handleShare}
+              shareCopied={shareCopied}
               onArchive={() => handleArchive(selected.id)}
             />
           )}
@@ -332,37 +278,16 @@ export default function StudentLessonsPage() {
 
       {/* 생성 모달 */}
       {showCreate && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-          }}
-          onClick={() => setShowCreate(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: 'var(--bg-primary)',
-              padding: 24,
-              borderRadius: 12,
-              minWidth: 420,
-              maxWidth: 540,
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>새 학습 항목</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Modal onClose={() => setShowCreate(false)}>
+          <Modal.Header>새 학습 항목</Modal.Header>
+          <Modal.Body>
+            <div className="lessons-form">
               <label>
-                <div style={{ fontSize: 12, marginBottom: 4 }}>유형</div>
+                <span className="lessons-form-field-label">유형</span>
                 <select
                   className="input"
                   value={draft.kind ?? 'unit'}
                   onChange={(e) => setDraft({ ...draft, kind: e.target.value as LessonItemKind })}
-                  style={{ width: '100%' }}
                 >
                   <option value="unit">단원 (진도)</option>
                   <option value="type">유형 (진도)</option>
@@ -372,68 +297,59 @@ export default function StudentLessonsPage() {
               {(draft.kind ?? 'unit') !== 'free' && (
                 <>
                   <label>
-                    <div style={{ fontSize: 12, marginBottom: 4 }}>교재</div>
+                    <span className="lessons-form-field-label">교재</span>
                     <input
                       className="input"
                       placeholder="예: 쎈 중2-1"
                       value={draft.textbook ?? ''}
                       onChange={(e) => setDraft({ ...draft, textbook: e.target.value })}
-                      style={{ width: '100%' }}
                     />
                   </label>
                   <label>
-                    <div style={{ fontSize: 12, marginBottom: 4 }}>단원/유형명</div>
+                    <span className="lessons-form-field-label">단원/유형명</span>
                     <input
                       className="input"
                       placeholder="예: 이차함수의 그래프"
                       value={draft.unit_name ?? ''}
                       onChange={(e) => setDraft({ ...draft, unit_name: e.target.value })}
-                      style={{ width: '100%' }}
                     />
                   </label>
                 </>
               )}
               <label>
-                <div style={{ fontSize: 12, marginBottom: 4 }}>자료 제목 (선택)</div>
+                <span className="lessons-form-field-label">자료 제목 (선택)</span>
                 <input
                   className="input"
                   placeholder="예: 이차함수 오답 보강"
                   value={draft.title ?? ''}
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                  style={{ width: '100%' }}
                 />
               </label>
               <label>
-                <div style={{ fontSize: 12, marginBottom: 4 }}>제작 사유 (선택)</div>
+                <span className="lessons-form-field-label">제작 사유 (선택)</span>
                 <input
                   className="input"
                   placeholder="예: 오답 보강, 심화"
                   value={draft.purpose ?? ''}
                   onChange={(e) => setDraft({ ...draft, purpose: e.target.value })}
-                  style={{ width: '100%' }}
                 />
               </label>
               <label>
-                <div style={{ fontSize: 12, marginBottom: 4 }}>설명 (선택)</div>
+                <span className="lessons-form-field-label">설명 (선택)</span>
                 <textarea
-                  className="input"
+                  className="input lessons-textarea"
                   rows={3}
                   value={draft.description ?? ''}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                  style={{ width: '100%', resize: 'vertical' }}
                 />
               </label>
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button className="btn" onClick={() => setShowCreate(false)}>
-                취소
-              </button>
-              <button className="btn btn-primary" onClick={handleCreate}>
-                생성
-              </button>
-            </div>
-          </div>
-        </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <button className="btn btn-ghost" onClick={() => setShowCreate(false)}>취소</button>
+            <button className="btn btn-primary" onClick={handleCreate}>생성</button>
+          </Modal.Footer>
+        </Modal>
       )}
 
       {ConfirmDialog}
@@ -441,74 +357,134 @@ export default function StudentLessonsPage() {
   );
 }
 
-// ─── 우측 상세 패널 ───────────────
+// ─── 좌측 리스트 항목 ───────────────────────────────
+
+function LessonListItem({
+  item,
+  active,
+  onSelect,
+}: {
+  item: LessonItem;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const stage = understandingStage(item.understanding);
+  const statusChipClass = STATUS_CHIP_CLASS[item.status];
+  const titleText = item.title || item.unit_name || '(제목 없음)';
+  return (
+    <button
+      className="lessons-list-item"
+      aria-current={active ? 'true' : undefined}
+      onClick={onSelect}
+    >
+      <div className="lessons-list-meta">
+        <span className="lessons-chip">{KIND_LABEL[item.kind]}</span>
+        <span className={`lessons-chip ${statusChipClass}`}>{STATUS_LABEL[item.status]}</span>
+        {item.visible_to_parent && <span className="lessons-chip lessons-chip--parent">학부모공개</span>}
+        {item.files.length > 0 && <span className="lessons-chip">📎 {item.files.length}</span>}
+      </div>
+      <div className="lessons-list-title">{titleText}</div>
+      {item.textbook && <div className="lessons-list-sub">{item.textbook}</div>}
+      {item.understanding != null && (
+        <div className="lessons-list-progress" aria-hidden="true">
+          <div
+            className="lessons-list-progress-bar"
+            style={{ width: `${item.understanding}%`, background: understandingColor(item.understanding) }}
+          />
+        </div>
+      )}
+      <span className="sr-only">
+        {item.understanding != null ? `이해도 ${item.understanding}점, ${STAGE_LABEL[stage]}` : '이해도 미평가'}
+      </span>
+    </button>
+  );
+}
+
+// ─── 우측 상세 패널 ───────────────────────────────
 
 interface DetailPanelProps {
   item: LessonItem;
-  onPatch: (p: LessonItemPatch) => void;
+  onPatch: (p: LessonItemPatch) => Promise<LessonItem | null>;
   onUpload: (file: File, role: LessonFileRole) => void;
   onDeleteFile: (fileId: string) => void;
   onShare: () => void;
+  shareCopied: boolean;
   onArchive: () => void;
 }
 
-function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, onArchive }: DetailPanelProps) {
+function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, shareCopied, onArchive }: DetailPanelProps) {
   const [understanding, setUnderstanding] = useState<number>(item.understanding ?? 0);
   const [note, setNote] = useState<string>(item.note ?? '');
+  const [savedHint, setSavedHint] = useState<string>('');
+  const noteTimer = useRef<number | null>(null);
 
   useEffect(() => {
     setUnderstanding(item.understanding ?? 0);
     setNote(item.note ?? '');
+    setSavedHint('');
   }, [item.id, item.understanding, item.note]);
 
+  const flashSaved = (msg = '저장됨 · 방금') => {
+    setSavedHint(msg);
+    window.clearTimeout(noteTimer.current ?? 0);
+    noteTimer.current = window.setTimeout(() => setSavedHint(''), 2000);
+  };
+
+  const stage = understandingStage(understanding);
+  const titleText = item.title || item.unit_name || '(제목 없음)';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="lessons-detail-stack">
+      <div className="lessons-detail-head">
         <div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
-            {KIND_LABEL[item.kind]}
-            {item.textbook ? ` · ${item.textbook}` : ''}
+          <div className="lessons-detail-eyebrow">
+            {KIND_LABEL[item.kind]}{item.textbook ? ` · ${item.textbook}` : ''}
           </div>
-          <h2 style={{ margin: 0 }}>{item.title || item.unit_name || '(제목 없음)'}</h2>
+          <h2 className="lessons-detail-title">{titleText}</h2>
         </div>
-        <button className="btn btn-sm" onClick={onArchive} style={{ color: 'var(--danger)' }}>
+        <button className="btn btn-sm lessons-archive-btn" onClick={onArchive} aria-label="이 항목 보관">
           보관
         </button>
       </div>
 
       {/* 진도/이해도 */}
       {item.kind !== 'free' && (
-        <section style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: 14 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>이해도</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <section className="lessons-section" aria-labelledby="lessons-understanding-label">
+          <div id="lessons-understanding-label" className="lessons-section-label">이해도</div>
+          <div className="lessons-slider-row">
             <input
               type="range"
               min={0}
               max={100}
               step={5}
               value={understanding}
+              aria-label="이해도"
+              aria-valuetext={`${understanding}점, ${STAGE_LABEL[stage]}`}
               onChange={(e) => setUnderstanding(Number(e.target.value))}
-              onMouseUp={() => onPatch({ understanding })}
-              onTouchEnd={() => onPatch({ understanding })}
-              style={{ flex: 1 }}
+              onMouseUp={async () => { await onPatch({ understanding }); flashSaved(); }}
+              onTouchEnd={async () => { await onPatch({ understanding }); flashSaved(); }}
+              onKeyUp={async (e) => {
+                if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                  await onPatch({ understanding }); flashSaved();
+                }
+              }}
             />
             <span
-              style={{
-                minWidth: 56,
-                textAlign: 'right',
-                fontWeight: 600,
-                color: understandingColor(understanding),
-              }}
+              className="lessons-slider-value"
+              style={{ color: understandingColor(understanding) }}
+              aria-hidden="true"
             >
               {understanding}
             </span>
           </div>
-          <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+          <div className="lessons-slider-stage" aria-hidden="true">{STAGE_LABEL[stage]}</div>
+          <div className="lessons-status-group" role="group" aria-label="진행 상태">
             {(['todo', 'in_progress', 'done'] as LessonItemStatus[]).map((s) => (
               <button
                 key={s}
                 className={'btn btn-sm' + (item.status === s ? ' btn-primary' : '')}
-                onClick={() => onPatch({ status: s })}
+                aria-pressed={item.status === s}
+                onClick={async () => { await onPatch({ status: s }); flashSaved(); }}
               >
                 {STATUS_LABEL[s]}
               </button>
@@ -518,123 +494,100 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, onArchive
       )}
 
       {/* 메모 */}
-      <section>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>메모</div>
+      <section aria-labelledby="lessons-note-label">
+        <div id="lessons-note-label" className="lessons-section-label">메모</div>
         <textarea
-          className="input"
+          className="input lessons-textarea"
           rows={3}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          onBlur={() => {
-            if (note !== (item.note ?? '')) onPatch({ note });
+          onBlur={async () => {
+            if (note !== (item.note ?? '')) {
+              const r = await onPatch({ note });
+              if (r) flashSaved();
+            }
           }}
-          style={{ width: '100%', resize: 'vertical' }}
         />
+        <div
+          className={`lessons-autosave-hint${savedHint ? ' lessons-autosave-hint--saved' : ''}`}
+          aria-live="polite"
+        >
+          {savedHint || (note !== (item.note ?? '') ? '입력 후 다른 곳을 클릭하면 저장됩니다' : '')}
+        </div>
       </section>
 
       {/* 자료 메타 */}
-      {(item.title || item.purpose || item.description) && (
-        <section style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+      {(item.purpose || item.topic || item.description) && (
+        <section className="lessons-meta-block" aria-label="자료 메타">
           {item.purpose && <div>제작 사유: {item.purpose}</div>}
           {item.topic && <div>주제: {item.topic}</div>}
-          {item.description && (
-            <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{item.description}</div>
-          )}
+          {item.description && <p>{item.description}</p>}
         </section>
       )}
 
       {/* 첨부 파일 */}
-      <section style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: 14 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>첨부 파일 ({item.files.length})</div>
+      <section className="lessons-section" aria-labelledby="lessons-files-label">
+        <div className="lessons-section-row">
+          <div id="lessons-files-label" className="lessons-section-label">첨부 파일 ({item.files.length})</div>
           <FileUploadButton onUpload={onUpload} />
         </div>
         {item.files.length === 0 ? (
-          <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: 12 }}>
-            파일이 없습니다.
+          <div className="empty-state" style={{ padding: 'var(--sp-3)' }}>
+            <div className="empty-state-desc">파일이 없습니다.</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <ul className="lessons-files">
             {item.files.map((f) => (
-              <div
-                key={f.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 10px',
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: 6,
-                }}
-              >
-                <span
-                  style={{
-                    background: 'var(--bg-primary)',
-                    padding: '2px 8px',
-                    borderRadius: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                  }}
-                >
-                  {ROLE_LABEL[f.file_role]}
-                </span>
-                <div style={{ flex: 1, fontSize: 13 }}>
-                  <div>{f.file_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    {(f.size_bytes / 1024).toFixed(0)} KB · v{f.version}
-                  </div>
+              <li key={f.id} className="lessons-file-row">
+                <span className="lessons-file-role">{ROLE_LABEL[f.file_role]}</span>
+                <div className="lessons-file-info">
+                  <div className="lessons-file-name">{f.file_name}</div>
+                  <div className="lessons-file-meta">{(f.size_bytes / 1024).toFixed(0)} KB · v{f.version}</div>
                 </div>
                 <a
                   href={api.lessonItemFileDownloadUrl(f.id)}
                   target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-sm"
-                >
-                  ⬇
-                </a>
-                <button className="btn btn-sm" onClick={() => onDeleteFile(f.id)}>
-                  ✕
-                </button>
-              </div>
+                  rel="noreferrer noopener"
+                  className="btn btn-sm btn-ghost"
+                  aria-label={`${f.file_name} 다운로드`}
+                >⬇</a>
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => onDeleteFile(f.id)}
+                  aria-label={`${f.file_name} 삭제`}
+                >✕</button>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
 
-      {/* 학부모 노출 */}
-      <section style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: 14 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>학부모 공개</div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+      {/* 학부모 공개 */}
+      <section className="lessons-section" aria-labelledby="lessons-parent-label">
+        <div id="lessons-parent-label" className="lessons-section-label">학부모 공개</div>
+        <label className="lessons-parent-row">
           <input
             type="checkbox"
             checked={item.visible_to_parent}
-            onChange={(e) => onPatch({ visible_to_parent: e.target.checked })}
+            onChange={async (e) => { await onPatch({ visible_to_parent: e.target.checked }); flashSaved(); }}
           />
           학부모에게 보이기
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <label className="lessons-parent-row" data-disabled={!item.visible_to_parent}>
           <input
             type="checkbox"
             checked={item.parent_can_download}
             disabled={!item.visible_to_parent}
-            onChange={(e) => onPatch({ parent_can_download: e.target.checked })}
+            onChange={async (e) => { await onPatch({ parent_can_download: e.target.checked }); flashSaved(); }}
           />
           다운로드 허용
         </label>
         <button
-          className="btn btn-sm"
-          style={{ marginTop: 10 }}
+          className="btn btn-sm lessons-parent-share-btn"
           disabled={!item.visible_to_parent}
           onClick={onShare}
         >
-          🔗 학부모 링크 복사
+          {shareCopied ? '✓ 복사됨' : '🔗 학부모 링크 복사'}
         </button>
       </section>
     </div>
@@ -646,30 +599,31 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, onArchive
 function FileUploadButton({ onUpload }: { onUpload: (file: File, role: LessonFileRole) => void }) {
   const [role, setRole] = useState<LessonFileRole>('main');
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    <div className="lessons-upload-row">
+      <label className="sr-only" htmlFor="lessons-upload-role">파일 역할</label>
       <select
-        className="input"
+        id="lessons-upload-role"
+        className="input lessons-upload-role-select"
         value={role}
         onChange={(e) => setRole(e.target.value as LessonFileRole)}
-        style={{ fontSize: 12, padding: '4px 6px' }}
       >
         <option value="main">본편</option>
         <option value="answer">정답</option>
         <option value="solution">해설</option>
         <option value="extra">부자료</option>
       </select>
-      <label className="btn btn-sm btn-primary">
+      <span className="btn btn-sm btn-primary lessons-upload-button">
         + 업로드
         <input
           type="file"
-          style={{ display: 'none' }}
+          aria-label="파일 선택"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) onUpload(f, role);
             e.target.value = '';
           }}
         />
-      </label>
+      </span>
     </div>
   );
 }

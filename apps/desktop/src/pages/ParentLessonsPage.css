@@ -1,0 +1,206 @@
+/* ParentLessonsPage — 학부모용 외부 링크 (HMAC 토큰) */
+
+.parent-lessons-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.parent-lessons-shell {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.parent-lessons-header {
+  background: var(--bg-secondary);
+  padding: var(--sp-5);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.parent-lessons-eyebrow {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.parent-lessons-title {
+  margin: var(--sp-1) 0 var(--sp-1);
+  font-size: 22px;
+  color: var(--text-primary);
+}
+.parent-lessons-subtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.parent-lessons-list {
+  margin-top: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.parent-lessons-empty {
+  background: var(--bg-secondary);
+  padding: var(--sp-10);
+  border-radius: var(--radius-md);
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.parent-lessons-card {
+  background: var(--bg-secondary);
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+.parent-lessons-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+.parent-lessons-card-title {
+  margin: 0;
+  font-size: 17px;
+  color: var(--text-primary);
+}
+.parent-lessons-purpose {
+  background: var(--primary-surface);
+  color: var(--primary);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.parent-lessons-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: var(--sp-1);
+}
+.parent-lessons-understanding {
+  margin-top: var(--sp-2);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.parent-lessons-understanding strong {
+  font-variant-numeric: tabular-nums;
+}
+.parent-lessons-description {
+  margin-top: var(--sp-2);
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.parent-lessons-files {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.parent-lessons-file-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+.parent-lessons-file-role {
+  background: var(--bg-secondary);
+  color: var(--primary);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 600;
+}
+.parent-lessons-file-info {
+  flex: 1;
+  font-size: 13px;
+  min-width: 0;
+}
+.parent-lessons-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.parent-lessons-file-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.parent-lessons-download {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.parent-lessons-download:hover {
+  background: var(--primary-hover);
+}
+.parent-lessons-download:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+.parent-lessons-download-disabled {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.parent-lessons-card-footer {
+  margin-top: var(--sp-2);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.parent-lessons-footer {
+  margin-top: var(--sp-6);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.parent-lessons-error-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  background: var(--bg-primary);
+}
+.parent-lessons-error-card {
+  background: var(--bg-secondary);
+  padding: var(--sp-8);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  max-width: 420px;
+  text-align: center;
+}
+.parent-lessons-error-card h2 {
+  margin: var(--sp-3) 0;
+  color: var(--text-primary);
+}
+.parent-lessons-error-card .desc {
+  color: var(--text-secondary);
+}
+.parent-lessons-error-card .hint {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  margin-top: var(--sp-4);
+}
+
+.parent-lessons-loading {
+  padding: var(--sp-10);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 480px) {
+  .parent-lessons-page { padding: var(--sp-4) var(--sp-3); }
+  .parent-lessons-header { padding: var(--sp-4); }
+  .parent-lessons-card { padding: var(--sp-3) var(--sp-4); }
+  .parent-lessons-title { font-size: 19px; }
+}
