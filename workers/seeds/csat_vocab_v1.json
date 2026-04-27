@@ -1,0 +1,5724 @@
+{
+  "catalog_id": "csat-megastudy-2025",
+  "title": "수능 영단어 (메가스터디 무료 PDF)",
+  "source": "megastudy-2025-susung+23mar",
+  "license": "학원 내부 학습용 — 메가스터디 김동영 강사 무료 배포 PDF 기반",
+  "word_count": 635,
+  "words": [
+    {
+      "english": "assessment",
+      "korean": "n. 평가",
+      "pos": "noun",
+      "freq": 3,
+      "source": "모의2023-3",
+      "rank": 1,
+      "tier": 1
+    },
+    {
+      "english": "case",
+      "korean": "경우; 사건, 사례",
+      "pos": "noun",
+      "freq": 3,
+      "source": "수능2025",
+      "rank": 2,
+      "tier": 1
+    },
+    {
+      "english": "critical",
+      "korean": "중요한; 비판적인",
+      "pos": "adj",
+      "freq": 3,
+      "source": "모의2023-3",
+      "rank": 3,
+      "tier": 1
+    },
+    {
+      "english": "hold out",
+      "korean": "v. 지속되다, 보이다",
+      "pos": "verb",
+      "freq": 3,
+      "source": "모의2023-3",
+      "rank": 4,
+      "tier": 1
+    },
+    {
+      "english": "likely",
+      "korean": "~할 것으로 예상되는",
+      "pos": "noun",
+      "freq": 3,
+      "source": "수능2025",
+      "rank": 5,
+      "tier": 1
+    },
+    {
+      "english": "rather",
+      "korean": "오히려, 차라리; 꽤",
+      "pos": "noun",
+      "freq": 3,
+      "source": "수능2025",
+      "rank": 6,
+      "tier": 1
+    },
+    {
+      "english": "rather than",
+      "korean": "~(라기)보다는",
+      "pos": "noun",
+      "freq": 3,
+      "source": "모의2023-3",
+      "rank": 7,
+      "tier": 1
+    },
+    {
+      "english": "store",
+      "korean": "저장하다; 가게, 상점",
+      "pos": "verb",
+      "freq": 3,
+      "source": "수능2025",
+      "rank": 8,
+      "tier": 1
+    },
+    {
+      "english": "take place",
+      "korean": "v. 실시되다, 일어나다",
+      "pos": "verb",
+      "freq": 3,
+      "source": "모의2023-3",
+      "rank": 9,
+      "tier": 1
+    },
+    {
+      "english": "advantage",
+      "korean": "이점, 장점",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 10,
+      "tier": 1
+    },
+    {
+      "english": "afterlife",
+      "korean": "n. 내세, 여생",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 11,
+      "tier": 1
+    },
+    {
+      "english": "aim",
+      "korean": "~을 목표로 하다, 목표를 설정하다 as compared with",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 12,
+      "tier": 1
+    },
+    {
+      "english": "analytic",
+      "korean": "a. 분석적인",
+      "pos": "adj",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 13,
+      "tier": 1
+    },
+    {
+      "english": "architecture",
+      "korean": "건축",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 14,
+      "tier": 1
+    },
+    {
+      "english": "assess",
+      "korean": "평가하다, 판단하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 15,
+      "tier": 1
+    },
+    {
+      "english": "assume",
+      "korean": "가정하다, 추정하다; 전제하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 16,
+      "tier": 1
+    },
+    {
+      "english": "assumption",
+      "korean": "n. 가정, 가설",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 17,
+      "tier": 1
+    },
+    {
+      "english": "attraction",
+      "korean": "명소, 볼거리; 유인력",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 18,
+      "tier": 1
+    },
+    {
+      "english": "attribute",
+      "korean": "속성, 자질",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 19,
+      "tier": 1
+    },
+    {
+      "english": "benefit",
+      "korean": "n. 편익, 혜택; 이익, 이득",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 20,
+      "tier": 1
+    },
+    {
+      "english": "capital",
+      "korean": "자본(금); 수도",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 21,
+      "tier": 1
+    },
+    {
+      "english": "career",
+      "korean": "(직업 상의) 경력, 이력",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 22,
+      "tier": 1
+    },
+    {
+      "english": "conduct",
+      "korean": "v. 수행하다, 집행하다; 안내하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 23,
+      "tier": 1
+    },
+    {
+      "english": "contagion",
+      "korean": "전염, 감염",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 24,
+      "tier": 1
+    },
+    {
+      "english": "context",
+      "korean": "맥락, 상황",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 25,
+      "tier": 1
+    },
+    {
+      "english": "contract",
+      "korean": "n. 계약, 약정 v. 계약하다",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 26,
+      "tier": 1
+    },
+    {
+      "english": "conventional",
+      "korean": "관례적인, 전통적인",
+      "pos": "adj",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 27,
+      "tier": 1
+    },
+    {
+      "english": "cooperate",
+      "korean": "협동하다, 협력하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 28,
+      "tier": 1
+    },
+    {
+      "english": "coordination",
+      "korean": "(신체) 조정력,",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 29,
+      "tier": 1
+    },
+    {
+      "english": "counterpart",
+      "korean": "상대, 대응 관계에 있는 사람",
+      "pos": "adj",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 30,
+      "tier": 1
+    },
+    {
+      "english": "decade",
+      "korean": "n. 10년",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 31,
+      "tier": 1
+    },
+    {
+      "english": "demonstrate",
+      "korean": "입증하다; 보여주다, 설명하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 32,
+      "tier": 1
+    },
+    {
+      "english": "disclose",
+      "korean": "v. 밝히다, 드러내다, 나타내다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 33,
+      "tier": 1
+    },
+    {
+      "english": "domain",
+      "korean": "n. 영역, 영토",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 34,
+      "tier": 1
+    },
+    {
+      "english": "emotional",
+      "korean": "감정적인, 감정이 동요되는",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 35,
+      "tier": 1
+    },
+    {
+      "english": "employ",
+      "korean": "v. 이용하다; 고용하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 36,
+      "tier": 1
+    },
+    {
+      "english": "engage in",
+      "korean": "~을 하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 37,
+      "tier": 1
+    },
+    {
+      "english": "evaluation",
+      "korean": "평가; 검토, 판단",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 38,
+      "tier": 1
+    },
+    {
+      "english": "evolution",
+      "korean": "진화; 발전",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 39,
+      "tier": 1
+    },
+    {
+      "english": "examine",
+      "korean": "v. 검토하다, 조사하다, 살펴보다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 40,
+      "tier": 1
+    },
+    {
+      "english": "except for",
+      "korean": "~을 제외하고는",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 41,
+      "tier": 1
+    },
+    {
+      "english": "exhausting",
+      "korean": "지치게 하는, 힘든",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 42,
+      "tier": 1
+    },
+    {
+      "english": "expense",
+      "korean": "비용, 돈; 지출",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 43,
+      "tier": 1
+    },
+    {
+      "english": "formal",
+      "korean": "a. 형식적인, 공식적인",
+      "pos": "adj",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 44,
+      "tier": 1
+    },
+    {
+      "english": "foster",
+      "korean": "기르다, 양육하다; 촉진하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 45,
+      "tier": 1
+    },
+    {
+      "english": "host",
+      "korean": "많은 수, 다수",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 46,
+      "tier": 1
+    },
+    {
+      "english": "immediate",
+      "korean": "인접한, 바로 옆의; 즉각적인",
+      "pos": "adj",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 47,
+      "tier": 1
+    },
+    {
+      "english": "injury",
+      "korean": "손상, 부상",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 48,
+      "tier": 1
+    },
+    {
+      "english": "legal",
+      "korean": "법적인, 법률 상의",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 49,
+      "tier": 1
+    },
+    {
+      "english": "line of thought",
+      "korean": "사고방식",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 50,
+      "tier": 1
+    },
+    {
+      "english": "maintenance",
+      "korean": "n. 관리, 보수; 유지 지속",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 51,
+      "tier": 1
+    },
+    {
+      "english": "majority",
+      "korean": "n. 대부분, 대다수",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 52,
+      "tier": 1
+    },
+    {
+      "english": "measure up",
+      "korean": "겨루다; 측정하다, 재다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 53,
+      "tier": 1
+    },
+    {
+      "english": "near",
+      "korean": "가까운; 가까이, 인접하여",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 54,
+      "tier": 1
+    },
+    {
+      "english": "norm",
+      "korean": "규범, 기준; 일반 표준",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 55,
+      "tier": 1
+    },
+    {
+      "english": "particularly",
+      "korean": "adv. 특히, 특별히",
+      "pos": "adv",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 56,
+      "tier": 1
+    },
+    {
+      "english": "population dynamics",
+      "korean": "n. 개체군 역학",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 57,
+      "tier": 1
+    },
+    {
+      "english": "population ecology",
+      "korean": "n. 개체군 생태학",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 58,
+      "tier": 1
+    },
+    {
+      "english": "practical",
+      "korean": "실용적인, 실제의",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 59,
+      "tier": 1
+    },
+    {
+      "english": "practice",
+      "korean": "관행, 관례; 실행, 실시",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 60,
+      "tier": 1
+    },
+    {
+      "english": "precisely",
+      "korean": "정밀하게, 정확하게",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 61,
+      "tier": 1
+    },
+    {
+      "english": "principle",
+      "korean": "원칙, 원리; 법칙",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 62,
+      "tier": 1
+    },
+    {
+      "english": "profile",
+      "korean": "n. 개요서",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 63,
+      "tier": 1
+    },
+    {
+      "english": "profile piece",
+      "korean": "n. 인물 소개 기사",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 64,
+      "tier": 1
+    },
+    {
+      "english": "promise",
+      "korean": "n. 가능성, 장래성; 약속, 계약",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 65,
+      "tier": 1
+    },
+    {
+      "english": "promote",
+      "korean": "v. 홍보하다; 장려하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 66,
+      "tier": 1
+    },
+    {
+      "english": "relationship",
+      "korean": "관계",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 67,
+      "tier": 1
+    },
+    {
+      "english": "relevant",
+      "korean": "중요한, 의의가 있는, 유의미한",
+      "pos": "adj",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 68,
+      "tier": 1
+    },
+    {
+      "english": "replace",
+      "korean": "v. 대체하다, 되돌리다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 69,
+      "tier": 1
+    },
+    {
+      "english": "reputation",
+      "korean": "n. 평판",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 70,
+      "tier": 1
+    },
+    {
+      "english": "require",
+      "korean": "v. 필요로 하다, 요구하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 71,
+      "tier": 1
+    },
+    {
+      "english": "response",
+      "korean": "반응; 응답, 대답",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 72,
+      "tier": 1
+    },
+    {
+      "english": "rise",
+      "korean": "상승하다; 일어서다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 73,
+      "tier": 1
+    },
+    {
+      "english": "risk",
+      "korean": "~의 위험을 감수하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 74,
+      "tier": 1
+    },
+    {
+      "english": "risk assessment",
+      "korean": "n. 위험 평가",
+      "pos": "noun",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 75,
+      "tier": 1
+    },
+    {
+      "english": "rule",
+      "korean": "통치, 지배; 규칙",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 76,
+      "tier": 1
+    },
+    {
+      "english": "serve",
+      "korean": "제공하다, 공급하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 77,
+      "tier": 1
+    },
+    {
+      "english": "theoretical",
+      "korean": "a. 이론적인",
+      "pos": "adj",
+      "freq": 2,
+      "source": "모의2023-3",
+      "rank": 78,
+      "tier": 1
+    },
+    {
+      "english": "tourist",
+      "korean": "관광객",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 79,
+      "tier": 1
+    },
+    {
+      "english": "transportation",
+      "korean": "교통, 운송, 수송",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 80,
+      "tier": 1
+    },
+    {
+      "english": "turn",
+      "korean": "(책장을) 넘기다",
+      "pos": "noun",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 81,
+      "tier": 1
+    },
+    {
+      "english": "work",
+      "korean": "제품; 일, 작업; 일하다, 작동하다",
+      "pos": "verb",
+      "freq": 2,
+      "source": "수능2025",
+      "rank": 82,
+      "tier": 1
+    },
+    {
+      "english": "absolutely",
+      "korean": "전적으로, 틀림없이",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 83,
+      "tier": 1
+    },
+    {
+      "english": "accept",
+      "korean": "믿다, 받아들이다; 신뢰하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 84,
+      "tier": 1
+    },
+    {
+      "english": "accomplish",
+      "korean": "완수하다, 성취하다, 해내다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 85,
+      "tier": 1
+    },
+    {
+      "english": "accomplishment",
+      "korean": "n. 달성, 성취",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 86,
+      "tier": 1
+    },
+    {
+      "english": "according to",
+      "korean": "~에 따르면",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 87,
+      "tier": 1
+    },
+    {
+      "english": "accurate",
+      "korean": "정확한, 정밀한; 정확한 계산, 정보 antipredatory",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 88,
+      "tier": 1
+    },
+    {
+      "english": "accurately",
+      "korean": "정확하게",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 89,
+      "tier": 1
+    },
+    {
+      "english": "acquisition",
+      "korean": "획득, 습득",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 90,
+      "tier": 1
+    },
+    {
+      "english": "adaptive",
+      "korean": "적응적인, 적응할 수 있는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 91,
+      "tier": 1
+    },
+    {
+      "english": "additional",
+      "korean": "추가의, 추가적인,",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 92,
+      "tier": 1
+    },
+    {
+      "english": "admire",
+      "korean": "v. 존중하다; 칭찬하다; 감탄하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 93,
+      "tier": 1
+    },
+    {
+      "english": "admission",
+      "korean": "입장료, 입장; 허가, 인정",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 94,
+      "tier": 1
+    },
+    {
+      "english": "advanced",
+      "korean": "발달한, 진보한; 고급의, 심화된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 95,
+      "tier": 1
+    },
+    {
+      "english": "affairs",
+      "korean": "상황; 사건, 일",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 96,
+      "tier": 1
+    },
+    {
+      "english": "affective",
+      "korean": "a. 감정적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 97,
+      "tier": 1
+    },
+    {
+      "english": "after all",
+      "korean": "결국, 무엇보다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 98,
+      "tier": 1
+    },
+    {
+      "english": "afterwards",
+      "korean": "그 후에",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 99,
+      "tier": 1
+    },
+    {
+      "english": "alchemy",
+      "korean": "n. 연금술, 연탄술",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 100,
+      "tier": 1
+    },
+    {
+      "english": "algebra",
+      "korean": "n. 대수학(代數學)",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 101,
+      "tier": 1
+    },
+    {
+      "english": "algorithm-generated",
+      "korean": "알고리듬에 의해 생성된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 102,
+      "tier": 1
+    },
+    {
+      "english": "altruistic",
+      "korean": "이타주의의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 103,
+      "tier": 1
+    },
+    {
+      "english": "analysis",
+      "korean": "분석 연구, 분석",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 104,
+      "tier": 1
+    },
+    {
+      "english": "anatomical",
+      "korean": "해부학적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 105,
+      "tier": 1
+    },
+    {
+      "english": "anatomy",
+      "korean": "해부학",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 106,
+      "tier": 1
+    },
+    {
+      "english": "ankle",
+      "korean": "발목",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 107,
+      "tier": 1
+    },
+    {
+      "english": "annual",
+      "korean": "연례의, 매년의; 연간 행사",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 108,
+      "tier": 1
+    },
+    {
+      "english": "antibiotics",
+      "korean": "n. 항생제. 항생 물질",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 109,
+      "tier": 1
+    },
+    {
+      "english": "apparent",
+      "korean": "a. ~인 것 같은, ~인 것으로 보이는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 110,
+      "tier": 1
+    },
+    {
+      "english": "applicant",
+      "korean": "n. 지원자, 응모자, 후보자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 111,
+      "tier": 1
+    },
+    {
+      "english": "apply for",
+      "korean": "~에 지원하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 112,
+      "tier": 1
+    },
+    {
+      "english": "appreciably",
+      "korean": "상당히, 주목할 만하게, 눈에 띄게",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 113,
+      "tier": 1
+    },
+    {
+      "english": "appreciation",
+      "korean": "이해; 감사, 감상",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 114,
+      "tier": 1
+    },
+    {
+      "english": "appropriately",
+      "korean": "적절히, 알맞게",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 115,
+      "tier": 1
+    },
+    {
+      "english": "arena",
+      "korean": "장, 무대",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 116,
+      "tier": 1
+    },
+    {
+      "english": "argue",
+      "korean": "주장하다, 논쟁하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 117,
+      "tier": 1
+    },
+    {
+      "english": "array",
+      "korean": "정렬, 배열, 집합",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 118,
+      "tier": 1
+    },
+    {
+      "english": "arrival",
+      "korean": "도래, 도착",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 119,
+      "tier": 1
+    },
+    {
+      "english": "aspiring",
+      "korean": "장차 ~이 되려는; 희망하는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 120,
+      "tier": 1
+    },
+    {
+      "english": "associate",
+      "korean": "v. 관련시키다(with); 결합하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 121,
+      "tier": 1
+    },
+    {
+      "english": "associative",
+      "korean": "a. 연합하는, 관념의",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 122,
+      "tier": 1
+    },
+    {
+      "english": "astronomy",
+      "korean": "천문학; 우주 연구",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 123,
+      "tier": 1
+    },
+    {
+      "english": "attract",
+      "korean": "~의 관심을 끌다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 124,
+      "tier": 1
+    },
+    {
+      "english": "automate",
+      "korean": "자동화하다, 기계화하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 125,
+      "tier": 1
+    },
+    {
+      "english": "automatically",
+      "korean": "자동적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 126,
+      "tier": 1
+    },
+    {
+      "english": "automobile",
+      "korean": "자동차",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 127,
+      "tier": 1
+    },
+    {
+      "english": "avoid",
+      "korean": "~하기를 피하다, 회피하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 128,
+      "tier": 1
+    },
+    {
+      "english": "awareness",
+      "korean": "의식, 관심; 인식",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 129,
+      "tier": 1
+    },
+    {
+      "english": "bear out",
+      "korean": "~을 유지하다, ~을 지지하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 130,
+      "tier": 1
+    },
+    {
+      "english": "belief",
+      "korean": "n. 믿음; 확신",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 131,
+      "tier": 1
+    },
+    {
+      "english": "beloved",
+      "korean": "사랑받는, 인기 많은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 132,
+      "tier": 1
+    },
+    {
+      "english": "beyond",
+      "korean": "~을 너머",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 133,
+      "tier": 1
+    },
+    {
+      "english": "bind",
+      "korean": "v. 묶다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 134,
+      "tier": 1
+    },
+    {
+      "english": "biography",
+      "korean": "일대기, 전기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 135,
+      "tier": 1
+    },
+    {
+      "english": "bloody",
+      "korean": "피투성이가 되는, 피를 흘리는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 136,
+      "tier": 1
+    },
+    {
+      "english": "body budget",
+      "korean": "n. 신체 (에너지) 예산",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 137,
+      "tier": 1
+    },
+    {
+      "english": "boost",
+      "korean": "v. 높이다, 증가시키다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 138,
+      "tier": 1
+    },
+    {
+      "english": "break",
+      "korean": "휴식 (시간); 파손, 고장",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 139,
+      "tier": 1
+    },
+    {
+      "english": "breakdown",
+      "korean": "고장; 분해, 분석",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 140,
+      "tier": 1
+    },
+    {
+      "english": "broadcaster",
+      "korean": "방송인",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 141,
+      "tier": 1
+    },
+    {
+      "english": "call for",
+      "korean": "~을 요구하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 142,
+      "tier": 1
+    },
+    {
+      "english": "cancel",
+      "korean": "취소하다, 무효화하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 143,
+      "tier": 1
+    },
+    {
+      "english": "capacity",
+      "korean": "능력, 수용 능력",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 144,
+      "tier": 1
+    },
+    {
+      "english": "captor",
+      "korean": "n. 포획자, 체포자, 잡는 사람",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 145,
+      "tier": 1
+    },
+    {
+      "english": "careful",
+      "korean": "주의 깊게, 조심하는; 세심한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 146,
+      "tier": 1
+    },
+    {
+      "english": "cash",
+      "korean": "현금, 돈",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 147,
+      "tier": 1
+    },
+    {
+      "english": "cause",
+      "korean": "원인; 이유, 목적",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 148,
+      "tier": 1
+    },
+    {
+      "english": "centralize",
+      "korean": "중앙집권화를 하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 149,
+      "tier": 1
+    },
+    {
+      "english": "chairman",
+      "korean": "회장, 의장",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 150,
+      "tier": 1
+    },
+    {
+      "english": "chance",
+      "korean": "n. 가능성; 우연; 기회",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 151,
+      "tier": 1
+    },
+    {
+      "english": "change",
+      "korean": "변화시키다, 변경하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 152,
+      "tier": 1
+    },
+    {
+      "english": "channel",
+      "korean": "v. 특정한 방향으로 돌리다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 153,
+      "tier": 1
+    },
+    {
+      "english": "character",
+      "korean": "등장인물; 성격, 특성",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 154,
+      "tier": 1
+    },
+    {
+      "english": "characteristic",
+      "korean": "n. 특성, 특징",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 155,
+      "tier": 1
+    },
+    {
+      "english": "charitable",
+      "korean": "a. 관대한, 자선의, 자비로운",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 156,
+      "tier": 1
+    },
+    {
+      "english": "chase",
+      "korean": "v. 쫓다, 추적하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 157,
+      "tier": 1
+    },
+    {
+      "english": "class",
+      "korean": "(~와) 같은 부류에 넣다; 계층, 종류 consequence",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 158,
+      "tier": 1
+    },
+    {
+      "english": "claw",
+      "korean": "발톱",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 159,
+      "tier": 1
+    },
+    {
+      "english": "clear",
+      "korean": "분명한, 명확한; 깨끗한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 160,
+      "tier": 1
+    },
+    {
+      "english": "clerk",
+      "korean": "점원, 직원",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 161,
+      "tier": 1
+    },
+    {
+      "english": "clock-oriented",
+      "korean": "시계 중심의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 162,
+      "tier": 1
+    },
+    {
+      "english": "close-knit",
+      "korean": "긴밀히 맺어진, 유대감 있는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 163,
+      "tier": 1
+    },
+    {
+      "english": "collect",
+      "korean": "수거하다; 모으다, 수집하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 164,
+      "tier": 1
+    },
+    {
+      "english": "collectivistically oriented",
+      "korean": "a. 집단주의 지향의",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 165,
+      "tier": 1
+    },
+    {
+      "english": "colony",
+      "korean": "n. 식민지",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 166,
+      "tier": 1
+    },
+    {
+      "english": "combination",
+      "korean": "조합, 결합",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 167,
+      "tier": 1
+    },
+    {
+      "english": "command",
+      "korean": "지배하다, 지휘하다;",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 168,
+      "tier": 1
+    },
+    {
+      "english": "communication",
+      "korean": "의사소통",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 169,
+      "tier": 1
+    },
+    {
+      "english": "community",
+      "korean": "공동체, 사회 집단",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 170,
+      "tier": 1
+    },
+    {
+      "english": "compelling",
+      "korean": "a. 설득력 있는; 강제적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 171,
+      "tier": 1
+    },
+    {
+      "english": "competition",
+      "korean": "n. 경기, 대회; 경쟁",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 172,
+      "tier": 1
+    },
+    {
+      "english": "completely",
+      "korean": "완전히, 전적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 173,
+      "tier": 1
+    },
+    {
+      "english": "complicated",
+      "korean": "복잡한, 어려운",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 174,
+      "tier": 1
+    },
+    {
+      "english": "composition",
+      "korean": "구성 요소, 성분",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 175,
+      "tier": 1
+    },
+    {
+      "english": "concept",
+      "korean": "개념; 아이디어, 생각",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 176,
+      "tier": 1
+    },
+    {
+      "english": "conclusion",
+      "korean": "n. 결론, 결정; 결말, 종결",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 177,
+      "tier": 1
+    },
+    {
+      "english": "conform",
+      "korean": "따르다, 순응하다; 일치하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 178,
+      "tier": 1
+    },
+    {
+      "english": "conscious",
+      "korean": "의식적인, 알고 있는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 179,
+      "tier": 1
+    },
+    {
+      "english": "consequently",
+      "korean": "adv. 그 결과, 결과적으로",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 180,
+      "tier": 1
+    },
+    {
+      "english": "consider",
+      "korean": "사려하다, 고려하다, 숙고하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 181,
+      "tier": 1
+    },
+    {
+      "english": "considerable",
+      "korean": "상당한, 많은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 182,
+      "tier": 1
+    },
+    {
+      "english": "consideration",
+      "korean": "n. 고려, 숙고",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 183,
+      "tier": 1
+    },
+    {
+      "english": "constantly",
+      "korean": "끊임없이",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 184,
+      "tier": 1
+    },
+    {
+      "english": "constitute",
+      "korean": "구성하다, 형성하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 185,
+      "tier": 1
+    },
+    {
+      "english": "constrain",
+      "korean": "속박하다, 제약하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 186,
+      "tier": 1
+    },
+    {
+      "english": "consume",
+      "korean": "소비하다, 소모하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 187,
+      "tier": 1
+    },
+    {
+      "english": "continual",
+      "korean": "a. 계속적인, 끊임없는, 연속적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 188,
+      "tier": 1
+    },
+    {
+      "english": "controlled",
+      "korean": "통제된, 규제된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 189,
+      "tier": 1
+    },
+    {
+      "english": "convenience",
+      "korean": "편리함, 편의시설",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 190,
+      "tier": 1
+    },
+    {
+      "english": "convey",
+      "korean": "v. 전달하다; 나르다, 운반하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 191,
+      "tier": 1
+    },
+    {
+      "english": "cooperative",
+      "korean": "협력하는, 협동하는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 192,
+      "tier": 1
+    },
+    {
+      "english": "coordinate",
+      "korean": "(신체를) 조정하다, 조화롭게 하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 193,
+      "tier": 1
+    },
+    {
+      "english": "core",
+      "korean": "핵심의; 중심",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 194,
+      "tier": 1
+    },
+    {
+      "english": "corporation",
+      "korean": "기업",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 195,
+      "tier": 1
+    },
+    {
+      "english": "correlate",
+      "korean": "v. 서로 연관시키다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 196,
+      "tier": 1
+    },
+    {
+      "english": "cover",
+      "korean": "보도하다, 취재하다; 덮다, 숨기다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 197,
+      "tier": 1
+    },
+    {
+      "english": "coverage",
+      "korean": "관심, 보도 (범위)",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 198,
+      "tier": 1
+    },
+    {
+      "english": "critically",
+      "korean": "비판적으로; 심각하게",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 199,
+      "tier": 1
+    },
+    {
+      "english": "curriculum",
+      "korean": "교육 과정",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 200,
+      "tier": 1
+    },
+    {
+      "english": "cycle",
+      "korean": "주기; 순환",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 201,
+      "tier": 1
+    },
+    {
+      "english": "daily",
+      "korean": "일상의, 매일의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 202,
+      "tier": 1
+    },
+    {
+      "english": "decide",
+      "korean": "결정하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 203,
+      "tier": 1
+    },
+    {
+      "english": "decision",
+      "korean": "n. (의사) 결정, 결심",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 204,
+      "tier": 1
+    },
+    {
+      "english": "definition",
+      "korean": "정의, 의미;",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 205,
+      "tier": 1
+    },
+    {
+      "english": "delicate",
+      "korean": "깨지기 쉬운, 섬세한; 미세한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 206,
+      "tier": 1
+    },
+    {
+      "english": "density",
+      "korean": "n. 밀도,",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 207,
+      "tier": 1
+    },
+    {
+      "english": "depict",
+      "korean": "eager to 동사원형",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 208,
+      "tier": 1
+    },
+    {
+      "english": "deprive A of B",
+      "korean": "A에게서 B를 빼앗다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 209,
+      "tier": 1
+    },
+    {
+      "english": "derail",
+      "korean": "저해하다, 망치다; 실패하게 하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 210,
+      "tier": 1
+    },
+    {
+      "english": "derive from",
+      "korean": "~에서 유래하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 211,
+      "tier": 1
+    },
+    {
+      "english": "design",
+      "korean": "설계하다, 구상하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 212,
+      "tier": 2
+    },
+    {
+      "english": "desirable",
+      "korean": "바람직한, 호감 가는, 가치 있는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 213,
+      "tier": 2
+    },
+    {
+      "english": "desire",
+      "korean": "욕구, 갈망;",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 214,
+      "tier": 2
+    },
+    {
+      "english": "devalue",
+      "korean": "가치가 떨어지다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 215,
+      "tier": 2
+    },
+    {
+      "english": "develop",
+      "korean": "구축하다, 조성하다, 개발하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 216,
+      "tier": 2
+    },
+    {
+      "english": "diminish",
+      "korean": "줄이다, 약화시키다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 217,
+      "tier": 2
+    },
+    {
+      "english": "director",
+      "korean": "감독; 책임자, 관리자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 218,
+      "tier": 2
+    },
+    {
+      "english": "disappear",
+      "korean": "사라지다, 없어지다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 219,
+      "tier": 2
+    },
+    {
+      "english": "disaster",
+      "korean": "n. 재난",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 220,
+      "tier": 2
+    },
+    {
+      "english": "discipline",
+      "korean": "학문, 지식 분야; 규율, 훈육",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 221,
+      "tier": 2
+    },
+    {
+      "english": "discourse",
+      "korean": "담론; 논의, 이야기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 222,
+      "tier": 2
+    },
+    {
+      "english": "disquiet",
+      "korean": "n. 불안 v. 불안하게 하다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 223,
+      "tier": 2
+    },
+    {
+      "english": "dissolve",
+      "korean": "v. 해체하다; 녹이다, 분해시키다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 224,
+      "tier": 2
+    },
+    {
+      "english": "distress",
+      "korean": "괴로움, (심리적) 고통",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 225,
+      "tier": 2
+    },
+    {
+      "english": "diverse",
+      "korean": "다양한, 다채로운",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 226,
+      "tier": 2
+    },
+    {
+      "english": "dog-ear",
+      "korean": "(책장의) 모서리를 접다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 227,
+      "tier": 2
+    },
+    {
+      "english": "dominate",
+      "korean": "v. 장악하다; 지배하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 228,
+      "tier": 2
+    },
+    {
+      "english": "downtown",
+      "korean": "시내에, 시내로; 도심지",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 229,
+      "tier": 2
+    },
+    {
+      "english": "draftsmanship",
+      "korean": "제도, 제도공의 기술",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 230,
+      "tier": 2
+    },
+    {
+      "english": "drawer",
+      "korean": "서랍, 서랍장",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 231,
+      "tier": 2
+    },
+    {
+      "english": "drive",
+      "korean": "유도하다; 운전하다; 추진하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 232,
+      "tier": 2
+    },
+    {
+      "english": "due to",
+      "korean": "~때문에",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 233,
+      "tier": 2
+    },
+    {
+      "english": "dynamic",
+      "korean": "역동적인; 활발한, 변화가 많은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 234,
+      "tier": 2
+    },
+    {
+      "english": "ecologist",
+      "korean": "n. 생태학자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 235,
+      "tier": 2
+    },
+    {
+      "english": "edge",
+      "korean": "n. 문제; 테두리; 우세, 강점",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 236,
+      "tier": 2
+    },
+    {
+      "english": "editor",
+      "korean": "편집자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 237,
+      "tier": 2
+    },
+    {
+      "english": "education",
+      "korean": "교육; 학습, 훈련",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 238,
+      "tier": 2
+    },
+    {
+      "english": "educator",
+      "korean": "교육자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 239,
+      "tier": 2
+    },
+    {
+      "english": "effect",
+      "korean": "초래하다, 가져오다 결과; 효과",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 240,
+      "tier": 2
+    },
+    {
+      "english": "efficient",
+      "korean": "효율적인, 유능한,",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 241,
+      "tier": 2
+    },
+    {
+      "english": "effort",
+      "korean": "노력",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 242,
+      "tier": 2
+    },
+    {
+      "english": "effortful",
+      "korean": "노력이 필요한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 243,
+      "tier": 2
+    },
+    {
+      "english": "embarrassed",
+      "korean": "민망한, 당황스러운",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 244,
+      "tier": 2
+    },
+    {
+      "english": "encounter",
+      "korean": "v. (우연히) 마주치다 n. 만남",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 245,
+      "tier": 2
+    },
+    {
+      "english": "energize",
+      "korean": "힘을 북돋아 주다, 활력을 주다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 246,
+      "tier": 2
+    },
+    {
+      "english": "enforcement",
+      "korean": "(규제) 집행; 실행, 시행",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 247,
+      "tier": 2
+    },
+    {
+      "english": "enhance",
+      "korean": "높이다, 향상시키다; 강화하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 248,
+      "tier": 2
+    },
+    {
+      "english": "enjoy",
+      "korean": "즐기다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 249,
+      "tier": 2
+    },
+    {
+      "english": "enormous",
+      "korean": "a. 막대한, 거대한",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 250,
+      "tier": 2
+    },
+    {
+      "english": "ensure",
+      "korean": "보장하다, 확인하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 251,
+      "tier": 2
+    },
+    {
+      "english": "entirely",
+      "korean": "전적으로, 완전히",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 252,
+      "tier": 2
+    },
+    {
+      "english": "envious",
+      "korean": "질투하는, 샘내는; 부러워하는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 253,
+      "tier": 2
+    },
+    {
+      "english": "envy",
+      "korean": "부러워하다, 시기하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 254,
+      "tier": 2
+    },
+    {
+      "english": "equipment",
+      "korean": "장비, 기기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 255,
+      "tier": 2
+    },
+    {
+      "english": "establish",
+      "korean": "확립하다, 수립하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 256,
+      "tier": 2
+    },
+    {
+      "english": "eternal",
+      "korean": "a. 영원한; 끝이 없는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 257,
+      "tier": 2
+    },
+    {
+      "english": "evaluate",
+      "korean": "v. 평가하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 258,
+      "tier": 2
+    },
+    {
+      "english": "event",
+      "korean": "행사, 사건",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 259,
+      "tier": 2
+    },
+    {
+      "english": "evolve",
+      "korean": "발달시키다, 진전시키다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 260,
+      "tier": 2
+    },
+    {
+      "english": "executive",
+      "korean": "n. 경영자, 간부 a. 실행의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 261,
+      "tier": 2
+    },
+    {
+      "english": "exercise bicycle",
+      "korean": "n. 실내 운동용 자전거",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 262,
+      "tier": 2
+    },
+    {
+      "english": "expand",
+      "korean": "확장하다, 늘리다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 263,
+      "tier": 2
+    },
+    {
+      "english": "expansion",
+      "korean": "확장; 팽창",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 264,
+      "tier": 2
+    },
+    {
+      "english": "explicitly",
+      "korean": "adv. 명시적으로",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 265,
+      "tier": 2
+    },
+    {
+      "english": "express",
+      "korean": "표현하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 266,
+      "tier": 2
+    },
+    {
+      "english": "extended",
+      "korean": "장기간에 걸친, 확장된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 267,
+      "tier": 2
+    },
+    {
+      "english": "extensive",
+      "korean": "a. 광범위한, 폭넓은",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 268,
+      "tier": 2
+    },
+    {
+      "english": "facility",
+      "korean": "시설, 기관",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 269,
+      "tier": 2
+    },
+    {
+      "english": "factory",
+      "korean": "공장",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 270,
+      "tier": 2
+    },
+    {
+      "english": "fairly",
+      "korean": "상당히, 꽤",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 271,
+      "tier": 2
+    },
+    {
+      "english": "fairness",
+      "korean": "공정함; 정당성",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 272,
+      "tier": 2
+    },
+    {
+      "english": "famously",
+      "korean": "잘 알려졌듯이",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 273,
+      "tier": 2
+    },
+    {
+      "english": "fashion",
+      "korean": "방식; 유행",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 274,
+      "tier": 2
+    },
+    {
+      "english": "fat",
+      "korean": "지방",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 275,
+      "tier": 2
+    },
+    {
+      "english": "favor",
+      "korean": "n. 호의, 친절",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 276,
+      "tier": 2
+    },
+    {
+      "english": "fearful",
+      "korean": "두려운, 겁먹은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 277,
+      "tier": 2
+    },
+    {
+      "english": "feature",
+      "korean": "n. 특징; 얼굴",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 278,
+      "tier": 2
+    },
+    {
+      "english": "fiction",
+      "korean": "소설, 허구",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 279,
+      "tier": 2
+    },
+    {
+      "english": "film",
+      "korean": "영화",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 280,
+      "tier": 2
+    },
+    {
+      "english": "final round",
+      "korean": "n. 결승전",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 281,
+      "tier": 2
+    },
+    {
+      "english": "flat",
+      "korean": "평평한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 282,
+      "tier": 2
+    },
+    {
+      "english": "flesh",
+      "korean": "n. 살, 육체",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 283,
+      "tier": 2
+    },
+    {
+      "english": "flexibility",
+      "korean": "유연성; 적응력",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 284,
+      "tier": 2
+    },
+    {
+      "english": "flockmate",
+      "korean": "무리 구성원",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 285,
+      "tier": 2
+    },
+    {
+      "english": "following",
+      "korean": "다음의, 후속의, 뒤따르는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 286,
+      "tier": 2
+    },
+    {
+      "english": "formation",
+      "korean": "설립, 형성 (과정)",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 287,
+      "tier": 2
+    },
+    {
+      "english": "found",
+      "korean": "v. 설립하다, 세우다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 288,
+      "tier": 2
+    },
+    {
+      "english": "foundation",
+      "korean": "n. 토대, 기반",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 289,
+      "tier": 2
+    },
+    {
+      "english": "founder",
+      "korean": "설립자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 290,
+      "tier": 2
+    },
+    {
+      "english": "fulfillment",
+      "korean": "n. 만족감; 이행 수행",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 291,
+      "tier": 2
+    },
+    {
+      "english": "full-time",
+      "korean": "전업의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 292,
+      "tier": 2
+    },
+    {
+      "english": "fully",
+      "korean": "완전히, 충분히",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 293,
+      "tier": 2
+    },
+    {
+      "english": "fundamental",
+      "korean": "근본적인, 기본적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 294,
+      "tier": 2
+    },
+    {
+      "english": "fundamentally",
+      "korean": "adv. 근본적(본질적)으로",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 295,
+      "tier": 2
+    },
+    {
+      "english": "further",
+      "korean": "더 나아간, 추가적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 296,
+      "tier": 2
+    },
+    {
+      "english": "gain",
+      "korean": "이득을 얻다; 득점하다, 획득하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 297,
+      "tier": 2
+    },
+    {
+      "english": "gather",
+      "korean": "모으다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 298,
+      "tier": 2
+    },
+    {
+      "english": "generation",
+      "korean": "n. 세대",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 299,
+      "tier": 2
+    },
+    {
+      "english": "give off",
+      "korean": "~을 방출하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 300,
+      "tier": 2
+    },
+    {
+      "english": "global",
+      "korean": "세계적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 301,
+      "tier": 2
+    },
+    {
+      "english": "grip",
+      "korean": "움켜쥐다; 움켜쥠; 잡다, 파악하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 302,
+      "tier": 2
+    },
+    {
+      "english": "grow",
+      "korean": "성장하다, 발달하다; 번식하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 303,
+      "tier": 2
+    },
+    {
+      "english": "guarantee",
+      "korean": "n. 보장, 보증 v. 보증하다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 304,
+      "tier": 2
+    },
+    {
+      "english": "guardian",
+      "korean": "후견인, 보호자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 305,
+      "tier": 2
+    },
+    {
+      "english": "guilt",
+      "korean": "죄책감, 유죄; 잘못, 죄",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 306,
+      "tier": 2
+    },
+    {
+      "english": "gut feeling",
+      "korean": "n. 직감",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 307,
+      "tier": 2
+    },
+    {
+      "english": "harmful",
+      "korean": "해로운, 유해한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 308,
+      "tier": 2
+    },
+    {
+      "english": "harvest",
+      "korean": "추수하다, 수확하다; 수확(물)",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 309,
+      "tier": 2
+    },
+    {
+      "english": "heartbeat",
+      "korean": "심장 박동",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 310,
+      "tier": 2
+    },
+    {
+      "english": "hesitation",
+      "korean": "망설임, 주저",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 311,
+      "tier": 2
+    },
+    {
+      "english": "heuristic",
+      "korean": "체험적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 312,
+      "tier": 2
+    },
+    {
+      "english": "highlight",
+      "korean": "강조하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 313,
+      "tier": 2
+    },
+    {
+      "english": "highly",
+      "korean": "adv. 매우, 대단히",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 314,
+      "tier": 2
+    },
+    {
+      "english": "honesty",
+      "korean": "정직, 솔직함",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 315,
+      "tier": 2
+    },
+    {
+      "english": "hum",
+      "korean": "(기계 등이) 윙윙거리며 돌아가다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 316,
+      "tier": 2
+    },
+    {
+      "english": "hunt",
+      "korean": "쫓다, 사냥하다, 추적하다; 사냥",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 317,
+      "tier": 2
+    },
+    {
+      "english": "imaginatively",
+      "korean": "상상을 통해, 창의적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 318,
+      "tier": 2
+    },
+    {
+      "english": "imperfect",
+      "korean": "불완전한, 결점이 있는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 319,
+      "tier": 2
+    },
+    {
+      "english": "imply",
+      "korean": "암시하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 320,
+      "tier": 2
+    },
+    {
+      "english": "impose",
+      "korean": "부과하다; 강요하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 321,
+      "tier": 2
+    },
+    {
+      "english": "incentive",
+      "korean": "장려책, 우대책",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 322,
+      "tier": 2
+    },
+    {
+      "english": "indeed",
+      "korean": "adv. 실제로, 참으로",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 323,
+      "tier": 2
+    },
+    {
+      "english": "indifferent",
+      "korean": "무관심한; 중요하지 않은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 324,
+      "tier": 2
+    },
+    {
+      "english": "indirectly",
+      "korean": "간접적으로; 우회적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 325,
+      "tier": 2
+    },
+    {
+      "english": "individual",
+      "korean": "개별적인, 개인적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 326,
+      "tier": 2
+    },
+    {
+      "english": "industry",
+      "korean": "산업",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 327,
+      "tier": 2
+    },
+    {
+      "english": "inevitable",
+      "korean": "불가피한, 필연적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 328,
+      "tier": 2
+    },
+    {
+      "english": "inexperienced",
+      "korean": "경험이 부족한, 미숙한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 329,
+      "tier": 2
+    },
+    {
+      "english": "informal",
+      "korean": "a. 비공식적인, 격식을 차리지 않는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 330,
+      "tier": 2
+    },
+    {
+      "english": "ingredient",
+      "korean": "성분, 재료",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 331,
+      "tier": 2
+    },
+    {
+      "english": "inhabit",
+      "korean": "~에 깃들다, ~에 거주하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 332,
+      "tier": 2
+    },
+    {
+      "english": "inherently",
+      "korean": "adv. 본래의, 타고난",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 333,
+      "tier": 2
+    },
+    {
+      "english": "innate",
+      "korean": "a. 선천적인, 내재적인, 본질적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 334,
+      "tier": 2
+    },
+    {
+      "english": "innovator",
+      "korean": "혁신가",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 335,
+      "tier": 2
+    },
+    {
+      "english": "inordinate",
+      "korean": "과도한, 지나친",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 336,
+      "tier": 2
+    },
+    {
+      "english": "insensitive",
+      "korean": "둔감한, 무감각한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 337,
+      "tier": 2
+    },
+    {
+      "english": "institute",
+      "korean": "n. 연구소, 협회 v. 만들다, 설립하다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 338,
+      "tier": 2
+    },
+    {
+      "english": "institution",
+      "korean": "n. 기관, 학회, 협회",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 339,
+      "tier": 2
+    },
+    {
+      "english": "institutional",
+      "korean": "n. 제도적인, 공공 단체의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 340,
+      "tier": 2
+    },
+    {
+      "english": "intensify",
+      "korean": "강화하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 341,
+      "tier": 2
+    },
+    {
+      "english": "interface",
+      "korean": "접점",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 342,
+      "tier": 2
+    },
+    {
+      "english": "internal",
+      "korean": "마음속의, 내면의;",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 343,
+      "tier": 2
+    },
+    {
+      "english": "intervention",
+      "korean": "n. 개입, 조정, 간섭",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 344,
+      "tier": 2
+    },
+    {
+      "english": "introduction",
+      "korean": "n. 도입; 소개, 서론",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 345,
+      "tier": 2
+    },
+    {
+      "english": "invaluable",
+      "korean": "매우 유용한, 귀중한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 346,
+      "tier": 2
+    },
+    {
+      "english": "inventor",
+      "korean": "발명가",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 347,
+      "tier": 2
+    },
+    {
+      "english": "investigate",
+      "korean": "v. 조사하다, 연구하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 348,
+      "tier": 2
+    },
+    {
+      "english": "investment",
+      "korean": "투자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 349,
+      "tier": 2
+    },
+    {
+      "english": "involvement",
+      "korean": "몰입, 몰두; 참여, 관련",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 350,
+      "tier": 2
+    },
+    {
+      "english": "iron bar",
+      "korean": "n. 쇠창살",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 351,
+      "tier": 2
+    },
+    {
+      "english": "isolate",
+      "korean": "분리하다, 격리하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 352,
+      "tier": 2
+    },
+    {
+      "english": "isolated",
+      "korean": "분리된, 격리된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 353,
+      "tier": 2
+    },
+    {
+      "english": "join",
+      "korean": "합류하다, 참여하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 354,
+      "tier": 2
+    },
+    {
+      "english": "know-how",
+      "korean": "요령, 노하우",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 355,
+      "tier": 2
+    },
+    {
+      "english": "labor",
+      "korean": "노동",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 356,
+      "tier": 2
+    },
+    {
+      "english": "landowner",
+      "korean": "지주, 토지 소유자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 357,
+      "tier": 2
+    },
+    {
+      "english": "lark",
+      "korean": "n. 종달새",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 358,
+      "tier": 2
+    },
+    {
+      "english": "lasting",
+      "korean": "a. 지속되는, 영구적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 359,
+      "tier": 2
+    },
+    {
+      "english": "laundry",
+      "korean": "세탁소; 세탁하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 360,
+      "tier": 2
+    },
+    {
+      "english": "liberty",
+      "korean": "n. 자유, 자립",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 361,
+      "tier": 2
+    },
+    {
+      "english": "library",
+      "korean": "도서관",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 362,
+      "tier": 2
+    },
+    {
+      "english": "licensed",
+      "korean": "면허를 받은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 363,
+      "tier": 2
+    },
+    {
+      "english": "lifecycle",
+      "korean": "수명 주기, 생애 주기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 364,
+      "tier": 2
+    },
+    {
+      "english": "lifetime",
+      "korean": "일생, 생애",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 365,
+      "tier": 2
+    },
+    {
+      "english": "likewise",
+      "korean": "adv. 마찬가지로",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 366,
+      "tier": 2
+    },
+    {
+      "english": "limit",
+      "korean": "제한하다; 한계, 한도",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 367,
+      "tier": 2
+    },
+    {
+      "english": "linear",
+      "korean": "선형적인, 직선의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 368,
+      "tier": 2
+    },
+    {
+      "english": "linguistic",
+      "korean": "언어의, 언어학의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 369,
+      "tier": 2
+    },
+    {
+      "english": "list",
+      "korean": "나열하다; 목록, 표",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 370,
+      "tier": 2
+    },
+    {
+      "english": "literally",
+      "korean": "말(글자) 그대로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 371,
+      "tier": 2
+    },
+    {
+      "english": "literature",
+      "korean": "문학, 문헌",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 372,
+      "tier": 2
+    },
+    {
+      "english": "location",
+      "korean": "장소, 위치, 지역",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 373,
+      "tier": 2
+    },
+    {
+      "english": "long-term",
+      "korean": "장기간의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 374,
+      "tier": 2
+    },
+    {
+      "english": "luckily",
+      "korean": "다행히, 운이 좋게도",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 375,
+      "tier": 2
+    },
+    {
+      "english": "mail",
+      "korean": "v. 우송하다 n. 우편물, 우편",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 376,
+      "tier": 2
+    },
+    {
+      "english": "major",
+      "korean": "주요한, 과반의, 대부분의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 377,
+      "tier": 2
+    },
+    {
+      "english": "manipulate",
+      "korean": "조작하다, 조종하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 378,
+      "tier": 2
+    },
+    {
+      "english": "manner",
+      "korean": "방식, 벙밥; 태도, 거동",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 379,
+      "tier": 2
+    },
+    {
+      "english": "map out",
+      "korean": "~을 정리하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 380,
+      "tier": 2
+    },
+    {
+      "english": "mark",
+      "korean": "표시하다; 표, 기호",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 381,
+      "tier": 2
+    },
+    {
+      "english": "mass",
+      "korean": "대중의, 집단의; 덩어리, 모임",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 382,
+      "tier": 2
+    },
+    {
+      "english": "master",
+      "korean": "숙달하다, 통달하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 383,
+      "tier": 2
+    },
+    {
+      "english": "meaningful",
+      "korean": "의미 있는, 중요한",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 384,
+      "tier": 2
+    },
+    {
+      "english": "mechanical",
+      "korean": "기계적인, 공구의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 385,
+      "tier": 2
+    },
+    {
+      "english": "mediate",
+      "korean": "영향을 주다, 중재하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 386,
+      "tier": 2
+    },
+    {
+      "english": "medium",
+      "korean": "n. 매체 (수단)",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 387,
+      "tier": 2
+    },
+    {
+      "english": "merry",
+      "korean": "a. 명랑한, 유쾌한",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 388,
+      "tier": 2
+    },
+    {
+      "english": "metaphor",
+      "korean": "은유, 비유",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 389,
+      "tier": 2
+    },
+    {
+      "english": "minor",
+      "korean": "미세한; 중요하지 않은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 390,
+      "tier": 2
+    },
+    {
+      "english": "modeling",
+      "korean": "n. 모형 제작",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 391,
+      "tier": 2
+    },
+    {
+      "english": "monitor",
+      "korean": "감시하다, 감독하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 392,
+      "tier": 2
+    },
+    {
+      "english": "monument",
+      "korean": "n. 기념비, 유적",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 393,
+      "tier": 2
+    },
+    {
+      "english": "mood",
+      "korean": "once 주어+동사",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 394,
+      "tier": 2
+    },
+    {
+      "english": "moral",
+      "korean": "a. 도덕의, 도덕적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 395,
+      "tier": 2
+    },
+    {
+      "english": "motivation",
+      "korean": "이유, 동기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 396,
+      "tier": 2
+    },
+    {
+      "english": "natural",
+      "korean": "천연의, 자연의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 397,
+      "tier": 2
+    },
+    {
+      "english": "nature",
+      "korean": "n. 본질, 성질; 자연",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 398,
+      "tier": 2
+    },
+    {
+      "english": "nearly",
+      "korean": "adv. 거의, 대략",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 399,
+      "tier": 2
+    },
+    {
+      "english": "need",
+      "korean": "필요; 필요하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 400,
+      "tier": 2
+    },
+    {
+      "english": "network",
+      "korean": "방송국, 방송망",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 401,
+      "tier": 2
+    },
+    {
+      "english": "networked",
+      "korean": "네트워크로 연결된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 402,
+      "tier": 2
+    },
+    {
+      "english": "notice",
+      "korean": "알아차리다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 403,
+      "tier": 2
+    },
+    {
+      "english": "notion",
+      "korean": "n. 개념, 관념",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 404,
+      "tier": 2
+    },
+    {
+      "english": "notwithstanding",
+      "korean": "~에도 불구하고",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 405,
+      "tier": 2
+    },
+    {
+      "english": "novel",
+      "korean": "소설; 새로운, 기발한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 406,
+      "tier": 2
+    },
+    {
+      "english": "observe",
+      "korean": "관찰하다; 지키다, 준수하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 407,
+      "tier": 2
+    },
+    {
+      "english": "obtain",
+      "korean": "얻다, 획득하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 408,
+      "tier": 2
+    },
+    {
+      "english": "obvious",
+      "korean": "명백한, 명확한, 명료한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 409,
+      "tier": 2
+    },
+    {
+      "english": "occupy",
+      "korean": "차지하다; 점령하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 410,
+      "tier": 2
+    },
+    {
+      "english": "offer",
+      "korean": "내놓다, 제공하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 411,
+      "tier": 2
+    },
+    {
+      "english": "online",
+      "korean": "온라인에서",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 412,
+      "tier": 2
+    },
+    {
+      "english": "organize",
+      "korean": "정리하다, 체계화하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 413,
+      "tier": 2
+    },
+    {
+      "english": "origin",
+      "korean": "원산지, 출처",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 414,
+      "tier": 2
+    },
+    {
+      "english": "originally",
+      "korean": "원래, 본래",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 415,
+      "tier": 2
+    },
+    {
+      "english": "output",
+      "korean": "생산량, 산출량",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 416,
+      "tier": 2
+    },
+    {
+      "english": "overuse",
+      "korean": "과용하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 417,
+      "tier": 2
+    },
+    {
+      "english": "overwhelm",
+      "korean": "v. 압도하다, 제압하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 418,
+      "tier": 2
+    },
+    {
+      "english": "pad-to-pad",
+      "korean": "손가락 끝 살이 맞닿는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 419,
+      "tier": 2
+    },
+    {
+      "english": "paper",
+      "korean": "n. 논문, 논설",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 420,
+      "tier": 2
+    },
+    {
+      "english": "partner",
+      "korean": "동업자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 421,
+      "tier": 2
+    },
+    {
+      "english": "party",
+      "korean": "당사자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 422,
+      "tier": 2
+    },
+    {
+      "english": "pattern",
+      "korean": "양식",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 423,
+      "tier": 2
+    },
+    {
+      "english": "peer",
+      "korean": "n. 동료, 또래",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 424,
+      "tier": 3
+    },
+    {
+      "english": "per",
+      "korean": "~당, ~마다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 425,
+      "tier": 3
+    },
+    {
+      "english": "percentage",
+      "korean": "비율",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 426,
+      "tier": 3
+    },
+    {
+      "english": "perception",
+      "korean": "인식, 지각(력)",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 427,
+      "tier": 3
+    },
+    {
+      "english": "performance",
+      "korean": "수행, 실행; 성적, 성과",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 428,
+      "tier": 3
+    },
+    {
+      "english": "personality",
+      "korean": "개인, 인간; 성격, 특성",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 429,
+      "tier": 3
+    },
+    {
+      "english": "perspective",
+      "korean": "관점, 시각",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 430,
+      "tier": 3
+    },
+    {
+      "english": "persuasive",
+      "korean": "a. 설득력이 있는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 431,
+      "tier": 3
+    },
+    {
+      "english": "pharmacy",
+      "korean": "n. 약국",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 432,
+      "tier": 3
+    },
+    {
+      "english": "phenomenon",
+      "korean": "n. 현상",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 433,
+      "tier": 3
+    },
+    {
+      "english": "philosopher",
+      "korean": "n. 철학자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 434,
+      "tier": 3
+    },
+    {
+      "english": "phrase",
+      "korean": "어구, 관용구",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 435,
+      "tier": 3
+    },
+    {
+      "english": "physical",
+      "korean": "실물의, 물리적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 436,
+      "tier": 3
+    },
+    {
+      "english": "picture",
+      "korean": "상상하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 437,
+      "tier": 3
+    },
+    {
+      "english": "piecemeal",
+      "korean": "단편적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 438,
+      "tier": 3
+    },
+    {
+      "english": "pinpoint",
+      "korean": "정확히 지적하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 439,
+      "tier": 3
+    },
+    {
+      "english": "pleasant",
+      "korean": "쾌적한, 즐거운, 기분 좋은",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 440,
+      "tier": 3
+    },
+    {
+      "english": "point out",
+      "korean": "~을 지적하다, ~을 말하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 441,
+      "tier": 3
+    },
+    {
+      "english": "pointy",
+      "korean": "끝이 뾰족한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 442,
+      "tier": 3
+    },
+    {
+      "english": "policy",
+      "korean": "n. 정책, 방침",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 443,
+      "tier": 3
+    },
+    {
+      "english": "politely",
+      "korean": "공손하게, 예의 바르게",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 444,
+      "tier": 3
+    },
+    {
+      "english": "pollution",
+      "korean": "n. 오염",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 445,
+      "tier": 3
+    },
+    {
+      "english": "position",
+      "korean": "지위, 위치",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 446,
+      "tier": 3
+    },
+    {
+      "english": "possess",
+      "korean": "소유하다, 보유하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 447,
+      "tier": 3
+    },
+    {
+      "english": "possession",
+      "korean": "소유, 점유",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 448,
+      "tier": 3
+    },
+    {
+      "english": "practicing",
+      "korean": "활동하고 있는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 449,
+      "tier": 3
+    },
+    {
+      "english": "predominantly",
+      "korean": "주로, 대부분",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 450,
+      "tier": 3
+    },
+    {
+      "english": "prefer",
+      "korean": "선호하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 451,
+      "tier": 3
+    },
+    {
+      "english": "pressure",
+      "korean": "압박; 압력, 압축",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 452,
+      "tier": 3
+    },
+    {
+      "english": "previously",
+      "korean": "이전에",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 453,
+      "tier": 3
+    },
+    {
+      "english": "primate",
+      "korean": "영장류",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 454,
+      "tier": 3
+    },
+    {
+      "english": "producer",
+      "korean": "제작자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 455,
+      "tier": 3
+    },
+    {
+      "english": "productivity",
+      "korean": "생산성",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 456,
+      "tier": 3
+    },
+    {
+      "english": "profession",
+      "korean": "직업",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 457,
+      "tier": 3
+    },
+    {
+      "english": "profit",
+      "korean": "수익",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 458,
+      "tier": 3
+    },
+    {
+      "english": "prolong",
+      "korean": "연장하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 459,
+      "tier": 3
+    },
+    {
+      "english": "proposal",
+      "korean": "n. 제안서; 제안, 제의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 460,
+      "tier": 3
+    },
+    {
+      "english": "proprietary",
+      "korean": "독점의, 독점적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 461,
+      "tier": 3
+    },
+    {
+      "english": "prospect",
+      "korean": "n. 가능성, 전망",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 462,
+      "tier": 3
+    },
+    {
+      "english": "protection",
+      "korean": "보호",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 463,
+      "tier": 3
+    },
+    {
+      "english": "provided",
+      "korean": "~이라는 조건에서",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 464,
+      "tier": 3
+    },
+    {
+      "english": "psychological",
+      "korean": "심리의, 심리적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 465,
+      "tier": 3
+    },
+    {
+      "english": "psychologist",
+      "korean": "n. 심리학자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 466,
+      "tier": 3
+    },
+    {
+      "english": "pursue",
+      "korean": "추구하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 467,
+      "tier": 3
+    },
+    {
+      "english": "put A to use",
+      "korean": "A를 이용하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 468,
+      "tier": 3
+    },
+    {
+      "english": "quality",
+      "korean": "질",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 469,
+      "tier": 3
+    },
+    {
+      "english": "quantitative",
+      "korean": "a. 양적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 470,
+      "tier": 3
+    },
+    {
+      "english": "quest",
+      "korean": "n. 탐구, 탐색",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 471,
+      "tier": 3
+    },
+    {
+      "english": "quickly",
+      "korean": "빨리, 곧",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 472,
+      "tier": 3
+    },
+    {
+      "english": "quietly",
+      "korean": "조용히",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 473,
+      "tier": 3
+    },
+    {
+      "english": "range",
+      "korean": "범위",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 474,
+      "tier": 3
+    },
+    {
+      "english": "rare",
+      "korean": "a. 드문, 희귀한",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 475,
+      "tier": 3
+    },
+    {
+      "english": "rarely",
+      "korean": "드물게, 좀처럼 ~하지 않는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 476,
+      "tier": 3
+    },
+    {
+      "english": "rate",
+      "korean": "v. 평가하다 n. 비율; 속도",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 477,
+      "tier": 3
+    },
+    {
+      "english": "rational",
+      "korean": "a. 합리적인; 이성적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 478,
+      "tier": 3
+    },
+    {
+      "english": "reach",
+      "korean": "도달하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 479,
+      "tier": 3
+    },
+    {
+      "english": "react",
+      "korean": "반응하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 480,
+      "tier": 3
+    },
+    {
+      "english": "reasonably",
+      "korean": "합리적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 481,
+      "tier": 3
+    },
+    {
+      "english": "reciprocity",
+      "korean": "n. 상호 호혜",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 482,
+      "tier": 3
+    },
+    {
+      "english": "recognize",
+      "korean": "인정하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 483,
+      "tier": 3
+    },
+    {
+      "english": "recommend",
+      "korean": "추천하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 484,
+      "tier": 3
+    },
+    {
+      "english": "reduce",
+      "korean": "줄이다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 485,
+      "tier": 3
+    },
+    {
+      "english": "reduction",
+      "korean": "축소, 삭감, 감소",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 486,
+      "tier": 3
+    },
+    {
+      "english": "refer to",
+      "korean": "~을 언급하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 487,
+      "tier": 3
+    },
+    {
+      "english": "refundable",
+      "korean": "환불이 가능한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 488,
+      "tier": 3
+    },
+    {
+      "english": "refusal",
+      "korean": "n. 거부, 거절",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 489,
+      "tier": 3
+    },
+    {
+      "english": "register",
+      "korean": "v. 등록하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 490,
+      "tier": 3
+    },
+    {
+      "english": "regulate",
+      "korean": "조절하다, 조정하다; 규제하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 491,
+      "tier": 3
+    },
+    {
+      "english": "relatively",
+      "korean": "상대적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 492,
+      "tier": 3
+    },
+    {
+      "english": "release",
+      "korean": "공개하다, 발표하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 493,
+      "tier": 3
+    },
+    {
+      "english": "relegate",
+      "korean": "추방하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 494,
+      "tier": 3
+    },
+    {
+      "english": "religious view",
+      "korean": "n. 종교관",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 495,
+      "tier": 3
+    },
+    {
+      "english": "remain",
+      "korean": "남아 있다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 496,
+      "tier": 3
+    },
+    {
+      "english": "remind",
+      "korean": "상기시키다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 497,
+      "tier": 3
+    },
+    {
+      "english": "remote",
+      "korean": "외진",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 498,
+      "tier": 3
+    },
+    {
+      "english": "reorient",
+      "korean": "방향을 바꾸다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 499,
+      "tier": 3
+    },
+    {
+      "english": "repair",
+      "korean": "수리",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 500,
+      "tier": 3
+    },
+    {
+      "english": "repositioning",
+      "korean": "재배치, 위치 재선정",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 501,
+      "tier": 3
+    },
+    {
+      "english": "repurpose",
+      "korean": "~의 용도 변경을 하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 502,
+      "tier": 3
+    },
+    {
+      "english": "reservation",
+      "korean": "예약",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 503,
+      "tier": 3
+    },
+    {
+      "english": "resolution",
+      "korean": "해결, 해답; 결심, 결의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 504,
+      "tier": 3
+    },
+    {
+      "english": "resource",
+      "korean": "자원, 물자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 505,
+      "tier": 3
+    },
+    {
+      "english": "respondent",
+      "korean": "n. 응답자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 506,
+      "tier": 3
+    },
+    {
+      "english": "resultant",
+      "korean": "a. 그 결과로 생기는",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 507,
+      "tier": 3
+    },
+    {
+      "english": "reverse",
+      "korean": "(정)반대, 역",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 508,
+      "tier": 3
+    },
+    {
+      "english": "revise",
+      "korean": "수정하다, 개정하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 509,
+      "tier": 3
+    },
+    {
+      "english": "rework",
+      "korean": "다시 만들다, 재가공하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 510,
+      "tier": 3
+    },
+    {
+      "english": "ritual",
+      "korean": "a. 의식의; 관습의",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 511,
+      "tier": 3
+    },
+    {
+      "english": "rotation",
+      "korean": "회전; 자전",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 512,
+      "tier": 3
+    },
+    {
+      "english": "rule-based",
+      "korean": "규칙에 기초된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 513,
+      "tier": 3
+    },
+    {
+      "english": "safely",
+      "korean": "무사히, 탈 없이",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 514,
+      "tier": 3
+    },
+    {
+      "english": "safety",
+      "korean": "안전성",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 515,
+      "tier": 3
+    },
+    {
+      "english": "scan",
+      "korean": "탐지하다, 관찰하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 516,
+      "tier": 3
+    },
+    {
+      "english": "scholarly",
+      "korean": "학문적인, 학술적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 517,
+      "tier": 3
+    },
+    {
+      "english": "scholarship",
+      "korean": "학문, 학식",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 518,
+      "tier": 3
+    },
+    {
+      "english": "score",
+      "korean": "악보; (음악) 작품",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 519,
+      "tier": 3
+    },
+    {
+      "english": "scratch",
+      "korean": "v. 긁다, 할퀴다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 520,
+      "tier": 3
+    },
+    {
+      "english": "scream",
+      "korean": "v. 비명을 지르다, 소리치다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 521,
+      "tier": 3
+    },
+    {
+      "english": "secretive",
+      "korean": "비밀스러운, 숨기는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 522,
+      "tier": 3
+    },
+    {
+      "english": "secure",
+      "korean": "안전한, 확실한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 523,
+      "tier": 3
+    },
+    {
+      "english": "seize",
+      "korean": "v. 붙잡다; 포착하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 524,
+      "tier": 3
+    },
+    {
+      "english": "self-portrait",
+      "korean": "자화상",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 525,
+      "tier": 3
+    },
+    {
+      "english": "sense",
+      "korean": "의미, 뜻; 감각, 느낌",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 526,
+      "tier": 3
+    },
+    {
+      "english": "setting",
+      "korean": "환경[장소], 배경",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 527,
+      "tier": 3
+    },
+    {
+      "english": "shadow",
+      "korean": "그림자, 환영",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 528,
+      "tier": 3
+    },
+    {
+      "english": "shamanistic",
+      "korean": "a. 무속의, 주술적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 529,
+      "tier": 3
+    },
+    {
+      "english": "share",
+      "korean": "(생각을) 나누다, 말하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 530,
+      "tier": 3
+    },
+    {
+      "english": "short-term",
+      "korean": "단기적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 531,
+      "tier": 3
+    },
+    {
+      "english": "shuttle",
+      "korean": "정기 왕복 교통 수단",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 532,
+      "tier": 3
+    },
+    {
+      "english": "signature",
+      "korean": "특징; 서명",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 533,
+      "tier": 3
+    },
+    {
+      "english": "significance",
+      "korean": "중요성, 중대성",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 534,
+      "tier": 3
+    },
+    {
+      "english": "significantly",
+      "korean": "훨씬, 상당히",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 535,
+      "tier": 3
+    },
+    {
+      "english": "simplistic",
+      "korean": "(지나치게) 단순한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 536,
+      "tier": 3
+    },
+    {
+      "english": "simultaneously",
+      "korean": "adv. 동시에, 일제히",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 537,
+      "tier": 3
+    },
+    {
+      "english": "skilled",
+      "korean": "능숙한, 숙련된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 538,
+      "tier": 3
+    },
+    {
+      "english": "slide",
+      "korean": "미끄럼틀",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 539,
+      "tier": 3
+    },
+    {
+      "english": "slippery",
+      "korean": "미끄러운, 미끈거리는",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 540,
+      "tier": 3
+    },
+    {
+      "english": "smooth",
+      "korean": "완화하다 매끄러운; 부드러운",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 541,
+      "tier": 3
+    },
+    {
+      "english": "smoothly",
+      "korean": "(아무 문제없이) 순조롭게",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 542,
+      "tier": 3
+    },
+    {
+      "english": "social proof",
+      "korean": "n. 사회적 증거",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 543,
+      "tier": 3
+    },
+    {
+      "english": "sole",
+      "korean": "a. 오로지, 유일한 n. 발바닥, 굽",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 544,
+      "tier": 3
+    },
+    {
+      "english": "specific",
+      "korean": "a. 특정한, 구체적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 545,
+      "tier": 3
+    },
+    {
+      "english": "specifically",
+      "korean": "구체적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 546,
+      "tier": 3
+    },
+    {
+      "english": "sportscaster",
+      "korean": "스포츠 방송인",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 547,
+      "tier": 3
+    },
+    {
+      "english": "sportscasting",
+      "korean": "스포츠 방송",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 548,
+      "tier": 3
+    },
+    {
+      "english": "statement",
+      "korean": "성명, 진술",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 549,
+      "tier": 3
+    },
+    {
+      "english": "stationary bicycle",
+      "korean": "n. 고정 자전거",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 550,
+      "tier": 3
+    },
+    {
+      "english": "status",
+      "korean": "지위; 상태, 사정",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 551,
+      "tier": 3
+    },
+    {
+      "english": "stream",
+      "korean": "n. 개울, 시내",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 552,
+      "tier": 3
+    },
+    {
+      "english": "strike",
+      "korean": "두드리기, 치기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 553,
+      "tier": 3
+    },
+    {
+      "english": "structured",
+      "korean": "a. 체계화된",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 554,
+      "tier": 3
+    },
+    {
+      "english": "subsequent",
+      "korean": "a. 이후의, 후속의, 차후의",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 555,
+      "tier": 3
+    },
+    {
+      "english": "substance",
+      "korean": "실체, 본질; 물질, 물체",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 556,
+      "tier": 3
+    },
+    {
+      "english": "substitute A for B",
+      "korean": "B를 대신하여 A를 쓰다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 557,
+      "tier": 3
+    },
+    {
+      "english": "sufficiently",
+      "korean": "충분히",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 558,
+      "tier": 3
+    },
+    {
+      "english": "superficial",
+      "korean": "피상적인; 표면상의, 외면의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 559,
+      "tier": 3
+    },
+    {
+      "english": "support",
+      "korean": "지원하다, 지지하다; 지지, 지원",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 560,
+      "tier": 3
+    },
+    {
+      "english": "supposed",
+      "korean": "a. 가정된, 추정된, 가상의",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 561,
+      "tier": 3
+    },
+    {
+      "english": "surely",
+      "korean": "adv. 확실히, 분명히",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 562,
+      "tier": 3
+    },
+    {
+      "english": "suspend",
+      "korean": "v. 중지하다; 매달다, 걸다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 563,
+      "tier": 3
+    },
+    {
+      "english": "sustained",
+      "korean": "지속된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 564,
+      "tier": 3
+    },
+    {
+      "english": "symbolically",
+      "korean": "상징적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 565,
+      "tier": 3
+    },
+    {
+      "english": "synchronize",
+      "korean": "v. 동조하다; 동시에 발생하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 566,
+      "tier": 3
+    },
+    {
+      "english": "taint",
+      "korean": "더럽히다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 567,
+      "tier": 3
+    },
+    {
+      "english": "tear",
+      "korean": "v. 상처를 내다, 찢다 n. 눈물",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 568,
+      "tier": 3
+    },
+    {
+      "english": "tension",
+      "korean": "갈등, 긴장 관계",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 569,
+      "tier": 3
+    },
+    {
+      "english": "test",
+      "korean": "테스트하다, 검사하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 570,
+      "tier": 3
+    },
+    {
+      "english": "thoroughly",
+      "korean": "온전하게, 완전히, 충분히",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 571,
+      "tier": 3
+    },
+    {
+      "english": "threat",
+      "korean": "위협, 협박",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 572,
+      "tier": 3
+    },
+    {
+      "english": "throughout",
+      "korean": "내내, ~동안 쭉",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 573,
+      "tier": 3
+    },
+    {
+      "english": "thumb",
+      "korean": "엄지손가락",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 574,
+      "tier": 3
+    },
+    {
+      "english": "toe-to-toe",
+      "korean": "정면으로 맞붙어",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 575,
+      "tier": 3
+    },
+    {
+      "english": "tool",
+      "korean": "도구, 수단",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 576,
+      "tier": 3
+    },
+    {
+      "english": "trait",
+      "korean": "특성, 특징",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 577,
+      "tier": 3
+    },
+    {
+      "english": "translate",
+      "korean": "번역하다, 옮기다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 578,
+      "tier": 3
+    },
+    {
+      "english": "transparent",
+      "korean": "투명한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 579,
+      "tier": 3
+    },
+    {
+      "english": "trap",
+      "korean": "포착하다; 덫, 함정",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 580,
+      "tier": 3
+    },
+    {
+      "english": "travel",
+      "korean": "여행; 여행하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 581,
+      "tier": 3
+    },
+    {
+      "english": "tremendous",
+      "korean": "a. 엄청난; 무서운",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 582,
+      "tier": 3
+    },
+    {
+      "english": "trustee",
+      "korean": "신탁 관리자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 583,
+      "tier": 3
+    },
+    {
+      "english": "tunnel",
+      "korean": "터널",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 584,
+      "tier": 3
+    },
+    {
+      "english": "typical",
+      "korean": "a. 전형적인, 모범적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 585,
+      "tier": 3
+    },
+    {
+      "english": "typically",
+      "korean": "일반적으로, 전형적으로",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 586,
+      "tier": 3
+    },
+    {
+      "english": "uncomfortable",
+      "korean": "불편한, 거북한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 587,
+      "tier": 3
+    },
+    {
+      "english": "undergo",
+      "korean": "겪다, 경험하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 588,
+      "tier": 3
+    },
+    {
+      "english": "undergraduate degree",
+      "korean": "n. 학사 학위",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 589,
+      "tier": 3
+    },
+    {
+      "english": "underpinning",
+      "korean": "기반, 기초",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 590,
+      "tier": 3
+    },
+    {
+      "english": "underreport",
+      "korean": "축소보고하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 591,
+      "tier": 3
+    },
+    {
+      "english": "understand",
+      "korean": "이해하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 592,
+      "tier": 3
+    },
+    {
+      "english": "underworld",
+      "korean": "n. 지하 세계, 하계",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 593,
+      "tier": 3
+    },
+    {
+      "english": "uneasiness",
+      "korean": "불안, 걱정, 불쾌",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 594,
+      "tier": 3
+    },
+    {
+      "english": "unfortunately",
+      "korean": "불행하게도, 유감스럽게도",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 595,
+      "tier": 3
+    },
+    {
+      "english": "unique",
+      "korean": "고유한, 독특한",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 596,
+      "tier": 3
+    },
+    {
+      "english": "universal",
+      "korean": "보편적인, 일반적인; 전세계적인",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 597,
+      "tier": 3
+    },
+    {
+      "english": "universally",
+      "korean": "일반적으로, 누구에게서나",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 598,
+      "tier": 3
+    },
+    {
+      "english": "upward",
+      "korean": "상향의, 상승의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 599,
+      "tier": 3
+    },
+    {
+      "english": "urban",
+      "korean": "도시에 사는, 도시의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 600,
+      "tier": 3
+    },
+    {
+      "english": "urbanism",
+      "korean": "n. 도시화",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 601,
+      "tier": 3
+    },
+    {
+      "english": "utilization",
+      "korean": "활용, 이용",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 602,
+      "tier": 3
+    },
+    {
+      "english": "validate",
+      "korean": "v. 확인하다; 유효하게 하다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 603,
+      "tier": 3
+    },
+    {
+      "english": "valley",
+      "korean": "계곡, 골짜기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 604,
+      "tier": 3
+    },
+    {
+      "english": "valuable",
+      "korean": "가치 있는, 귀중한",
+      "pos": "adj",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 605,
+      "tier": 3
+    },
+    {
+      "english": "valuation",
+      "korean": "n. 평가, 가치 판단",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 606,
+      "tier": 3
+    },
+    {
+      "english": "value",
+      "korean": "가치; 가격; 평가하다, 값을 치다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 607,
+      "tier": 3
+    },
+    {
+      "english": "variation",
+      "korean": "변동성, 변화, 차이",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 608,
+      "tier": 3
+    },
+    {
+      "english": "vary",
+      "korean": "달라지다, 다르다",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 609,
+      "tier": 3
+    },
+    {
+      "english": "violate",
+      "korean": "위반하다, 어기다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 610,
+      "tier": 3
+    },
+    {
+      "english": "virtual",
+      "korean": "a. 가상의",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 611,
+      "tier": 3
+    },
+    {
+      "english": "virtually",
+      "korean": "adv. 사실상, 실질적으로",
+      "pos": "adv",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 612,
+      "tier": 3
+    },
+    {
+      "english": "visual",
+      "korean": "시각의, 시력의",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 613,
+      "tier": 3
+    },
+    {
+      "english": "vocabulary",
+      "korean": "어휘",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 614,
+      "tier": 3
+    },
+    {
+      "english": "volume",
+      "korean": "양; 부피, 크기",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 615,
+      "tier": 3
+    },
+    {
+      "english": "well-defined",
+      "korean": "잘 정의된",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 616,
+      "tier": 3
+    },
+    {
+      "english": "whistle",
+      "korean": "v. 휘파람을 불다",
+      "pos": "verb",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 617,
+      "tier": 3
+    },
+    {
+      "english": "whitening strip",
+      "korean": "n. 부착형 (치아) 미백제",
+      "pos": "noun",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 618,
+      "tier": 3
+    },
+    {
+      "english": "whole",
+      "korean": "전체의; 전체, 전부",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 619,
+      "tier": 3
+    },
+    {
+      "english": "wish",
+      "korean": "바라다, 원하다; 소원, 소망",
+      "pos": "verb",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 620,
+      "tier": 3
+    },
+    {
+      "english": "workday",
+      "korean": "작업일",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 621,
+      "tier": 3
+    },
+    {
+      "english": "worldly",
+      "korean": "a. 세속적인, 속세의",
+      "pos": "adj",
+      "freq": 1,
+      "source": "모의2023-3",
+      "rank": 622,
+      "tier": 3
+    },
+    {
+      "english": "writer",
+      "korean": "작가, 저자",
+      "pos": "noun",
+      "freq": 1,
+      "source": "수능2025",
+      "rank": 623,
+      "tier": 3
+    },
+    {
+      "english": "as for",
+      "korean": "~에 관해 말하자면",
+      "pos": "noun",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 624,
+      "tier": 3
+    },
+    {
+      "english": "at hand",
+      "korean": "당면한",
+      "pos": "noun",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 625,
+      "tier": 3
+    },
+    {
+      "english": "be admitted",
+      "korean": "입학하다",
+      "pos": "verb",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 626,
+      "tier": 3
+    },
+    {
+      "english": "be aware of",
+      "korean": "의식하다, 인지하다",
+      "pos": "verb",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 627,
+      "tier": 3
+    },
+    {
+      "english": "be derived from",
+      "korean": "~에서 유래하다",
+      "pos": "verb",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 628,
+      "tier": 3
+    },
+    {
+      "english": "be likely to",
+      "korean": "~할 가능성이 있다",
+      "pos": "noun",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 629,
+      "tier": 3
+    },
+    {
+      "english": "be satisfied with",
+      "korean": "~에 만족하다",
+      "pos": "verb",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 630,
+      "tier": 3
+    },
+    {
+      "english": "be willing to",
+      "korean": "기꺼이 ~하다",
+      "pos": "verb",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 631,
+      "tier": 3
+    },
+    {
+      "english": "in general",
+      "korean": "전반적으로",
+      "pos": "noun",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 632,
+      "tier": 3
+    },
+    {
+      "english": "in the absence of",
+      "korean": "~이 없을 때는",
+      "pos": "noun",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 633,
+      "tier": 3
+    },
+    {
+      "english": "in turn",
+      "korean": "결국",
+      "pos": "noun",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 634,
+      "tier": 3
+    },
+    {
+      "english": "in vain",
+      "korean": "허사가 되어",
+      "pos": "noun",
+      "freq": 0,
+      "source": "모의2023-3",
+      "rank": 635,
+      "tier": 3
+    }
+  ]
+}
