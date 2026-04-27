@@ -1421,12 +1421,39 @@ export const api = {
 
   // ── Vocab Gacha (영단어 학습) ──
 
-  getVocabWords: (params?: { student_id?: string; status?: string }): Promise<VocabWord[]> => {
+  getVocabWords: (params?: {
+    student_id?: string;
+    status?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<VocabWord[]> => {
     const qp = new URLSearchParams();
     if (params?.student_id) qp.set('student_id', params.student_id);
     if (params?.status) qp.set('status', params.status);
+    if (params?.q) qp.set('q', params.q);
+    if (params?.limit != null) qp.set('limit', String(params.limit));
+    if (params?.offset != null) qp.set('offset', String(params.offset));
     const qs = qp.toString();
     return listRequest<VocabWord>(`/api/vocab/words${qs ? '?' + qs : ''}`);
+  },
+
+  /** counts/total을 포함한 풀 응답이 필요한 화면용 */
+  getVocabWordsPage: (params?: {
+    student_id?: string;
+    status?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PagedResult<VocabWord> & { counts: { all: number; pending: number; approved: number } }> => {
+    const qp = new URLSearchParams();
+    if (params?.student_id) qp.set('student_id', params.student_id);
+    if (params?.status) qp.set('status', params.status);
+    if (params?.q) qp.set('q', params.q);
+    if (params?.limit != null) qp.set('limit', String(params.limit));
+    if (params?.offset != null) qp.set('offset', String(params.offset));
+    const qs = qp.toString();
+    return request(`/api/vocab/words${qs ? '?' + qs : ''}`);
   },
   createVocabWord: (data: { student_id: string; english: string; korean: string; blank_type?: string; category?: string | null }) =>
     request<{ id: string }>('/api/vocab/words', { method: 'POST', body: JSON.stringify(data) }),

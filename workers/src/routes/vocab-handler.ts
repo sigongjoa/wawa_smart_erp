@@ -36,6 +36,7 @@ const CreateWordSchema = z.object({
   english: z.string().trim().min(1).max(200),
   korean: z.string().trim().min(1).max(200),
   blank_type: BlankTypeSchema.optional(),
+  category: z.string().trim().max(50).nullable().optional(),
 });
 const UpdateWordSchema = z.object({
   english: z.string().trim().min(1).max(200).optional(),
@@ -43,6 +44,7 @@ const UpdateWordSchema = z.object({
   blank_type: BlankTypeSchema.optional(),
   status: z.string().max(50).optional(),
   box: z.number().int().min(0).max(10).optional(),
+  category: z.string().trim().max(50).nullable().optional(),
 }).refine((v) => Object.keys(v).length > 0, { message: '수정할 필드가 없습니다' });
 
 function zodError(err: unknown): Response | null {
@@ -60,26 +62,76 @@ async function handleGetWords(request: Request, context: RequestContext): Promis
   }
   const academyId = getAcademyId(context);
   const url = new URL(request.url);
-  const studentId = url.searchParams.get('student_id');
-  const status = url.searchParams.get('status');
+  const rawStudent = url.searchParams.get('student_id');
+  const rawStatus = url.searchParams.get('status');
+  const rawQ = url.searchParams.get('q');
 
-  const pg = parsePagination(url, { defaultLimit: 200, maxLimit: 1000 });
-  let query = 'SELECT * FROM vocab_words WHERE academy_id = ?';
-  const params: unknown[] = [academyId];
+  const studentId = rawStudent && rawStudent !== 'all' ? rawStudent : null;
+  const status = rawStatus && rawStatus !== 'all' ? rawStatus : null;
 
+  // 검색어는 2자 이상만 활성 (LIKE 비용)
+  const qNorm = rawQ && rawQ.trim().length >= 2 ? rawQ.trim() : null;
+  const qLike = qNorm ? `%${qNorm.replace(/[%_]/g, m => '\\' + m)}%` : null;
+
+  const pg = parsePagination(url, { defaultLimit: 50, maxLimit: 200 });
+
+  // 학생 필터를 적용한 베이스 WHERE — items / total / counts 모두 공유
+  const baseWhere: string[] = ['academy_id = ?'];
+  const baseParams: unknown[] = [academyId];
   if (studentId) {
-    query += ' AND student_id = ?';
-    params.push(studentId);
+    baseWhere.push('student_id = ?');
+    baseParams.push(studentId);
   }
+
+  // counts: 학생 필터까지만 적용 (상태 필터 무시 → 메트릭 카드용)
+  const countsRow = await executeFirst<{ all_: number; pending: number; approved: number }>(
+    context.env.DB,
+    `SELECT
+       COUNT(*) AS all_,
+       SUM(CASE WHEN status='pending'  THEN 1 ELSE 0 END) AS pending,
+       SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS approved
+     FROM vocab_words WHERE ${baseWhere.join(' AND ')}`,
+    baseParams
+  );
+  const counts = {
+    all: Number(countsRow?.all_ ?? 0),
+    pending: Number(countsRow?.pending ?? 0),
+    approved: Number(countsRow?.approved ?? 0),
+  };
+
+  // items + total: 상태/검색까지 적용
+  const where = [...baseWhere];
+  const params: unknown[] = [...baseParams];
   if (status) {
-    query += ' AND status = ?';
+    where.push('status = ?');
     params.push(status);
   }
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  params.push(pg.limit, pg.offset);
+  if (qLike) {
+    where.push('(english LIKE ? ESCAPE \'\\\' OR korean LIKE ? ESCAPE \'\\\')');
+    params.push(qLike, qLike);
+  }
+  const whereSql = where.join(' AND ');
 
-  const words = await executeQuery<VocabWordRow>(context.env.DB, query, params);
-  return successResponse(toPagedResult(words, pg));
+  const totalRow = await executeFirst<{ n: number }>(
+    context.env.DB,
+    `SELECT COUNT(*) AS n FROM vocab_words WHERE ${whereSql}`,
+    params
+  );
+  const total = Number(totalRow?.n ?? 0);
+
+  const itemsParams = [...params, pg.limit, pg.offset];
+  const words = await executeQuery<VocabWordRow>(
+    context.env.DB,
+    `SELECT * FROM vocab_words
+      WHERE ${whereSql}
+      ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END,
+               created_at DESC
+      LIMIT ? OFFSET ?`,
+    itemsParams
+  );
+
+  const paged = toPagedResult(words, pg, total);
+  return successResponse({ ...paged, counts });
 }
 
 async function handleCreateWord(request: Request, context: RequestContext): Promise<Response> {
@@ -106,11 +158,12 @@ async function handleCreateWord(request: Request, context: RequestContext): Prom
   const id = generatePrefixedId('vw');
   const blankType = data.blank_type ?? 'korean';
 
+  const category = data.category && data.category.trim() ? data.category.trim() : null;
   await executeInsert(
     context.env.DB,
-    `INSERT INTO vocab_words (id, academy_id, student_id, english, korean, blank_type, status, added_by)
-     VALUES (?, ?, ?, ?, ?, ?, 'approved', 'teacher')`,
-    [id, academyId, data.student_id, data.english, data.korean, blankType]
+    `INSERT INTO vocab_words (id, academy_id, student_id, english, korean, blank_type, status, added_by, category)
+     VALUES (?, ?, ?, ?, ?, ?, 'approved', 'teacher', ?)`,
+    [id, academyId, data.student_id, data.english, data.korean, blankType, category]
   );
 
   return successResponse({ id }, 201);

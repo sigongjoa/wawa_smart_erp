@@ -15,20 +15,29 @@ const BLANK_LABEL: Record<string, string> = {
   korean: '한글 빈칸', english: '영어 빈칸', both: '둘 다',
 };
 
+const PAGE_SIZE = 50;
+
 export default function VocabWordsTab() {
   const { setHeaderAction } = useOutletContext<VocabOutletContext>();
 
   const [students, setStudents] = useState<GachaStudentLite[]>([]);
   const [words, setWords] = useState<VocabWord[]>([]);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [counts, setCounts] = useState({ all: 0, pending: 0, approved: 0 });
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // 필터/페이지 상태
   const [filterStudent, setFilterStudent] = useState('');
   const [filterStatus, setFilterStatus] = useState<'' | 'pending' | 'approved'>('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQ, setSearchQ] = useState('');
+  const [offset, setOffset] = useState(0);
+
   const [modalOpen, setModalOpen] = useState(false);
 
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
 
-  // 헤더 우측에 primary action 등록
+  // 헤더 우측 primary action
   useEffect(() => {
     setHeaderAction(
       <button type="button" className="btn btn-primary" onClick={() => setModalOpen(true)}>
@@ -37,6 +46,19 @@ export default function VocabWordsTab() {
     );
     return () => setHeaderAction(null);
   }, [setHeaderAction]);
+
+  // 검색 입력 디바운스 (250ms, 2자 미만은 빈 값으로)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      setSearchQ(trimmed.length >= 2 ? trimmed : '');
+      setOffset(0);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // 필터 변경 시 페이지 리셋
+  useEffect(() => { setOffset(0); }, [filterStudent, filterStatus]);
 
   const loadStudents = useCallback(async () => {
     try {
@@ -50,74 +72,105 @@ export default function VocabWordsTab() {
   const loadWords = useCallback(async () => {
     setLoading(true);
     try {
-      const [rows, pendingList] = await Promise.all([
-        api.getVocabWords(filterStatus ? { status: filterStatus } : undefined),
-        filterStatus === 'pending' ? Promise.resolve([]) : api.getVocabWords({ status: 'pending' }),
-      ]);
-      const filtered = filterStudent ? (rows || []).filter(w => w.student_id === filterStudent) : (rows || []);
-      filtered.sort((a, b) => {
-        if (a.status === b.status) return 0;
-        return a.status === 'pending' ? -1 : 1;
+      const res = await api.getVocabWordsPage({
+        student_id: filterStudent || undefined,
+        status: filterStatus || undefined,
+        q: searchQ || undefined,
+        limit: PAGE_SIZE,
+        offset,
       });
-      setWords(filtered);
-      setPendingCount(filterStatus === 'pending' ? rows.length : pendingList.length);
+      setWords(res.items || []);
+      setTotal(res.pagination?.total ?? 0);
+      setCounts(res.counts || { all: 0, pending: 0, approved: 0 });
     } catch (e: any) {
       toast.error(`불러오기 실패: ${e?.message || e}`);
       setWords([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [filterStudent, filterStatus]);
+  }, [filterStudent, filterStatus, searchQ, offset]);
 
   useEffect(() => { loadStudents(); }, [loadStudents]);
   useEffect(() => { loadWords(); }, [loadWords]);
+
+  // 마지막 페이지에서 모두 삭제되어 페이지가 비면 한 단계 뒤로
+  useEffect(() => {
+    if (!loading && words.length === 0 && offset > 0 && total > 0) {
+      setOffset(Math.max(0, offset - PAGE_SIZE));
+    }
+  }, [loading, words.length, offset, total]);
+
+  const refresh = loadWords;
 
   const handleApprove = useCallback(async (id: string) => {
     try {
       await api.updateVocabWord(id, { status: 'approved' });
       toast.success('승인됨');
-      loadWords();
+      refresh();
     } catch (e: any) {
       toast.error(e?.message || '승인 실패');
     }
-  }, [loadWords]);
+  }, [refresh]);
 
   const handleReject = useCallback(async (id: string, english: string) => {
     if (!confirm(`'${english}' 거절할까요?\n학생 단어장에서 빠지고 복구할 수 없어요.`)) return;
     try {
       await api.deleteVocabWord(id);
       toast.success(`'${english}' 거절됨`);
-      loadWords();
+      refresh();
     } catch (e: any) {
       toast.error(e?.message || '거절하지 못했어요');
     }
-  }, [loadWords]);
+  }, [refresh]);
 
   const handleDelete = useCallback(async (id: string, english: string) => {
     if (!confirm(`'${english}' 삭제할까요?\n복구할 수 없어요.`)) return;
     try {
       await api.deleteVocabWord(id);
       toast.success(`'${english}' 삭제됨`);
-      loadWords();
+      refresh();
     } catch (e: any) {
       toast.error(e?.message || '삭제하지 못했어요');
     }
-  }, [loadWords]);
+  }, [refresh]);
 
   const handleBoxChange = useCallback(async (id: string, box: number) => {
     try {
       await api.updateVocabWord(id, { box });
-      loadWords();
+      refresh();
     } catch (e: any) {
       toast.error(e?.message || '저장 실패');
     }
-  }, [loadWords]);
+  }, [refresh]);
 
-  const approvedCount = words.length - words.filter(w => w.status === 'pending').length;
+  const handleCategoryChange = useCallback(async (id: string, raw: string) => {
+    const next = raw.trim() ? raw.trim() : null;
+    try {
+      await api.updateVocabWord(id, { category: next });
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message || '유형 저장 실패');
+    }
+  }, [refresh]);
+
+  const clearFilters = useCallback(() => {
+    setFilterStudent('');
+    setFilterStatus('');
+    setSearchInput('');
+    setSearchQ('');
+    setOffset(0);
+  }, []);
+
+  const hasFilter = !!(filterStudent || filterStatus || searchQ);
+  const page = Math.floor(offset / PAGE_SIZE) + 1;
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : offset + 1;
+  const rangeEnd = Math.min(offset + PAGE_SIZE, total);
 
   return (
     <>
-      {/* 메트릭 필터 — 클릭하면 해당 상태로 필터 적용 */}
+      {/* 메트릭 (counts 기반 — 학생 필터는 적용, 상태 필터 무시) */}
       <div className="vocab-metrics" role="tablist" aria-label="상태 필터">
         <button
           type="button"
@@ -126,18 +179,18 @@ export default function VocabWordsTab() {
           className={`vocab-metric ${filterStatus === '' ? 'vocab-metric--active' : ''}`}
           onClick={() => setFilterStatus('')}
         >
-          <span className="vocab-metric-value">{words.length}</span>
+          <span className="vocab-metric-value">{counts.all}</span>
           <span className="vocab-metric-label">전체</span>
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={filterStatus === 'pending'}
-          className={`vocab-metric vocab-metric--warning ${filterStatus === 'pending' ? 'vocab-metric--active' : ''} ${pendingCount === 0 ? 'vocab-metric--empty' : ''}`}
+          className={`vocab-metric vocab-metric--warning ${filterStatus === 'pending' ? 'vocab-metric--active' : ''} ${counts.pending === 0 ? 'vocab-metric--empty' : ''}`}
           onClick={() => setFilterStatus('pending')}
-          disabled={pendingCount === 0 && filterStatus !== 'pending'}
+          disabled={counts.pending === 0 && filterStatus !== 'pending'}
         >
-          <span className="vocab-metric-value">{pendingCount}</span>
+          <span className="vocab-metric-value">{counts.pending}</span>
           <span className="vocab-metric-label">대기</span>
         </button>
         <button
@@ -147,12 +200,12 @@ export default function VocabWordsTab() {
           className={`vocab-metric ${filterStatus === 'approved' ? 'vocab-metric--active' : ''}`}
           onClick={() => setFilterStatus('approved')}
         >
-          <span className="vocab-metric-value">{approvedCount}</span>
+          <span className="vocab-metric-value">{counts.approved}</span>
           <span className="vocab-metric-label">승인</span>
         </button>
       </div>
 
-      {/* 학생 필터만 남김 */}
+      {/* 필터 바: 학생 + 검색 + 초기화 */}
       <div className="vocab-filter-bar">
         <label className="filter-group">
           <span className="filter-label">학생</span>
@@ -167,15 +220,35 @@ export default function VocabWordsTab() {
             ))}
           </select>
         </label>
+        <label className="filter-group">
+          <span className="filter-label">검색</span>
+          <input
+            type="text"
+            className="filter-select"
+            placeholder="영어/한글 (2자 이상)"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            style={{ minWidth: 200 }}
+          />
+        </label>
+        {hasFilter && (
+          <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
+            필터 초기화
+          </button>
+        )}
+        <div style={{ marginLeft: 'auto', fontSize: 13, color: '#64748b' }}>
+          {total > 0 ? `${total.toLocaleString()}건 중 ${rangeStart}-${rangeEnd}` : ''}
+        </div>
       </div>
 
-      {/* 테이블 — 6열 */}
+      {/* 테이블 */}
       <div className="vocab-table-wrap">
         <table className="vocab-table">
           <thead>
             <tr>
               <th>단어</th>
               <th className="vocab-th-meta">메타</th>
+              <th>유형</th>
               <th>상태</th>
               <th>Box</th>
               <th className="vocab-th-num">오답</th>
@@ -184,13 +257,14 @@ export default function VocabWordsTab() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={6} className="vocab-empty">단어를 불러오고 있어요</td></tr>
+              <tr><td colSpan={7} className="vocab-empty">단어를 불러오고 있어요</td></tr>
             )}
             {!loading && words.length === 0 && (
-              <tr><td colSpan={6} className="vocab-empty">
+              <tr><td colSpan={7} className="vocab-empty">
                 <EmptyState
-                  hasFilter={!!(filterStudent || filterStatus)}
-                  onClearFilter={() => { setFilterStudent(''); setFilterStatus(''); }}
+                  hasFilter={hasFilter}
+                  totalAll={counts.all}
+                  onClearFilter={clearFilters}
                   onAdd={() => setModalOpen(true)}
                 />
               </td></tr>
@@ -214,6 +288,20 @@ export default function VocabWordsTab() {
                       {addedBy}
                     </span>
                     <span className="chip chip--ghost">{BLANK_LABEL[w.blank_type] || w.blank_type}</span>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      defaultValue={w.category ?? ''}
+                      list="vocab-words-category-suggest"
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v !== (w.category ?? '')) handleCategoryChange(w.id, v);
+                      }}
+                      placeholder="—"
+                      style={{ width: 90, padding: '4px 6px', fontSize: 12, borderRadius: 4, border: '1px solid #cbd5e0' }}
+                      aria-label="유형 변경"
+                    />
                   </td>
                   <td>
                     <span className={`pill pill--${isPending ? 'warning' : 'success'}`}>
@@ -260,11 +348,54 @@ export default function VocabWordsTab() {
         </table>
       </div>
 
+      {/* 페이지바 */}
+      {total > PAGE_SIZE && (
+        <div
+          className="vocab-pager"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            padding: '12px 0',
+            fontSize: 13,
+            color: '#475569',
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={offset === 0 || loading}
+            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+          >
+            ‹ 이전
+          </button>
+          <span>{page} / {lastPage}</span>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={offset + PAGE_SIZE >= total || loading}
+            onClick={() => setOffset(offset + PAGE_SIZE)}
+          >
+            다음 ›
+          </button>
+        </div>
+      )}
+
+      <datalist id="vocab-words-category-suggest">
+        <option value="기초" />
+        <option value="숙어" />
+        <option value="파생어" />
+        <option value="동사구" />
+        <option value="형용사" />
+        <option value="부사" />
+      </datalist>
+
       {modalOpen && (
         <VocabWordModal
           students={students}
           onClose={() => setModalOpen(false)}
-          onSaved={() => { setModalOpen(false); loadWords(); }}
+          onSaved={() => { setModalOpen(false); refresh(); }}
         />
       )}
     </>
@@ -273,14 +404,16 @@ export default function VocabWordsTab() {
 
 function EmptyState({
   hasFilter,
+  totalAll,
   onClearFilter,
   onAdd,
 }: {
   hasFilter: boolean;
+  totalAll: number;
   onClearFilter: () => void;
   onAdd: () => void;
 }) {
-  if (hasFilter) {
+  if (hasFilter && totalAll > 0) {
     return (
       <div className="vocab-empty-state">
         <div className="vocab-empty-state__title">조건에 맞는 단어가 없어요</div>
