@@ -7,11 +7,14 @@ import {
   LessonItemStatus,
   LessonItemKind,
   LessonFileRole,
+  Curriculum,
+  CurriculumDetail,
   Student,
 } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
 import './StudentLessonsPage.css';
+import './CurriculumPage.css';
 
 const STATUS_LABEL: Record<LessonItemStatus, string> = {
   todo: '미시작',
@@ -70,8 +73,13 @@ export default function StudentLessonsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showApply, setShowApply] = useState(false);
+  const [createSource, setCreateSource] = useState<'manual' | 'exam_prep'>('manual');
   const [draft, setDraft] = useState<Partial<LessonItemCreateInput>>({});
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
+
+  const curriculumItems = useMemo(() => items.filter((i) => i.source === 'curriculum'), [items]);
+  const otherItems = useMemo(() => items.filter((i) => i.source !== 'curriculum'), [items]);
 
   const selected = useMemo(
     () => items.find((i) => i.id === selectedId) ?? null,
@@ -126,6 +134,7 @@ export default function StudentLessonsPage() {
         topic: draft.topic || null,
         description: draft.description || null,
         understanding: draft.understanding ?? null,
+        source: createSource,
       });
       setItems((prev) => [created, ...prev]);
       setSelectedId(created.id);
@@ -222,11 +231,18 @@ export default function StudentLessonsPage() {
             ))}
           </select>
           <button
+            className="btn btn-ghost"
+            disabled={!selectedStudent}
+            onClick={() => setShowApply(true)}
+          >
+            + 커리큘럼 적용
+          </button>
+          <button
             className="btn btn-primary"
             disabled={!selectedStudent}
-            onClick={() => setShowCreate(true)}
+            onClick={() => { setCreateSource('exam_prep'); setShowCreate(true); setDraft({ kind: 'free' }); }}
           >
-            + 새 항목
+            + 시험대비·자료
           </button>
         </div>
       </div>
@@ -241,15 +257,29 @@ export default function StudentLessonsPage() {
             {items.length === 0 && !loading ? (
               <div className="empty-state">
                 <div className="empty-state-title">항목이 없습니다</div>
-                <div className="empty-state-desc">우측 상단 + 새 항목으로 시작하세요.</div>
+                <div className="empty-state-desc">+ 커리큘럼 적용 또는 + 시험대비·자료로 시작하세요.</div>
               </div>
             ) : (
-              items.map((it) => <LessonListItem
-                key={it.id}
-                item={it}
-                active={it.id === selectedId}
-                onSelect={() => setSelectedId(it.id)}
-              />)
+              <>
+                <LessonSectionHeader
+                  label={`📚 이번 학기 진도 (${curriculumItems.length})`}
+                  onCreate={() => setShowApply(true)}
+                  createLabel="+ 적용"
+                  hidden={curriculumItems.length === 0}
+                />
+                {curriculumItems.map((it) => (
+                  <LessonListItem key={it.id} item={it} active={it.id === selectedId} onSelect={() => setSelectedId(it.id)} />
+                ))}
+                <LessonSectionHeader
+                  label={`📝 시험대비·기타 (${otherItems.length})`}
+                  onCreate={() => { setCreateSource('exam_prep'); setShowCreate(true); setDraft({ kind: 'free' }); }}
+                  createLabel="+ 추가"
+                  hidden={otherItems.length === 0}
+                />
+                {otherItems.map((it) => (
+                  <LessonListItem key={it.id} item={it} active={it.id === selectedId} onSelect={() => setSelectedId(it.id)} />
+                ))}
+              </>
             )}
           </div>
         </div>
@@ -352,7 +382,41 @@ export default function StudentLessonsPage() {
         </Modal>
       )}
 
+      {showApply && selectedStudent && (
+        <ApplyCurriculumModal
+          studentId={selectedStudent}
+          onClose={() => setShowApply(false)}
+          onApplied={() => { setShowApply(false); loadItems(); }}
+        />
+      )}
+
       {ConfirmDialog}
+    </div>
+  );
+}
+
+// ─── 좌측 섹션 헤더 ─────────────────────────────────
+
+function LessonSectionHeader({
+  label, onCreate, createLabel, hidden,
+}: { label: string; onCreate: () => void; createLabel: string; hidden?: boolean }) {
+  if (hidden) return null;
+  return (
+    <div
+      style={{
+        padding: 'var(--sp-2) var(--sp-3)',
+        background: 'var(--bg-tertiary)',
+        borderBottom: '1px solid var(--border-secondary)',
+        fontSize: 12,
+        fontWeight: 600,
+        color: 'var(--text-secondary)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <span>{label}</span>
+      <button className="btn btn-sm btn-ghost" onClick={onCreate}>{createLabel}</button>
     </div>
   );
 }
@@ -595,6 +659,168 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onShare, shareCopi
 }
 
 // ─── 파일 업로드 버튼 (역할 선택) ─────────────────
+
+// ─── 커리큘럼 적용 모달 ─────────────────────────────
+
+function ApplyCurriculumModal({
+  studentId, onClose, onApplied,
+}: { studentId: string; onClose: () => void; onApplied: () => void }) {
+  const [list, setList] = useState<Curriculum[]>([]);
+  const [selectedCurr, setSelectedCurr] = useState<string>('');
+  const [detail, setDetail] = useState<CurriculumDetail | null>(null);
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  const [alreadyApplied, setAlreadyApplied] = useState<Set<string>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
+  const [filter, setFilter] = useState({ term: '', grade: '' });
+
+  useEffect(() => {
+    api.listCurricula({ term: filter.term || undefined, grade: filter.grade || undefined })
+      .then((rows) => {
+        setList(rows);
+        if (rows.length > 0 && !selectedCurr) setSelectedCurr(rows[0].id);
+      })
+      .catch(() => setList([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
+
+  useEffect(() => {
+    if (!selectedCurr) { setDetail(null); return; }
+    Promise.all([
+      api.getCurriculum(selectedCurr),
+      // 학생이 이미 가진 curriculum_item_id 셋 조회 → 모달에서 disabled 표시
+      api.listLessonItems({ studentId, source: 'curriculum' }).catch(() => []),
+    ]).then(([d, existing]) => {
+      setDetail(d);
+      const applied = new Set<string>(
+        existing.filter((i) => i.curriculum_item_id).map((i) => i.curriculum_item_id as string)
+      );
+      setAlreadyApplied(applied);
+      // 기본: 아직 적용 안 된 항목만 체크
+      const next: Record<string, boolean> = {};
+      for (const it of d.items) next[it.id] = !applied.has(it.id);
+      setPicked(next);
+    }).catch(() => setDetail(null));
+  }, [selectedCurr, studentId]);
+
+  const pickedCount = Object.values(picked).filter(Boolean).length;
+
+  const handleApply = async () => {
+    if (!detail) return;
+    const ids = Object.keys(picked).filter((k) => picked[k]);
+    if (ids.length === 0) {
+      toast.error('적용할 항목을 선택하세요');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const r = await api.applyCurriculum({
+        student_id: studentId,
+        curriculum_id: detail.id,
+        item_ids: ids,
+      }) as { created: number; skipped?: string[]; total: number };
+      const skipCount = r.skipped?.length ?? Math.max(0, r.total - r.created);
+      const msg = skipCount > 0
+        ? `${r.created}개 적용 · ${skipCount}개는 이미 적용됨`
+        : `${r.created}개 항목 적용됨`;
+      toast.success(msg);
+      onApplied();
+    } catch (err) {
+      toast.error('실패: ' + (err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <Modal.Header>커리큘럼 적용</Modal.Header>
+      <Modal.Body>
+        {list.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-title">사용 가능한 카탈로그가 없습니다</div>
+            <div className="empty-state-desc">먼저 커리큘럼 페이지에서 카탈로그를 만드세요.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
+            <div className="curr-toolbar">
+              <select className="input" value={selectedCurr} onChange={(e) => setSelectedCurr(e.target.value)}>
+                {list.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.term} · {c.grade} · {c.subject} — {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {detail && (
+              <>
+                <div className="curr-apply-summary">
+                  <span>총 {detail.items.length}개 항목</span>
+                  <span>{pickedCount}개 선택됨</span>
+                </div>
+                <div className="curr-apply-list" role="group" aria-label="적용할 항목">
+                  {detail.items
+                    .slice()
+                    .sort((a, b) => a.order_idx - b.order_idx)
+                    .map((it) => {
+                      const applied = alreadyApplied.has(it.id);
+                      return (
+                        <label
+                          key={it.id}
+                          className="curr-apply-row"
+                          data-applied={applied || undefined}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!picked[it.id]}
+                            disabled={applied}
+                            onChange={(e) => setPicked({ ...picked, [it.id]: e.target.checked })}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <strong>{it.unit_name}</strong>
+                            <div className="meta">
+                              {it.kind === 'unit' ? '단원' : '유형'}
+                              {it.textbook ? ` · ${it.textbook}` : ''}
+                              {it.default_purpose ? ` · ${it.default_purpose}` : ''}
+                              {applied ? ' · 이미 적용됨' : ''}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => {
+                      // 전체 선택은 이미 적용된 건 제외
+                      const next: Record<string, boolean> = {};
+                      for (const it of detail.items) next[it.id] = !alreadyApplied.has(it.id);
+                      setPicked(next);
+                    }}
+                  >전체 선택</button>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => setPicked({})}
+                  >전체 해제</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        <button className="btn btn-ghost" onClick={onClose} disabled={submitting}>취소</button>
+        <button
+          className="btn btn-primary"
+          onClick={handleApply}
+          disabled={submitting || pickedCount === 0 || !detail}
+        >
+          {submitting ? '적용 중…' : `${pickedCount}개 적용`}
+        </button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
 
 function FileUploadButton({ onUpload }: { onUpload: (file: File, role: LessonFileRole) => void }) {
   const [role, setRole] = useState<LessonFileRole>('main');

@@ -60,6 +60,8 @@ interface LessonItemRow {
   coverage_category: string | null;
   visible_to_parent: number;
   parent_can_download: number;
+  curriculum_item_id: string | null;
+  source: string;
   created_by: string;
   created_at: string;
   updated_by: string | null;
@@ -83,6 +85,7 @@ interface LessonItemFileRow {
 const ALLOWED_ROLES = ['main', 'answer', 'solution', 'extra'] as const;
 const ALLOWED_KINDS = ['unit', 'type', 'free'] as const;
 const ALLOWED_STATUS = ['todo', 'in_progress', 'done'] as const;
+const ALLOWED_SOURCES_USER = ['manual', 'exam_prep'] as const; // 사용자가 POST에서 직접 지정 가능
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const SHARE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30일
 const SHARE_RATE_LIMIT = 20; // 시간당 학부모 링크 발급 상한 (per teacher)
@@ -207,6 +210,8 @@ function rowToItem(row: LessonItemRow, files: LessonItemFileRow[] = []) {
     coverage_category: row.coverage_category,
     visible_to_parent: !!row.visible_to_parent,
     parent_can_download: !!row.parent_can_download,
+    curriculum_item_id: row.curriculum_item_id,
+    source: row.source,
     created_by: row.created_by,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -324,6 +329,7 @@ export async function handleLessonItems(
       const studentId = url.searchParams.get('student_id');
       const textbook = url.searchParams.get('textbook');
       const kind = url.searchParams.get('kind');
+      const sourceFilter = url.searchParams.get('source');
       const q = url.searchParams.get('q');
       const includeArchived = url.searchParams.get('include_archived') === '1';
 
@@ -350,6 +356,10 @@ export async function handleLessonItems(
       if (kind) {
         sql += ' AND kind = ?';
         params.push(kind);
+      }
+      if (sourceFilter) {
+        sql += ' AND source = ?';
+        params.push(sourceFilter);
       }
       if (q) {
         sql += ' AND (title LIKE ? OR unit_name LIKE ? OR description LIKE ?)';
@@ -403,6 +413,10 @@ export async function handleLessonItems(
       const status = body.status && (ALLOWED_STATUS as readonly string[]).includes(body.status)
         ? body.status
         : 'todo';
+      // source: 'manual' (직접 추가) | 'exam_prep' (시험대비) — UI 분기용
+      const rawSource = (body as { source?: string }).source;
+      const source = rawSource && (ALLOWED_SOURCES_USER as readonly string[]).includes(rawSource)
+        ? rawSource : 'manual';
       const id = generateId();
       await executeUpdate(
         db,
@@ -410,9 +424,9 @@ export async function handleLessonItems(
          (id, academy_id, student_id, textbook, unit_name, kind, order_idx,
           understanding, status, note,
           title, purpose, topic, description, tags, coverage_category,
-          visible_to_parent, parent_can_download,
+          visible_to_parent, parent_can_download, source,
           created_by, updated_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           academyId,
@@ -432,6 +446,7 @@ export async function handleLessonItems(
           body.coverage_category ?? null,
           body.visible_to_parent ? 1 : 0,
           body.parent_can_download === false ? 0 : 1,
+          source,
           userId,
           userId,
         ]
@@ -461,6 +476,97 @@ export async function handleLessonItems(
       return successResponse({ ok: true });
     }
 
+    // POST /api/lesson-items/apply-curriculum
+    // body: { student_id, curriculum_id, item_ids?: string[] }  // item_ids 없으면 전체 적용
+    if (method === 'POST' && pathname === '/api/lesson-items/apply-curriculum') {
+      const body = (await request.json().catch(() => ({}))) as {
+        student_id?: string;
+        curriculum_id?: string;
+        item_ids?: string[];
+      };
+      if (!body.student_id || !body.curriculum_id) {
+        return errorResponse('student_id, curriculum_id 필수', 400);
+      }
+      if (!isAdmin && !(await teacherOwnsStudent(db, userId, body.student_id))) {
+        return errorResponse('해당 학생에 대한 권한이 없습니다', 403);
+      }
+      // 학생 상태 검증
+      const studentRow = await executeFirst<{ status: string }>(
+        db, 'SELECT status FROM students WHERE id = ? AND academy_id = ?',
+        [body.student_id, academyId]
+      );
+      if (!studentRow) return errorResponse('학생을 찾을 수 없습니다', 404);
+      if (studentRow.status === 'inactive' || studentRow.status === 'graduated') {
+        return errorResponse(`비활성 학생(${studentRow.status})에는 적용할 수 없습니다`, 400);
+      }
+      // 카탈로그 검증 (academy 격리)
+      const curriculum = await executeFirst<{ id: string }>(
+        db,
+        'SELECT id FROM curricula WHERE id = ? AND academy_id = ? AND archived_at IS NULL',
+        [body.curriculum_id, academyId]
+      );
+      if (!curriculum) return errorResponse('커리큘럼을 찾을 수 없습니다', 404);
+
+      // 카탈로그 항목 로드
+      let items: Array<{
+        id: string; textbook: string | null; unit_name: string;
+        kind: string; order_idx: number; description: string | null;
+        default_purpose: string | null;
+      }> = [];
+      if (body.item_ids && body.item_ids.length > 0) {
+        const marks = body.item_ids.map(() => '?').join(',');
+        items = await executeQuery(
+          db,
+          `SELECT id, textbook, unit_name, kind, order_idx, description, default_purpose
+           FROM curriculum_items
+           WHERE curriculum_id = ? AND id IN (${marks})`,
+          [body.curriculum_id, ...body.item_ids]
+        );
+      } else {
+        items = await executeQuery(
+          db,
+          `SELECT id, textbook, unit_name, kind, order_idx, description, default_purpose
+           FROM curriculum_items WHERE curriculum_id = ? ORDER BY order_idx`,
+          [body.curriculum_id]
+        );
+      }
+      if (items.length === 0) return successResponse({ created: 0, skipped: [], total: 0 });
+
+      // unit_name 길이 검증 (카탈로그가 어떻게 들어오든 학생 row 보호)
+      for (const it of items) {
+        if (it.unit_name.length > FIELD_MAX_LEN.unit_name) {
+          return errorResponse(`카탈로그 항목 unit_name 길이 초과 (${it.id})`, 400);
+        }
+      }
+
+      // batch INSERT OR IGNORE — 멱등성 + 정확한 created 카운트 + skipped 추적
+      // deterministic id로 같은 (curriculum_item, student) 중복 차단
+      const stmts = items.map((it) => {
+        const id = `sli-curr-${it.id}-${body.student_id}`;
+        return db.prepare(
+          `INSERT OR IGNORE INTO student_lesson_items
+           (id, academy_id, student_id, textbook, unit_name, kind, order_idx,
+            description, purpose, source, curriculum_item_id,
+            status, created_by, updated_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'curriculum', ?, 'todo', ?, ?)`
+        ).bind(
+          id, academyId, body.student_id,
+          it.textbook, it.unit_name, it.kind, it.order_idx,
+          it.description, it.default_purpose,
+          it.id, userId, userId
+        );
+      });
+      const results = await db.batch(stmts);
+      let created = 0;
+      const skipped: string[] = [];
+      results.forEach((r, idx) => {
+        const changes = (r as any)?.meta?.changes ?? 0;
+        if (changes > 0) created++;
+        else skipped.push(items[idx].id);
+      });
+      return successResponse({ created, skipped, total: items.length });
+    }
+
     // POST /api/lesson-items/from-coverage
     if (method === 'POST' && pathname === '/api/lesson-items/from-coverage') {
       const body = (await request.json().catch(() => ({}))) as {
@@ -484,6 +590,14 @@ export async function handleLessonItems(
       if (!isAdmin && !(await teacherOwnsStudent(db, userId, body.student_id))) {
         return errorResponse('해당 학생에 대한 권한이 없습니다', 403);
       }
+      const studentRow = await executeFirst<{ status: string }>(
+        db, 'SELECT status FROM students WHERE id = ? AND academy_id = ?',
+        [body.student_id, academyId]
+      );
+      if (!studentRow) return errorResponse('학생을 찾을 수 없습니다', 404);
+      if (studentRow.status === 'inactive' || studentRow.status === 'graduated') {
+        return errorResponse(`비활성 학생(${studentRow.status})에는 항목을 추가할 수 없습니다`, 400);
+      }
       const id = generateId();
       await executeUpdate(
         db,
@@ -491,8 +605,9 @@ export async function handleLessonItems(
          (id, academy_id, student_id, kind, status,
           title, purpose, coverage_category,
           visible_to_parent, parent_can_download,
+          source,
           created_by, updated_by)
-         VALUES (?, ?, ?, 'free', 'todo', ?, ?, ?, 0, 1, ?, ?)`,
+         VALUES (?, ?, ?, 'free', 'todo', ?, ?, ?, 0, 1, 'coverage_prescription', ?, ?)`,
         [
           id,
           academyId,

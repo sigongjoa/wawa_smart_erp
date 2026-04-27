@@ -70,11 +70,12 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'schedule',
     label: '학원 일정',
     iconClass: 'nav-icon--meeting',
-    paths: ['/board', '/meeting', '/exam-papers'],
+    paths: ['/board', '/meeting', '/exam-papers', '/curriculum'],
     items: [
       { to: '/board', label: '보드' },
       { to: '/meeting', label: '회의 요약' },
       { to: '/exam-papers', label: '시험지' },
+      { to: '/curriculum', label: '커리큘럼' },
     ],
   },
 ];
@@ -97,6 +98,17 @@ export default function Layout() {
   const toggle = (key: string) => setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+
+  // 라우트 변경 시 활성 NavLink가 사이드바 스크롤 영역 안에 보이도록 살짝 스크롤
+  // 모바일 drawer가 닫혀있을 땐 hidden 영역 스크롤 의미 없으므로 스킵
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (isMobile && !drawerOpen) return;
+    const active = document.querySelector<HTMLElement>('.sidebar-nav a.active');
+    active?.scrollIntoView({ block: 'nearest' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!drawerOpen) return;

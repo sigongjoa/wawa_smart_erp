@@ -1599,6 +1599,7 @@ export const api = {
     studentId?: string;
     textbook?: string;
     kind?: LessonItemKind;
+    source?: LessonItemSource;
     q?: string;
     includeArchived?: boolean;
   }) => {
@@ -1606,11 +1607,51 @@ export const api = {
     if (params?.studentId) qs.set('student_id', params.studentId);
     if (params?.textbook) qs.set('textbook', params.textbook);
     if (params?.kind) qs.set('kind', params.kind);
+    if (params?.source) qs.set('source', params.source);
     if (params?.q) qs.set('q', params.q);
     if (params?.includeArchived) qs.set('include_archived', '1');
     const q = qs.toString();
     return listRequest<LessonItem>(`/api/lesson-items${q ? '?' + q : ''}`);
   },
+  applyCurriculum: (data: { student_id: string; curriculum_id: string; item_ids?: string[] }) =>
+    request<{ created: number; total: number }>('/api/lesson-items/apply-curriculum', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  // ── Curriculum ──
+  listCurricula: (params?: { term?: string; grade?: string; subject?: string; includeArchived?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params?.term) qs.set('term', params.term);
+    if (params?.grade) qs.set('grade', params.grade);
+    if (params?.subject) qs.set('subject', params.subject);
+    if (params?.includeArchived) qs.set('include_archived', '1');
+    const q = qs.toString();
+    return listRequest<Curriculum>(`/api/curricula${q ? '?' + q : ''}`);
+  },
+  getCurriculum: (id: string) => request<CurriculumDetail>(`/api/curricula/${id}`),
+  createCurriculum: (data: CurriculumCreateInput) =>
+    request<Curriculum>('/api/curricula', { method: 'POST', body: JSON.stringify(data) }),
+  updateCurriculum: (id: string, patch: Partial<CurriculumCreateInput>) =>
+    request<{ ok: boolean }>(`/api/curricula/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  archiveCurriculum: (id: string) =>
+    request<{ ok: boolean }>(`/api/curricula/${id}`, { method: 'DELETE' }),
+  addCurriculumItem: (curriculumId: string, data: CurriculumItemInput) =>
+    request<CurriculumItem>(`/api/curricula/${curriculumId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateCurriculumItem: (curriculumId: string, itemId: string, data: Partial<CurriculumItemInput>) =>
+    request<{ ok: boolean }>(`/api/curricula/${curriculumId}/items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteCurriculumItem: (curriculumId: string, itemId: string) =>
+    request<{ ok: boolean }>(`/api/curricula/${curriculumId}/items/${itemId}`, { method: 'DELETE' }),
+  reorderCurriculumItems: (curriculumId: string, items: Array<{ id: string; order_idx: number }>) =>
+    request<{ ok: boolean }>(`/api/curricula/${curriculumId}/items/reorder`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
   getLessonItem: (id: string) => request<LessonItem>(`/api/lesson-items/${id}`),
   createLessonItem: (data: LessonItemCreateInput) =>
     request<LessonItem>('/api/lesson-items', { method: 'POST', body: JSON.stringify(data) }),
@@ -1653,10 +1694,62 @@ export const api = {
     `${API_BASE}/api/lesson-items/download/${encodeURIComponent(fileId)}`,
 };
 
+// ── Curriculum (학원 단위 카탈로그) ──
+
+export interface Curriculum {
+  id: string;
+  academy_id: string;
+  term: string;
+  grade: string;
+  subject: string;
+  title: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+  item_count?: number;
+  student_count?: number;
+}
+
+export interface CurriculumItem {
+  id: string;
+  curriculum_id: string;
+  textbook: string | null;
+  unit_name: string;
+  kind: 'unit' | 'type';
+  order_idx: number;
+  description: string | null;
+  default_purpose: string | null;
+  created_at: string;
+}
+
+export interface CurriculumDetail extends Curriculum {
+  items: CurriculumItem[];
+}
+
+export interface CurriculumCreateInput {
+  term: string;
+  grade: string;
+  subject: string;
+  title: string;
+  description?: string | null;
+}
+
+export interface CurriculumItemInput {
+  textbook?: string | null;
+  unit_name: string;
+  kind?: 'unit' | 'type';
+  order_idx?: number;
+  description?: string | null;
+  default_purpose?: string | null;
+}
+
 // ── Student Lesson Items (진도+자료+학부모노출 통합 도메인) ──
 
 export type LessonItemKind = 'unit' | 'type' | 'free';
 export type LessonItemStatus = 'todo' | 'in_progress' | 'done';
+export type LessonItemSource = 'manual' | 'curriculum' | 'exam_prep' | 'coverage_prescription';
 export type LessonFileRole = 'main' | 'answer' | 'solution' | 'extra';
 
 export interface LessonItemFile {
@@ -1688,6 +1781,8 @@ export interface LessonItem {
   coverage_category: string | null;
   visible_to_parent: boolean;
   parent_can_download: boolean;
+  curriculum_item_id: string | null;
+  source: LessonItemSource;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -1711,9 +1806,10 @@ export interface LessonItemCreateInput {
   coverage_category?: string | null;
   visible_to_parent?: boolean;
   parent_can_download?: boolean;
+  source?: 'manual' | 'exam_prep';
 }
 
-export type LessonItemPatch = Partial<Omit<LessonItemCreateInput, 'student_id'>>;
+export type LessonItemPatch = Partial<Omit<LessonItemCreateInput, 'student_id' | 'source'>>;
 
 // ── Vocab Gacha 타입 ──
 

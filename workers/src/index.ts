@@ -44,6 +44,7 @@ import { handleLive, handlePlayLive } from '@/routes/live-handler';
 import { handleParentReport } from '@/routes/parent-report-handler';
 import { handleParentHomework } from '@/routes/parent-homework-handler';
 import { handleLessonItems } from '@/routes/lesson-items-handler';
+import { handleCurriculum } from '@/routes/curriculum-handler';
 import { expireExpiredAttempts } from '@/cron/expire-exam-attempts';
 import { tenantMiddleware } from '@/middleware/tenant';
 
@@ -238,6 +239,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학생별 학습 기록 (진도+자료+학부모 노출 통합)
       if (pathname.startsWith('/api/lesson-items')) {
         return addCorsHeaders(await handleLessonItems(method, pathname, request, context), env, origin);
+      }
+
+      // 커리큘럼 (학원 단위 카탈로그)
+      if (pathname.startsWith('/api/curricula')) {
+        return addCorsHeaders(await handleCurriculum(method, pathname, request, context), env, origin);
       }
 
       // 가차 학생/카드 관리 (JWT 인증)

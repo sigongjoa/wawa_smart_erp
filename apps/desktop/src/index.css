@@ -154,11 +154,13 @@ input, select, textarea {
   border-right: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
+  min-height: 0;             /* flex chain에서 자식 overflow 허용 */
   z-index: 100;
   transition: transform var(--duration-slow) var(--ease-out);
 }
 
 .sidebar-logo {
+  flex: 0 0 auto;
   padding: var(--sp-8) var(--sp-6);
   display: flex;
   align-items: baseline;
@@ -181,11 +183,32 @@ input, select, textarea {
 }
 
 .sidebar-nav {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;                  /* overflow 작동 위해 필수 */
   padding: var(--sp-2) var(--sp-3);
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;   /* 페이지 본문으로 스크롤 전파 차단 */
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-primary) transparent;
+}
+
+/* WebKit 스크롤바 (Chrome/Edge/Safari) */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: var(--radius-full);
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
 }
 
 .sidebar-nav a {
@@ -273,8 +296,11 @@ input, select, textarea {
 }
 
 .sidebar-footer {
+  flex: 0 0 auto;
   padding: var(--sp-4) var(--sp-5);
   border-top: 1px solid var(--border-secondary);
+  /* nav가 스크롤될 때 분리 단서 — 위쪽으로 미세 그림자 */
+  box-shadow: 0 -4px 8px -4px rgba(0,0,0,0.04);
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -5158,6 +5184,15 @@ input[type="number"] {
 .sidebar-nav-sub {
   display: flex; flex-direction: column;
   padding-left: 24px;
+  /* 토글 시 스크롤바가 갑자기 점프하지 않도록 부드럽게 */
+  animation: nav-sub-in var(--duration-fast) var(--ease-out);
+}
+@keyframes nav-sub-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-nav-sub { animation: none; }
 }
 .sidebar-nav-sub a {
   padding: 8px 16px; font-size: 13px;

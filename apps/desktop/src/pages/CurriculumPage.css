@@ -1,0 +1,261 @@
+/* CurriculumPage — 학원 단위 커리큘럼 카탈로그 관리 */
+
+.curr-toolbar {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.curr-toolbar .input {
+  min-width: 120px;
+  width: auto;
+}
+
+.curr-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  min-height: 480px;
+}
+
+@media (max-width: 768px) {
+  .curr-grid { grid-template-columns: 1fr; min-height: auto; }
+}
+
+.curr-list-panel {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+.curr-list-header {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.curr-list-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3) var(--sp-4);
+  border: none;
+  border-bottom: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.curr-list-item:hover { background: var(--bg-tertiary); }
+.curr-list-item:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+.curr-list-item[aria-current='true'] {
+  background: var(--primary-surface);
+  border-left: 3px solid var(--primary);
+  padding-left: calc(var(--sp-4) - 3px);
+}
+.curr-list-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-1);
+}
+.curr-list-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.curr-list-counts {
+  margin-top: var(--sp-1);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.curr-detail {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5);
+  background: var(--bg-secondary);
+}
+.curr-detail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.curr-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+.curr-detail-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+.curr-detail-eyebrow {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-1);
+}
+
+.curr-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.curr-items-table th,
+.curr-items-table td {
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border-secondary);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.curr-items-table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+.curr-items-table input.input {
+  width: 100%;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: 13px;
+}
+.curr-item-order {
+  width: 56px;
+  text-align: right;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.curr-item-actions {
+  width: 60px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.curr-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.curr-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--sp-2);
+}
+@media (max-width: 480px) {
+  .curr-form-row { grid-template-columns: 1fr; }
+}
+.curr-form-field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-1);
+  font-weight: 500;
+}
+
+/* 페이지 부제 / 섹션 헤더 / 위험 액션 */
+.curr-page-subtitle {
+  margin: var(--sp-1) 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.curr-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-2);
+}
+.curr-section-title {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.curr-archive-btn { color: var(--danger); }
+.curr-detail-description {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: var(--sp-1);
+}
+
+/* 인라인 저장 힌트 */
+.curr-autosave-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: var(--sp-1);
+  min-height: 14px;
+}
+.curr-autosave-hint--saved { color: var(--success); }
+
+/* 항목 행 액션 — 순서 ↑↓ */
+.curr-item-reorder {
+  width: 64px;
+  white-space: nowrap;
+  text-align: center;
+}
+.curr-item-reorder-btn {
+  background: transparent;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.curr-item-reorder-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.curr-item-reorder-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 480px) {
+  .curr-toolbar { flex-direction: column; align-items: stretch; }
+  .curr-toolbar .input { width: 100%; }
+  .curr-items-table th,
+  .curr-items-table td { padding: var(--sp-1) var(--sp-2); font-size: 12px; }
+}
+
+/* 적용 모달 (StudentLessonsPage에서 사용) */
+.curr-apply-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) 0;
+}
+.curr-apply-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  font-size: 13px;
+}
+.curr-apply-row:hover { background: var(--bg-tertiary); }
+.curr-apply-row[data-applied] {
+  opacity: 0.55;
+  cursor: default;
+}
+.curr-apply-row[data-applied]:hover { background: transparent; }
+.curr-apply-row strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.curr-apply-row .meta {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.curr-apply-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
