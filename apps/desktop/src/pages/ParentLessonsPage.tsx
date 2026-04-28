@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import FilePreviewModal from '../components/FilePreviewModal';
+import { parentApi, ParentApiError } from '../api/parent';
+import { ParentGateView, useParentToken } from '../components/ParentTokenGate';
 import './ParentLessonsPage.css';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 type FileRole = 'main' | 'answer' | 'solution' | 'extra';
 
@@ -46,49 +46,35 @@ interface ViewResponse {
 
 export default function ParentLessonsPage() {
   const { studentId } = useParams<{ studentId: string }>();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const token = useParentToken();
 
   const [data, setData] = useState<ViewResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | ParentApiError | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewFile, setPreviewFile] = useState<LessonItemFile | null>(null);
 
   const fileUrl = (fileId: string, inline: boolean) =>
-    `${API_BASE}/api/parent/students/${studentId}/lessons/${encodeURIComponent(fileId)}/download?token=${encodeURIComponent(token)}${inline ? '&inline=1' : ''}`;
+    parentApi.lessonFileUrl(studentId || '', fileId, token, inline);
 
   useEffect(() => {
     if (!studentId || !token) {
-      setError('유효하지 않은 링크입니다.');
+      setError(new ParentApiError('TOKEN_MISSING', '유효하지 않은 링크입니다.'));
       setLoading(false);
       return;
     }
     setLoading(true);
-    fetch(
-      `${API_BASE}/api/parent/students/${studentId}/lessons?token=${encodeURIComponent(token)}`
-    )
-      .then(async (res) => {
-        const json = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(json?.error || '불러오기에 실패했습니다');
-        setData(json?.data ?? json);
+    parentApi
+      .getLessons<ViewResponse>(studentId, token)
+      .then((d) => {
+        setData(d);
+        setError(null);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : '오류가 발생했습니다'))
+      .catch((err) => setError(err instanceof Error ? err : new Error(String(err))))
       .finally(() => setLoading(false));
   }, [studentId, token]);
 
-  if (loading) {
-    return <div className="parent-lessons-loading">불러오는 중…</div>;
-  }
-  if (error || !data) {
-    return (
-      <div className="parent-lessons-error-shell">
-        <div className="parent-lessons-error-card">
-          <h2>접근할 수 없습니다</h2>
-          <p className="desc">{error || '링크가 올바르지 않거나 만료되었습니다.'}</p>
-          <p className="hint">학원에 문의해 새 링크를 요청해 주세요.</p>
-        </div>
-      </div>
-    );
+  if (loading || error || !data) {
+    return <ParentGateView loading={loading} error={error}>{null}</ParentGateView>;
   }
 
   return (
@@ -150,6 +136,8 @@ export default function ParentLessonsPage() {
                           <a
                             href={fileUrl(f.id, false)}
                             className="parent-lessons-download"
+                            rel="noopener noreferrer"
+                            referrerPolicy="no-referrer"
                             aria-label={`${f.file_name} 다운로드`}
                           >
                             다운로드

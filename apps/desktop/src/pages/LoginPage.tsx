@@ -44,19 +44,23 @@ export default function LoginPage() {
       api.getAcademyList()
         .then((list) => {
           setAcademies(list);
-          // lastSlug가 있으면 자동 선택
+          // lastSlug가 있으면 드롭다운만 채우고, 학원 로고/이름의 자동 노출은 하지 않음
+          // (공용 단말에서 직전 사용자의 학원이 자동 노출되는 사회공학 위험 차단)
           const last = localStorage.getItem('lastSlug');
-          if (last) {
-            const found = list.find(a => a.slug === last);
-            if (found) {
-              setSlug(found.slug);
-              setSelectedAcademy(found);
-            }
+          if (last && list.find((a) => a.slug === last)) {
+            setSlug(last);
           }
         })
         .catch(() => {});
     }
-  }, []);
+  }, [urlSlug]);
+
+  const clearLastSlug = () => {
+    localStorage.removeItem('lastSlug');
+    setSlug('');
+    setSelectedAcademy(null);
+    setError('');
+  };
 
   const handleAcademySelect = (selectedSlug: string) => {
     setSlug(selectedSlug);
@@ -98,6 +102,15 @@ export default function LoginPage() {
               <img src={selectedAcademy.logo} alt="학원 로고" style={{ width: 64, height: 64, objectFit: 'contain', margin: '0 auto 8px' }} />
             )}
             <h2>{selectedAcademy.name}</h2>
+            {!urlSlug && (
+              <button
+                type="button"
+                onClick={clearLastSlug}
+                style={{ background: 'none', border: 'none', color: '#888', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', marginBottom: 8 }}
+              >
+                다른 학원으로 로그인
+              </button>
+            )}
           </>
         ) : (
           <>

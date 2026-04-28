@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { parentApi, ParentApiError } from '../api/parent';
+import { ParentGateView, useParentToken } from '../components/ParentTokenGate';
 
 interface AttendanceBySubject {
   subject: string | null;
@@ -60,8 +62,6 @@ interface ReportData {
     created_at: string;
   }>;
 }
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function fmtMonth(m: string): string {
   const [y, mo] = m.split('-');
@@ -130,56 +130,47 @@ function badgeStyle(color: string, fill: StatusFill): React.CSSProperties {
 export default function ParentReportPage() {
   const { studentId } = useParams<{ studentId: string }>();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const token = useParentToken();
   const month = searchParams.get('month') || new Date().toISOString().slice(0, 7);
 
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | ParentApiError | null>(null);
 
   useEffect(() => {
     if (!studentId || !token) {
-      setError('잘못된 링크입니다.');
+      setError(new ParentApiError('TOKEN_MISSING', '잘못된 링크입니다.'));
       setLoading(false);
       return;
     }
     setLoading(true);
-    fetch(
-      `${API_BASE}/api/parent-report/${studentId}?token=${encodeURIComponent(token)}&month=${month}`
-    )
-      .then(async (res) => {
-        const json = await res.json().catch(() => null);
-        if (!res.ok || !json?.success) {
-          throw new Error(json?.error || '리포트를 불러올 수 없습니다.');
-        }
-        setData(json.data);
+    parentApi
+      .getReport<ReportData>(studentId, token, month)
+      .then((d) => {
+        setData(d);
+        setError(null);
       })
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => setError(e))
       .finally(() => setLoading(false));
   }, [studentId, token, month]);
 
   const attendanceRate = useMemo(() => {
     if (!data) return 0;
     const { scheduled, attended } = data.attendance;
-    if (scheduled === 0) return attended > 0 ? 100 : 0;
+    // scheduled=0 인데 attended가 양수인 경우는 데이터 모순 → 100%로 가리지 않고 0 반환
+    if (scheduled <= 0) return 0;
     return Math.max(0, Math.min(100, Math.round((attended / scheduled) * 100)));
   }, [data]);
 
-  if (loading) {
+  if (loading || error || !data) {
     return (
       <div style={pageStyle.wrap}>
-        <div role="status" aria-live="polite" style={pageStyle.message}>불러오는 중...</div>
+        <ParentGateView loading={loading} error={error}>
+          {null}
+        </ParentGateView>
       </div>
     );
   }
-  if (error) {
-    return (
-      <div style={pageStyle.wrap}>
-        <div role="alert" style={pageStyle.messageError}>{error}</div>
-      </div>
-    );
-  }
-  if (!data) return null;
 
   return (
     <div style={pageStyle.wrap}>
@@ -364,7 +355,7 @@ export default function ParentReportPage() {
                     <div style={pageStyle.rowTitle}>
                       <span style={pageStyle.kindTag}>인쇄물</span>{' '}
                       {m.file_url ? (
-                        <a href={m.file_url} target="_blank" rel="noopener noreferrer" style={pageStyle.fileLink}>
+                        <a href={m.file_url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={pageStyle.fileLink}>
                           {m.title}
                         </a>
                       ) : (

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { useParams } from 'react-router-dom';
+import { parentApi, ParentApiError } from '../api/parent';
+import { ParentGateView, useParentToken } from '../components/ParentTokenGate';
 
 interface SubmissionFile {
   key: string;
@@ -55,33 +55,32 @@ function isImageFile(f: SubmissionFile): boolean {
 
 export default function ParentHomeworkPage() {
   const { targetId } = useParams<{ targetId: string }>();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const token = useParentToken();
 
   const [data, setData] = useState<ViewData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | ParentApiError | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState<{ src: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!targetId || !token) {
-      setError('유효하지 않은 링크입니다.');
+      setError(new ParentApiError('TOKEN_MISSING', '유효하지 않은 링크입니다.'));
       setLoading(false);
       return;
     }
     setLoading(true);
-    fetch(`${API_BASE}/api/parent-homework/${targetId}?token=${encodeURIComponent(token)}`)
-      .then(async (res) => {
-        const json = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(json?.error || '불러오기에 실패했습니다');
-        setData(json?.data ?? json);
+    parentApi
+      .getHomework<ViewData>(targetId, token)
+      .then((d) => {
+        setData(d);
+        setError(null);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : '오류가 발생했습니다'))
+      .catch((err) => setError(err instanceof Error ? err : new Error(String(err))))
       .finally(() => setLoading(false));
   }, [targetId, token]);
 
   const fileUrl = (key: string) =>
-    `${API_BASE}/api/parent-homework/${targetId}/file/${encodeURIComponent(key)}?token=${encodeURIComponent(token)}`;
+    parentApi.homeworkFileUrl(targetId || '', key, token);
 
   const events = useMemo(() => {
     if (!data) return [] as Array<
@@ -99,19 +98,8 @@ export default function ParentHomeworkPage() {
     return arr;
   }, [data]);
 
-  if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center' }}>불러오는 중…</div>;
-  }
-  if (error || !data) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ background: '#fff', padding: 32, borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', maxWidth: 420, textAlign: 'center' }}>
-          <h2 style={{ margin: '12px 0' }}>접근할 수 없습니다</h2>
-          <p style={{ color: '#666' }}>{error || '링크가 올바르지 않거나 만료되었습니다.'}</p>
-          <p style={{ color: '#999', fontSize: 13, marginTop: 16 }}>학원에 문의해 새 링크를 요청해 주세요.</p>
-        </div>
-      </div>
-    );
+  if (loading || error || !data) {
+    return <ParentGateView loading={loading} error={error}>{null}</ParentGateView>;
   }
 
   return (
@@ -215,7 +203,8 @@ export default function ParentHomeworkPage() {
                             key={i}
                             href={fileUrl(f.key)}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
+                            referrerPolicy="no-referrer"
                             style={{
                               fontSize: 13, color: '#2563eb', textDecoration: 'none',
                               padding: '6px 10px', border: '1.5px solid #dbeafe',
@@ -257,7 +246,8 @@ export default function ParentHomeworkPage() {
                     <a
                       href={fileUrl(r.file_key)}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
+                      referrerPolicy="no-referrer"
                       style={{
                         display: 'inline-block', fontSize: 13, color: '#2563eb',
                         textDecoration: 'none', padding: '6px 10px',
