@@ -68,8 +68,11 @@ async function ensureExamsForAllSubjects(
     (existingRes.results || []).map((r) => extractSubject(r.name)).filter((s): s is string => !!s)
   );
 
-  // 3) 누락 과목만 INSERT
+  // 3) 누락 과목만 INSERT — INSERT OR IGNORE + D1 batch (SEC-SET-M2 + PERF-SET-M1)
+  // UNIQUE INDEX idx_exams_dedupe(academy_id, exam_type, exam_month, name)에 의해
+  // 동시성에서도 중복 row가 만들어지지 않는다 (마이그레이션 058).
   const now = new Date().toISOString();
+  const stmts: any[] = [];
   for (const subject of subjects) {
     if (existing.has(subject)) continue;
     const id = generatePrefixedId('exam');
@@ -77,10 +80,12 @@ async function ensureExamsForAllSubjects(
     if (params.type === 'monthly') {
       const [y, m] = params.yearMonth.split('-');
       const name = `${y}년 ${parseInt(m, 10)}월 월말평가 - ${subject}`;
-      await db.prepare(
-        `INSERT INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
-         VALUES (?, ?, NULL, ?, ?, ?, 100, 0, 'monthly', NULL, ?, ?)`
-      ).bind(id, academyId, name, params.yearMonth, `${params.yearMonth}-15`, now, now).run();
+      stmts.push(
+        db.prepare(
+          `INSERT OR IGNORE INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
+           VALUES (?, ?, NULL, ?, ?, ?, 100, 0, 'monthly', NULL, ?, ?)`
+        ).bind(id, academyId, name, params.yearMonth, `${params.yearMonth}-15`, now, now)
+      );
     } else {
       const typeLabel = params.type === 'midterm' ? '중간고사' : '기말고사';
       const name = `${params.term} ${typeLabel} - ${subject}`;
@@ -89,23 +94,35 @@ async function ensureExamsForAllSubjects(
         ? (sem === '1' ? '04' : '10')
         : (sem === '1' ? '06' : '12');
       const examMonth = `${y}-${monthGuess}`;
-      await db.prepare(
-        `INSERT INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
-         VALUES (?, ?, NULL, ?, ?, ?, 100, 0, ?, ?, ?, ?)`
-      ).bind(id, academyId, name, examMonth, `${examMonth}-15`, params.type, params.term, now, now).run();
+      stmts.push(
+        db.prepare(
+          `INSERT OR IGNORE INTO exams (id, academy_id, class_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
+           VALUES (?, ?, NULL, ?, ?, ?, 100, 0, ?, ?, ?, ?)`
+        ).bind(id, academyId, name, examMonth, `${examMonth}-15`, params.type, params.term, now, now)
+      );
     }
   }
+  if (stmts.length > 0) await db.batch(stmts);
 }
 
 // ==================== 스키마 ====================
+// SEC-SET-M1: 정규식 통과 + 의미적 범위(월 01-12, 학기 1-2) 강제
 const SetActiveExamMonthSchema = z.object({
-  activeExamMonth: z.string().regex(/^\d{4}-\d{2}$/, '시험 월은 YYYY-MM 형식이어야 합니다'),
+  activeExamMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, '시험 월은 YYYY-MM 형식이어야 합니다')
+    .refine((v) => {
+      const month = parseInt(v.slice(5), 10);
+      return month >= 1 && month <= 12;
+    }, { message: '월은 01~12 범위여야 합니다' }),
 });
 
 type SetActiveExamMonthInput = z.infer<typeof SetActiveExamMonthSchema>;
 
 const SetActiveExamReviewSchema = z.object({
-  activeTerm: z.string().regex(/^\d{4}-\d$/, '학기는 YYYY-N 형식이어야 합니다'),
+  activeTerm: z
+    .string()
+    .regex(/^\d{4}-[12]$/, '학기는 YYYY-N (N=1|2) 형식이어야 합니다'),
   activeExamType: z.enum(['midterm', 'final'], {
     errorMap: () => ({ message: 'activeExamType은 midterm|final 중 하나여야 합니다' }),
   }),
@@ -195,78 +212,33 @@ async function handleSetActiveExamMonth(
 
     const now = new Date().toISOString();
     const academyId = getAcademyId(context);
+    const userId = context.auth!.userId;
+    const settingId = generatePrefixedId('setting');
 
-    // 기존 설정 확인
-    const existing = await executeFirst<any>(
+    // PERF-SET-L1: SELECT-then-INSERT/UPDATE 분기를 UPSERT로 1 RTT 압축.
+    // exam_settings.academy_id에 UNIQUE 제약이 있어 ON CONFLICT 매칭 가능 (003_exam_settings.sql).
+    await executeUpdate(
       context.env.DB,
-      'SELECT id FROM exam_settings WHERE academy_id = ?',
-      [academyId]
+      `INSERT INTO exam_settings (id, academy_id, active_exam_month, updated_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(academy_id) DO UPDATE SET
+            active_exam_month = excluded.active_exam_month,
+            updated_by = excluded.updated_by,
+            updated_at = excluded.updated_at`,
+      [settingId, academyId, input.activeExamMonth, userId, now, now]
     );
 
-    if (existing) {
-      // 기존 설정 업데이트
-      const result = await executeUpdate(
-        context.env.DB,
-        `UPDATE exam_settings
-         SET active_exam_month = ?, updated_by = ?, updated_at = ?
-         WHERE academy_id = ?`,
-        [
-          input.activeExamMonth,
-          context.auth?.userId || 'unknown',
-          now,
-          academyId,
-        ]
-      );
+    await ensureExamsForAllSubjects(context.env.DB, academyId, { type: 'monthly', yearMonth: input.activeExamMonth });
 
-      if (!result) {
-        throw new Error('시험 월 업데이트 실패');
-      }
-
-      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: 'monthly', yearMonth: input.activeExamMonth });
-
-      return successResponse(
-        {
-          academyId,
-          activeExamMonth: input.activeExamMonth,
-          updatedBy: context.auth?.userId || 'unknown',
-          updatedAt: now,
-        },
-        200
-      );
-    } else {
-      // 신규 설정 생성
-      const settingId = generatePrefixedId('setting');
-
-      const result = await executeInsert(
-        context.env.DB,
-        `INSERT INTO exam_settings (id, academy_id, active_exam_month, updated_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          settingId,
-          academyId,
-          input.activeExamMonth,
-          context.auth?.userId || 'unknown',
-          now,
-          now,
-        ]
-      );
-
-      if (!result.success) {
-        throw new Error('시험 월 저장 실패');
-      }
-
-      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: 'monthly', yearMonth: input.activeExamMonth });
-
-      return successResponse(
-        {
-          academyId,
-          activeExamMonth: input.activeExamMonth,
-          updatedBy: context.auth?.userId || 'unknown',
-          updatedAt: now,
-        },
-        201
-      );
-    }
+    return successResponse(
+      {
+        academyId,
+        activeExamMonth: input.activeExamMonth,
+        updatedBy: userId,
+        updatedAt: now,
+      },
+      200
+    );
   } catch (error) {
     return handleRouteError(error, '시험 월 설정', { ipAddress });
   }
@@ -326,76 +298,31 @@ async function handleSetActiveExamReview(
 
     const now = new Date().toISOString();
     const academyId = getAcademyId(context);
+    const userId = context.auth!.userId;
+    const settingId = generatePrefixedId('review-setting');
 
-    const existing = await executeFirst<any>(
+    // PERF-SET-L1: UPSERT — exam_review_settings.academy_id에 UNIQUE (010_exam_review_mode.sql)
+    await executeUpdate(
       context.env.DB,
-      'SELECT id FROM exam_review_settings WHERE academy_id = ?',
-      [academyId]
+      `INSERT INTO exam_review_settings (id, academy_id, active_term, active_exam_type, updated_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(academy_id) DO UPDATE SET
+            active_term = excluded.active_term,
+            active_exam_type = excluded.active_exam_type,
+            updated_by = excluded.updated_by,
+            updated_at = excluded.updated_at`,
+      [settingId, academyId, input.activeTerm, input.activeExamType, userId, now, now]
     );
 
-    if (existing) {
-      const result = await executeUpdate(
-        context.env.DB,
-        `UPDATE exam_review_settings
-         SET active_term = ?, active_exam_type = ?, updated_by = ?, updated_at = ?
-         WHERE academy_id = ?`,
-        [
-          input.activeTerm,
-          input.activeExamType,
-          context.auth?.userId || 'unknown',
-          now,
-          academyId,
-        ]
-      );
+    await ensureExamsForAllSubjects(context.env.DB, academyId, { type: input.activeExamType, term: input.activeTerm });
 
-      if (!result) {
-        throw new Error('활성 정기고사 업데이트 실패');
-      }
-
-      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: input.activeExamType, term: input.activeTerm });
-
-      return successResponse({
-        academyId,
-        activeTerm: input.activeTerm,
-        activeExamType: input.activeExamType,
-        updatedBy: context.auth?.userId || 'unknown',
-        updatedAt: now,
-      });
-    } else {
-      const settingId = generatePrefixedId('review-setting');
-
-      const result = await executeInsert(
-        context.env.DB,
-        `INSERT INTO exam_review_settings (id, academy_id, active_term, active_exam_type, updated_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          settingId,
-          academyId,
-          input.activeTerm,
-          input.activeExamType,
-          context.auth?.userId || 'unknown',
-          now,
-          now,
-        ]
-      );
-
-      if (!result.success) {
-        throw new Error('활성 정기고사 저장 실패');
-      }
-
-      await ensureExamsForAllSubjects(context.env.DB, academyId, { type: input.activeExamType, term: input.activeTerm });
-
-      return successResponse(
-        {
-          academyId,
-          activeTerm: input.activeTerm,
-          activeExamType: input.activeExamType,
-          updatedBy: context.auth?.userId || 'unknown',
-          updatedAt: now,
-        },
-        201
-      );
-    }
+    return successResponse({
+      academyId,
+      activeTerm: input.activeTerm,
+      activeExamType: input.activeExamType,
+      updatedBy: userId,
+      updatedAt: now,
+    });
   } catch (error) {
     return handleRouteError(error, '활성 정기고사 설정', { ipAddress });
   }
