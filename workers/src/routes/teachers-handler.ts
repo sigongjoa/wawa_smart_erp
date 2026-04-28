@@ -12,7 +12,22 @@ import { getAcademyId } from '@/utils/context';
 import { handleRouteError } from '@/utils/error-handler';
 import { generatePrefixedId } from '@/utils/id';
 import { hashPin } from '@/utils/crypto';
+import { teacherNamesRateLimit } from '@/middleware/rateLimit';
 import { z } from 'zod';
+
+// CSV 마이그레이션 한도 — 메모리·CPU 보호 (TEACH-SEC-H4)
+const CSV_MAX_BYTES = 5 * 1024 * 1024; // 5MB
+const CSV_MAX_ROWS = 10_000;
+const CSV_BATCH_SIZE = 50;
+const CSV_HEADER_ALLOWLIST = new Set([
+  'id', 'ID', 'student_id',
+  'name', 'Name', '이름',
+  'grade', 'Grade', '학년',
+  'class_id', 'class', 'Class', '반',
+]);
+
+// 임시 PIN 만료 (TEACH-SEC-H3)
+const TEMP_PIN_TTL_HOURS = 24;
 
 // ==================== 스키마 ====================
 const CreateTeacherSchema = z.object({
@@ -213,23 +228,25 @@ async function handleMigrateNotionToD1(
       [getAcademyId(context)]
     );
 
-    // 이름으로 매칭하여 subjects 업데이트
+    // 이름으로 매칭하여 subjects 업데이트 — D1 batch (TEACH-PERF-M2)
+    const notionByName = new Map(notionStudents.map((s) => [s.name, s.subjects]));
+    const updateStmt = context.env.DB.prepare('UPDATE students SET subjects = ? WHERE id = ?');
     let updatedCount = 0;
+    let pending: any[] = [];
+    const BATCH = 50;
     for (const d1Student of d1Students) {
-      const notionStudent = notionStudents.find(s => s.name === d1Student.name);
-
-      if (notionStudent && notionStudent.subjects.length > 0) {
-        // subjects를 JSON 배열로 저장
-        const subjectsJson = JSON.stringify(notionStudent.subjects);
-
-        await executeUpdate(
-          context.env.DB,
-          'UPDATE students SET subjects = ? WHERE id = ?',
-          [subjectsJson, d1Student.id]
-        );
-
-        updatedCount++;
+      const subjects = notionByName.get(d1Student.name);
+      if (!subjects || subjects.length === 0) continue;
+      pending.push(updateStmt.bind(JSON.stringify(subjects), d1Student.id));
+      if (pending.length >= BATCH) {
+        await context.env.DB.batch(pending);
+        updatedCount += pending.length;
+        pending = [];
       }
+    }
+    if (pending.length > 0) {
+      await context.env.DB.batch(pending);
+      updatedCount += pending.length;
     }
 
     // 최종 학생 수 조회
@@ -289,6 +306,14 @@ async function handleMigrateCSV(
       return errorResponse('CSV 파일만 지원합니다', 400);
     }
 
+    // 크기 제한 — 메모리/CPU 보호 (TEACH-SEC-H4)
+    if (csvFile.size > CSV_MAX_BYTES) {
+      return errorResponse(
+        `CSV 크기가 한도(${CSV_MAX_BYTES / 1024 / 1024}MB)를 초과했습니다`,
+        413,
+      );
+    }
+
     // CSV 내용 읽기
     const csvContent = await csvFile.text();
     const lines = csvContent.split('\n').filter((line: string) => line.trim());
@@ -296,11 +321,15 @@ async function handleMigrateCSV(
     if (lines.length < 2) {
       return errorResponse('유효한 데이터가 없습니다', 400);
     }
+    if (lines.length - 1 > CSV_MAX_ROWS) {
+      return errorResponse(`행 수가 한도(${CSV_MAX_ROWS})를 초과했습니다`, 413);
+    }
 
-    // 헤더 파싱
-    const headers = lines[0]
+    // 헤더 파싱 + 화이트리스트 — prototype pollution 방어 (TEACH-SEC-H4)
+    const rawHeaders = lines[0]
       .split(',')
       .map((h: string) => h.trim().replace(/^["']|["']$/g, ''));
+    const headers = rawHeaders.map((h: string) => (CSV_HEADER_ALLOWLIST.has(h) ? h : ''));
 
     logger.info(`CSV 파싱 완료: ${lines.length - 1}행`);
 
@@ -312,23 +341,38 @@ async function handleMigrateCSV(
     );
     const existingIds = new Set(existingStudents.map((s: any) => s.id));
 
-    // CSV에서 학생 추가
+    // CSV에서 학생 추가 — D1 batch (TEACH-PERF-M1)
     let insertedCount = 0;
     let skippedCount = 0;
+    const academyId = getAcademyId(context);
+    const insertStmt = context.env.DB.prepare(
+      `INSERT OR IGNORE INTO students (id, name, grade, class_id, academy_id, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`
+    );
+    let batch: any[] = [];
+
+    const flush = async () => {
+      if (batch.length === 0) return;
+      const results = await context.env.DB.batch(batch);
+      for (const r of results) {
+        const changes = (r.meta?.changes ?? 0) as number;
+        if (changes > 0) insertedCount++; else skippedCount++;
+      }
+      batch = [];
+    };
 
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i]
         .split(',')
         .map((v: string) => v.trim().replace(/^["']|["']$/g, ''));
-      const row: Record<string, string> = {};
-
+      // null-prototype 객체로 prototype 키 오염 차단 (TEACH-SEC-H4)
+      const row: Record<string, string> = Object.create(null);
       headers.forEach((header: string, index: number) => {
-        row[header] = values[index] || '';
+        if (header) row[header] = values[index] || '';
       });
 
-      // CSV 헤더: id, name, grade, class_id (또는 유사한 형식)
       const studentId =
-        row['id'] || row['ID'] || row['student_id'] || `student-${Math.random().toString(36).substr(2, 9)}`;
+        row['id'] || row['ID'] || row['student_id'] || generatePrefixedId('student');
       const name = row['name'] || row['Name'] || row['이름'] || '';
       const grade = row['grade'] || row['Grade'] || row['학년'] || 'unknown';
       const classId = row['class_id'] || row['class'] || row['Class'] || row['반'] || 'class-1';
@@ -337,21 +381,11 @@ async function handleMigrateCSV(
         skippedCount++;
         continue;
       }
-
-      try {
-        await executeInsert(
-          context.env.DB,
-          `INSERT INTO students (id, name, grade, class_id, academy_id, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-          [studentId, name, grade, classId, getAcademyId(context), 'active']
-        );
-        insertedCount++;
-        existingIds.add(studentId);
-      } catch (e) {
-        logger.warn(`학생 추가 실패: ${name}`, e instanceof Error ? e : new Error(String(e)));
-        skippedCount++;
-      }
+      existingIds.add(studentId);
+      batch.push(insertStmt.bind(studentId, name, grade, classId, academyId));
+      if (batch.length >= CSV_BATCH_SIZE) await flush();
     }
+    await flush();
 
     // 최종 학생 수 조회
     const finalStudents = await executeQuery<any>(
@@ -580,22 +614,42 @@ async function handleResetTeacherPin(
   );
   if (!target) return errorResponse('선생님을 찾을 수 없습니다', 404);
 
-  // 6자리 숫자 PIN (0-9)
-  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  // 6자리 숫자 PIN — 기각 샘플링으로 modulo 편향 제거 (TEACH-SEC-L1)
   let tempPin = '';
-  for (let i = 0; i < 6; i++) tempPin += String(bytes[i] % 10);
+  while (tempPin.length < 6) {
+    const buf = crypto.getRandomValues(new Uint8Array(8));
+    for (const b of buf) {
+      if (b < 250) {
+        tempPin += String(b % 10);
+        if (tempPin.length === 6) break;
+      }
+    }
+  }
 
+  // TEACH-SEC-H3: 강제변경 플래그 + 발급 시각 + 기존 세션 전체 폐기
   const pinHash = await hashPin(tempPin);
-  await executeUpdate(
-    context.env.DB,
-    `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
-    [pinHash, teacherId]
-  );
+  await context.env.DB.batch([
+    context.env.DB
+      .prepare(
+        `UPDATE users
+            SET password_hash = ?,
+                password_must_change = 1,
+                password_reset_at = datetime('now'),
+                updated_at = datetime('now')
+          WHERE id = ?`
+      )
+      .bind(pinHash, teacherId),
+    context.env.DB
+      .prepare(`DELETE FROM sessions WHERE user_id = ?`)
+      .bind(teacherId),
+  ]);
 
-  logger.info(`PIN 재설정: ${teacherId} by ${context.auth!.userId}`);
+  logger.info(`PIN 재설정: ${teacherId} by ${context.auth!.userId} (sessions revoked)`);
   return successResponse({
     tempPin,
-    message: `임시 PIN: ${tempPin} — 선생님에게 직접 전달 후 로그인 시 재변경하도록 안내`,
+    expiresInHours: TEMP_PIN_TTL_HOURS,
+    mustChange: true,
+    message: `임시 PIN을 안전한 채널로 ${TEMP_PIN_TTL_HOURS}시간 이내에 전달하세요. 첫 로그인 시 변경이 강제됩니다.`,
   });
 }
 
@@ -612,11 +666,18 @@ async function handleGetTeacherNames(context: RequestContext): Promise<Response>
       return errorResponse('학원코드(slug)가 필요합니다', 400);
     }
 
+    // 무인증 엔드포인트 — 스크래핑/열거 방어 (TEACH-SEC-H1)
+    const blocked = await teacherNamesRateLimit(context.env.KV, context.request, slug);
+    if (blocked) return blocked;
+
+    // 비활성 강사는 로그인 드롭다운에서 제외 — TEACH-SEC-M4 부분 완화
     const teachers = await executeQuery<{ name: string }>(
       context.env.DB,
       `SELECT u.name FROM users u
        JOIN academies a ON u.academy_id = a.id
-       WHERE a.slug = ? AND a.is_active = 1 AND u.role IN ('instructor', 'admin')
+       WHERE a.slug = ? AND a.is_active = 1
+         AND u.role IN ('instructor', 'admin')
+         AND COALESCE(u.status, 'active') = 'active'
        ORDER BY u.name`,
       [slug]
     );

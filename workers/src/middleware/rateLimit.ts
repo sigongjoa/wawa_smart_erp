@@ -221,6 +221,37 @@ export async function inviteAcceptRateLimit(kv: KVLike, request: Request): Promi
   return null;
 }
 
+// ──────────────────────────────────────────────────────────────────
+// 공개 강사 이름 목록 — 무인증 스크래핑 방어 (TEACH-SEC-H1)
+// IP·slug 페어 기준 30회/분, 200회/시간
+// ──────────────────────────────────────────────────────────────────
+const TEACHER_NAMES_PER_MIN = 30;
+const TEACHER_NAMES_PER_HOUR = 200;
+
+export async function teacherNamesRateLimit(kv: KVLike, request: Request, slug: string): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const safeSlug = slug.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const minKey = `tn:m:${ip}:${safeSlug}`;
+  const hourKey = `tn:h:${ip}:${safeSlug}`;
+
+  const [mRaw, hRaw] = await Promise.all([kv.get(minKey), kv.get(hourKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const h = hRaw ? parseInt(hRaw) : 0;
+
+  if (m >= TEACHER_NAMES_PER_MIN || h >= TEACHER_NAMES_PER_HOUR) {
+    return new Response(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(minKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(hourKey, String(h + 1), { expirationTtl: 3600 }),
+  ]);
+  return null;
+}
+
 export async function setRateLimitHeaders(
   response: Response,
   ip: string,
