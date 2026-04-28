@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { toast } from '../components/Toast';
+import { errorMessage } from '../utils/errors';
+import { MS_PER_DAY } from '../constants/timing';
 
 type Summary = Awaited<ReturnType<typeof api.getHomeroomSummary>>;
 type Calendar = Awaited<ReturnType<typeof api.getHomeroomCalendar>>;
@@ -12,7 +14,7 @@ function daysUntil(dateStr: string): number {
   today.setHours(0, 0, 0, 0);
   const target = new Date(dateStr);
   target.setHours(0, 0, 0, 0);
-  return Math.floor((target.getTime() - today.getTime()) / 86400000);
+  return Math.floor((target.getTime() - today.getTime()) / MS_PER_DAY);
 }
 
 export default function HomeroomExamsPage() {
@@ -31,7 +33,7 @@ export default function HomeroomExamsPage() {
         setThisMonth(c);
       })
       .catch((err) => {
-        if (!cancelled) toast.error('시험 요약 로드 실패: ' + (err?.message || ''));
+        if (!cancelled) toast.error('시험 요약 로드 실패: ' + errorMessage(err, ''));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -77,7 +79,7 @@ export default function HomeroomExamsPage() {
       </div>
 
       {loading ? (
-        <p className="no-data">불러오는 중...</p>
+        <p className="no-data" role="status" aria-live="polite">불러오는 중...</p>
       ) : !summary ? (
         <p className="no-data">데이터를 불러오지 못했습니다.</p>
       ) : summary.upcoming_exams.length === 0 ? (

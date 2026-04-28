@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { toast } from '../components/Toast';
+import { errorMessage } from '../utils/errors';
 
 type Summary = Awaited<ReturnType<typeof api.getHomeroomSummary>>;
 type Calendar = Awaited<ReturnType<typeof api.getHomeroomCalendar>>;
@@ -42,7 +43,7 @@ export default function HomeroomConsultationsPage() {
         setCalendar(cal);
       })
       .catch((err) => {
-        if (!cancelled) toast.error('상담 요약 로드 실패: ' + (err?.message || ''));
+        if (!cancelled) toast.error('상담 요약 로드 실패: ' + errorMessage(err, ''));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -59,6 +60,10 @@ export default function HomeroomConsultationsPage() {
       const list = m.get(c.student_id);
       if (list) list.push(c);
       else m.set(c.student_id, [c]);
+    }
+    // 학생별로 최신순 정렬을 미리 적용 → 렌더 시 sort 호출 제거
+    for (const list of m.values()) {
+      list.sort((a, b) => (a.consulted_at < b.consulted_at ? 1 : -1));
     }
     return m;
   }, [calendar]);
@@ -90,6 +95,7 @@ export default function HomeroomConsultationsPage() {
           className="form-input"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
+          aria-label="조회 월 선택"
           style={{ width: 160 }}
         />
         <button className="btn btn-ghost btn-sm" onClick={() => setMonth(monthShift(month, 1))}>
@@ -98,7 +104,7 @@ export default function HomeroomConsultationsPage() {
       </div>
 
       {loading ? (
-        <p className="no-data">불러오는 중...</p>
+        <p className="no-data" role="status" aria-live="polite">불러오는 중...</p>
       ) : summary && summary.homeroom_count === 0 ? (
         <p className="no-data">담임으로 지정된 학생이 없습니다.</p>
       ) : (
@@ -145,9 +151,7 @@ export default function HomeroomConsultationsPage() {
                 <tbody>
                   {(calendar?.students ?? []).map((s) => {
                     const cs = byStudent.get(s.id) ?? [];
-                    const sorted = [...cs].sort((a, b) =>
-                      a.consulted_at < b.consulted_at ? 1 : -1
-                    );
+                    const sorted = cs;  // 이미 byStudent 안에서 정렬됨
                     return (
                       <tr key={s.id} style={{ borderTop: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px' }}>

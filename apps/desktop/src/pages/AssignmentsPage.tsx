@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { toast } from '../components/Toast';
 import { useAuthStore } from '../store';
@@ -6,6 +6,7 @@ import Modal from '../components/Modal';
 import AssignmentCreateModal from '../components/assignments/AssignmentCreateModal';
 import TargetDetailModal from '../components/assignments/TargetDetailModal';
 import AssignmentStatusBadge from '../components/assignments/AssignmentStatusBadge';
+import { errorMessage } from '../utils/errors';
 
 const KIND_LABEL: Record<string, string> = {
   perf_eval: '수행평가',
@@ -54,8 +55,8 @@ export default function AssignmentsPage() {
     try {
       const rows = await api.getAssignmentInbox();
       setInbox(rows || []);
-    } catch (err: any) {
-      toast.error(err.message || '인박스 로딩 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '인박스 로딩 실패'));
       setInbox([]);
     } finally {
       setLoading(false);
@@ -71,8 +72,8 @@ export default function AssignmentsPage() {
         mine: mineOnly,
       });
       setList(rows || []);
-    } catch (err: any) {
-      toast.error(err.message || '목록 로딩 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '목록 로딩 실패'));
       setList([]);
     } finally {
       setLoading(false);
@@ -94,8 +95,8 @@ export default function AssignmentsPage() {
     try {
       const data = await api.getAssignment(id);
       setAssignmentDetail(data);
-    } catch (err: any) {
-      toast.error(err.message || '로딩 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '로딩 실패'));
       setSelectedAssignmentId(null);
     }
   };
@@ -109,8 +110,8 @@ export default function AssignmentsPage() {
       setAssignmentDetail(null);
       loadList();
       loadStats();
-    } catch (err: any) {
-      toast.error(err.message || '닫기 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '닫기 실패'));
     }
   };
 
@@ -126,8 +127,8 @@ export default function AssignmentsPage() {
       loadList();
       loadInbox();
       loadStats();
-    } catch (err: any) {
-      toast.error(err.message || '삭제 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '삭제 실패'));
     }
   };
 
@@ -141,8 +142,8 @@ export default function AssignmentsPage() {
       loadInbox();
       loadList();
       loadStats();
-    } catch (err: any) {
-      toast.error(err.message || '삭제 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '삭제 실패'));
     }
   };
 
@@ -275,7 +276,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   );
 }
 
-function InboxTab({
+const InboxTab = memo(function InboxTab({
   rows, loading, onSelect, onDelete,
 }: {
   rows: any[]; loading: boolean;
@@ -341,9 +342,9 @@ function InboxTab({
       ))}
     </div>
   );
-}
+});
 
-function ListTab({
+const ListTab = memo(function ListTab({
   rows, loading, kindFilter, statusFilter, mineOnly, isAdmin,
   onKindFilter, onStatusFilter, onMineOnly, onSelect, onClose, onDelete,
 }: {
@@ -451,18 +452,41 @@ function ListTab({
       )}
     </div>
   );
+});
+
+interface AssignmentTarget {
+  id: string;
+  student_id: string;
+  student_name?: string;
+  student_grade?: string | null;
+  status: string;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  last_submitted_at?: string | null;
+  submission_count?: number;
+  response_count?: number;
+}
+
+interface AssignmentDetail {
+  id: string;
+  title: string;
+  kind: string;
+  status: 'draft' | 'published' | 'closed';
+  instructions?: string | null;
+  due_at?: string | null;
+  targets?: AssignmentTarget[];
 }
 
 function AssignmentDetailModal({
   assignment, onClose, onCloseAssignment, onHardDelete, onSelectTarget,
 }: {
-  assignment: any;
+  assignment: AssignmentDetail;
   onClose: () => void;
   onCloseAssignment: () => void;
   onHardDelete: () => void;
   onSelectTarget: (targetId: string) => void;
 }) {
-  const targets = (assignment.targets || []) as any[];
+  const targets: AssignmentTarget[] = assignment.targets || [];
   return (
     <Modal onClose={onClose} className="modal-content--lg">
       <Modal.Header>

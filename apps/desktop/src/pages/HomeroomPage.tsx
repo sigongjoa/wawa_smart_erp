@@ -109,6 +109,7 @@ export default function HomeroomPage() {
           className="form-input"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
+          aria-label="조회 월 선택"
           style={{ width: 160 }}
         />
         <button className="btn btn-ghost btn-sm" onClick={() => setMonth(monthShift(month, 1))}>
@@ -119,7 +120,7 @@ export default function HomeroomPage() {
       {summary && summary.homeroom_count === 0 ? (
         <p className="no-data">담임으로 지정된 학생이 없습니다. (관리자에게 문의)</p>
       ) : loading ? (
-        <p className="no-data">불러오는 중...</p>
+        <p className="no-data" role="status" aria-live="polite">불러오는 중...</p>
       ) : (
         <>
           {/* 요약 카드 */}

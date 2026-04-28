@@ -32,3 +32,14 @@ export const SIZE_LIMITS = {
   /** 사진 업로드 최대 바이트 (1MB) */
   PHOTO_MAX_BYTES: 1024 * 1024,
 } as const;
+
+export const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** 두 시점 사이의 "남은 일수" — D-day 계산용. 결과는 ceil. */
+export function daysUntil(fromIso: string | number | Date, nowMs: number = Date.now()): number {
+  const target = typeof fromIso === 'number'
+    ? fromIso
+    : new Date(fromIso).getTime();
+  return Math.ceil((target - nowMs) / MS_PER_DAY);
+}
+
