@@ -93,6 +93,13 @@ export async function handleAcademy(
       fields.push("updated_at = datetime('now')");
       values.push(academyId);
 
+      // slug 사전 조회 — academy-info 단건 캐시 invalidate 용 (PERF-ONB-M2)
+      const slugRow = await executeFirst<{ slug: string }>(
+        context.env.DB,
+        'SELECT slug FROM academies WHERE id = ?',
+        [academyId]
+      );
+
       await executeUpdate(
         context.env.DB,
         `UPDATE academies SET ${fields.join(', ')} WHERE id = ?`,
@@ -105,6 +112,10 @@ export async function handleAcademy(
         await context.env.KV.delete(`academy:${academyId}:info`);
         // 공개 학원 목록 캐시도 invalidate (이름이 응답에 포함되므로)
         await context.env.KV.delete('public:academies:v2');
+        // 공개 학원 단건 정보 캐시도 invalidate (PERF-ONB-M2)
+        if (slugRow?.slug) {
+          await context.env.KV.delete(`public:academy-info:${slugRow.slug}`);
+        }
       } catch (err) {
         logger.warn('academy KV 무효화 실패', { academyId, error: err instanceof Error ? err.message : String(err) });
       }

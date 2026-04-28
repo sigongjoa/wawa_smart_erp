@@ -252,6 +252,97 @@ export async function publicAcademiesRateLimit(kv: KVLike, request: Request): Pr
 }
 
 // ──────────────────────────────────────────────────────────────────
+// 학원 등록 — 봇/스팸 방어 (SEC-ONB-H1)
+// IP당 시간 1회, 일 3회 — 합법적 학원 가입 흐름은 매우 드물기 때문
+// ──────────────────────────────────────────────────────────────────
+const ONBOARD_REGISTER_PER_HOUR = 1;
+const ONBOARD_REGISTER_PER_DAY = 3;
+
+export async function onboardRegisterRateLimit(kv: KVLike, request: Request): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const hKey = `onb-reg:h:${ip}`;
+  const dKey = `onb-reg:d:${ip}`;
+
+  const [hRaw, dRaw] = await Promise.all([kv.get(hKey), kv.get(dKey)]);
+  const h = hRaw ? parseInt(hRaw) : 0;
+  const d = dRaw ? parseInt(dRaw) : 0;
+
+  if (h >= ONBOARD_REGISTER_PER_HOUR || d >= ONBOARD_REGISTER_PER_DAY) {
+    return new Response(
+      JSON.stringify({ error: '학원 등록 요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '3600' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(hKey, String(h + 1), { expirationTtl: 3600 }),
+    kv.put(dKey, String(d + 1), { expirationTtl: 86400 }),
+  ]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// slug 가용성 확인 — 열거 방어 (SEC-ONB-M2)
+// IP당 분 30회, 시간 200회
+// ──────────────────────────────────────────────────────────────────
+const VERIFY_SLUG_PER_MIN = 30;
+const VERIFY_SLUG_PER_HOUR = 200;
+
+export async function verifySlugRateLimit(kv: KVLike, request: Request): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const mKey = `vslug:m:${ip}`;
+  const hKey = `vslug:h:${ip}`;
+
+  const [mRaw, hRaw] = await Promise.all([kv.get(mKey), kv.get(hKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const h = hRaw ? parseInt(hRaw) : 0;
+
+  if (m >= VERIFY_SLUG_PER_MIN || h >= VERIFY_SLUG_PER_HOUR) {
+    return new Response(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(mKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(hKey, String(h + 1), { expirationTtl: 3600 }),
+  ]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// 학원 단건 정보 조회 — 무인증 스크래핑 방어 (SEC-ONB-M3)
+// IP+slug 페어 분 20회, 시간 100회
+// ──────────────────────────────────────────────────────────────────
+const ACADEMY_INFO_PER_MIN = 20;
+const ACADEMY_INFO_PER_HOUR = 100;
+
+export async function academyInfoRateLimit(kv: KVLike, request: Request, slug: string): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const safeSlug = slug.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const mKey = `ai:m:${ip}:${safeSlug}`;
+  const hKey = `ai:h:${ip}:${safeSlug}`;
+
+  const [mRaw, hRaw] = await Promise.all([kv.get(mKey), kv.get(hKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const h = hRaw ? parseInt(hRaw) : 0;
+
+  if (m >= ACADEMY_INFO_PER_MIN || h >= ACADEMY_INFO_PER_HOUR) {
+    return new Response(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(mKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(hKey, String(h + 1), { expirationTtl: 3600 }),
+  ]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────────────
 // 공개 강사 이름 목록 — 무인증 스크래핑 방어 (TEACH-SEC-H1)
 // IP·slug 페어 기준 30회/분, 200회/시간
 // ──────────────────────────────────────────────────────────────────

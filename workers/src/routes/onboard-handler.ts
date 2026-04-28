@@ -9,23 +9,39 @@ import { successResponse, errorResponse } from '@/utils/response';
 import { logger } from '@/utils/logger';
 import { shouldBlockTestDataInProd } from '@/middleware/test-data-guard';
 import { hashPin } from '@/utils/crypto';
-import { publicAcademiesRateLimit } from '@/middleware/rateLimit';
+import {
+  publicAcademiesRateLimit,
+  onboardRegisterRateLimit,
+  verifySlugRateLimit,
+  academyInfoRateLimit,
+} from '@/middleware/rateLimit';
 import { z } from 'zod';
 
 // 공개 학원 목록 캐시 키 (PERF-LOGIN-M1)
 const ACADEMIES_CACHE_KEY = 'public:academies:v2';
 const ACADEMIES_CACHE_TTL = 60; // 60초
 
+// 학원 단건 정보 캐시 prefix (PERF-ONB-M2)
+const ACADEMY_INFO_CACHE_PREFIX = 'public:academy-info:';
+const ACADEMY_INFO_CACHE_TTL = 60;
+
 // slug 규칙: 영문 소문자, 숫자, 하이픈 (3~30자)
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
+
+// SEC-ONB-M4: 사람 이름 — 한글/영문 + 공백·점·하이픈·아포스트로피만 허용. 제어문자·태그 차단.
+const PERSON_NAME_REGEX = /^[\p{L}\p{N}\s'.\-]{1,50}$/u;
 
 const RegisterSchema = z.object({
   academyName: z.string().min(1, '학원 이름은 필수입니다').max(100),
   slug: z.string().regex(SLUG_REGEX, '학원코드는 영문 소문자, 숫자, 하이픈만 가능 (3~30자)'),
-  ownerName: z.string().min(1, '대표 이름은 필수입니다').max(50),
+  ownerName: z
+    .string()
+    .min(1, '대표 이름은 필수입니다')
+    .max(50)
+    .regex(PERSON_NAME_REGEX, '대표 이름에 사용할 수 없는 문자가 포함되어 있습니다'),
   pin: z.string().min(4, 'PIN은 최소 4자 이상이어야 합니다').max(20),
-  phone: z.string().optional(),
-  address: z.string().optional(),
+  phone: z.string().max(20).optional(),
+  address: z.string().max(200).optional(),
 });
 
 const VerifySlugSchema = z.object({
@@ -47,6 +63,10 @@ export async function handleOnboard(
   try {
     // POST /api/onboard/register — 새 학원 + 대표 계정 생성
     if (method === 'POST' && pathname === '/api/onboard/register') {
+      // SEC-ONB-H1: 봇/스팸 방어 — IP당 시간 1회, 일 3회
+      const blocked = await onboardRegisterRateLimit(context.env.KV, request);
+      if (blocked) return blocked;
+
       const body = await request.json() as any;
       const input = RegisterSchema.parse(body);
 
@@ -71,36 +91,34 @@ export async function handleOnboard(
         return errorResponse('이미 사용 중인 학원코드입니다', 409);
       }
 
-      // 학원 생성
+      // ID 사전 발급
       const academyId = `acad-${crypto.randomUUID().slice(0, 8)}`;
       const userId = `user-${crypto.randomUUID().slice(0, 8)}`;
       const classId = `class-default-${academyId}`;
       const now = new Date().toISOString();
-
-      await executeInsert(
-        context.env.DB,
-        `INSERT INTO academies (id, name, slug, phone, address, owner_id, plan, max_students, max_teachers, is_active, default_class_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'free', 30, 3, 1, ?, ?, ?)`,
-        [academyId, input.academyName, input.slug, input.phone || null, input.address || null, userId, classId, now, now]
-      );
-
-      // 기본 "전체" 클래스 생성
-      await executeInsert(
-        context.env.DB,
-        `INSERT INTO classes (id, academy_id, name, created_at, updated_at) VALUES (?, ?, '전체', ?, ?)`,
-        [classId, academyId, now, now]
-      );
-
-      // 대표 계정 (admin) 생성
       const hashedPin = await hashPin(input.pin);
-      const uniqueEmail = `${input.slug}_admin@wawa.app`;
+      // SEC-ONB-M1: 이메일 예측 가능성 제거 — userId 기반 (UC-A1 SEC-H2와 동일 패턴)
+      const uniqueEmail = `${userId}@wawa.app`;
 
-      await executeInsert(
-        context.env.DB,
-        `INSERT INTO users (id, email, name, password_hash, role, academy_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'admin', ?, ?, ?)`,
-        [userId, uniqueEmail, input.ownerName, hashedPin, academyId, now, now]
-      );
+      // SEC-ONB-H2 + PERF-ONB-M1: 3개 INSERT를 D1 batch로 원자 실행 —
+      // 좀비 학원(class/admin 누락) 방지 + N+1 제거
+      await context.env.DB.batch([
+        context.env.DB
+          .prepare(
+            `INSERT INTO academies (id, name, slug, phone, address, owner_id, plan, max_students, max_teachers, is_active, default_class_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'free', 30, 3, 1, ?, ?, ?)`
+          )
+          .bind(academyId, input.academyName, input.slug, input.phone || null, input.address || null, userId, classId, now, now),
+        context.env.DB
+          .prepare(`INSERT INTO classes (id, academy_id, name, created_at, updated_at) VALUES (?, ?, '전체', ?, ?)`)
+          .bind(classId, academyId, now, now),
+        context.env.DB
+          .prepare(
+            `INSERT INTO users (id, email, name, password_hash, role, academy_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 'admin', ?, ?, ?)`
+          )
+          .bind(userId, uniqueEmail, input.ownerName, hashedPin, academyId, now, now),
+      ]);
 
       logger.info(`새 학원 등록: ${input.academyName} (${input.slug})`);
 
@@ -118,23 +136,24 @@ export async function handleOnboard(
 
     // POST /api/onboard/verify-slug — slug 사용 가능 확인
     if (method === 'POST' && pathname === '/api/onboard/verify-slug') {
+      // SEC-ONB-M2: slug 열거 방어
+      const blocked = await verifySlugRateLimit(context.env.KV, request);
+      if (blocked) return blocked;
+
       const body = await request.json() as any;
       const { slug } = VerifySlugSchema.parse(body);
 
+      // SEC-ONB-M2: 응답 단순화 — 예약어/중복 구분 없이 available 만 반환.
+      // 등록 흐름 측은 register 응답으로 정확한 사유를 받는다.
       if (RESERVED_SLUGS.has(slug)) {
-        return successResponse({ available: false, reason: '예약된 학원코드입니다' });
+        return successResponse({ available: false });
       }
-
       const existing = await executeFirst<{ id: string }>(
         context.env.DB,
         'SELECT id FROM academies WHERE slug = ?',
         [slug]
       );
-
-      return successResponse({
-        available: !existing,
-        reason: existing ? '이미 사용 중인 학원코드입니다' : null,
-      });
+      return successResponse({ available: !existing });
     }
 
     // GET /api/onboard/academies — 학원 목록 (공개, 로그인 페이지 드롭다운용)
@@ -167,12 +186,24 @@ export async function handleOnboard(
     }
 
     // GET /api/onboard/academy-info?slug=xxx — 학원 기본 정보 (공개)
+    // SEC-ONB-M3: rate limit, PERF-ONB-M2: KV 단건 캐시 60s
     if (method === 'GET' && pathname === '/api/onboard/academy-info') {
       const url = new URL(request.url);
       const slug = url.searchParams.get('slug');
 
-      if (!slug) {
+      if (!slug || !SLUG_REGEX.test(slug)) {
         return errorResponse('slug 파라미터가 필요합니다', 400);
+      }
+
+      const blocked = await academyInfoRateLimit(context.env.KV, request, slug);
+      if (blocked) return blocked;
+
+      const cacheKey = `${ACADEMY_INFO_CACHE_PREFIX}${slug}`;
+      const cached = await context.env.KV.get(cacheKey);
+      if (cached) {
+        try {
+          return successResponse(JSON.parse(cached));
+        } catch { /* fall-through */ }
       }
 
       const academy = await executeFirst<{ name: string; logo_url: string | null }>(
@@ -185,10 +216,14 @@ export async function handleOnboard(
         return errorResponse('학원을 찾을 수 없습니다', 404);
       }
 
-      return successResponse({
-        name: academy.name,
-        logo: academy.logo_url,
-      });
+      const payload = { name: academy.name, logo: academy.logo_url };
+      try {
+        await context.env.KV.put(cacheKey, JSON.stringify(payload), {
+          expirationTtl: ACADEMY_INFO_CACHE_TTL,
+        });
+      } catch { /* ignore */ }
+
+      return successResponse(payload);
     }
 
     return errorResponse('Not found', 404);
