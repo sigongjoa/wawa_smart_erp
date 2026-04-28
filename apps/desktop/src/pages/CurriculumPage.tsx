@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   api,
   Curriculum,
@@ -20,6 +20,10 @@ export default function CurriculumPage() {
   const [filter, setFilter] = useState({ term: '', grade: '', subject: '' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CurriculumDetail | null>(null);
+  const sortedItems = useMemo(
+    () => (detail ? detail.items.slice().sort((a, b) => a.order_idx - b.order_idx) : []),
+    [detail],
+  );
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [draft, setDraft] = useState<CurriculumCreateInput>({
@@ -153,7 +157,7 @@ export default function CurriculumPage() {
   // 항목 순서 ↑↓ — sort by order_idx 후 swap
   const handleMoveItem = async (item: CurriculumItem, direction: -1 | 1) => {
     if (!detail) return;
-    const sorted = detail.items.slice().sort((a, b) => a.order_idx - b.order_idx);
+    const sorted = sortedItems;
     const idx = sorted.findIndex((i) => i.id === item.id);
     const targetIdx = idx + direction;
     if (idx < 0 || targetIdx < 0 || targetIdx >= sorted.length) return;
@@ -311,9 +315,7 @@ export default function CurriculumPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detail.items
-                        .slice()
-                        .sort((a, b) => a.order_idx - b.order_idx)
+                      {sortedItems
                         .map((it, idx, arr) => (
                           <tr key={it.id}>
                             <td className="curr-item-reorder">

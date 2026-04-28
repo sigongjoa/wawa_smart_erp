@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   api,
+  getAccessToken,
   LessonItem,
   LessonItemCreateInput,
   LessonItemPatch,
@@ -594,7 +595,7 @@ export default function StudentLessonsPage() {
           previewUrl={`${api.lessonItemFileDownloadUrl(previewFile.id)}?inline=1`}
           downloadUrl={api.lessonItemFileDownloadUrl(previewFile.id)}
           authMode="jwt"
-          authToken={localStorage.getItem('auth_access_token') ?? undefined}
+          authToken={getAccessToken() ?? undefined}
           onClose={() => setPreviewFile(null)}
         />
       )}
@@ -646,7 +647,7 @@ function LessonListItem({
   const stage = understandingStage(item.understanding);
   const statusChipClass = STATUS_CHIP_CLASS[item.status];
   const titleText = item.title || item.unit_name || '(제목 없음)';
-  const isArchived = !!(item as any).archived_at;
+  const isArchived = !!(item as LessonItem & { archived_at?: string | null }).archived_at;
   return (
     <div className="lessons-list-item-wrap" data-archived={isArchived || undefined}>
     <button

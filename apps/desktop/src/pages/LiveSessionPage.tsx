@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api, LiveSessionState, LiveSessionRow, Stroke } from '../api';
 import SimpleCanvas, { strokesToPngDataUrl } from '../components/SimpleCanvas';
 import Modal from '../components/Modal';
 import { toast } from '../components/Toast';
+import { TIMING, SIZE_LIMITS } from '../constants/timing';
+import { useVisiblePolling } from '../hooks/useVisiblePolling';
 
-const POLL_INTERVAL = 3000;
-// KV write 억제: 600ms → 3000ms (일 1000회 한도 보호). 사용자는 여전히 디바운스 안에서 연타 가능.
-const PATCH_DEBOUNCE = 3000;
 const CANVAS_W = 800;
 const CANVAS_H = 500;
 
@@ -30,11 +29,11 @@ async function fileToDataUrl(file: File): Promise<string> {
 
 export default function LiveSessionPage() {
   const { id } = useParams<{ id: string }>();
-  const [search] = useSearchParams();
   const navigate = useNavigate();
 
   const [session, setSession] = useState<LiveSessionRow | null>(null);
   const [state, setState] = useState<LiveSessionState | null>(null);
+  const [studentName, setStudentName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -69,9 +68,14 @@ export default function LiveSessionPage() {
       setTeacherText(st.teacher?.text || '');
       setTeacherStrokes(st.teacher?.strokes || []);
       setProblemImageDataUrl(st.problem?.image_data_url);
+      // 학생 이름은 URL이 아닌 서버 응답으로 채움 (PII가 URL/카톡 미리보기에 노출되지 않게)
+      api.getStudentProfile(sess.student_id)
+        .then((p: { name?: string }) => setStudentName(p?.name || sess.student_id))
+        .catch(() => setStudentName(sess.student_id));
       setLoading(false);
-    } catch (e: any) {
-      setError(e?.message || '세션 로드 실패');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '세션 로드 실패';
+      setError(msg);
       setLoading(false);
     }
   }, [id]);
@@ -80,29 +84,29 @@ export default function LiveSessionPage() {
     initialLoad();
   }, [initialLoad]);
 
-  // tick clock
+  // tick clock — visible 상태에서만 갱신
   useEffect(() => {
-    const t = setInterval(() => setTick((v) => v + 1), 1000);
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    const t = setInterval(() => setTick((v) => v + 1), TIMING.UI_TICK_MS);
     return () => clearInterval(t);
   }, []);
 
-  // poll student side every 3s
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    const tick = async () => {
+  // poll student side — visibility-aware
+  const sessionEnded = state?.status === 'ended' || session?.status === 'ended';
+  useVisiblePolling(
+    async () => {
+      if (!id) return;
       try {
         const st = await api.getLiveState(id);
-        if (cancelled) return;
         setState(st);
         if (st.status === 'ended') {
           toast.success('세션이 종료되었습니다');
         }
       } catch { /* ignore */ }
-    };
-    const interval = setInterval(tick, POLL_INTERVAL);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [id]);
+    },
+    TIMING.LIVE_POLL_MS,
+    !!id && !sessionEnded,
+  );
 
   // 교사 입력 → 디바운스 PATCH
   const pushTeacher = useCallback(
@@ -111,7 +115,7 @@ export default function LiveSessionPage() {
       clearTimeout(debounceRef.current.teacher);
       debounceRef.current.teacher = setTimeout(() => {
         api.patchLiveState(id, { side: 'teacher', text, strokes }).catch(() => {});
-      }, PATCH_DEBOUNCE);
+      }, TIMING.LIVE_PATCH_DEBOUNCE_MS);
     },
     [id]
   );
@@ -121,14 +125,14 @@ export default function LiveSessionPage() {
       clearTimeout(debounceRef.current.problem);
       debounceRef.current.problem = setTimeout(() => {
         api.patchLiveState(id, { side: 'problem', text }).catch(() => {});
-      }, PATCH_DEBOUNCE);
+      }, TIMING.LIVE_PATCH_DEBOUNCE_MS);
     },
     [id]
   );
 
   const onProblemImageUpload = async (file: File) => {
     if (!id) return;
-    if (file.size > 1 * 1024 * 1024) {
+    if (file.size > SIZE_LIMITS.PHOTO_MAX_BYTES) {
       alert('이미지는 1MB 이내로 업로드해 주세요');
       return;
     }
@@ -137,8 +141,8 @@ export default function LiveSessionPage() {
     try {
       await api.patchLiveState(id, { side: 'problem', image_data_url: dataUrl });
       toast.success('문제 이미지 전송됨');
-    } catch (e: any) {
-      alert(e.message || '이미지 전송 실패');
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : '이미지 전송 실패');
     }
   };
 
@@ -161,8 +165,8 @@ export default function LiveSessionPage() {
       });
       toast.success('세션 종료' + (result.note_id ? ' · 메모 자동 생성됨' : ''));
       navigate(`/student/${session.student_id}`);
-    } catch (e: any) {
-      alert(e.message || '종료 실패');
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : '종료 실패');
     } finally {
       setEndSubmitting(false);
     }
@@ -171,7 +175,7 @@ export default function LiveSessionPage() {
   if (loading) return <div style={{ padding: 16 }}>불러오는 중...</div>;
   if (error || !session || !state) return <div style={{ padding: 16, color: '#dc2626' }}>{error || '세션 없음'}</div>;
 
-  const studentName = search.get('student_name') || session.student_id;
+  const displayName = studentName || session.student_id;
   const ended = state.status === 'ended' || session.status === 'ended';
 
   return (
@@ -183,7 +187,7 @@ export default function LiveSessionPage() {
         </button>
         <h2 style={{ margin: 0, fontSize: 18 }}>
           <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#dc2626', marginRight: 8, verticalAlign: 'middle' }} aria-hidden="true" />
-          라이브 — {studentName} <span style={{ color: 'var(--text-tertiary)' }}>· {session.subject}</span>
+          라이브 — {displayName} <span style={{ color: 'var(--text-tertiary)' }}>· {session.subject}</span>
         </h2>
         <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
           ⏱ {fmtElapsed(session.started_at)} <span style={{ visibility: 'hidden' }}>{tick}</span>
@@ -303,7 +307,7 @@ export default function LiveSessionPage() {
                 {state.student.photo_data_urls.map((u, i) => (
                   <img key={i} src={u} alt={`학생 사진 ${i + 1}`}
                     style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }}
-                    onClick={() => window.open(u, '_blank')}
+                    onClick={() => window.open(u, '_blank', 'noopener,noreferrer')}
                   />
                 ))}
               </div>
@@ -334,7 +338,7 @@ export default function LiveSessionPage() {
             <select
               className="form-select"
               value={endSentiment}
-              onChange={(e) => setEndSentiment(e.target.value as any)}
+              onChange={(e) => setEndSentiment(e.target.value as 'positive' | 'neutral' | 'concern')}
             >
               <option value="positive">긍정</option>
               <option value="neutral">보통</option>
