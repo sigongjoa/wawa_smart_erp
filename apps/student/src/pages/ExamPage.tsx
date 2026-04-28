@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, ExamAttemptFull, ExamListItem } from '../api';
+import { useVisiblePolling } from '../lib/useVisiblePolling';
 
 type Phase = 'ready' | 'take' | 'result';
 
@@ -54,38 +55,37 @@ export default function ExamPage() {
     return () => { cancelled = true; };
   }, [assignmentId]);
 
-  // 5초 폴링 — 남은시간 동기화 + 종료 감지
-  useEffect(() => {
-    if (phase !== 'take' || !attempt) return;
-    const tick = async () => {
-      try {
-        const fresh = await api.getExamAttemptFull(attempt.id);
-        setRemaining(fresh.remainingSeconds);
-        if (['submitted', 'expired', 'voided'].includes(fresh.status)) {
-          setAttempt(fresh);
-          setPhase('result');
-        }
-      } catch { /* ignore */ }
-    };
-    const t = window.setInterval(tick, POLL_INTERVAL_MS);
-    return () => window.clearInterval(t);
-  }, [phase, attempt?.id]);
+  // 5초 폴링 — 남은시간 동기화 + 종료 감지 (visibility-aware)
+  const pollTick = useCallback(async () => {
+    if (!attempt) return;
+    try {
+      const fresh = await api.getExamAttemptFull(attempt.id);
+      setRemaining(fresh.remainingSeconds);
+      if (['submitted', 'expired', 'voided'].includes(fresh.status)) {
+        setAttempt(fresh);
+        setPhase('result');
+      }
+    } catch { /* ignore */ }
+  }, [attempt?.id]);
 
-  // 1초 카운트다운
+  useVisiblePolling(pollTick, POLL_INTERVAL_MS, phase === 'take' && !!attempt);
+
+  // autoSubmit 최신 콜백을 ref 로 보관 — 1초 카운트다운의 stale closure 회피
+  const autoSubmitRef = useRef<() => Promise<void>>();
+
+  // 1초 카운트다운 (탭이 hidden 이어도 계속 진행되어야 정확한 잔여시간 유지)
   useEffect(() => {
     if (phase !== 'take') return;
     const t = window.setInterval(() => {
       setRemaining(r => {
         if (r <= 1) {
-          // 자동 제출
-          autoSubmit();
+          autoSubmitRef.current?.();
           return 0;
         }
         return r - 1;
       });
     }, 1000);
     return () => window.clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   const answersByNo = useMemo(() => {
@@ -180,6 +180,8 @@ export default function ExamPage() {
       setSubmitting(false);
     }
   }, [attempt, flushPendingSaves]);
+
+  useEffect(() => { autoSubmitRef.current = autoSubmit; }, [autoSubmit]);
 
   const handleSubmit = useCallback(async () => {
     if (!attempt) return;

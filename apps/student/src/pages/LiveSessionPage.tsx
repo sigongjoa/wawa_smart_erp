@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, LiveSessionState, LiveStroke } from '../api';
 import SimpleCanvas from '../components/SimpleCanvas';
+import { useVisiblePolling } from '../lib/useVisiblePolling';
 
 const POLL_INTERVAL = 3000;
 // KV write 억제: 600ms → 3000ms (일 1000회 한도 보호)
@@ -49,25 +50,19 @@ export default function LiveSessionPage() {
 
   useEffect(() => { initialLoad(); }, [initialLoad]);
 
-  // poll teacher state every 3s
-  useEffect(() => {
+  // poll teacher state every 3s (visibility-aware)
+  const tick = useCallback(async () => {
     if (!id) return;
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const st = await api.getLiveState(id);
-        if (cancelled) return;
-        setState(st);
-        if (st.status === 'ended') {
-          setTimeout(() => {
-            if (!cancelled) navigate('/');
-          }, 2500);
-        }
-      } catch { /* ignore */ }
-    };
-    const interval = setInterval(tick, POLL_INTERVAL);
-    return () => { cancelled = true; clearInterval(interval); };
+    try {
+      const st = await api.getLiveState(id);
+      setState(st);
+      if (st.status === 'ended') {
+        setTimeout(() => navigate('/'), 2500);
+      }
+    } catch { /* ignore */ }
   }, [id, navigate]);
+
+  useVisiblePolling(tick, POLL_INTERVAL, !!id);
 
   const push = useCallback(
     (newText: string, newStrokes: LiveStroke[]) => {

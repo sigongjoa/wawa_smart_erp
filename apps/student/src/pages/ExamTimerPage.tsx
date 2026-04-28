@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ExamAttemptDto } from '../api';
 import { useAuthStore } from '../store';
+import { useVisiblePolling } from '../lib/useVisiblePolling';
 
 const POLL_INTERVAL_MS = 5000;
 const MAX_POLL_FAILURES = 3;
@@ -54,28 +55,25 @@ export default function ExamTimerPage() {
     return () => { cancelled = true; };
   }, [navigate]);
 
-  // 5초 폴링
-  useEffect(() => {
-    if (!attempt) return;
-    const tick = async () => {
-      const id = attemptIdRef.current;
-      if (!id) return;
-      try {
-        const fresh = await api.getExamAttempt(id);
-        setAttempt(fresh);
-        setLocalRemaining(fresh.remainingSeconds);
-        setPollFailCount(0);
-        // 종료 상태면 자동 복귀
-        if (['submitted', 'expired', 'voided'].includes(fresh.status)) {
-          navigate('/', { replace: true });
-        }
-      } catch {
-        setPollFailCount((c) => c + 1);
+  // 5초 폴링 (visibility-aware)
+  const tick = useCallback(async () => {
+    const id = attemptIdRef.current;
+    if (!id) return;
+    try {
+      const fresh = await api.getExamAttempt(id);
+      setAttempt(fresh);
+      setLocalRemaining(fresh.remainingSeconds);
+      setPollFailCount(0);
+      // 종료 상태면 자동 복귀
+      if (['submitted', 'expired', 'voided'].includes(fresh.status)) {
+        navigate('/', { replace: true });
       }
-    };
-    const timer = window.setInterval(tick, POLL_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [attempt?.id, navigate]);
+    } catch {
+      setPollFailCount((c) => c + 1);
+    }
+  }, [navigate]);
+
+  useVisiblePolling(tick, POLL_INTERVAL_MS, !!attempt);
 
   // 1초 카운트다운 (paused 가 아닐 때만)
   useEffect(() => {

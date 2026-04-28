@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, Session, ProofListItem, AssignmentListItem, ExamListItem } from '../api';
 import { useAuthStore } from '../store';
+import { useVisiblePolling } from '../lib/useVisiblePolling';
 import './HomePage.css';
 
 export default function HomePage() {
@@ -28,31 +29,29 @@ export default function HomePage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  // 활성 시험/라이브 세션 단일 폴링으로 통합 (5초마다 동시 조회)
-  useEffect(() => {
-    let cancelled = false;
-    const check = async () => {
-      try {
-        const [active, live] = await Promise.all([
-          api.getActiveExamAttempt().catch(() => null),
-          api.getActiveLiveSession().catch(() => null),
-        ]);
-        if (cancelled) return;
-        if (active && ['running', 'paused'].includes(active.status)) {
-          navigate('/exam-timer', { replace: true });
-          return;
-        }
-        if (live?.session) {
-          navigate(`/live/${live.session.id}`, { replace: true });
-          return;
-        }
-      } catch { /* ignore */ }
-      finally { if (!cancelled) setExamChecking(false); }
-    };
-    check();
-    const timer = window.setInterval(check, 5000);
-    return () => { cancelled = true; window.clearInterval(timer); };
+  // 활성 시험/라이브 세션 단일 폴링으로 통합 (5초마다 동시 조회, visibility-aware)
+  const checkActive = useCallback(async () => {
+    try {
+      const [active, live] = await Promise.all([
+        api.getActiveExamAttempt().catch(() => null),
+        api.getActiveLiveSession().catch(() => null),
+      ]);
+      if (active && ['running', 'paused'].includes(active.status)) {
+        navigate('/exam-timer', { replace: true });
+        return;
+      }
+      if (live?.session) {
+        navigate(`/live/${live.session.id}`, { replace: true });
+        return;
+      }
+    } catch { /* ignore */ }
+    finally { setExamChecking(false); }
   }, [navigate]);
+
+  // 최초 1회 즉시 실행 (visibility hook은 hidden 상태에서 첫 실행도 건너뛰므로)
+  useEffect(() => { checkActive(); }, [checkActive]);
+
+  useVisiblePolling(checkActive, 5000);
 
   const pendingAssignments = useMemo(
     () => assignments.filter((a) => a.status !== 'completed'),
