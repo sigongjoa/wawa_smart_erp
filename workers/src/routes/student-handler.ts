@@ -218,6 +218,13 @@ async function handleGetStudent(context: RequestContext, studentId: string): Pro
       return errorResponse('학생을 찾을 수 없습니다', 404);
     }
 
+    // SEC-STU-M1: instructor는 본인 담당 학생만 (학원 내 강사 간 PII 누설 차단)
+    if (context.auth!.role !== 'admin') {
+      if (!(await teacherOwnsStudent(context.env.DB, context.auth!.userId, studentId))) {
+        return errorResponse('담당 학생만 조회할 수 있습니다', 403);
+      }
+    }
+
     return successResponse(student);
   } catch (error) {
     logger.error('학생 조회 오류', error instanceof Error ? error : new Error(String(error)));
@@ -304,45 +311,39 @@ async function handleDeleteStudent(
   studentId: string
 ): Promise<Response> {
   try {
-    if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
-      return unauthorizedResponse();
+    // SEC-STU-M2: admin만 비활성화(soft delete) 가능 — 우발/악의 손실 차단
+    if (!requireAuth(context) || !requireRole(context, 'admin')) {
+      return errorResponse('관리자만 학생을 비활성화할 수 있습니다', 403);
     }
 
-    const student = await executeFirst<any>(
+    const academyId = getAcademyId(context);
+    const student = await executeFirst<{ id: string; status: string | null }>(
       context.env.DB,
-      'SELECT * FROM students WHERE id = ? AND academy_id = ?',
-      [studentId, getAcademyId(context)]
+      'SELECT id, status FROM students WHERE id = ? AND academy_id = ?',
+      [studentId, academyId]
     );
 
     if (!student) {
       return errorResponse('학생을 찾을 수 없습니다', 404);
     }
-
-    // instructor는 본인 담당 학생만 삭제 가능 (admin은 전체)
-    if (context.auth!.role !== 'admin') {
-      if (!(await teacherOwnsStudent(context.env.DB, context.auth!.userId, studentId))) {
-        return errorResponse('담당 학생만 삭제할 수 있습니다', 403);
-      }
+    if (student.status === 'inactive') {
+      return successResponse({ id: studentId, status: 'inactive', message: '이미 비활성화된 학생입니다' });
     }
 
-    // 관련 데이터 정리
-    await executeDelete(context.env.DB, 'DELETE FROM student_teachers WHERE student_id = ?', [studentId]);
-    await executeDelete(context.env.DB, 'DELETE FROM enrollments WHERE student_id = ?', [studentId]);
-
-    const result = await executeDelete(
+    // SEC-STU-M2: 하드 DELETE → soft delete (status=inactive).
+    // grades/reports/attendance 등 FK 참조 데이터는 보존되며, 목록·검색에서 제외된다.
+    const ok = await executeUpdate(
       context.env.DB,
-      'DELETE FROM students WHERE id = ?',
-      [studentId]
+      `UPDATE students SET status = 'inactive', updated_at = ? WHERE id = ? AND academy_id = ?`,
+      [new Date().toISOString(), studentId, academyId]
     );
+    if (!ok) throw new Error('학생 비활성화 실패');
 
-    if (!result) {
-      throw new Error('학생 삭제 실패');
-    }
-
-    return successResponse({ id: studentId, deleted: true });
+    logger.info(`학생 비활성화: ${studentId} by ${context.auth!.userId}`);
+    return successResponse({ id: studentId, status: 'inactive', message: '학생이 비활성화되었습니다' });
   } catch (error) {
-    logger.error('학생 삭제 중 오류', error instanceof Error ? error : new Error(String(error)));
-    return errorResponse('학생 삭제에 실패했습니다', 500);
+    logger.error('학생 비활성화 중 오류', error instanceof Error ? error : new Error(String(error)));
+    return errorResponse('학생 비활성화에 실패했습니다', 500);
   }
 }
 
@@ -403,27 +404,46 @@ async function handleGetStudentComments(
   try {
     if (!requireAuth(context)) return unauthorizedResponse();
 
-    const url = new URL(request.url);
-    const months = parseInt(url.searchParams.get('months') || '12', 10);
+    // SEC-STU-H1: academy 격리 + ownership 검증
+    const academyId = getAcademyId(context);
+    const student = await executeFirst<{ id: string }>(
+      context.env.DB,
+      'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+      [studentId, academyId]
+    );
+    if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+    if (!(await canAccessStudent(context, studentId))) {
+      return errorResponse('접근 권한이 없습니다', 403);
+    }
 
-    // 성적 + 코멘트 조회
+    // SEC-STU-L1: months 입력 정합성 — 1..36 범위로 클램프
+    const url = new URL(request.url);
+    const rawMonths = parseInt(url.searchParams.get('months') || '12', 10);
+    const months = Number.isFinite(rawMonths) && rawMonths > 0 ? Math.min(rawMonths, 36) : 12;
+
+    // PERF-STU-M1: SQL 측 year_month 컷오프 + LIMIT
+    const since = new Date();
+    since.setMonth(since.getMonth() - months);
+    const sinceYM = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, '0')}`;
+
+    // 성적 + 코멘트 조회 (학생의 academy 내에서만)
     const grades = await executeQuery<any>(
       context.env.DB,
       `SELECT g.score, g.comments, g.year_month, e.name as exam_name
        FROM grades g
        LEFT JOIN exams e ON g.exam_id = e.id
-       WHERE g.student_id = ?
+       WHERE g.student_id = ? AND g.year_month >= ?
        ORDER BY g.year_month DESC`,
-      [studentId]
+      [studentId, sinceYM]
     );
 
     // 총평 조회 (reports 테이블)
     const reports = await executeQuery<any>(
       context.env.DB,
       `SELECT month, content FROM reports
-       WHERE student_id = ?
+       WHERE student_id = ? AND month >= ?
        ORDER BY month DESC`,
-      [studentId]
+      [studentId, sinceYM]
     );
 
     const reportMap = new Map<string, string>();
@@ -472,22 +492,54 @@ async function handleGetStudentAttendance(
   try {
     if (!requireAuth(context)) return unauthorizedResponse();
 
+    // SEC-STU-H2: academy 격리 + ownership 검증 (결석 사유는 민감 PII)
+    const academyId = getAcademyId(context);
+    const student = await executeFirst<{ id: string }>(
+      context.env.DB,
+      'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+      [studentId, academyId]
+    );
+    if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+    if (!(await canAccessStudent(context, studentId))) {
+      return errorResponse('접근 권한이 없습니다', 403);
+    }
+
     const url = new URL(request.url);
-    const months = parseInt(url.searchParams.get('months') || '6', 10);
+    const rawMonths = parseInt(url.searchParams.get('months') || '6', 10);
+    const months = Number.isFinite(rawMonths) && rawMonths > 0 ? Math.min(rawMonths, 24) : 6;
 
     // N개월 전 날짜 계산
     const since = new Date();
     since.setMonth(since.getMonth() - months);
     const sinceDate = since.toISOString().split('T')[0];
 
-    // 출석 통계 (attendance 테이블)
-    const stats = await executeQuery<any>(
-      context.env.DB,
-      `SELECT status, COUNT(*) as cnt FROM attendance
-       WHERE student_id = ? AND date >= ?
-       GROUP BY status`,
-      [studentId, sinceDate]
-    );
+    // PERF-STU-M2: 3개 쿼리 병렬 실행
+    const [stats, recentAbsences, makeupStats] = await Promise.all([
+      executeQuery<any>(
+        context.env.DB,
+        `SELECT status, COUNT(*) as cnt FROM attendance
+         WHERE student_id = ? AND date >= ?
+         GROUP BY status`,
+        [studentId, sinceDate]
+      ),
+      executeQuery<any>(
+        context.env.DB,
+        `SELECT a.absence_date, c.name as class_name, a.reason
+         FROM absences a
+         LEFT JOIN classes c ON a.class_id = c.id
+         WHERE a.student_id = ? AND a.absence_date >= ?
+         ORDER BY a.absence_date DESC LIMIT 10`,
+        [studentId, sinceDate]
+      ),
+      executeQuery<any>(
+        context.env.DB,
+        `SELECT m.status, COUNT(*) as cnt FROM makeups m
+         JOIN absences a ON m.absence_id = a.id
+         WHERE a.student_id = ? AND a.absence_date >= ?
+         GROUP BY m.status`,
+        [studentId, sinceDate]
+      ),
+    ]);
 
     let present = 0, absent = 0, late = 0;
     for (const s of stats) {
@@ -497,27 +549,6 @@ async function handleGetStudentAttendance(
     }
     const totalClasses = present + absent + late;
     const attendanceRate = totalClasses > 0 ? Math.round((present / totalClasses) * 100) : 100;
-
-    // 최근 결석 상세 (absences 테이블)
-    const recentAbsences = await executeQuery<any>(
-      context.env.DB,
-      `SELECT a.absence_date, c.name as class_name, a.reason
-       FROM absences a
-       LEFT JOIN classes c ON a.class_id = c.id
-       WHERE a.student_id = ? AND a.absence_date >= ?
-       ORDER BY a.absence_date DESC LIMIT 10`,
-      [studentId, sinceDate]
-    );
-
-    // 보강 현황
-    const makeupStats = await executeQuery<any>(
-      context.env.DB,
-      `SELECT m.status, COUNT(*) as cnt FROM makeups m
-       JOIN absences a ON m.absence_id = a.id
-       WHERE a.student_id = ? AND a.absence_date >= ?
-       GROUP BY m.status`,
-      [studentId, sinceDate]
-    );
 
     let makeupCompleted = 0, makeupPending = 0;
     for (const m of makeupStats) {
@@ -578,14 +609,17 @@ async function handleSetStudentTeachers(
     }
   }
 
-  await executeDelete(context.env.DB, 'DELETE FROM student_teachers WHERE student_id = ?', [studentId]);
-  for (const tid of teacherIds) {
-    await executeInsert(
-      context.env.DB,
-      'INSERT OR IGNORE INTO student_teachers (student_id, teacher_id) VALUES (?, ?)',
-      [studentId, tid]
-    );
-  }
+  // SEC-STU-M3 + PERF-STU-M3: DELETE + INSERT를 D1 batch로 원자 실행.
+  // 부분 실패로 학생의 담당 강사가 0명/일부만 남는 사고 방지.
+  const stmts: any[] = [
+    context.env.DB.prepare('DELETE FROM student_teachers WHERE student_id = ?').bind(studentId),
+    ...teacherIds.map((tid) =>
+      context.env.DB
+        .prepare('INSERT OR IGNORE INTO student_teachers (student_id, teacher_id) VALUES (?, ?)')
+        .bind(studentId, tid)
+    ),
+  ];
+  await context.env.DB.batch(stmts);
   return successResponse({ student_id: studentId, teacher_ids: teacherIds });
 }
 
@@ -610,31 +644,34 @@ async function handleSetHomeroom(
   );
   if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
 
-  // 전원 해제 (담임 플래그만 초기화)
-  await executeUpdate(
-    context.env.DB,
-    'UPDATE student_teachers SET is_homeroom = 0 WHERE student_id = ?',
-    [studentId]
-  );
-
+  // SEC-STU-M4: 담임 전환을 D1 batch로 원자 실행.
+  // 동시 호출에서 학생이 잠시 담임 0명/2명 상태가 되는 윈도우 차단.
+  // 037 마이그레이션에 `WHERE is_homeroom=1` 부분 unique index가 있어 DB 측 보장도 있음.
   if (teacherId) {
-    const teacher = await executeFirst<any>(
+    const teacher = await executeFirst<{ id: string }>(
       context.env.DB,
       'SELECT id FROM users WHERE id = ? AND academy_id = ?',
       [teacherId, academyId]
     );
     if (!teacher) return errorResponse('유효하지 않은 선생님입니다', 400);
 
-    // 담당 매핑이 없으면 생성, 있으면 담임 플래그만 세팅
-    await executeInsert(
-      context.env.DB,
-      'INSERT OR IGNORE INTO student_teachers (student_id, teacher_id, is_homeroom) VALUES (?, ?, 1)',
-      [studentId, teacherId]
-    );
+    await context.env.DB.batch([
+      context.env.DB
+        .prepare('UPDATE student_teachers SET is_homeroom = 0 WHERE student_id = ?')
+        .bind(studentId),
+      context.env.DB
+        .prepare('INSERT OR IGNORE INTO student_teachers (student_id, teacher_id, is_homeroom) VALUES (?, ?, 1)')
+        .bind(studentId, teacherId),
+      context.env.DB
+        .prepare('UPDATE student_teachers SET is_homeroom = 1 WHERE student_id = ? AND teacher_id = ?')
+        .bind(studentId, teacherId),
+    ]);
+  } else {
+    // 담임 해제만
     await executeUpdate(
       context.env.DB,
-      'UPDATE student_teachers SET is_homeroom = 1 WHERE student_id = ? AND teacher_id = ?',
-      [studentId, teacherId]
+      'UPDATE student_teachers SET is_homeroom = 0 WHERE student_id = ?',
+      [studentId]
     );
   }
 
