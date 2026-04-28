@@ -103,12 +103,24 @@ export async function rateLimitMiddleware(
   return context;
 }
 
+type KVLike = {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  delete(key: string): Promise<void>;
+};
+
+/** SHA-256 hex (key 길이/PII 보호용) */
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * 로그인 전용 rate limiter — 5회/분 per IP.
  * Returns null if allowed, or a 429 Response if blocked.
  */
 export async function loginRateLimit(
-  kv: { get(key: string): Promise<string | null>; put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> },
+  kv: KVLike,
   request: Request,
 ): Promise<Response | null> {
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -136,6 +148,77 @@ export async function loginRateLimit(
   });
 
   return null; // allowed
+}
+
+// ──────────────────────────────────────────────────────────────────
+// 계정 단위 lockout — 분산 무차별 대입 방어 (SEC-AUTH-H1)
+// 5회 실패 시 15분 잠금. 성공 시 reset.
+// 키는 (slug, name) 해시 — PII 회피.
+// ──────────────────────────────────────────────────────────────────
+const ACCOUNT_LOCKOUT_FAILS = 5;
+const ACCOUNT_LOCKOUT_TTL = 15 * 60; // 15분
+
+async function accountKey(slug: string, name: string): Promise<string> {
+  const h = await sha256Hex(`${slug.toLowerCase()}::${name.trim().toLowerCase()}`);
+  return `login-acct:${h.slice(0, 32)}`;
+}
+
+/** 계정 잠금 여부 확인 — 잠겨 있으면 429, 아니면 null. */
+export async function accountLoginCheck(kv: KVLike, slug: string, name: string): Promise<Response | null> {
+  const key = await accountKey(slug, name);
+  const raw = await kv.get(key);
+  const fails = raw ? parseInt(raw) : 0;
+  if (fails >= ACCOUNT_LOCKOUT_FAILS) {
+    return new Response(
+      JSON.stringify({ error: '연속 로그인 실패로 계정이 일시 잠겼습니다. 15분 후 다시 시도하세요.', code: 'account_locked' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(ACCOUNT_LOCKOUT_TTL) } },
+    );
+  }
+  return null;
+}
+
+/** 로그인 실패 카운트 증가 (TTL 슬라이딩 — 마지막 실패 기준 15분 유지). */
+export async function accountLoginRecordFail(kv: KVLike, slug: string, name: string): Promise<void> {
+  const key = await accountKey(slug, name);
+  const raw = await kv.get(key);
+  const fails = raw ? parseInt(raw) : 0;
+  await kv.put(key, String(fails + 1), { expirationTtl: ACCOUNT_LOCKOUT_TTL });
+}
+
+/** 로그인 성공 — 카운터 리셋. */
+export async function accountLoginRecordSuccess(kv: KVLike, slug: string, name: string): Promise<void> {
+  const key = await accountKey(slug, name);
+  try { await kv.delete(key); } catch { /* ignore */ }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// 초대 수락 rate limit — 코드 무차별 대입 방어 (SEC-H1)
+// IP: 10회/분, 1시간 누계 30회 초과 시 차단.
+// ──────────────────────────────────────────────────────────────────
+const INVITE_ACCEPT_PER_MIN = 10;
+const INVITE_ACCEPT_PER_HOUR = 30;
+
+export async function inviteAcceptRateLimit(kv: KVLike, request: Request): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const minKey = `inv-accept:m:${ip}`;
+  const hourKey = `inv-accept:h:${ip}`;
+
+  const [mRaw, hRaw] = await Promise.all([kv.get(minKey), kv.get(hourKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const h = hRaw ? parseInt(hRaw) : 0;
+
+  if (m >= INVITE_ACCEPT_PER_MIN || h >= INVITE_ACCEPT_PER_HOUR) {
+    return new Response(
+      JSON.stringify({ error: '초대 코드 시도가 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(minKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(hourKey, String(h + 1), { expirationTtl: 3600 }),
+  ]);
+  return null;
 }
 
 export async function setRateLimitHeaders(

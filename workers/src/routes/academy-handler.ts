@@ -11,6 +11,7 @@ import { getAcademyId } from '@/utils/context';
 import { logger } from '@/utils/logger';
 import { hashPin } from '@/utils/crypto';
 import { parsePagination, toPagedResult } from '@/utils/pagination';
+import { inviteAcceptRateLimit } from '@/middleware/rateLimit';
 import { z } from 'zod';
 
 // ==================== 스키마 ====================
@@ -171,28 +172,32 @@ export async function handleAcademy(
         );
       }
 
-      // 코드 생성 (충돌 방지 — 최대 5회 재시도)
-      let code = '';
-      for (let i = 0; i < 5; i++) {
-        code = generateInviteCode();
-        const exists = await executeFirst<{ id: string }>(
-          context.env.DB,
-          'SELECT id FROM invitations WHERE code = ?',
-          [code]
-        );
-        if (!exists) break;
-      }
-
+      // 코드 생성 — INSERT OR IGNORE로 unique 충돌 시 자동 재시도 (TOCTOU 제거 — SEC-H3)
       const inviteId = `inv-${crypto.randomUUID().slice(0, 8)}`;
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + input.expiresInDays);
+      const expiresIso = expiresAt.toISOString();
 
-      await executeInsert(
-        context.env.DB,
-        `INSERT INTO invitations (id, academy_id, code, role, created_by, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [inviteId, academyId, code, input.role, context.auth!.userId, expiresAt.toISOString()]
-      );
+      let code = '';
+      let inserted = false;
+      for (let i = 0; i < 8; i++) {
+        const candidate = generateInviteCode();
+        const result = await context.env.DB
+          .prepare(
+            `INSERT OR IGNORE INTO invitations (id, academy_id, code, role, created_by, expires_at)
+             VALUES (?, ?, ?, ?, ?, ?)`
+          )
+          .bind(inviteId, academyId, candidate, input.role, context.auth!.userId, expiresIso)
+          .run();
+        if (result.success && (result.meta?.changes ?? 0) > 0) {
+          code = candidate;
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) {
+        return errorResponse('초대 코드 생성에 실패했습니다. 잠시 후 다시 시도해주세요.', 503);
+      }
 
       return successResponse({
         code,
@@ -260,6 +265,10 @@ export async function handleAcademy(
 
     // POST /api/invite/accept — 초대 코드로 선생님 계정 생성
     if (method === 'POST' && pathname === '/api/invite/accept') {
+      // 코드 무차별 대입 방어 (SEC-H1)
+      const blocked = await inviteAcceptRateLimit(context.env.KV, request);
+      if (blocked) return blocked;
+
       const body = await request.json() as any;
       const input = AcceptInviteSchema.parse(body);
 
@@ -275,7 +284,7 @@ export async function handleAcademy(
         return errorResponse('유효하지 않거나 만료된 초대 코드입니다', 400);
       }
 
-      // 같은 학원에 같은 이름이 이미 있는지 확인
+      // 같은 학원에 같은 이름이 이미 있는지 확인 — 응답 메시지는 일반화하여 열거 방지
       const existing = await executeFirst<{ id: string }>(
         context.env.DB,
         'SELECT id FROM users WHERE name = ? AND academy_id = ?',
@@ -283,21 +292,21 @@ export async function handleAcademy(
       );
 
       if (existing) {
-        return errorResponse('이미 등록된 이름입니다. 다른 이름을 사용하거나 관리자에게 문의하세요.', 409);
+        return errorResponse('계정 생성에 실패했습니다. 관리자에게 문의해주세요.', 409);
       }
 
-      // 계정 생성
+      // 계정 생성 — 이메일은 userId 기반 (SEC-H2: 이름·테넌트 충돌·열거 방지)
       const userId = `user-${crypto.randomUUID().slice(0, 8)}`;
       const now = new Date().toISOString();
       const hashedPin = await hashPin(input.pin);
 
-      // 학원 slug 조회 (이메일용)
+      // 학원 메타 (응답용)
       const academy = await executeFirst<{ slug: string; name: string }>(
         context.env.DB,
         'SELECT slug, name FROM academies WHERE id = ?',
         [invite.academy_id]
       );
-      const uniqueEmail = `${academy?.slug || 'unknown'}_${input.name.replace(/\s+/g, '')}@wawa.app`;
+      const uniqueEmail = `${userId}@wawa.app`;
 
       await executeInsert(
         context.env.DB,

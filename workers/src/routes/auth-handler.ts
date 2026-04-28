@@ -9,8 +9,17 @@ import { executeFirst, executeUpdate } from '@/utils/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { RefreshTokenSchema, parseAndValidate } from '@/schemas/validation';
 import { logger } from '@/utils/logger';
-import { loginRateLimit } from '@/middleware/rateLimit';
+import { loginRateLimit, accountLoginCheck, accountLoginRecordFail, accountLoginRecordSuccess } from '@/middleware/rateLimit';
 import { hashPin, verifyPin, isLegacyHash } from '@/utils/crypto';
+
+/**
+ * 사용자 미존재 시 PBKDF2 비용을 동일하게 발생시켜 타이밍 사이드채널 차단 (SEC-AUTH-H2).
+ * 결과는 항상 false. 실제 verifyPin과 동일 iteration·hash로 비교한다.
+ */
+const DUMMY_PIN_HASH = 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
+async function dummyPinVerify(pin: string): Promise<void> {
+  try { await verifyPin(pin, DUMMY_PIN_HASH); } catch { /* ignore */ }
+}
 import {
   ACCESS_COOKIE, REFRESH_COOKIE, serializeCookie, clearCookie,
   parseCookies, appendSetCookie,
@@ -43,6 +52,10 @@ export async function handleAuth(
 
       logger.logRequest('POST', '/api/auth/login', undefined, ipAddress);
 
+      // 계정 잠금 확인 (분산 무차별 대입 방어 — SEC-AUTH-H1)
+      const locked = await accountLoginCheck(context.env.KV, slug, name);
+      if (locked) return locked;
+
       // 사용자 조회 (학원 slug + 이름으로 검색 — 다른 학원 이름 충돌 방지)
       const user = await executeFirst<any>(
         context.env.DB,
@@ -55,15 +68,22 @@ export async function handleAuth(
       );
 
       if (!user) {
+        // 더미 PBKDF2 — 응답 시간 동등화 (SEC-AUTH-H2)
+        await dummyPinVerify(pin);
+        await accountLoginRecordFail(context.env.KV, slug, name);
         return unauthorizedResponse();
       }
 
       // PIN 검증 (PBKDF2 or legacy SHA256)
       const pinValid = await verifyPin(pin, user.password_hash);
       if (!pinValid) {
-        logger.warn('PIN 불일치', { name });
+        await accountLoginRecordFail(context.env.KV, slug, name);
+        logger.warn('PIN 불일치', { slug });
         return unauthorizedResponse();
       }
+
+      // 성공 — 계정 잠금 카운터 리셋
+      await accountLoginRecordSuccess(context.env.KV, slug, name);
 
       // Auto-upgrade legacy SHA256 hash → PBKDF2
       if (isLegacyHash(user.password_hash)) {
