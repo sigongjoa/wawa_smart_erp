@@ -18,6 +18,14 @@ export const TIMING = {
   EXAM_LOW_WARNING_SEC: 60,
   /** 학생 메모 자동 저장 디바운스 */
   NOTE_AUTOSAVE_DEBOUNCE_MS: 1500,
+  /** 리포트 저장 상태 자동 닫힘 */
+  REPORT_SAVE_FLASH_MS: 1500,
+  /** 리포트 인풋 디바운스 */
+  REPORT_INPUT_DEBOUNCE_MS: 500,
+  /** 리포트 캡처 모드 토글 지연 (DOM 안정화) */
+  REPORT_CAPTURE_TOGGLE_MS: 100,
+  /** Object URL revoke 지연 (다운로드 안정화) */
+  OBJECT_URL_REVOKE_MS: 1000,
 } as const;
 
 export const SIZE_LIMITS = {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
+import { errorMessage } from '../utils/errors';
 
 interface Meeting {
   id: string;
@@ -75,8 +76,8 @@ export default function MeetingPage() {
       setManualTranscript('');
       setViewMode('list');
       loadMeetings();
-    } catch (err: any) {
-      alert('저장 실패: ' + (err.message || '오류 발생'));
+    } catch (err: unknown) {
+      alert('저장 실패: ' + errorMessage(err, '오류 발생'));
     } finally {
       setSaving(false);
     }
@@ -115,8 +116,8 @@ export default function MeetingPage() {
     try {
       await api.publishMeeting(id);
       alert('보드에 게시되었습니다');
-    } catch (err: any) {
-      alert('게시 실패: ' + (err.message || '오류'));
+    } catch (err: unknown) {
+      alert('게시 실패: ' + errorMessage(err, '오류'));
     }
   };
 
@@ -126,8 +127,8 @@ export default function MeetingPage() {
       await api.deleteMeeting(id);
       if (viewMode === 'detail') setViewMode('list');
       loadMeetings();
-    } catch (err: any) {
-      alert('삭제 실패: ' + (err.message || '오류'));
+    } catch (err: unknown) {
+      alert('삭제 실패: ' + errorMessage(err, '오류'));
     }
   };
 

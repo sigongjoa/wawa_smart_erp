@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { toast, useConfirm } from '../components/Toast';
+import Modal from '../components/Modal';
 import MakeupSessionsModal from '../components/MakeupSessionsModal';
 import { useAuthStore } from '../store';
+import { errorMessage } from '../utils/errors';
 
 type MakeupStatus = '' | 'pending' | 'scheduled' | 'completed';
 
@@ -120,8 +122,8 @@ export default function AbsencePage() {
       setShowAdd(false);
       setAddForm({ studentId: '', classId: '', absenceDate: todayStr(), reason: '' });
       loadMakeups(filter);
-    } catch (err: any) {
-      toast.error(err.message || '등록 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '등록 실패'));
     } finally {
       setSaving(false);
     }
@@ -160,8 +162,8 @@ export default function AbsencePage() {
       toast.success('수정 완료');
       setEditTarget(null);
       loadMakeups(filter);
-    } catch (err: any) {
-      toast.error(err.message || '수정 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '수정 실패'));
     } finally {
       setSaving(false);
     }
@@ -175,18 +177,26 @@ export default function AbsencePage() {
       toast.success('삭제 완료');
       setEditTarget(null);
       loadMakeups(filter);
-    } catch (err: any) {
-      toast.error(err.message || '삭제 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '삭제 실패'));
     }
   };
 
-  const counts = {
-    pending: makeups.filter((m) => m.status === 'pending').length,
-    scheduled: makeups.filter((m) => m.status === 'scheduled').length,
-    completed: makeups.filter((m) => m.status === 'completed').length,
-  };
+  // 4번 순회 → 1번 순회로 통합
+  const counts = useMemo(() => {
+    const acc = { pending: 0, scheduled: 0, completed: 0 };
+    for (const m of makeups) {
+      if (m.status === 'pending') acc.pending++;
+      else if (m.status === 'scheduled') acc.scheduled++;
+      else if (m.status === 'completed') acc.completed++;
+    }
+    return acc;
+  }, [makeups]);
 
-  const displayMakeups = filter ? makeups.filter((m) => m.status === filter) : makeups;
+  const displayMakeups = useMemo(
+    () => (filter ? makeups.filter((m) => m.status === filter) : makeups),
+    [makeups, filter],
+  );
 
   return (
     <div className="absence-page">
@@ -346,10 +356,9 @@ export default function AbsencePage() {
       )}
 
       {showAdd && (
-        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">결석 추가</h3>
-            <div className="modal-body">
+        <Modal onClose={() => setShowAdd(false)}>
+          <Modal.Header>결석 추가</Modal.Header>
+          <Modal.Body>
               <label className="form-label">학생 *</label>
               <select className="form-select" value={addForm.studentId} onChange={e => setAddForm({ ...addForm, studentId: e.target.value })}>
                 <option value="">학생 선택</option>
@@ -364,22 +373,20 @@ export default function AbsencePage() {
               <input type="date" className="form-input" value={addForm.absenceDate} onChange={e => setAddForm({ ...addForm, absenceDate: e.target.value })} />
               <label className="form-label">사유</label>
               <input className="form-input" value={addForm.reason} onChange={e => setAddForm({ ...addForm, reason: e.target.value })} placeholder="예: 감기" />
-            </div>
-            <div className="modal-footer">
+          </Modal.Body>
+          <Modal.Footer>
               <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>취소</button>
               <button className="btn btn-primary" onClick={handleAdd} disabled={saving}>
                 {saving ? '추가 중...' : '추가'}
               </button>
-            </div>
-          </div>
-        </div>
+          </Modal.Footer>
+        </Modal>
       )}
 
       {editTarget && (
-        <div className="modal-overlay" onClick={() => setEditTarget(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">{editTarget.student_name} — 결석/보강 수정</h3>
-            <div className="modal-body">
+        <Modal onClose={() => setEditTarget(null)}>
+          <Modal.Header>{editTarget.student_name} — 결석/보강 수정</Modal.Header>
+          <Modal.Body>
               <label className="form-label">결석일</label>
               <input type="date" className="form-input" value={editForm.absence_date} onChange={e => setEditForm({ ...editForm, absence_date: e.target.value })} />
               <label className="form-label">수업</label>
@@ -403,22 +410,21 @@ export default function AbsencePage() {
               <label className="form-label">보강 메모</label>
               <input className="form-input" value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
               <label className="form-label">보강 상태</label>
-              <select className="form-select" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })}>
+              <select className="form-select" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as 'pending' | 'scheduled' | 'completed' })}>
                 <option value="pending">미보강</option>
                 <option value="scheduled">보강예정</option>
                 <option value="completed">보강완료</option>
               </select>
-            </div>
-            <div className="modal-footer">
+          </Modal.Body>
+          <Modal.Footer>
               <button className="btn btn-danger-ghost" onClick={() => handleDeleteAbsence(editTarget)}>삭제</button>
               <div style={{ flex: 1 }} />
               <button className="btn btn-ghost" onClick={() => setEditTarget(null)}>취소</button>
               <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
                 {saving ? '저장 중...' : '저장'}
               </button>
-            </div>
-          </div>
-        </div>
+          </Modal.Footer>
+        </Modal>
       )}
 
       {sessionsTarget && (

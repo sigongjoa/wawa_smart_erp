@@ -2,49 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, Student, ReportEntry, ReportType } from '../api';
 import { toast } from '../components/Toast';
 import { useAuthStore } from '../store';
-
-// Debounce hook
-function useDebounce(fn: (...args: any[]) => void, delay: number) {
-  const fnRef = useRef(fn);
-  fnRef.current = fn;
-  const timer = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    return () => { if (timer.current) clearTimeout(timer.current); };
-  }, []);
-
-  return useCallback((...args: any[]) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => fnRef.current(...args), delay);
-  }, [delay]);
-}
-
-// 저장 상태 타입
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
-
-// 개별 셀 저장 상태 관리
-function useCellStatus() {
-  const [statuses, setStatuses] = useState<Record<string, SaveStatus>>({});
-  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  useEffect(() => {
-    return () => {
-      Object.values(timers.current).forEach(clearTimeout);
-    };
-  }, []);
-
-  const set = (key: string, status: SaveStatus) => {
-    setStatuses((prev) => ({ ...prev, [key]: status }));
-    if (status === 'saved') {
-      if (timers.current[key]) clearTimeout(timers.current[key]);
-      timers.current[key] = setTimeout(() => {
-        setStatuses((prev) => ({ ...prev, [key]: 'idle' }));
-        delete timers.current[key];
-      }, 1500);
-    }
-  };
-  return { statuses, set };
-}
+import { TIMING } from '../constants/timing';
+import { useDebounce } from '../hooks/useDebounce';
+import { useCellStatus } from '../hooks/useCellStatus';
 
 // html2canvas 캡처 헬퍼
 async function captureReport(el: HTMLElement): Promise<HTMLCanvasElement> {
@@ -105,9 +65,9 @@ export default function ReportPage() {
   // 초기 로드: 월말 설정 + 정기고사 설정 + 학생 목록을 병렬로
   useEffect(() => {
     Promise.all([
-      api.getActiveMonth().catch(() => null),
-      api.getActiveExamReview().catch(() => null),
-      api.getStudents().catch(() => []),
+      api.getActiveMonth().catch((e) => { console.warn('[Report] activeMonth 로드 실패', e); return null; }),
+      api.getActiveExamReview().catch((e) => { console.warn('[Report] activeExamReview 로드 실패', e); return null; }),
+      api.getStudents().catch((e) => { console.error('[Report] 학생 목록 로드 실패', e); return []; }),
     ]).then(([monthSettings, reviewSettings, studentList]) => {
       const month = monthSettings?.activeExamMonth ?? '';
       const term = reviewSettings?.activeTerm ?? '';
@@ -192,7 +152,7 @@ export default function ReportPage() {
     }
   };
 
-  // 코멘트 저장 (debounce 500ms)
+  // 코멘트 저장 (debounce)
   const saveComment = useCallback(async (studentId: string, examId: string, comment: string, score: number) => {
     const key = `comment-${studentId}-${examId}`;
     cellStatus.set(key, 'saving');
@@ -209,11 +169,11 @@ export default function ReportPage() {
     }
   }, [reportType, activeMonth, activeTerm]);
 
-  const debouncedSaveComment = useDebounce(saveComment, 500);
+  const debouncedSaveComment = useDebounce(saveComment, TIMING.REPORT_INPUT_DEBOUNCE_MS);
 
   const captureWithMode = async (): Promise<HTMLCanvasElement> => {
     setCaptureMode(true);
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, TIMING.REPORT_CAPTURE_TOGGLE_MS));
     const canvas = await captureReport(reportRef.current!);
     setCaptureMode(false);
     return canvas;
@@ -236,7 +196,7 @@ export default function ReportPage() {
           a.click();
           document.body.removeChild(a);
         } finally {
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          setTimeout(() => URL.revokeObjectURL(url), TIMING.OBJECT_URL_REVOKE_MS);
         }
       }, 'image/jpeg', 0.95);
     } catch (err) {

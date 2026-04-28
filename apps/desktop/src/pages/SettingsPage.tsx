@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuthStore } from '../store';
+import { errorMessage } from '../utils/errors';
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -29,8 +30,8 @@ export default function SettingsPage() {
       await api.setActiveMonth(selectedMonth);
       setActiveMonth(selectedMonth);
       setMessage('저장 완료');
-    } catch (err: any) {
-      setMessage(`오류: ${err.message}`);
+    } catch (err: unknown) {
+      setMessage(`오류: ${errorMessage(err)}`);
     } finally {
       setSaving(false);
     }

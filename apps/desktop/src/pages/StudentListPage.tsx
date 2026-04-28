@@ -4,6 +4,7 @@ import { api, Student, StudentCreateInput, TeacherOption } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
+import { errorMessage } from '../utils/errors';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -73,8 +74,8 @@ export default function StudentListPage() {
       setNewEnroll({ day: '', startTime: '', endTime: '', subject: '' });
       setEnrollAddOpen(false);
       loadEnrollments(editTarget.id);
-    } catch (err: any) {
-      toast.error(err.message || '시간표 추가 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '시간표 추가 실패'));
     } finally { setEnrollSaving(false); }
   };
 
@@ -84,8 +85,8 @@ export default function StudentListPage() {
       await api.deleteEnrollment(enrollId);
       toast.success('시간표 삭제됨');
       loadEnrollments(editTarget.id);
-    } catch (err: any) {
-      toast.error(err.message || '삭제 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '삭제 실패'));
     }
   };
 
@@ -138,8 +139,8 @@ export default function StudentListPage() {
       setShowAdd(false);
       setAddForm(emptyAdd);
       load();
-    } catch (err: any) {
-      toast.error(err.message || '추가 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '추가 실패'));
     } finally {
       setSaving(false);
     }
@@ -187,8 +188,8 @@ export default function StudentListPage() {
       toast.success('수정 완료');
       setEditTarget(null);
       load();
-    } catch (err: any) {
-      toast.error(err.message || '수정 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '수정 실패'));
     } finally {
       setSaving(false);
     }
@@ -201,8 +202,8 @@ export default function StudentListPage() {
       await api.updateStudent(s.id, { status: 'inactive' });
       toast.success('비활성 처리됨');
       load();
-    } catch (err: any) {
-      toast.error(err.message || '삭제 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '삭제 실패'));
     }
   };
 
@@ -214,8 +215,8 @@ export default function StudentListPage() {
       toast.success('삭제 완료');
       setEditTarget(null);
       load();
-    } catch (err: any) {
-      toast.error(err.message || '삭제 실패');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, '삭제 실패'));
     }
   };
 

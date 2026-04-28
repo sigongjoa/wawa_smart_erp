@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, StudentProfile, CommentHistoryEntry, AttendanceSummary as AttendanceData } from '../api';
 import ScoreChart from '../components/ScoreChart';
@@ -13,6 +13,7 @@ import HomeroomSelector from '../components/HomeroomSelector';
 import { useAuthStore } from '../store';
 import Modal from '../components/Modal';
 import { toast } from '../components/Toast';
+import { errorMessage } from '../utils/errors';
 
 const GRADE_OPTIONS = [
   '초4', '초5', '초6',
@@ -31,6 +32,7 @@ export default function StudentProfilePage() {
   const [attendance, setAttendance] = useState<AttendanceData | null>(null);
   const [historyMonths, setHistoryMonths] = useState(6);
   const [loading, setLoading] = useState(true);
+  const [loadWarning, setLoadWarning] = useState<string | null>(null);
 
   // 편집 모달
   const [showEdit, setShowEdit] = useState(false);
@@ -49,12 +51,7 @@ export default function StudentProfilePage() {
   const [shareExpires, setShareExpires] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    loadProfile();
-  }, [id, historyMonths]);
-
-  const loadProfile = () => {
+  const loadProfile = useCallback(() => {
     if (!id) return;
     setLoading(true);
     Promise.allSettled([
@@ -63,20 +60,34 @@ export default function StudentProfilePage() {
       api.getStudentComments(id, 12),
       api.getStudentAttendance(id, 6),
     ]).then(([profileRes, scoresRes, commentsRes, attendanceRes]) => {
+      // 코어 자원: 학생 프로필 — 실패 시 사용자에게 명시 (페이지 자체가 의미 없어짐)
       const p = profileRes.status === 'fulfilled' ? profileRes.value : null;
+      if (profileRes.status === 'rejected') {
+        console.error('[StudentProfile] 프로필 로드 실패', profileRes.reason);
+        setLoadWarning('학생 프로필을 불러오지 못했습니다. 새로고침해 주세요.');
+      }
       setProfile(p);
       if (p) {
         setEditName(p.name);
         setEditGrade(p.grade || '');
-        setEditContact((p as any).contact || '');
+        setEditContact(p.contact || '');
         setEditGuardian(p.guardian_contact || '');
       }
+      // 옵셔널 자원: 점수/코멘트/출석 — 실패해도 페이지는 동작. 흔적은 console에만.
+      if (scoresRes.status === 'rejected') console.warn('[StudentProfile] 점수 이력 로드 실패', scoresRes.reason);
+      if (commentsRes.status === 'rejected') console.warn('[StudentProfile] 코멘트 로드 실패', commentsRes.reason);
+      if (attendanceRes.status === 'rejected') console.warn('[StudentProfile] 출석 로드 실패', attendanceRes.reason);
       setScoreHistory(scoresRes.status === 'fulfilled' ? scoresRes.value : null);
       setComments(commentsRes.status === 'fulfilled' ? commentsRes.value : []);
       setAttendance(attendanceRes.status === 'fulfilled' ? attendanceRes.value : null);
       setLoading(false);
     });
-  };
+  }, [id, historyMonths]);
+
+  useEffect(() => {
+    if (!id) return;
+    loadProfile();
+  }, [loadProfile, id]);
 
   const handleEdit = async () => {
     if (!id || !editName.trim() || !editGrade) return;
@@ -90,8 +101,8 @@ export default function StudentProfilePage() {
       });
       setShowEdit(false);
       loadProfile();
-    } catch (err: any) {
-      alert(err.message || '수정 실패');
+    } catch (err: unknown) {
+      alert(errorMessage(err, '수정 실패'));
     } finally {
       setEditSaving(false);
     }
@@ -103,8 +114,8 @@ export default function StudentProfilePage() {
     try {
       await api.deleteStudent(id);
       navigate('/student');
-    } catch (err: any) {
-      alert(err.message || '삭제 실패');
+    } catch (err: unknown) {
+      alert(errorMessage(err, '삭제 실패'));
       setDeleting(false);
     }
   };
@@ -119,6 +130,11 @@ export default function StudentProfilePage() {
 
   return (
     <div className="student-profile-page">
+      {loadWarning && (
+        <div role="alert" style={{ padding: '8px 12px', margin: '0 0 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#991b1b', fontSize: 13 }}>
+          {loadWarning}
+        </div>
+      )}
       <div className="student-profile-header">
         <button className="back-btn" onClick={() => navigate('/student')}>
           &larr; 학생 목록
@@ -137,9 +153,9 @@ export default function StudentProfilePage() {
                       student_id: id!,
                       subject: subject.trim(),
                     });
-                    navigate(`/live/${res.id}?student_name=${encodeURIComponent(profile.name)}`);
-                  } catch (e: any) {
-                    alert(e.message || '라이브 세션 시작 실패');
+                    navigate(`/live/${res.id}`);
+                  } catch (e: unknown) {
+                    alert(e instanceof Error ? e.message : '라이브 세션 시작 실패');
                   }
                 }}
               >
@@ -168,8 +184,8 @@ export default function StudentProfilePage() {
                   } catch {
                     // fallback 모달에 복사 버튼 있음
                   }
-                } catch (e: any) {
-                  toast.error(e.message || '링크 생성 실패');
+                } catch (e: unknown) {
+                  toast.error(errorMessage(e, '링크 생성 실패'));
                 } finally {
                   setShareLoading(false);
                 }
