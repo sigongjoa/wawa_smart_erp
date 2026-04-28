@@ -17,7 +17,7 @@ function getSlugFromUrl(): string {
 interface AcademyItem {
   slug: string;
   name: string;
-  logo: string | null;
+  logo?: string | null; // 드롭다운 응답에는 없음. subdomain 모드의 academy-info에서만 채워짐
 }
 
 export default function LoginPage() {
@@ -83,7 +83,20 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await api.login(slug, name, pin);
-      login(res.user);
+      // SEC-LOGIN-M3: 서버 응답에서 표시·라우팅에 필요한 필드만 추출.
+      // 서버 응답 변경으로 의도치 않은 필드가 store에 흘러드는 것을 방지.
+      const u = res.user || {};
+      const safeUser = {
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        academyId: u.academyId,
+        defaultClassId: u.defaultClassId,
+        academyName: u.academyName,
+        academySlug: u.academySlug,
+        academyLogo: u.academyLogo,
+      };
+      login(safeUser);
       localStorage.setItem('lastSlug', slug);
       navigate('/timer');
     } catch (err: any) {

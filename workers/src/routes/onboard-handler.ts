@@ -9,7 +9,12 @@ import { successResponse, errorResponse } from '@/utils/response';
 import { logger } from '@/utils/logger';
 import { shouldBlockTestDataInProd } from '@/middleware/test-data-guard';
 import { hashPin } from '@/utils/crypto';
+import { publicAcademiesRateLimit } from '@/middleware/rateLimit';
 import { z } from 'zod';
+
+// 공개 학원 목록 캐시 키 (PERF-LOGIN-M1)
+const ACADEMIES_CACHE_KEY = 'public:academies:v2';
+const ACADEMIES_CACHE_TTL = 60; // 60초
 
 // slug 규칙: 영문 소문자, 숫자, 하이픈 (3~30자)
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
@@ -99,6 +104,9 @@ export async function handleOnboard(
 
       logger.info(`새 학원 등록: ${input.academyName} (${input.slug})`);
 
+      // 공개 목록 캐시 무효화 (PERF-LOGIN-M1)
+      try { await context.env.KV.delete(ACADEMIES_CACHE_KEY); } catch { /* ignore */ }
+
       return successResponse({
         academyId,
         slug: input.slug,
@@ -130,14 +138,32 @@ export async function handleOnboard(
     }
 
     // GET /api/onboard/academies — 학원 목록 (공개, 로그인 페이지 드롭다운용)
+    // SEC-LOGIN-H1: rate limit + logo_url 응답에서 제거 (피싱 자산 차단)
+    // PERF-LOGIN-M1: KV 60s 캐시
     if (method === 'GET' && pathname === '/api/onboard/academies') {
-      const rows = await context.env.DB.prepare(
-        'SELECT slug, name, logo_url FROM academies WHERE is_active = 1 ORDER BY name'
-      ).all<{ slug: string; name: string; logo_url: string | null }>();
+      const blocked = await publicAcademiesRateLimit(context.env.KV, request);
+      if (blocked) return blocked;
 
-      return successResponse(
-        (rows.results || []).map(r => ({ slug: r.slug, name: r.name, logo: r.logo_url }))
-      );
+      const cached = await context.env.KV.get(ACADEMIES_CACHE_KEY);
+      if (cached) {
+        try {
+          return successResponse(JSON.parse(cached));
+        } catch { /* fall-through to fresh fetch */ }
+      }
+
+      const rows = await context.env.DB.prepare(
+        'SELECT slug, name FROM academies WHERE is_active = 1 ORDER BY name'
+      ).all<{ slug: string; name: string }>();
+
+      const payload = (rows.results || []).map((r: { slug: string; name: string }) => ({ slug: r.slug, name: r.name }));
+      // 학원 등록/수정 핸들러에서 캐시 무효화 필요. (현 단계에서는 짧은 TTL로 한정.)
+      try {
+        await context.env.KV.put(ACADEMIES_CACHE_KEY, JSON.stringify(payload), {
+          expirationTtl: ACADEMIES_CACHE_TTL,
+        });
+      } catch { /* KV 실패는 무시 — 응답은 성공 */ }
+
+      return successResponse(payload);
     }
 
     // GET /api/onboard/academy-info?slug=xxx — 학원 기본 정보 (공개)

@@ -425,7 +425,7 @@ export const api = {
   getAcademyInfo: (slug: string) =>
     request<{ name: string; logo: string | null }>(`/api/onboard/academy-info?${new URLSearchParams({ slug })}`),
   getAcademyList: () =>
-    request<{ slug: string; name: string; logo: string | null }[]>('/api/onboard/academies'),
+    request<{ slug: string; name: string }[]>('/api/onboard/academies'),
 
   // 초대 수락
   acceptInvite: (data: { code: string; name: string; pin: string }) =>

@@ -103,6 +103,8 @@ export async function handleAcademy(
       invalidateTenantCache(academyId);
       try {
         await context.env.KV.delete(`academy:${academyId}:info`);
+        // 공개 학원 목록 캐시도 invalidate (이름이 응답에 포함되므로)
+        await context.env.KV.delete('public:academies:v2');
       } catch (err) {
         logger.warn('academy KV 무효화 실패', { academyId, error: err instanceof Error ? err.message : String(err) });
       }

@@ -222,6 +222,36 @@ export async function inviteAcceptRateLimit(kv: KVLike, request: Request): Promi
 }
 
 // ──────────────────────────────────────────────────────────────────
+// 공개 학원 목록 — 무인증 dump 방어 (SEC-LOGIN-H1)
+// IP당 20회/분, 100회/시간
+// ──────────────────────────────────────────────────────────────────
+const PUBLIC_ACADEMIES_PER_MIN = 20;
+const PUBLIC_ACADEMIES_PER_HOUR = 100;
+
+export async function publicAcademiesRateLimit(kv: KVLike, request: Request): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const minKey = `pa:m:${ip}`;
+  const hourKey = `pa:h:${ip}`;
+
+  const [mRaw, hRaw] = await Promise.all([kv.get(minKey), kv.get(hourKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const h = hRaw ? parseInt(hRaw) : 0;
+
+  if (m >= PUBLIC_ACADEMIES_PER_MIN || h >= PUBLIC_ACADEMIES_PER_HOUR) {
+    return new Response(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(minKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(hourKey, String(h + 1), { expirationTtl: 3600 }),
+  ]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────────────
 // 공개 강사 이름 목록 — 무인증 스크래핑 방어 (TEACH-SEC-H1)
 // IP·slug 페어 기준 30회/분, 200회/시간
 // ──────────────────────────────────────────────────────────────────
