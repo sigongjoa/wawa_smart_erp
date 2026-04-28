@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, type ExamAttemptDetail } from '../api';
+import { errorMessage } from '../utils/errors';
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
@@ -30,8 +31,8 @@ export default function ExamResultPage() {
       const d = await api.getExamAttemptDetail(attemptId);
       setDetail(d);
       setError(null);
-    } catch (e: any) {
-      setError(e?.message || '불러오지 못했어요');
+    } catch (e: unknown) {
+      setError(errorMessage(e, '불러오지 못했어요'));
     } finally {
       setLoading(false);
     }

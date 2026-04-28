@@ -267,7 +267,7 @@ export default function ExamPapersPage() {
                     <td>{p.distribution_count ?? 0}명</td>
                     <td>
                       {p.file_key ? (
-                        <a href={api.examPaperFileUrl(p.file_key)} target="_blank" rel="noreferrer" aria-label={`${p.title} 파일 열기`}>
+                        <a href={api.examPaperFileUrl(p.file_key)} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" aria-label={`${p.title} 파일 열기`}>
                           열기
                         </a>
                       ) : '-'}
@@ -301,7 +301,7 @@ export default function ExamPapersPage() {
                 </dl>
                 <div className="exam-paper-card-actions">
                   {p.file_key && (
-                    <a className="btn btn-sm btn-ghost" href={api.examPaperFileUrl(p.file_key)} target="_blank" rel="noreferrer" aria-label={`${p.title} 파일 열기`}>
+                    <a className="btn btn-sm btn-ghost" href={api.examPaperFileUrl(p.file_key)} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" aria-label={`${p.title} 파일 열기`}>
                       파일 열기
                     </a>
                   )}
@@ -498,7 +498,7 @@ export default function ExamPapersPage() {
                 {detailData.memo && <p className="detail-memo">{detailData.memo}</p>}
                 {detailData.file_key && (
                   <div className="detail-file">
-                    <a className="btn btn-ghost btn-sm" href={api.examPaperFileUrl(detailData.file_key)} target="_blank" rel="noreferrer">
+                    <a className="btn btn-ghost btn-sm" href={api.examPaperFileUrl(detailData.file_key)} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
                       {detailData.file_name || '파일 열기'}
                     </a>
                   </div>

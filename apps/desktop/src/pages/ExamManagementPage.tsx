@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type ExamAbsentee, type ExamPaper, type ExamAttemptByPeriod } from '../api';
+import { api, type ExamAbsentee, type ExamPaper, type ExamAttemptByPeriod, type ExamAssignmentUpdate, type ExamShareEntry } from '../api';
 import { toast } from '../components/Toast';
 import Modal from '../components/Modal';
 import { useAuthStore } from '../store';
+import { escapeHtml } from '../utils/html';
 
 type ByMonthStudent = {
   student_id: string;
@@ -256,10 +257,10 @@ export default function ExamManagementPage() {
     try {
       // 재시험 날짜 있으면 rescheduled, 없으면 scheduled로 복귀
       const hasDate = !!statusForm.rescheduled_date;
-      const payload: Record<string, unknown> = hasDate
+      const payload: Partial<ExamAssignmentUpdate> = hasDate
         ? { exam_status: 'rescheduled', rescheduled_date: statusForm.rescheduled_date }
         : { exam_status: 'scheduled', rescheduled_date: null, rescheduled_memo: null, absence_reason: null };
-      await api.updateExamAssignment(periodId, statusModalTarget.assignment_id, payload as any);
+      await api.updateExamAssignment(periodId, statusModalTarget.assignment_id, payload);
       toast.success('시험 상태가 변경되었습니다');
       setStatusModalTarget(null);
       load(selectedMonth);
@@ -301,7 +302,7 @@ export default function ExamManagementPage() {
     try {
       await api.updateExamAssignment(periodId, a.assignment_id, {
         exam_status: 'completed',
-      } as any);
+      });
       toast.success('응시 완료로 처리했습니다');
       loadAbsentees(selectedMonth);
     } catch (err) {
@@ -345,10 +346,12 @@ export default function ExamManagementPage() {
         const out: Record<string, { shareUrl: string; sentAt: string; type: 'midterm' | 'final' }> = {};
         // 중간 먼저 넣고, 기말이 있으면 기말로 덮어쓰기 (더 최신)
         for (const [sid, v] of Object.entries(midMap || {})) {
-          out[sid] = { shareUrl: (v as any).shareUrl, sentAt: (v as any).sentAt, type: 'midterm' };
+          const entry = v as ExamShareEntry;
+          out[sid] = { shareUrl: entry.shareUrl, sentAt: entry.sentAt, type: 'midterm' };
         }
         for (const [sid, v] of Object.entries(finalMap || {})) {
-          out[sid] = { shareUrl: (v as any).shareUrl, sentAt: (v as any).sentAt, type: 'final' };
+          const entry = v as ExamShareEntry;
+          out[sid] = { shareUrl: entry.shareUrl, sentAt: entry.sentAt, type: 'final' };
         }
         setReportSends(out);
       } catch {
@@ -404,7 +407,7 @@ export default function ExamManagementPage() {
       prev.map(x => x.student_id === s.student_id ? { ...x, drive_link: link || null } : x)
     );
     try {
-      await api.updateExamAssignment(periodId, s.assignment_id, { drive_link: link } as any);
+      await api.updateExamAssignment(periodId, s.assignment_id, { drive_link: link });
     } catch {
       toast.error('링크 저장 실패');
       load(selectedMonth);
@@ -420,7 +423,7 @@ export default function ExamManagementPage() {
       prev.map(x => x.student_id === s.student_id ? { ...x, [field]: newVal ? 1 : 0 } : x)
     );
     try {
-      await api.updateExamAssignment(periodId, s.assignment_id, { [field]: newVal } as any);
+      await api.updateExamAssignment(periodId, s.assignment_id, { [field]: newVal } as Partial<ExamAssignmentUpdate>);
     } catch {
       toast.error('업데이트 실패');
       load(selectedMonth);
@@ -471,12 +474,12 @@ export default function ExamManagementPage() {
 
     const rows = sortedGrades.map(grade => {
       const list = byGrade.get(grade)!;
-      const header = `<tr class="grade-header"><td colspan="5">${grade} (${list.length}명)</td></tr>`;
+      const header = `<tr class="grade-header"><td colspan="5">${escapeHtml(grade)} (${list.length}명)</td></tr>`;
       const items = list.map((s, i) => `
         <tr>
           <td class="num">${i + 1}</td>
-          <td>${s.student_name}</td>
-          <td>${s.student_school || ''}</td>
+          <td>${escapeHtml(s.student_name)}</td>
+          <td>${escapeHtml(s.student_school || '')}</td>
           <td class="status">${s.printed ? '✔' : ''}</td>
           <td class="check-box"></td>
         </tr>`).join('');
@@ -484,7 +487,7 @@ export default function ExamManagementPage() {
     }).join('');
 
     const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}</title>
+<html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
   @page { margin: 15mm; size: A4; }
   body { font-family: 'Malgun Gothic', sans-serif; font-size: 12px; color: #000; }
@@ -500,7 +503,7 @@ export default function ExamManagementPage() {
   .check-box::after { content: '\\2610'; font-size: 16px; display: block; text-align: center; }
   .summary { margin-top: 8px; font-size: 11px; color: #666; }
 </style></head><body>
-  <h1>${title}</h1>
+  <h1>${escapeHtml(title)}</h1>
   <div class="meta">${new Date().toLocaleDateString('ko-KR')} 출력</div>
   <table>
     <thead><tr><th class="num">No</th><th>이름</th><th>학교</th><th>DB</th><th>확인</th></tr></thead>
@@ -738,7 +741,7 @@ export default function ExamManagementPage() {
                       />
                     ) : s.drive_link ? (
                       <span className="exam-link-compact">
-                        <a href={s.drive_link} target="_blank" rel="noreferrer" className="exam-link-open">
+                        <a href={s.drive_link} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="exam-link-open">
                           열기
                         </a>
                         <button
@@ -838,7 +841,8 @@ export default function ExamManagementPage() {
                         <a
                           href={rep.shareUrl}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
+                          referrerPolicy="no-referrer"
                           className="exam-report-check"
                           title={`${typeLabel} · ${new Date(rep.sentAt).toLocaleDateString('ko-KR')}`}
                           aria-label={`${typeLabel} 리포트 보기`}

@@ -2126,9 +2126,9 @@ export interface ExamAssignmentUpdate {
   created_check: boolean;
   printed: boolean;
   reviewed: boolean;
-  drive_link: string;
+  drive_link: string | null;
   score: number;
-  memo: string;
+  memo: string | null;
   exam_date: string | null;
   exam_status: 'scheduled' | 'absent' | 'rescheduled' | 'completed' | 'exempted';
   absence_reason: string | null;
@@ -2137,6 +2137,12 @@ export interface ExamAssignmentUpdate {
   rescheduled_start: string;  // 'HH:mm' — 재시험 일정 자동 등록 트리거
   rescheduled_end: string;    // 'HH:mm'
   rescheduled_subject: string;
+}
+
+/** KV에 저장된 학부모 리포트 공유 엔트리 */
+export interface ExamShareEntry {
+  shareUrl: string;
+  sentAt: string;
 }
 
 export interface ExamAbsentee {

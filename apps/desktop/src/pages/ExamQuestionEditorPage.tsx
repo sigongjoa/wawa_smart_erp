@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ExamQuestionDto } from '../api';
+import { errorMessage } from '../utils/errors';
 
 function blank(n: number): ExamQuestionDto {
   return {
@@ -9,6 +10,7 @@ function blank(n: number): ExamQuestionDto {
     choices: ['', '', '', '', ''],
     correctChoice: 1,
     points: 1,
+    category: null,
   };
 }
 
@@ -44,11 +46,12 @@ export default function ExamQuestionEditorPage() {
                 : [...(q.choices || []), '', '', '', '', ''].slice(0, 5),
               correctChoice: q.correctChoice,
               points: q.points ?? 1,
+              category: q.category ?? null,
             }))
           );
         }
-      } catch (e: any) {
-        setMsg('불러오기 실패: ' + (e?.message || ''));
+      } catch (e: unknown) {
+        setMsg('불러오기 실패: ' + errorMessage(e, ''));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -95,8 +98,8 @@ export default function ExamQuestionEditorPage() {
       await api.patchExamPaperMeta(paperId, { subject, durationMinutes });
       await api.putExamPaperQuestions(paperId, questions);
       setMsg(`✅ ${questions.length}문항 저장됨`);
-    } catch (e: any) {
-      setMsg('저장 실패: ' + (e?.message || ''));
+    } catch (e: unknown) {
+      setMsg('저장 실패: ' + errorMessage(e, ''));
     } finally {
       setSaving(false);
     }
@@ -148,6 +151,15 @@ export default function ExamQuestionEditorPage() {
         </span>
       </div>
 
+      <datalist id="exam-category-suggest">
+        <option value="어법" />
+        <option value="독해" />
+        <option value="어휘" />
+        <option value="문장구조" />
+        <option value="듣기" />
+        <option value="작문" />
+      </datalist>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {questions.map((q, qIdx) => (
           <div key={qIdx} style={{
@@ -163,6 +175,17 @@ export default function ExamQuestionEditorPage() {
                   step={0.5}
                   onChange={e => updateQ(qIdx, { points: Number(e.target.value) || 1 })}
                   style={{ width: 60, padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e0' }}
+                />
+              </label>
+              <label style={{ fontSize: 13, color: '#4a5568' }}>
+                유형:&nbsp;
+                <input
+                  type="text"
+                  value={q.category ?? ''}
+                  list="exam-category-suggest"
+                  placeholder="예: 어법/독해"
+                  onChange={e => updateQ(qIdx, { category: e.target.value || null })}
+                  style={{ width: 130, padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e0' }}
                 />
               </label>
               <div style={{ marginLeft: 'auto' }}>
