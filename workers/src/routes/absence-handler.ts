@@ -11,6 +11,53 @@ import { getAcademyId } from '@/utils/context';
 import { logger } from '@/utils/logger';
 import { handleMakeupSession } from '@/routes/makeup-session-handler';
 
+// SEC-ABS-M5: status 입력 화이트리스트
+const ABSENCE_STATUS_VALUES = new Set(['absent', 'makeup_scheduled', 'makeup_done']);
+
+// SEC-ABS-M6: 결석 사유 길이 한도
+const MAX_REASON_LEN = 500;
+const MAX_NOTIFIED_BY_LEN = 100;
+
+/** 제어문자 제거 + 길이 캡 (결석 사유 등) */
+function sanitizeText(input: unknown, maxLen: number): string {
+  if (typeof input !== 'string') return '';
+  // \x00-\x1F (제어문자) 제거, \t와 \n은 유지
+  // eslint-disable-next-line no-control-regex
+  const cleaned = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  return cleaned.slice(0, maxLen);
+}
+
+/**
+ * SEC-ABS-H1/H2/H3 + M1: studentId·classId가 caller academy 소속이고
+ * (instructor면) 본인 담당 수업인지 검증.
+ * 위반 시 errorResponse를 throw 대신 반환 — 호출 측이 그대로 반환.
+ */
+async function assertStudentClassInAcademy(
+  db: any,
+  studentId: string | undefined,
+  classId: string | undefined,
+  academyId: string,
+  opts: { instructorId?: string } = {}
+): Promise<{ ok: true } | { ok: false; response: Response }> {
+  if (!studentId || !classId) {
+    return { ok: false, response: errorResponse('studentId, classId 필수', 400) };
+  }
+  let q = `SELECT s.id, c.instructor_id FROM students s, classes c
+           WHERE s.id = ? AND c.id = ?
+             AND s.academy_id = ? AND c.academy_id = ?`;
+  const row = await executeFirst<{ id: string; instructor_id: string | null }>(
+    db, q, [studentId, classId, academyId, academyId]
+  );
+  if (!row) {
+    return { ok: false, response: errorResponse('학생 또는 수업이 학원 소속이 아닙니다', 403) };
+  }
+  // SEC-ABS-L1: instructor는 본인 담당 수업만 (instructor_id NULL은 admin만 다루는 일반 수업으로 가정 — 허용)
+  if (opts.instructorId && row.instructor_id && row.instructor_id !== opts.instructorId) {
+    return { ok: false, response: errorResponse('담당 수업만 결석 처리할 수 있습니다', 403) };
+  }
+  return { ok: true };
+}
+
 export async function handleAbsence(
   method: string,
   pathname: string,
@@ -33,9 +80,22 @@ export async function handleAbsence(
 
       const { studentId, classId, absenceDate, reason, notifiedBy, notifiedAt } = await request.json() as any;
 
-      if (!studentId || !classId || !absenceDate) {
-        return errorResponse('studentId, classId, absenceDate 필수', 400);
+      if (!absenceDate) {
+        return errorResponse('absenceDate 필수', 400);
       }
+
+      // SEC-ABS-H1 + L1: tenant + (instructor면) 본인 수업 검증
+      const academyId = getAcademyId(context);
+      const isAdmin = context.auth!.role === 'admin';
+      const guard = await assertStudentClassInAcademy(
+        context.env.DB, studentId, classId, academyId,
+        isAdmin ? {} : { instructorId: context.auth!.userId }
+      );
+      if (!guard.ok) return guard.response;
+
+      // SEC-ABS-M6: 입력 위생화
+      const safeReason = sanitizeText(reason, MAX_REASON_LEN);
+      const safeNotifiedBy = sanitizeText(notifiedBy, MAX_NOTIFIED_BY_LEN);
 
       const absenceId = crypto.randomUUID();
       const makeupId = crypto.randomUUID();
@@ -49,7 +109,7 @@ export async function handleAbsence(
            reason = excluded.reason,
            notified_by = excluded.notified_by,
            notified_at = excluded.notified_at`,
-        [absenceId, studentId, classId, absenceDate, reason || '', notifiedBy || '', notifiedAt || null, context.auth?.userId || null]
+        [absenceId, studentId, classId, absenceDate, safeReason, safeNotifiedBy, notifiedAt || null, context.auth?.userId || null]
       );
 
       if (!result.success) {
@@ -92,46 +152,95 @@ export async function handleAbsence(
         return errorResponse('한 번에 최대 100건까지 처리 가능', 400);
       }
 
-      // 1) 일괄 INSERT absences
-      for (const a of absences) {
-        const absenceId = crypto.randomUUID();
-        await executeInsert(
-          context.env.DB,
+      // SEC-ABS-H2 + L1: 입력의 모든 (studentId, classId)가 학원 소속이고
+      // (instructor면) 본인 담당 수업인지 단일 쿼리로 검증.
+      const academyIdB = getAcademyId(context);
+      const isAdminB = context.auth!.role === 'admin';
+      const userIdB = context.auth!.userId;
+
+      const studentIds = [...new Set(absences.map(a => a.studentId).filter(Boolean))];
+      const classIds = [...new Set(absences.map(a => a.classId).filter(Boolean))];
+      if (studentIds.length === 0 || classIds.length === 0) {
+        return errorResponse('absences의 studentId/classId가 비어 있습니다', 400);
+      }
+      const sPh = studentIds.map(() => '?').join(',');
+      const cPh = classIds.map(() => '?').join(',');
+      const validStudents = await executeQuery<{ id: string }>(
+        context.env.DB,
+        `SELECT id FROM students WHERE id IN (${sPh}) AND academy_id = ?`,
+        [...studentIds, academyIdB]
+      );
+      const validClasses = await executeQuery<{ id: string; instructor_id: string | null }>(
+        context.env.DB,
+        `SELECT id, instructor_id FROM classes WHERE id IN (${cPh}) AND academy_id = ?`,
+        [...classIds, academyIdB]
+      );
+      const validStudentSet = new Set(validStudents.map(r => r.id));
+      const validClassMap = new Map(validClasses.map(r => [r.id, r.instructor_id]));
+
+      const filtered = absences.filter(a => {
+        if (!a.studentId || !a.classId || !a.absenceDate) return false;
+        if (!validStudentSet.has(a.studentId)) return false;
+        if (!validClassMap.has(a.classId)) return false;
+        if (!isAdminB) {
+          const ownerId = validClassMap.get(a.classId);
+          if (ownerId && ownerId !== userIdB) return false;
+        }
+        return true;
+      });
+      const skipped = absences.length - filtered.length;
+
+      if (filtered.length === 0) {
+        return errorResponse('처리 가능한 결석 항목이 없습니다 (학원 소속/담당 수업 검증 실패)', 403);
+      }
+
+      // PERF-ABS-M1: D1 batch — INSERT absences + INSERT makeups를 단일 트랜잭션
+      const recordedBy = context.auth?.userId || null;
+      const absenceStmts = filtered.map((a) =>
+        context.env.DB.prepare(
           `INSERT INTO absences (id, student_id, class_id, absence_date, reason, notified_by, status, recorded_by)
            VALUES (?, ?, ?, ?, ?, ?, 'absent', ?)
            ON CONFLICT(student_id, class_id, absence_date) DO UPDATE SET
-             reason = excluded.reason, notified_by = excluded.notified_by`,
-          [absenceId, a.studentId, a.classId, a.absenceDate, a.reason || '', a.notifiedBy || '', context.auth?.userId || null]
-        );
-      }
+             reason = excluded.reason, notified_by = excluded.notified_by`
+        ).bind(
+          crypto.randomUUID(),
+          a.studentId,
+          a.classId,
+          a.absenceDate,
+          sanitizeText(a.reason, MAX_REASON_LEN),
+          sanitizeText(a.notifiedBy, MAX_NOTIFIED_BY_LEN),
+          recordedBy,
+        )
+      );
+      await context.env.DB.batch(absenceStmts);
 
-      // 2) 한 번의 쿼리로 모든 결석 ID 조회 (N+1 제거)
-      const conditions = absences.map(() => '(student_id = ? AND class_id = ? AND absence_date = ?)').join(' OR ');
-      const conditionParams = absences.flatMap(a => [a.studentId, a.classId, a.absenceDate]);
+      // 한 번의 쿼리로 모든 결석 ID 조회
+      const conditions = filtered.map(() => '(student_id = ? AND class_id = ? AND absence_date = ?)').join(' OR ');
+      const conditionParams = filtered.flatMap(a => [a.studentId, a.classId, a.absenceDate]);
       const insertedRows = await executeQuery<{ id: string; student_id: string }>(
         context.env.DB,
         `SELECT id, student_id FROM absences WHERE ${conditions}`,
         conditionParams
       );
 
-      // 3) 일괄 INSERT makeups (N+1 제거)
-      for (const row of insertedRows) {
-        const makeupId = crypto.randomUUID();
-        await executeInsert(
-          context.env.DB,
-          `INSERT INTO makeups (id, absence_id, status) VALUES (?, ?, 'pending')
-           ON CONFLICT(absence_id) DO NOTHING`,
-          [makeupId, row.id]
+      // makeups도 D1 batch 한 트랜잭션
+      if (insertedRows.length > 0) {
+        const makeupStmts = insertedRows.map((row) =>
+          context.env.DB.prepare(
+            `INSERT INTO makeups (id, absence_id, status) VALUES (?, ?, 'pending')
+             ON CONFLICT(absence_id) DO NOTHING`
+          ).bind(crypto.randomUUID(), row.id)
         );
+        await context.env.DB.batch(makeupStmts);
       }
 
       const idMap = new Map(insertedRows.map(r => [r.student_id, r.id]));
-      const results = absences.map(a => ({
+      const results = filtered.map(a => ({
         studentId: a.studentId,
         absenceId: idMap.get(a.studentId) || '',
       }));
 
-      return successResponse({ recorded: results.length, results }, 201);
+      return successResponse({ recorded: results.length, skipped, results }, 201);
     }
 
     // GET /api/absence?date=YYYY-MM-DD — 날짜별 결석 조회
@@ -182,13 +291,17 @@ export async function handleAbsence(
 
       const academyId = getAcademyId(context);
 
-      // 테넌트 격리: 해당 수업이 현재 학원 소유인지 검증
-      const cls = await executeFirst<{ id: string }>(
+      // 테넌트 격리: 해당 수업이 현재 학원 소유인지 + (instructor면) 본인 담당인지 검증
+      const cls = await executeFirst<{ id: string; instructor_id: string | null }>(
         context.env.DB,
-        'SELECT id FROM classes WHERE id = ? AND academy_id = ?',
+        'SELECT id, instructor_id FROM classes WHERE id = ? AND academy_id = ?',
         [classId, academyId]
       );
       if (!cls) return errorResponse('수업을 찾을 수 없습니다', 404);
+      // SEC-ABS-M4: instructor scope drift 차단
+      if (context.auth!.role !== 'admin' && cls.instructor_id && cls.instructor_id !== context.auth!.userId) {
+        return errorResponse('담당 수업만 조회할 수 있습니다', 403);
+      }
 
       const unchecked = await executeQuery<any>(
         context.env.DB,
@@ -328,20 +441,30 @@ export async function handleAbsence(
         return errorResponse('absenceId, scheduledDate 필수', 400);
       }
 
-      // 보강 레코드 업데이트
-      await executeUpdate(
+      // SEC-ABS-H3: 해당 absence가 caller 학원 소속인지 검증
+      const ownedAbs = await executeFirst<{ id: string }>(
         context.env.DB,
-        `UPDATE makeups SET scheduled_date = ?, scheduled_start_time = ?, scheduled_end_time = ?, status = 'scheduled', notes = ?, updated_at = datetime('now')
-         WHERE absence_id = ?`,
-        [scheduledDate, scheduledStartTime || null, scheduledEndTime || null, notes || '', absenceId]
+        `SELECT a.id FROM absences a
+         JOIN students s ON a.student_id = s.id
+         WHERE a.id = ? AND s.academy_id = ?`,
+        [absenceId, getAcademyId(context)]
       );
+      if (!ownedAbs) return errorResponse('결석 기록을 찾을 수 없습니다', 404);
 
-      // 결석 상태도 업데이트
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE absences SET status = 'makeup_scheduled' WHERE id = ?`,
-        [absenceId]
-      );
+      // PERF-ABS-M2: makeups + absences를 D1 batch로 1 RTT
+      await context.env.DB.batch([
+        context.env.DB
+          .prepare(
+            `UPDATE makeups SET scheduled_date = ?, scheduled_start_time = ?, scheduled_end_time = ?,
+                                status = 'scheduled', notes = ?, updated_at = datetime('now')
+              WHERE absence_id = ?`
+          )
+          .bind(scheduledDate, scheduledStartTime || null, scheduledEndTime || null,
+                sanitizeText(notes, MAX_REASON_LEN), absenceId),
+        context.env.DB
+          .prepare(`UPDATE absences SET status = 'makeup_scheduled' WHERE id = ?`)
+          .bind(absenceId),
+      ]);
 
       return successResponse({ absenceId, scheduledDate });
     }
@@ -369,10 +492,32 @@ export async function handleAbsence(
       const sets: string[] = [];
       const params: any[] = [];
       if (body.absence_date !== undefined) { sets.push('absence_date = ?'); params.push(body.absence_date); }
-      if (body.reason !== undefined) { sets.push('reason = ?'); params.push(body.reason || null); }
-      if (body.class_id !== undefined) { sets.push('class_id = ?'); params.push(body.class_id); }
-      if (body.notifiedBy !== undefined) { sets.push('notified_by = ?'); params.push(body.notifiedBy || ''); }
-      if (body.status !== undefined) { sets.push('status = ?'); params.push(body.status); }
+      if (body.reason !== undefined) {
+        // SEC-ABS-M6: 결석 사유 위생화 + 길이 캡
+        sets.push('reason = ?');
+        params.push(body.reason ? sanitizeText(body.reason, MAX_REASON_LEN) : null);
+      }
+      if (body.class_id !== undefined) {
+        // SEC-ABS-M1과 동일 — 새 class_id가 caller 학원 소속인지 검증
+        const c = await executeFirst<{ id: string }>(
+          context.env.DB,
+          'SELECT id FROM classes WHERE id = ? AND academy_id = ?',
+          [body.class_id, getAcademyId(context)]
+        );
+        if (!c) return errorResponse('수업이 학원 소속이 아닙니다', 403);
+        sets.push('class_id = ?'); params.push(body.class_id);
+      }
+      if (body.notifiedBy !== undefined) {
+        sets.push('notified_by = ?');
+        params.push(sanitizeText(body.notifiedBy, MAX_NOTIFIED_BY_LEN));
+      }
+      if (body.status !== undefined) {
+        // SEC-ABS-M5: status 화이트리스트
+        if (!ABSENCE_STATUS_VALUES.has(body.status)) {
+          return errorResponse('유효하지 않은 결석 상태입니다', 400);
+        }
+        sets.push('status = ?'); params.push(body.status);
+      }
       if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
       params.push(id);
       await executeUpdate(
@@ -463,22 +608,21 @@ export async function handleAbsence(
       sets.push(`updated_at = datetime('now')`);
       params.push(id);
 
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE makeups SET ${sets.join(', ')} WHERE id = ?`,
-        params
-      );
-
       // 결석 상태 동기화
       const newStatus = body.status || (body.scheduled_date ? 'scheduled' : makeup.status);
       const absenceStatus = newStatus === 'completed' ? 'makeup_done'
         : newStatus === 'scheduled' ? 'makeup_scheduled'
         : 'absent';
-      await executeUpdate(
-        context.env.DB,
-        'UPDATE absences SET status = ? WHERE id = ?',
-        [absenceStatus, makeup.absence_id]
-      );
+
+      // PERF-ABS-M2: makeups + absences를 D1 batch로 1 RTT
+      await context.env.DB.batch([
+        context.env.DB
+          .prepare(`UPDATE makeups SET ${sets.join(', ')} WHERE id = ?`)
+          .bind(...params),
+        context.env.DB
+          .prepare('UPDATE absences SET status = ? WHERE id = ?')
+          .bind(absenceStatus, makeup.absence_id),
+      ]);
 
       return successResponse({ id, updated: true });
     }
@@ -501,12 +645,13 @@ export async function handleAbsence(
       );
       if (!makeup) return notFoundResponse();
 
-      await executeUpdate(context.env.DB, 'DELETE FROM makeups WHERE id = ?', [id]);
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE absences SET status = 'absent' WHERE id = ?`,
-        [makeup.absence_id]
-      );
+      // PERF-ABS-M2: 두 UPDATE를 D1 batch로 1 RTT
+      await context.env.DB.batch([
+        context.env.DB.prepare('DELETE FROM makeups WHERE id = ?').bind(id),
+        context.env.DB
+          .prepare(`UPDATE absences SET status = 'absent' WHERE id = ?`)
+          .bind(makeup.absence_id),
+      ]);
       return successResponse({ id, deleted: true });
     }
 
@@ -533,18 +678,18 @@ export async function handleAbsence(
 
       const today = new Date().toISOString().split('T')[0];
 
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE makeups SET status = 'completed', completed_date = ?, updated_at = datetime('now')
-         WHERE id = ?`,
-        [today, makeupId]
-      );
-
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE absences SET status = 'makeup_done' WHERE id = ?`,
-        [makeup.absence_id]
-      );
+      // PERF-ABS-M2: 두 UPDATE를 D1 batch로 1 RTT
+      await context.env.DB.batch([
+        context.env.DB
+          .prepare(
+            `UPDATE makeups SET status = 'completed', completed_date = ?, updated_at = datetime('now')
+              WHERE id = ?`
+          )
+          .bind(today, makeupId),
+        context.env.DB
+          .prepare(`UPDATE absences SET status = 'makeup_done' WHERE id = ?`)
+          .bind(makeup.absence_id),
+      ]);
 
       return successResponse({ makeupId, completedDate: today });
     }
@@ -562,14 +707,23 @@ export async function handleAbsence(
         return errorResponse('classId 파라미터 필수', 400);
       }
 
+      // SEC-ABS-M3: 해당 수업이 caller 학원 소속인지 검증
+      const academyIdGCS = getAcademyId(context);
+      const cls = await executeFirst<{ id: string }>(
+        context.env.DB,
+        'SELECT id FROM classes WHERE id = ? AND academy_id = ?',
+        [classId, academyIdGCS]
+      );
+      if (!cls) return errorResponse('수업을 찾을 수 없습니다', 404);
+
       const students = await executeQuery<any>(
         context.env.DB,
         `SELECT cs.id as assignment_id, s.id, s.name, s.status
          FROM class_students cs
          JOIN students s ON cs.student_id = s.id
-         WHERE cs.class_id = ? AND s.status = 'active'
+         WHERE cs.class_id = ? AND s.academy_id = ? AND s.status = 'active'
          ORDER BY s.name`,
-        [classId]
+        [classId, academyIdGCS]
       );
 
       return successResponse(students);
@@ -586,6 +740,15 @@ export async function handleAbsence(
       if (!classId || !studentId) {
         return errorResponse('classId, studentId 필수', 400);
       }
+
+      // SEC-ABS-M1: tenant + (instructor면) 본인 수업 검증
+      const academyIdPCS = getAcademyId(context);
+      const isAdminPCS = context.auth!.role === 'admin';
+      const guard = await assertStudentClassInAcademy(
+        context.env.DB, studentId, classId, academyIdPCS,
+        isAdminPCS ? {} : { instructorId: context.auth!.userId }
+      );
+      if (!guard.ok) return guard.response;
 
       const id = crypto.randomUUID();
       await executeInsert(
@@ -605,6 +768,18 @@ export async function handleAbsence(
       }
 
       const id = pathname.split('/').pop()!;
+
+      // SEC-ABS-M2: 매핑이 caller 학원의 수업인지 검증
+      const academyIdDCS = getAcademyId(context);
+      const owned = await executeFirst<{ id: string }>(
+        context.env.DB,
+        `SELECT cs.id FROM class_students cs
+         JOIN classes c ON cs.class_id = c.id
+         WHERE cs.id = ? AND c.academy_id = ?`,
+        [id, academyIdDCS]
+      );
+      if (!owned) return errorResponse('배정을 찾을 수 없습니다', 404);
+
       await executeUpdate(
         context.env.DB,
         'DELETE FROM class_students WHERE id = ?',
