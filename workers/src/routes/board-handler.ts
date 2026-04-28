@@ -9,6 +9,39 @@ import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse 
 import { requireAuth, requireRole } from '@/middleware/auth';
 import { logger } from '@/utils/logger';
 
+// SEC-BOARD-M3: status / category 화이트리스트
+const ACTION_STATUS_VALUES = new Set(['pending', 'in_progress', 'completed']);
+const NOTICE_CATEGORY_VALUES = new Set(['general', 'urgent', 'event', 'curriculum', 'admin']);
+
+// SEC-BOARD-M4: 텍스트 길이 캡
+const MAX_TITLE_LEN = 200;
+const MAX_CONTENT_LEN = 10_000;
+const MAX_DESCRIPTION_LEN = 2_000;
+
+/** 제어문자 제거 + 길이 캡 */
+function sanitizeText(input: unknown, maxLen: number): string {
+  if (typeof input !== 'string') return '';
+  // \t, \n 유지 — 그 외 C0/C1 제어문자 제거
+  // eslint-disable-next-line no-control-regex
+  return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, maxLen);
+}
+
+/**
+ * SEC-BOARD-H1/H2/M2: 주어진 user_ids가 모두 caller academy 소속인지 검증.
+ * 한 명이라도 외부면 false. (빈 배열은 true.)
+ */
+async function allUsersInAcademy(db: any, userIds: string[], academyId: string): Promise<boolean> {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (ids.length === 0) return true;
+  const ph = ids.map(() => '?').join(',');
+  const rows = await executeQuery<{ id: string }>(
+    db,
+    `SELECT id FROM users WHERE id IN (${ph}) AND academy_id = ?`,
+    [...ids, academyId],
+  );
+  return rows.length === ids.length;
+}
+
 export async function handleBoard(
   method: string,
   pathname: string,
@@ -65,6 +98,14 @@ export async function handleBoard(
 
       if (!title) return errorResponse('title 필수', 400);
 
+      // SEC-BOARD-M4: 텍스트 위생화 + 길이 캡
+      const safeTitle = sanitizeText(title, MAX_TITLE_LEN);
+      const safeContent = sanitizeText(content, MAX_CONTENT_LEN);
+      if (!safeTitle) return errorResponse('title 필수', 400);
+
+      // SEC-BOARD-M3: category 화이트리스트
+      const safeCategory = category && NOTICE_CATEGORY_VALUES.has(category) ? category : 'general';
+
       // 마감일 과거 검증
       const today = new Date().toISOString().slice(0, 10);
       if (dueDate && dueDate < today) {
@@ -75,32 +116,57 @@ export async function handleBoard(
       const canPin = context.auth!.role === 'admin';
       const pinValue = (isPinned && canPin) ? 1 : 0;
 
-      const noticeId = crypto.randomUUID();
-      await executeInsert(
-        context.env.DB,
-        `INSERT INTO notices (id, academy_id, author_id, title, content, category, is_pinned, due_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [noticeId, context.auth!.academyId, context.auth!.userId, title, content || '', category || 'general', pinValue, dueDate || null]
-      );
+      // SEC-BOARD-H1: actionItems의 assignedTo가 모두 caller 학원 소속인지 사전 검증
+      const itemsArray: any[] = Array.isArray(actionItems) ? actionItems.slice(0, 20) : [];
+      const candidateAssignees = itemsArray.map((it) => it?.assignedTo).filter(Boolean);
+      if (candidateAssignees.length > 0) {
+        const ok = await allUsersInAcademy(context.env.DB, candidateAssignees, context.auth!.academyId);
+        if (!ok) return errorResponse('할당 대상 중 학원 소속이 아닌 사용자가 있습니다', 403);
+      }
 
-      // 액션 아이템이 함께 전달되면 생성 (최대 20개) — (notice_id, title, assigned_to) 조합으로 중복 제거
-      if (actionItems && Array.isArray(actionItems) && actionItems.length <= 20) {
+      const noticeId = crypto.randomUUID();
+      const stmts: any[] = [
+        context.env.DB
+          .prepare(
+            `INSERT INTO notices (id, academy_id, author_id, title, content, category, is_pinned, due_date)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(noticeId, context.auth!.academyId, context.auth!.userId, safeTitle, safeContent, safeCategory, pinValue, dueDate || null),
+      ];
+
+      // 액션 아이템 — 중복 제거 후 batch에 합침
+      if (itemsArray.length > 0) {
         const seen = new Set<string>();
-        for (const item of actionItems) {
-          if (!item.title || !item.assignedTo) continue;
-          if (item.dueDate && item.dueDate < today) continue; // 과거 마감일 스킵
-          const dedupKey = `${item.title}|${item.assignedTo}|${item.dueDate || ''}`;
+        for (const item of itemsArray) {
+          if (!item?.title || !item?.assignedTo) continue;
+          if (item.dueDate && item.dueDate < today) continue;
+          // SEC-BOARD-L2: JSON.stringify로 안전한 dedup 키
+          const dedupKey = JSON.stringify([item.title, item.assignedTo, item.dueDate || '']);
           if (seen.has(dedupKey)) continue;
           seen.add(dedupKey);
           const actionId = crypto.randomUUID();
-          await executeInsert(
-            context.env.DB,
-            `INSERT INTO action_items (id, academy_id, notice_id, title, description, assigned_to, assigned_by, due_date)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [actionId, context.auth!.academyId, noticeId, item.title, item.description || '', item.assignedTo, context.auth!.userId, item.dueDate || null]
+          stmts.push(
+            context.env.DB
+              .prepare(
+                `INSERT INTO action_items (id, academy_id, notice_id, title, description, assigned_to, assigned_by, due_date)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+              )
+              .bind(
+                actionId,
+                context.auth!.academyId,
+                noticeId,
+                sanitizeText(item.title, MAX_TITLE_LEN),
+                sanitizeText(item.description, MAX_DESCRIPTION_LEN),
+                item.assignedTo,
+                context.auth!.userId,
+                item.dueDate || null,
+              ),
           );
         }
       }
+
+      // 공지 + 액션 아이템을 D1 batch로 원자 실행
+      await context.env.DB.batch(stmts);
 
       return successResponse({ id: noticeId }, 201);
     }
@@ -135,9 +201,20 @@ export async function handleBoard(
       const fields: string[] = [];
       const values: any[] = [];
 
-      if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
-      if (updates.content !== undefined) { fields.push('content = ?'); values.push(updates.content); }
-      if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category); }
+      if (updates.title !== undefined) {
+        const safe = sanitizeText(updates.title, MAX_TITLE_LEN);
+        if (!safe) return errorResponse('title 비어 있음', 400);
+        fields.push('title = ?'); values.push(safe);
+      }
+      if (updates.content !== undefined) {
+        fields.push('content = ?'); values.push(sanitizeText(updates.content, MAX_CONTENT_LEN));
+      }
+      if (updates.category !== undefined) {
+        if (!NOTICE_CATEGORY_VALUES.has(updates.category)) {
+          return errorResponse('유효하지 않은 카테고리입니다', 400);
+        }
+        fields.push('category = ?'); values.push(updates.category);
+      }
       if (updates.isPinned !== undefined) { fields.push('is_pinned = ?'); values.push(updates.isPinned ? 1 : 0); }
       if (updates.dueDate !== undefined) { fields.push('due_date = ?'); values.push(updates.dueDate); }
 
@@ -174,6 +251,14 @@ export async function handleBoard(
 
       const parts = pathname.split('/');
       const noticeId = parts[4];
+
+      // SEC-BOARD-M1: noticeId가 caller 학원 소속인지 검증
+      const owned = await executeFirst<{ id: string }>(
+        context.env.DB,
+        'SELECT id FROM notices WHERE id = ? AND academy_id = ?',
+        [noticeId, context.auth!.academyId]
+      );
+      if (!owned) return notFoundResponse();
 
       const readId = crypto.randomUUID();
       await executeInsert(
@@ -249,9 +334,28 @@ export async function handleBoard(
 
       if (!title || !assignedTo) return errorResponse('title, assignedTo 필수', 400);
 
+      // SEC-BOARD-M4: 위생화 + 길이 캡
+      const safeTitle = sanitizeText(title, MAX_TITLE_LEN);
+      const safeDescription = sanitizeText(description, MAX_DESCRIPTION_LEN);
+      if (!safeTitle) return errorResponse('title 비어 있음', 400);
+
       const today = new Date().toISOString().slice(0, 10);
       if (dueDate && dueDate < today) {
         return errorResponse('마감일은 오늘 이후여야 합니다', 400);
+      }
+
+      // SEC-BOARD-H2: assignedTo academy 격리 검증
+      const ok = await allUsersInAcademy(context.env.DB, [assignedTo], context.auth!.academyId);
+      if (!ok) return errorResponse('할당 대상이 학원 소속이 아닙니다', 403);
+
+      // noticeId가 있으면 해당 공지도 같은 학원인지 검증
+      if (noticeId) {
+        const n = await executeFirst<{ id: string }>(
+          context.env.DB,
+          'SELECT id FROM notices WHERE id = ? AND academy_id = ?',
+          [noticeId, context.auth!.academyId]
+        );
+        if (!n) return errorResponse('연관 공지가 학원 소속이 아닙니다', 403);
       }
 
       const id = crypto.randomUUID();
@@ -259,7 +363,7 @@ export async function handleBoard(
         context.env.DB,
         `INSERT INTO action_items (id, academy_id, notice_id, title, description, assigned_to, assigned_by, due_date)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, context.auth!.academyId, noticeId || null, title, description || '', assignedTo, context.auth!.userId, dueDate || null]
+        [id, context.auth!.academyId, noticeId || null, safeTitle, safeDescription, assignedTo, context.auth!.userId, dueDate || null]
       );
 
       return successResponse({ id }, 201);
@@ -290,10 +394,25 @@ export async function handleBoard(
       const fields: string[] = [];
       const values: any[] = [];
 
-      if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
-      if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description); }
-      if (updates.assignedTo !== undefined) { fields.push('assigned_to = ?'); values.push(updates.assignedTo); }
+      if (updates.title !== undefined) {
+        const safe = sanitizeText(updates.title, MAX_TITLE_LEN);
+        if (!safe) return errorResponse('title 비어 있음', 400);
+        fields.push('title = ?'); values.push(safe);
+      }
+      if (updates.description !== undefined) {
+        fields.push('description = ?'); values.push(sanitizeText(updates.description, MAX_DESCRIPTION_LEN));
+      }
+      if (updates.assignedTo !== undefined) {
+        // SEC-BOARD-M2: 새 assignedTo가 caller 학원 소속인지 검증
+        const ok = await allUsersInAcademy(context.env.DB, [updates.assignedTo], context.auth!.academyId);
+        if (!ok) return errorResponse('할당 대상이 학원 소속이 아닙니다', 403);
+        fields.push('assigned_to = ?'); values.push(updates.assignedTo);
+      }
       if (updates.status !== undefined) {
+        // SEC-BOARD-M3: status 화이트리스트
+        if (!ACTION_STATUS_VALUES.has(updates.status)) {
+          return errorResponse('유효하지 않은 상태입니다', 400);
+        }
         fields.push('status = ?');
         values.push(updates.status);
         if (updates.status === 'completed') {
@@ -321,10 +440,11 @@ export async function handleBoard(
       const existing = await executeFirst<any>(context.env.DB, 'SELECT assigned_to, assigned_by FROM action_items WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
       if (!existing) return notFoundResponse();
 
-      // 본인이 만든 할일이거나, 본인에게 할당된 할일이거나, admin만 삭제 가능
-      const isOwner = existing.assigned_by === context.auth!.userId || existing.assigned_to === context.auth!.userId;
+      // SEC-BOARD-L1: 삭제는 작성자(assigned_by) 또는 admin만 가능 —
+      // 할당받은 사람(assigned_to)은 작업 회피 채널이 되므로 제외 (status 변경으로 종료)
+      const isCreator = existing.assigned_by === context.auth!.userId;
       const isAdmin = context.auth!.role === 'admin';
-      if (!isOwner && !isAdmin) return errorResponse('삭제 권한 없음', 403);
+      if (!isCreator && !isAdmin) return errorResponse('할일 삭제는 작성자 또는 관리자만 가능합니다', 403);
 
       await executeUpdate(context.env.DB, 'DELETE FROM action_items WHERE id = ? AND academy_id = ?', [id, context.auth!.academyId]);
       return successResponse({ deleted: true });
@@ -336,28 +456,30 @@ export async function handleBoard(
     if (method === 'GET' && pathname === '/api/board/timeline') {
       if (!requireAuth(context)) return unauthorizedResponse();
 
-      const notices = await executeQuery<any>(
-        context.env.DB,
-        `SELECT n.id, 'notice' as type, n.title, n.content, n.category, n.is_pinned, n.due_date,
-                n.created_at, u.name as author_name,
-                (SELECT COUNT(*) FROM notice_reads nr WHERE nr.notice_id = n.id) as read_count
-         FROM notices n
-         JOIN users u ON n.author_id = u.id
-         WHERE n.academy_id = ?
-         ORDER BY n.created_at DESC LIMIT 30`,
-        [context.auth!.academyId]
-      );
-
-      const completedActions = await executeQuery<any>(
-        context.env.DB,
-        `SELECT ai.id, 'action_completed' as type, ai.title, ai.description, ai.status,
-                ai.completed_at as created_at, u.name as assigned_to_name
-         FROM action_items ai
-         JOIN users u ON ai.assigned_to = u.id
-         WHERE ai.academy_id = ? AND ai.status = 'completed'
-         ORDER BY ai.completed_at DESC LIMIT 20`,
-        [context.auth!.academyId]
-      );
+      // PERF-BOARD-M2: notices + completed actions를 병렬 실행
+      const [notices, completedActions] = await Promise.all([
+        executeQuery<any>(
+          context.env.DB,
+          `SELECT n.id, 'notice' as type, n.title, n.content, n.category, n.is_pinned, n.due_date,
+                  n.created_at, u.name as author_name,
+                  (SELECT COUNT(*) FROM notice_reads nr WHERE nr.notice_id = n.id) as read_count
+           FROM notices n
+           JOIN users u ON n.author_id = u.id
+           WHERE n.academy_id = ?
+           ORDER BY n.created_at DESC LIMIT 30`,
+          [context.auth!.academyId]
+        ),
+        executeQuery<any>(
+          context.env.DB,
+          `SELECT ai.id, 'action_completed' as type, ai.title, ai.description, ai.status,
+                  ai.completed_at as created_at, u.name as assigned_to_name
+           FROM action_items ai
+           JOIN users u ON ai.assigned_to = u.id
+           WHERE ai.academy_id = ? AND ai.status = 'completed'
+           ORDER BY ai.completed_at DESC LIMIT 20`,
+          [context.auth!.academyId]
+        ),
+      ]);
 
       // 합치고 시간순 정렬
       const timeline = [...notices, ...completedActions]
