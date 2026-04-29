@@ -12,12 +12,28 @@ import { handleRouteError } from '@/utils/error-handler';
 import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
+// SEC-EXAM-M3: 텍스트 위생화 — C0/C1 제어문자 제거 + trim
+function sanitizeText(v: any): string {
+  if (typeof v !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+function sanitizeNullable(v: any): string | null {
+  const cleaned = sanitizeText(v);
+  return cleaned === '' ? null : cleaned;
+}
+
 // ==================== 스키마 ====================
+// SEC-EXAM-M4: 길이 캡 + L2: score 상한
+const MAX_NAME_LEN = 200;
+const MAX_COMMENTS_LEN = 2000;
+const MAX_SCORE = 1000;
+
 const CreateExamSchema = z.object({
-  name: z.string().min(1, '시험명은 필수입니다'),
+  name: z.string().min(1, '시험명은 필수입니다').max(MAX_NAME_LEN, `시험명은 ${MAX_NAME_LEN}자 이내`),
   exam_month: z.string().regex(/^\d{4}-\d{2}$/, '시험 월은 YYYY-MM 형식이어야 합니다'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '시험 날짜는 YYYY-MM-DD 형식이어야 합니다'),
-  total_score: z.number().optional(),
+  total_score: z.number().min(0).max(MAX_SCORE).optional(),
   is_active: z.boolean().default(false),
   // 리포트 유형 — 'monthly'(기본) / 'midterm' / 'final'
   exam_type: z.enum(['monthly', 'midterm', 'final']).default('monthly'),
@@ -29,10 +45,10 @@ const CreateExamSchema = z.object({
 );
 
 const CreateGradeSchema = z.object({
-  student_id: z.string().min(1, '학생 ID는 필수입니다'),
-  exam_id: z.string().min(1, '시험 ID는 필수입니다'),
-  score: z.number().min(0, '점수는 0 이상이어야 합니다'),
-  comments: z.string().optional(),
+  student_id: z.string().min(1, '학생 ID는 필수입니다').max(64),
+  exam_id: z.string().min(1, '시험 ID는 필수입니다').max(64),
+  score: z.number().min(0, '점수는 0 이상이어야 합니다').max(MAX_SCORE, `점수는 ${MAX_SCORE} 이하`),
+  comments: z.string().max(MAX_COMMENTS_LEN, `코멘트는 ${MAX_COMMENTS_LEN}자 이내`).optional(),
 });
 
 type CreateExamInput = z.infer<typeof CreateExamSchema>;
@@ -90,6 +106,10 @@ async function handleCreateExam(
 
     logger.logRequest('POST', '/api/grader/exams', undefined, ipAddress);
 
+    // SEC-EXAM-M3: name 위생화 (이미 max는 schema에서 처리)
+    const cleanName = sanitizeText(input.name);
+    if (!cleanName) return errorResponse('시험명은 비울 수 없습니다', 400);
+
     const examId = generatePrefixedId('exam');
     const now = new Date().toISOString();
 
@@ -110,7 +130,7 @@ async function handleCreateExam(
         examId,
         getAcademyId(context),
         null, // class_id - can be null for academy-wide exams (after 005 migration)
-        input.name,
+        cleanName,
         input.exam_month,
         input.date,
         input.total_score || null,
@@ -129,7 +149,7 @@ async function handleCreateExam(
     return successResponse(
       {
         id: examId,
-        name: input.name,
+        name: cleanName,
         exam_month: input.exam_month,
         date: input.date,
         total_score: input.total_score,
@@ -226,6 +246,10 @@ async function handleUpdateExam(
       );
     }
 
+    // SEC-EXAM-M3: name 위생화
+    const cleanName = sanitizeText(input.name);
+    if (!cleanName) return errorResponse('시험명은 비울 수 없습니다', 400);
+
     const now = new Date().toISOString();
     const result = await executeUpdate(
       context.env.DB,
@@ -233,7 +257,7 @@ async function handleUpdateExam(
        SET name = ?, exam_month = ?, date = ?, total_score = ?, is_active = ?, updated_at = ?
        WHERE id = ?`,
       [
-        input.name,
+        cleanName,
         input.exam_month,
         input.date,
         input.total_score || null,
@@ -312,6 +336,17 @@ async function handleCreateGrade(
 
     logger.logRequest('POST', '/api/grader/grades', undefined, ipAddress);
 
+    // SEC-EXAM-H1: 학생 academy 격리 — input.student_id가 같은 학원 소속인지 검증.
+    // 누락 시 cross-tenant 성적 위조 가능.
+    const student = await executeFirst<any>(
+      context.env.DB,
+      'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+      [input.student_id, getAcademyId(context)]
+    );
+    if (!student) {
+      return errorResponse('학생을 찾을 수 없습니다', 404);
+    }
+
     // 시험 정보 조회
     const exam = await executeFirst<any>(
       context.env.DB,
@@ -322,6 +357,9 @@ async function handleCreateGrade(
     if (!exam) {
       return errorResponse('시험을 찾을 수 없습니다', 404);
     }
+
+    // SEC-EXAM-M3: comments 위생화
+    const cleanComments = input.comments !== undefined ? sanitizeNullable(input.comments) : undefined;
 
     // 활성 설정 제약 확인
     //   - 월말평가(monthly): exam_settings.active_exam_month 와 exam.exam_month 가 일치해야 함
@@ -379,9 +417,9 @@ async function handleCreateGrade(
       const setClauses = ['score = ?', 'graded_at = ?', 'graded_by = ?'];
       const params: any[] = [input.score, now, context.auth?.userId || 'unknown'];
 
-      if (input.comments !== undefined) {
+      if (cleanComments !== undefined) {
         setClauses.splice(1, 0, 'comments = ?');
-        params.splice(1, 0, input.comments || null);
+        params.splice(1, 0, cleanComments);
       }
 
       params.push(gradeId);
@@ -405,7 +443,7 @@ async function handleCreateGrade(
           input.student_id,
           input.exam_id,
           input.score,
-          input.comments || null,
+          cleanComments ?? null,
           year_month,
           now,
           context.auth?.userId || 'unknown',
@@ -423,7 +461,7 @@ async function handleCreateGrade(
         student_id: input.student_id,
         exam_id: input.exam_id,
         score: input.score,
-        comments: input.comments || null,
+        comments: cleanComments ?? null,
         year_month,
         updated: !!existing,
       },

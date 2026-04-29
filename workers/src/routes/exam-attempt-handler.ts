@@ -69,6 +69,16 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+// SEC-EXAM-M3: 텍스트 위생화 — C0/C1 제거 + trim + 길이 캡
+const MAX_NOTE_LEN = 2000;
+function sanitizeNote(v: any): string | null {
+  if (typeof v !== 'string') return null;
+  // eslint-disable-next-line no-control-regex
+  const cleaned = v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+  if (cleaned === '') return null;
+  return cleaned.slice(0, MAX_NOTE_LEN);
+}
+
 function calcRemainingSeconds(row: ExamAttemptRow, nowMs: number = Date.now()): number {
   if (row.status === 'submitted' || row.status === 'expired' || row.status === 'voided') return 0;
   if (!row.started_at) return row.duration_minutes * 60;
@@ -174,21 +184,21 @@ async function actionSubmit(
   note: string | null
 ): Promise<ExamAttemptRow> {
   const now = nowIso();
-  await executeUpdate(
-    context.env.DB,
-    `UPDATE exam_attempts
-        SET status='submitted', ended_at=?, submit_note=?, updated_at=?
-      WHERE id=?`,
-    [now, note, now, row.id]
-  );
-  // exam_assignments.exam_status='completed' 동기화
-  await executeUpdate(
-    context.env.DB,
-    `UPDATE exam_assignments SET exam_status='completed' WHERE id=?`,
-    [row.exam_assignment_id]
-  );
+  // SEC-EXAM-H2: 멱등 가드 — 동시 submit 시 두 번째 차단. batch로 두 UPDATE 원자화.
+  const db = context.env.DB;
+  await db.batch([
+    db.prepare(
+      `UPDATE exam_attempts
+          SET status='submitted', ended_at=?, submit_note=?, updated_at=?
+        WHERE id=? AND status NOT IN ('submitted','expired','voided')`
+    ).bind(now, note, now, row.id),
+    db.prepare(
+      `UPDATE exam_assignments SET exam_status='completed'
+       WHERE id=? AND exam_status != 'completed'`
+    ).bind(row.exam_assignment_id),
+  ]);
   const fresh = await executeFirst<ExamAttemptRow>(
-    context.env.DB,
+    db,
     `SELECT * FROM exam_attempts WHERE id=?`,
     [row.id]
   );
@@ -260,7 +270,8 @@ async function handleTeacherRoutes(
   if (method === 'POST' && pauseMatch) {
     const id = pauseMatch[1];
     const body = await request.json().catch(() => ({})) as any;
-    const reason = (body?.reason || '').toString().trim();
+    // SEC-EXAM-M3+M4: reason 위생화 + 500자 캡
+    const reason = sanitizeNote(body?.reason)?.slice(0, 500) || '';
     if (!reason) return errorResponse('reason 필수', 400);
 
     const row = await loadAttemptForTeacher(context, id);
@@ -320,7 +331,7 @@ async function handleTeacherRoutes(
   if (method === 'POST' && submitMatch) {
     const id = submitMatch[1];
     const body = await request.json().catch(() => ({})) as any;
-    const note = body?.note ? String(body.note) : null;
+    const note = sanitizeNote(body?.note);  // SEC-EXAM-M3+M4: C0/C1 제거 + 2000자 캡
 
     const row = await loadAttemptForTeacher(context, id);
     if (!row) return notFoundResponse();
@@ -359,42 +370,42 @@ async function handleTeacherRoutes(
   if (method === 'GET' && pathname === '/api/exam-attempts/today') {
     const today = new Date().toISOString().split('T')[0];
 
-    // 1) 본인 담당 학생의 오늘 attempt (오늘 생성/시작/종료된 것)
-    const attempts = await executeQuery<ExamAttemptRow & { student_name: string; paper_title: string | null }>(
-      db,
-      `SELECT ea.*, s.name AS student_name, ep.title AS period_title, epaper.title AS paper_title
-         FROM exam_attempts ea
-         JOIN student_teachers st ON st.student_id = ea.student_id
-         JOIN students s ON s.id = ea.student_id
-         JOIN exam_assignments asg ON asg.id = ea.exam_assignment_id
-         LEFT JOIN exam_periods ep ON ep.id = asg.exam_period_id
-         LEFT JOIN exam_papers epaper ON epaper.id = asg.exam_paper_id
-        WHERE ea.academy_id = ?
-          AND st.teacher_id = ?
-          AND (date(ea.created_at) = ? OR date(ea.started_at) = ? OR ea.status IN ('running','paused'))
-        ORDER BY ea.created_at DESC`,
-      [academyId, userId, today, today]
-    );
-
-    // 2) 결시(absent/rescheduled) 시험 배정 — 아직 attempt 없는 것
-    const pendingAssignments = await executeQuery<any>(
-      db,
-      `SELECT a.id AS assignment_id, a.student_id, a.exam_status, a.absence_reason,
-              a.rescheduled_date, a.exam_period_id, a.exam_paper_id,
-              s.name AS student_name, s.grade AS student_grade,
-              ep.title AS period_title, epaper.title AS paper_title
-         FROM exam_assignments a
-         JOIN student_teachers st ON st.student_id = a.student_id
-         JOIN students s ON s.id = a.student_id
-         LEFT JOIN exam_periods ep ON ep.id = a.exam_period_id
-         LEFT JOIN exam_papers epaper ON epaper.id = a.exam_paper_id
-        WHERE a.academy_id = ?
-          AND st.teacher_id = ?
-          AND a.exam_status IN ('absent', 'rescheduled')
-          AND NOT EXISTS (SELECT 1 FROM exam_attempts ea WHERE ea.exam_assignment_id = a.id)
-        ORDER BY s.grade, s.name`,
-      [academyId, userId]
-    );
+    // PERF-EXAM-M2: 본인 담당 attempt + 결시 배정 두 query를 병렬 실행
+    const [attempts, pendingAssignments] = await Promise.all([
+      executeQuery<ExamAttemptRow & { student_name: string; paper_title: string | null }>(
+        db,
+        `SELECT ea.*, s.name AS student_name, ep.title AS period_title, epaper.title AS paper_title
+           FROM exam_attempts ea
+           JOIN student_teachers st ON st.student_id = ea.student_id
+           JOIN students s ON s.id = ea.student_id
+           JOIN exam_assignments asg ON asg.id = ea.exam_assignment_id
+           LEFT JOIN exam_periods ep ON ep.id = asg.exam_period_id
+           LEFT JOIN exam_papers epaper ON epaper.id = asg.exam_paper_id
+          WHERE ea.academy_id = ?
+            AND st.teacher_id = ?
+            AND (date(ea.created_at) = ? OR date(ea.started_at) = ? OR ea.status IN ('running','paused'))
+          ORDER BY ea.created_at DESC`,
+        [academyId, userId, today, today]
+      ),
+      executeQuery<any>(
+        db,
+        `SELECT a.id AS assignment_id, a.student_id, a.exam_status, a.absence_reason,
+                a.rescheduled_date, a.exam_period_id, a.exam_paper_id,
+                s.name AS student_name, s.grade AS student_grade,
+                ep.title AS period_title, epaper.title AS paper_title
+           FROM exam_assignments a
+           JOIN student_teachers st ON st.student_id = a.student_id
+           JOIN students s ON s.id = a.student_id
+           LEFT JOIN exam_periods ep ON ep.id = a.exam_period_id
+           LEFT JOIN exam_papers epaper ON epaper.id = a.exam_paper_id
+          WHERE a.academy_id = ?
+            AND st.teacher_id = ?
+            AND a.exam_status IN ('absent', 'rescheduled')
+            AND NOT EXISTS (SELECT 1 FROM exam_attempts ea WHERE ea.exam_assignment_id = a.id)
+          ORDER BY s.grade, s.name`,
+        [academyId, userId]
+      ),
+    ]);
 
     return successResponse({
       attempts: attempts.map(a => shapeAttempt(a as any, {
@@ -584,7 +595,7 @@ async function handlePlayRoutes(
   if (method === 'POST' && submitMatch) {
     const id = submitMatch[1];
     const body = await request.json().catch(() => ({})) as any;
-    const note = body?.note ? String(body.note) : null;
+    const note = sanitizeNote(body?.note);  // SEC-EXAM-M3+M4
 
     const row = await executeFirst<ExamAttemptRow>(
       db,

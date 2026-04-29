@@ -163,16 +163,19 @@ async function handleGetAttempt(
 
   // 종료 상태면 채점 결과 포함
   if (['submitted', 'expired', 'voided'].includes(row.status)) {
-    const answers = await executeQuery<any>(
-      db,
-      `SELECT question_no, selected_choice FROM exam_answers WHERE attempt_id = ? ORDER BY question_no`,
-      [attemptId]
-    );
-    const key = await executeQuery<any>(
-      db,
-      `SELECT question_no, correct_choice FROM exam_questions WHERE exam_paper_id = ? ORDER BY question_no`,
-      [row.exam_paper_id]
-    );
+    // PERF-EXAM-M3: 두 query 병렬
+    const [answers, key] = await Promise.all([
+      executeQuery<any>(
+        db,
+        `SELECT question_no, selected_choice FROM exam_answers WHERE attempt_id = ? ORDER BY question_no`,
+        [attemptId]
+      ),
+      executeQuery<any>(
+        db,
+        `SELECT question_no, correct_choice FROM exam_questions WHERE exam_paper_id = ? ORDER BY question_no`,
+        [row.exam_paper_id]
+      ),
+    ]);
     const byNo = new Map(answers.map(a => [a.question_no, a.selected_choice]));
     const breakdown = key.map(k => ({
       questionNo: k.question_no,
@@ -197,17 +200,19 @@ async function handleGetAttempt(
     });
   }
 
-  // 진행 중: 문제(정답 제외) + 내 답
-  const questions = await executeQuery<any>(
-    db,
-    `SELECT question_no, prompt, choices, points FROM exam_questions WHERE exam_paper_id = ? ORDER BY question_no`,
-    [row.exam_paper_id]
-  );
-  const myAnswers = await executeQuery<any>(
-    db,
-    `SELECT question_no, selected_choice FROM exam_answers WHERE attempt_id = ? ORDER BY question_no`,
-    [attemptId]
-  );
+  // 진행 중: 문제(정답 제외) + 내 답 — PERF-EXAM-M3 병렬화
+  const [questions, myAnswers] = await Promise.all([
+    executeQuery<any>(
+      db,
+      `SELECT question_no, prompt, choices, points FROM exam_questions WHERE exam_paper_id = ? ORDER BY question_no`,
+      [row.exam_paper_id]
+    ),
+    executeQuery<any>(
+      db,
+      `SELECT question_no, selected_choice FROM exam_answers WHERE attempt_id = ? ORDER BY question_no`,
+      [attemptId]
+    ),
+  ]);
 
   return successResponse({
     id: row.id,
@@ -243,17 +248,30 @@ async function handleSaveAnswer(
   const body = await request.json().catch(() => ({})) as any;
   const questionNo = Number(body.questionNo);
   const choice = body.choice === null ? null : Number(body.choice);
-  if (!Number.isInteger(questionNo) || questionNo < 1) return errorResponse('questionNo 필수', 400);
+  if (!Number.isInteger(questionNo) || questionNo < 1 || questionNo > 1000) {
+    return errorResponse('questionNo 필수 (1~1000)', 400);
+  }
   if (choice !== null && (choice < 1 || choice > 5)) return errorResponse('choice는 1~5', 400);
 
   const db = context.env.DB;
+  // SEC-EXAM-M2: attempt + paper의 questionNo 존재 확인을 한 번에. paper에 없는 questionNo INSERT 차단.
   const row = await executeFirst<any>(
     db,
-    `SELECT status FROM exam_attempts WHERE id = ? AND student_id = ? AND academy_id = ?`,
+    `SELECT ea.status, ea.exam_assignment_id, asg.exam_paper_id
+       FROM exam_attempts ea
+       JOIN exam_assignments asg ON asg.id = ea.exam_assignment_id
+      WHERE ea.id = ? AND ea.student_id = ? AND ea.academy_id = ?`,
     [attemptId, auth.studentId, auth.academyId]
   );
   if (!row) return notFoundResponse();
   if (row.status !== 'running') return errorResponse('진행 중인 시험이 아닙니다', 409);
+
+  const q = await executeFirst<any>(
+    db,
+    `SELECT 1 AS ok FROM exam_questions WHERE exam_paper_id = ? AND question_no = ?`,
+    [row.exam_paper_id, questionNo]
+  );
+  if (!q) return errorResponse('해당 questionNo가 시험지에 없습니다', 400);
 
   await db.prepare(
     `INSERT INTO exam_answers (attempt_id, question_no, selected_choice, saved_at)
@@ -286,17 +304,19 @@ async function handleSubmit(
     return errorResponse(`이미 종료된 시험(${row.status})`, 409);
   }
 
-  // 자동 채점
-  const answers = await executeQuery<any>(
-    db,
-    `SELECT question_no, selected_choice FROM exam_answers WHERE attempt_id = ?`,
-    [attemptId]
-  );
-  const key = await executeQuery<any>(
-    db,
-    `SELECT question_no, correct_choice, points FROM exam_questions WHERE exam_paper_id = ?`,
-    [row.exam_paper_id]
-  );
+  // PERF-EXAM-M1: 자동 채점에 필요한 두 query를 병렬 실행
+  const [answers, key] = await Promise.all([
+    executeQuery<any>(
+      db,
+      `SELECT question_no, selected_choice FROM exam_answers WHERE attempt_id = ?`,
+      [attemptId]
+    ),
+    executeQuery<any>(
+      db,
+      `SELECT question_no, correct_choice, points FROM exam_questions WHERE exam_paper_id = ?`,
+      [row.exam_paper_id]
+    ),
+  ]);
   const byNo = new Map(answers.map(a => [a.question_no, a.selected_choice]));
   let correct = 0, total = 0, scoreSum = 0;
   for (const k of key) {
@@ -308,20 +328,20 @@ async function handleSubmit(
   }
 
   const now = new Date().toISOString();
-  await executeUpdate(
-    db,
-    `UPDATE exam_attempts SET
-       status='submitted', ended_at=?,
-       auto_score=?, auto_correct=?, auto_total=?,
-       updated_at=?
-     WHERE id=?`,
-    [now, scoreSum, correct, total, now, attemptId]
-  );
-  await executeUpdate(
-    db,
-    `UPDATE exam_assignments SET exam_status='completed', score=? WHERE id=?`,
-    [scoreSum, row.exam_assignment_id]
-  );
+  // SEC-EXAM-H2: 멱등 가드 — 동시·재시도 제출 시 두 번째를 차단해 점수 재계산·assignments 덮어쓰기 방지
+  await db.batch([
+    db.prepare(
+      `UPDATE exam_attempts SET
+         status='submitted', ended_at=?,
+         auto_score=?, auto_correct=?, auto_total=?,
+         updated_at=?
+       WHERE id=? AND status NOT IN ('submitted','expired','voided')`
+    ).bind(now, scoreSum, correct, total, now, attemptId),
+    db.prepare(
+      `UPDATE exam_assignments SET exam_status='completed', score=?
+       WHERE id=? AND exam_status != 'completed'`
+    ).bind(scoreSum, row.exam_assignment_id),
+  ]);
 
   return successResponse({
     id: attemptId,
