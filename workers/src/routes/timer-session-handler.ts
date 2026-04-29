@@ -399,7 +399,17 @@ async function handleCreateEnrollment(
   }
 
   const userId = context.auth!.userId;
+  const academyId = context.auth!.academyId;
   const isAdmin = context.auth!.role === 'admin';
+
+  // SEC-TIMERSESS-H1: studentId가 본인 학원 소속인지 검증 (admin도 cross-tenant 차단)
+  const student = await executeFirst<{ id: string }>(
+    context.env.DB,
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+    [body.studentId, academyId]
+  );
+  if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
+
   if (!isAdmin && !(await assertTeacherOwnsStudent(context.env.DB, userId, body.studentId))) {
     return unauthorizedResponse();
   }
@@ -434,12 +444,19 @@ async function handleDeleteEnrollment(
     return unauthorizedResponse();
   }
 
-  const row = await executeFirst<{ student_id: string }>(
+  // SEC-TIMERSESS-H2: enrollment의 student academy 검증 — admin도 cross-tenant 차단
+  const row = await executeFirst<{ student_id: string; academy_id: string }>(
     context.env.DB,
-    'SELECT student_id FROM enrollments WHERE id = ?',
+    `SELECT e.student_id, s.academy_id
+       FROM enrollments e
+       LEFT JOIN students s ON s.id = e.student_id
+      WHERE e.id = ?`,
     [id]
   );
   if (!row) return notFoundResponse();
+  if (row.academy_id && row.academy_id !== context.auth!.academyId) {
+    return notFoundResponse();
+  }
 
   const isAdmin = context.auth!.role === 'admin';
   if (!isAdmin && !(await assertTeacherOwnsStudent(context.env.DB, context.auth!.userId, row.student_id))) {

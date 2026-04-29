@@ -188,6 +188,24 @@ export async function handleTimer(
 
       logger.logRequest('POST', '/api/timer/attendance', context.auth?.userId, request.headers.get('CF-Connecting-IP') || undefined);
 
+      // SEC-TIMER-H1: studentId / classId가 본인 학원 소속인지 사전 검증.
+      // 누락 시 cross-tenant attendance 위조 가능.
+      const academyId = context.auth!.academyId;
+      const [studentRow, classRow] = await Promise.all([
+        executeFirst<{ id: string }>(
+          context.env.DB,
+          'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+          [studentId, academyId]
+        ),
+        executeFirst<{ id: string }>(
+          context.env.DB,
+          'SELECT id FROM classes WHERE id = ? AND academy_id = ?',
+          [classId, academyId]
+        ),
+      ]);
+      if (!studentRow) return errorResponse('학생을 찾을 수 없습니다', 404);
+      if (!classRow) return errorResponse('수업을 찾을 수 없습니다', 404);
+
       const id = crypto.randomUUID();
       const result = await executeInsert(
         context.env.DB,
@@ -336,36 +354,40 @@ export async function handleTimer(
 
       const pending = await executeQuery<{ id: string }>(context.env.DB, pendingSql, pendingParams);
 
-      // 1) 일괄 INSERT absences
-      for (const p of pending) {
-        const absenceId = crypto.randomUUID();
-        await executeInsert(
-          context.env.DB,
-          `INSERT INTO absences (id, student_id, class_id, absence_date, reason, notified_by, status, recorded_by)
-           VALUES (?, ?, ?, ?, ?, ?, 'absent', ?)
-           ON CONFLICT(student_id, class_id, absence_date) DO NOTHING`,
-          [absenceId, p.id, defaultClassId, date, '수업마침 일괄 결석', '', userId]
+      const db = context.env.DB;
+      // PERF-TIMER-M1: absences INSERT를 batch로 (이전: N개 직렬)
+      if (pending.length > 0) {
+        const absStmts = pending.map(p =>
+          db.prepare(
+            `INSERT INTO absences (id, student_id, class_id, absence_date, reason, notified_by, status, recorded_by)
+             VALUES (?, ?, ?, ?, ?, ?, 'absent', ?)
+             ON CONFLICT(student_id, class_id, absence_date) DO NOTHING`
+          ).bind(crypto.randomUUID(), p.id, defaultClassId, date, '수업마침 일괄 결석', '', userId)
         );
+        await db.batch(absStmts);
       }
 
       // 2) 한 번의 쿼리로 모든 결석 ID 조회 (N+1 제거)
-      const placeholders = pending.map(() => '?').join(',');
-      const studentIds = pending.map(p => p.id);
-      const insertedRows = await executeQuery<{ id: string; student_id: string }>(
-        context.env.DB,
-        `SELECT id, student_id FROM absences WHERE student_id IN (${placeholders}) AND class_id = ? AND absence_date = ?`,
-        [...studentIds, defaultClassId, date]
-      );
-
-      // 3) 일괄 INSERT makeups (N+1 제거)
-      for (const row of insertedRows) {
-        const makeupId = crypto.randomUUID();
-        await executeInsert(
+      let insertedRows: { id: string; student_id: string }[] = [];
+      if (pending.length > 0) {
+        const placeholders = pending.map(() => '?').join(',');
+        const studentIds = pending.map(p => p.id);
+        insertedRows = await executeQuery<{ id: string; student_id: string }>(
           context.env.DB,
-          `INSERT INTO makeups (id, absence_id, status) VALUES (?, ?, 'pending')
-           ON CONFLICT(absence_id) DO NOTHING`,
-          [makeupId, row.id]
+          `SELECT id, student_id FROM absences WHERE student_id IN (${placeholders}) AND class_id = ? AND absence_date = ?`,
+          [...studentIds, defaultClassId, date]
         );
+      }
+
+      // 3) 일괄 INSERT makeups (batch)
+      if (insertedRows.length > 0) {
+        const mkStmts = insertedRows.map(row =>
+          db.prepare(
+            `INSERT INTO makeups (id, absence_id, status) VALUES (?, ?, 'pending')
+             ON CONFLICT(absence_id) DO NOTHING`
+          ).bind(crypto.randomUUID(), row.id)
+        );
+        await db.batch(mkStmts);
       }
 
       const recorded = pending.length;
@@ -382,6 +404,14 @@ export async function handleTimer(
       const parts = pathname.split('/');
       const classId = parts[4];
       const date = parts[5];
+
+      // SEC-TIMER-H2: classId academy 격리 — 이전엔 다른 학원 출석 노출 가능
+      const cls = await executeFirst<{ id: string }>(
+        context.env.DB,
+        'SELECT id FROM classes WHERE id = ? AND academy_id = ?',
+        [classId, context.auth!.academyId]
+      );
+      if (!cls) return notFoundResponse();
 
       const attendance = await executeQuery<Attendance>(
         context.env.DB,
