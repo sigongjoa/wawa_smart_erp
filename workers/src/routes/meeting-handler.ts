@@ -18,14 +18,19 @@ import { z } from 'zod';
 
 // ─── Schemas ───
 
+// SEC-MEETING-M1: 길이 캡 — 메모리·STT 비용 폭주 차단
+const MAX_AUDIO_BASE64_LEN = 14 * 1024 * 1024; // ~10MB raw → ~14MB base64
+const MAX_TRANSCRIPT_LEN = 50000;
+const MAX_PARTICIPANTS = 50;
+
 const CreateMeetingSchema = z.object({
   title: z.string().min(1).max(100),
-  participants: z.array(z.string()).optional(),
+  participants: z.array(z.string().max(50)).max(MAX_PARTICIPANTS).optional(),
 });
 
 const UploadAudioSchema = z.object({
-  audioBase64: z.string().min(1),
-  mimeType: z.string().default('audio/webm'),
+  audioBase64: z.string().min(1).max(MAX_AUDIO_BASE64_LEN, '오디오가 너무 큽니다 (최대 ~10MB)'),
+  mimeType: z.string().max(100).default('audio/webm'),
 });
 
 const UpdateActionSchema = z.object({
@@ -286,13 +291,15 @@ async function handleUploadAndProcess(
     [aiResult.summary, JSON.stringify(aiResult.keyDecisions), Math.round(audioBytes.length / 16000), id]
   );
 
-  // 액션 아이템 저장
-  for (const action of aiResult.extractedActions) {
-    await executeInsert(context.env.DB,
-      `INSERT INTO meeting_actions (id, meeting_id, title, assignee_name, due_date)
-       VALUES (?, ?, ?, ?, ?)`,
-      [generateId(), id, action.title, action.assigneeName, action.dueDate]
+  // PERF-MEETING-M1: 액션 아이템 batch 저장
+  if (aiResult.extractedActions.length > 0) {
+    const stmts = aiResult.extractedActions.map((action: any) =>
+      context.env.DB.prepare(
+        `INSERT INTO meeting_actions (id, meeting_id, title, assignee_name, due_date)
+         VALUES (?, ?, ?, ?, ?)`
+      ).bind(generateId(), id, action.title, action.assigneeName, action.dueDate)
     );
+    await context.env.DB.batch(stmts);
   }
 
   return successResponse({
@@ -324,6 +331,10 @@ async function handleTranscribeText(
   if (!transcript || typeof transcript !== 'string') {
     return errorResponse('녹취록 텍스트가 필요합니다', 400);
   }
+  // SEC-MEETING-M1: transcript 길이 캡 (AI 비용 폭주 차단)
+  if (transcript.length > MAX_TRANSCRIPT_LEN) {
+    return errorResponse(`녹취록은 ${MAX_TRANSCRIPT_LEN}자 이내`, 413);
+  }
 
   await executeUpdate(context.env.DB,
     `UPDATE meetings SET transcript = ?, status = 'summarizing', updated_at = datetime('now') WHERE id = ?`,
@@ -353,12 +364,15 @@ async function handleTranscribeText(
     [aiResult.summary, JSON.stringify(aiResult.keyDecisions), id]
   );
 
-  for (const action of aiResult.extractedActions) {
-    await executeInsert(context.env.DB,
-      `INSERT INTO meeting_actions (id, meeting_id, title, assignee_name, due_date)
-       VALUES (?, ?, ?, ?, ?)`,
-      [generateId(), id, action.title, action.assigneeName, action.dueDate]
+  // PERF-MEETING-M1: batch
+  if (aiResult.extractedActions.length > 0) {
+    const stmts = aiResult.extractedActions.map((action: any) =>
+      context.env.DB.prepare(
+        `INSERT INTO meeting_actions (id, meeting_id, title, assignee_name, due_date)
+         VALUES (?, ?, ?, ?, ?)`
+      ).bind(generateId(), id, action.title, action.assigneeName, action.dueDate)
     );
+    await context.env.DB.batch(stmts);
   }
 
   return successResponse({
