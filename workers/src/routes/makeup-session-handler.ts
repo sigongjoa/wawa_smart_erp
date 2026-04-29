@@ -59,26 +59,38 @@ async function assertMakeupAccess(
   );
 }
 
+// SEC-MAKEUP-M1: 텍스트 위생화 + 길이 캡 (notes는 다양한 텍스트 허용)
+function sanitizeNotes(v: any): string {
+  if (typeof v !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, 1000);
+}
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_REGEX = /^\d{2}:\d{2}(:\d{2})?$/;
+
 async function recomputeMakeup(db: any, makeupId: string): Promise<{ completed: number; required: number; status: string }> {
-  const sum = await executeFirst<{ completed: number }>(
-    db,
-    `SELECT COALESCE(SUM(duration_minutes), 0) AS completed
-     FROM makeup_sessions WHERE makeup_id = ? AND status = 'completed'`,
-    [makeupId]
-  );
-  const mk = await executeFirst<{ required: number }>(
-    db,
-    `SELECT required_minutes AS required FROM makeups WHERE id = ?`,
-    [makeupId]
-  );
+  // PERF-MAKEUP-M1: 3 query를 Promise.all로 병렬화
+  const [sum, mk, hasAnySession] = await Promise.all([
+    executeFirst<{ completed: number }>(
+      db,
+      `SELECT COALESCE(SUM(duration_minutes), 0) AS completed
+       FROM makeup_sessions WHERE makeup_id = ? AND status = 'completed'`,
+      [makeupId]
+    ),
+    executeFirst<{ required: number }>(
+      db,
+      `SELECT required_minutes AS required FROM makeups WHERE id = ?`,
+      [makeupId]
+    ),
+    executeFirst<{ n: number }>(
+      db,
+      `SELECT COUNT(*) AS n FROM makeup_sessions WHERE makeup_id = ? AND status != 'cancelled'`,
+      [makeupId]
+    ),
+  ]);
 
   const completed = sum?.completed || 0;
   const required = mk?.required || 0;
-  const hasAnySession = await executeFirst<{ n: number }>(
-    db,
-    `SELECT COUNT(*) AS n FROM makeup_sessions WHERE makeup_id = ? AND status != 'cancelled'`,
-    [makeupId]
-  );
 
   let status: string;
   if (required > 0 && completed >= required) status = 'completed';
@@ -140,6 +152,11 @@ async function addSession(makeupId: string, request: Request, context: RequestCo
   if (!scheduled_date || !scheduled_start_time || !scheduled_end_time) {
     return errorResponse('scheduled_date, scheduled_start_time, scheduled_end_time 필수', 400);
   }
+  // SEC-MAKEUP-M2: date/time 형식 검증
+  if (!DATE_REGEX.test(scheduled_date)) return errorResponse('scheduled_date는 YYYY-MM-DD', 400);
+  if (!TIME_REGEX.test(scheduled_start_time)) return errorResponse('scheduled_start_time은 HH:MM[:SS]', 400);
+  if (!TIME_REGEX.test(scheduled_end_time)) return errorResponse('scheduled_end_time은 HH:MM[:SS]', 400);
+  const cleanNotes = sanitizeNotes(notes);
 
   let duration: number;
   try {
@@ -167,7 +184,7 @@ async function addSession(makeupId: string, request: Request, context: RequestCo
             scheduled_end_time, duration_minutes, status, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?)`,
         [id, makeupId, sessionIndex, scheduled_date,
-         scheduled_start_time, scheduled_end_time, duration, notes || '']
+         scheduled_start_time, scheduled_end_time, duration, cleanNotes]
       );
       inserted = true;
     } catch (e: any) {
@@ -216,13 +233,22 @@ async function updateSession(
 
   const sets: string[] = [];
   const params: any[] = [];
-  if (body.scheduled_date !== undefined) { sets.push('scheduled_date = ?'); params.push(body.scheduled_date); }
-  if (body.scheduled_start_time !== undefined) { sets.push('scheduled_start_time = ?'); params.push(body.scheduled_start_time); }
-  if (body.scheduled_end_time !== undefined) { sets.push('scheduled_end_time = ?'); params.push(body.scheduled_end_time); }
+  if (body.scheduled_date !== undefined) {
+    if (!DATE_REGEX.test(body.scheduled_date)) return errorResponse('scheduled_date는 YYYY-MM-DD', 400);
+    sets.push('scheduled_date = ?'); params.push(body.scheduled_date);
+  }
+  if (body.scheduled_start_time !== undefined) {
+    if (!TIME_REGEX.test(body.scheduled_start_time)) return errorResponse('scheduled_start_time 형식', 400);
+    sets.push('scheduled_start_time = ?'); params.push(body.scheduled_start_time);
+  }
+  if (body.scheduled_end_time !== undefined) {
+    if (!TIME_REGEX.test(body.scheduled_end_time)) return errorResponse('scheduled_end_time 형식', 400);
+    sets.push('scheduled_end_time = ?'); params.push(body.scheduled_end_time);
+  }
   if (body.scheduled_start_time !== undefined || body.scheduled_end_time !== undefined) {
     sets.push('duration_minutes = ?'); params.push(duration);
   }
-  if (body.notes !== undefined) { sets.push('notes = ?'); params.push(body.notes || ''); }
+  if (body.notes !== undefined) { sets.push('notes = ?'); params.push(sanitizeNotes(body.notes)); }
   if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
 
   sets.push("updated_at = datetime('now')");

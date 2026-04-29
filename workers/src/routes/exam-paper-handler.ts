@@ -59,22 +59,17 @@ async function autoDistribute(
   const params: any[] = [academyId, school, grade, ...excludeIds];
   const matched = await executeQuery<{ id: string }>(db, sql, params);
 
-  let count = 0;
-  for (const s of matched) {
-    try {
-      await executeInsert(
-        db,
-        `INSERT OR IGNORE INTO paper_handout_distributions
-         (id, paper_id, student_id, academy_id, source)
-         VALUES (?, ?, ?, ?, 'auto')`,
-        [generateId(), paperId, s.id, academyId]
-      );
-      count++;
-    } catch {
-      // UNIQUE 중복은 무시
-    }
-  }
-  return count;
+  // PERF-EXAM-PAPER-M1: for-loop 직렬 INSERT를 batch로 (이전 N+1)
+  if (matched.length === 0) return 0;
+  const stmts = matched.map(s =>
+    db.prepare(
+      `INSERT OR IGNORE INTO paper_handout_distributions
+       (id, paper_id, student_id, academy_id, source)
+       VALUES (?, ?, ?, ?, 'auto')`
+    ).bind(generateId(), paperId, s.id, academyId)
+  );
+  await db.batch(stmts);
+  return matched.length;
 }
 
 export async function handleExamPaper(
