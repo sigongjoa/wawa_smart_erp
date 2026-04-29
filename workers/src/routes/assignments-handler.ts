@@ -53,16 +53,8 @@ const TargetStatusSchema = z.object({
   status: z.enum(TARGET_STATUS),
 });
 
-// SEC-ASSIGN-M1: 텍스트 위생화 — C0/C1 제어문자 제거 + trim
-function sanitizeText(v: any): string {
-  if (typeof v !== 'string') return '';
-  // eslint-disable-next-line no-control-regex
-  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
-}
-function sanitizeNullable(v: any): string | null {
-  const cleaned = sanitizeText(v);
-  return cleaned === '' ? null : cleaned;
-}
+// SEC-ASSIGN-M1: 텍스트 위생화 — utils/sanitize.ts로 통일 (라운드 24)
+import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
 
 // SEC-ASSIGN-H2: parent-share용 origin allowlist
 function resolveSafeBase(env: any, requestOrigin: string): string {

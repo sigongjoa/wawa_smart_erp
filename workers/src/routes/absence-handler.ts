@@ -18,14 +18,8 @@ const ABSENCE_STATUS_VALUES = new Set(['absent', 'makeup_scheduled', 'makeup_don
 const MAX_REASON_LEN = 500;
 const MAX_NOTIFIED_BY_LEN = 100;
 
-/** 제어문자 제거 + 길이 캡 (결석 사유 등) */
-function sanitizeText(input: unknown, maxLen: number): string {
-  if (typeof input !== 'string') return '';
-  // \x00-\x1F (제어문자) 제거, \t와 \n은 유지
-  // eslint-disable-next-line no-control-regex
-  const cleaned = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-  return cleaned.slice(0, maxLen);
-}
+// 제어문자 제거 + 길이 캡 — utils/sanitize.ts로 통일 (라운드 24)
+import { sanitizeText } from '@/utils/sanitize';
 
 /**
  * SEC-ABS-H1/H2/H3 + M1: studentId·classId가 caller academy 소속이고

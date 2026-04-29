@@ -17,16 +17,8 @@ import { logger } from '@/utils/logger';
 // verify 시 자동으로 새 형식으로 재해시.
 import { hashPin } from '@/utils/crypto';
 
-// SEC-GSTU-M2: 텍스트 위생화 — C0/C1 제거 + trim
-function sanitizeText(v: any, max: number = 100): string {
-  if (typeof v !== 'string') return '';
-  // eslint-disable-next-line no-control-regex
-  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, max);
-}
-function sanitizeNullable(v: any, max: number = 100): string | null {
-  const cleaned = sanitizeText(v, max);
-  return cleaned === '' ? null : cleaned;
-}
+// SEC-GSTU-M2: 텍스트 위생화 — utils/sanitize.ts로 통일 (라운드 24)
+import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
 
 // ── 입력 검증 ──
 

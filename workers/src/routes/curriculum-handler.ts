@@ -27,6 +27,7 @@ import { requireAuth } from '@/middleware/auth';
 import { getAcademyId, getUserId } from '@/utils/context';
 import { generateId } from '@/utils/id';
 import { logger } from '@/utils/logger';
+import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
 
 interface CurriculumRow {
   id: string;
@@ -82,22 +83,7 @@ function normalizeNullable(v: any): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-/**
- * SEC-CURR-M2: 텍스트 위생화 — C0/C1 제어문자 제거 후 trim.
- * 길이 캡은 lenError가 별도 처리. 빈 결과는 호출 측에서 처리.
- */
-function sanitizeText(v: any): string {
-  if (typeof v !== 'string') return '';
-  // \t, \n 유지 — 그 외 C0/C1 제어문자 제거
-  // eslint-disable-next-line no-control-regex
-  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
-}
-
-/** 위생화 + null 정규화 (text 필드 일관 처리) */
-function sanitizeNullable(v: any): string | null {
-  const cleaned = sanitizeText(v);
-  return cleaned === '' ? null : cleaned;
-}
+// SEC-CURR-M2: 텍스트 위생화 — utils/sanitize.ts로 통일 (라운드 24 정리)
 
 // SEC-CURR-M1: order_idx 정수 범위 검증
 const ORDER_IDX_MAX = 1_000_000;

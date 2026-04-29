@@ -79,20 +79,8 @@ function isValidImageDataUrl(s: string): boolean {
   return /^data:image\/(png|jpeg|jpg|webp);base64,/.test(s);
 }
 
-/**
- * SEC-LIVE-M1: 텍스트 위생화 — C0/C1 제어문자 제거 + trim.
- * KV/DB 저장 전 모든 외부 입력 텍스트에 적용.
- */
-function sanitizeText(v: any): string {
-  if (typeof v !== 'string') return '';
-  // \t, \n 유지 — 그 외 C0/C1 제어문자 제거
-  // eslint-disable-next-line no-control-regex
-  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
-}
-function sanitizeNullable(v: any): string | null {
-  const cleaned = sanitizeText(v);
-  return cleaned === '' ? null : cleaned;
-}
+// SEC-LIVE-M1: 텍스트 위생화 — utils/sanitize.ts로 통일 (라운드 24)
+import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
 
 const StatePatchSchema = z.object({
   side: z.enum(['teacher', 'student', 'problem']),

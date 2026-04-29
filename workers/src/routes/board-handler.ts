@@ -18,13 +18,8 @@ const MAX_TITLE_LEN = 200;
 const MAX_CONTENT_LEN = 10_000;
 const MAX_DESCRIPTION_LEN = 2_000;
 
-/** 제어문자 제거 + 길이 캡 */
-function sanitizeText(input: unknown, maxLen: number): string {
-  if (typeof input !== 'string') return '';
-  // \t, \n 유지 — 그 외 C0/C1 제어문자 제거
-  // eslint-disable-next-line no-control-regex
-  return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, maxLen);
-}
+// 제어문자 제거 + 길이 캡 — utils/sanitize.ts로 통일 (라운드 24)
+import { sanitizeText } from '@/utils/sanitize';
 
 /**
  * SEC-BOARD-H1/H2/M2: 주어진 user_ids가 모두 caller academy 소속인지 검증.

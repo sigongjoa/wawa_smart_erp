@@ -11,16 +11,8 @@ import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/re
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
 
-// SEC-PROOF: 텍스트 위생화 (C0/C1 제거 + trim) + 길이 캡
-function sanitizeText(v: any): string {
-  if (typeof v !== 'string') return '';
-  // eslint-disable-next-line no-control-regex
-  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
-}
-function sanitizeNullable(v: any): string | null {
-  const cleaned = sanitizeText(v);
-  return cleaned === '' ? null : cleaned;
-}
+// SEC-PROOF: 텍스트 위생화 — utils/sanitize.ts로 통일 (라운드 24)
+import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
 
 const MAX_TITLE_LEN = 200;
 const MAX_DESCRIPTION_LEN = 2000;

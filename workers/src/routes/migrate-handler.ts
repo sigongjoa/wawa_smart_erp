@@ -16,11 +16,9 @@ const MAX_CSV_ROWS = 10000;
 const ID_REGEX = /^[a-zA-Z0-9_-]+$/;
 const MAX_FIELD_LEN = 100;
 
-function sanitizeText(v: any, max: number = MAX_FIELD_LEN): string {
-  if (typeof v !== 'string') return '';
-  // eslint-disable-next-line no-control-regex
-  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, max);
-}
+// utils/sanitize.ts로 통일 (라운드 24)
+import { sanitizeText as sanitizeTextUtil } from '@/utils/sanitize';
+const sanitizeText = (v: any, max: number = MAX_FIELD_LEN): string => sanitizeTextUtil(v, max);
 
 /**
  * CSV 파싱 (RFC 4180 인용부호 처리)
