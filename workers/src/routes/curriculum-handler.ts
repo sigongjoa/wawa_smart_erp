@@ -82,6 +82,29 @@ function normalizeNullable(v: any): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
+/**
+ * SEC-CURR-M2: 텍스트 위생화 — C0/C1 제어문자 제거 후 trim.
+ * 길이 캡은 lenError가 별도 처리. 빈 결과는 호출 측에서 처리.
+ */
+function sanitizeText(v: any): string {
+  if (typeof v !== 'string') return '';
+  // \t, \n 유지 — 그 외 C0/C1 제어문자 제거
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+
+/** 위생화 + null 정규화 (text 필드 일관 처리) */
+function sanitizeNullable(v: any): string | null {
+  const cleaned = sanitizeText(v);
+  return cleaned === '' ? null : cleaned;
+}
+
+// SEC-CURR-M1: order_idx 정수 범위 검증
+const ORDER_IDX_MAX = 1_000_000;
+function isValidOrderIdx(v: any): boolean {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= ORDER_IDX_MAX;
+}
+
 export async function handleCurriculum(
   method: string,
   pathname: string,
@@ -134,18 +157,26 @@ export async function handleCurriculum(
     // POST /api/curricula
     if (method === 'POST' && pathname === '/api/curricula') {
       const body = (await request.json().catch(() => ({}))) as Partial<CurriculumRow>;
-      if (!body.term || !body.grade || !body.subject || !body.title) {
+      // SEC-CURR-M2: 위생화 + 빈 값 reject (필수 필드)
+      const cleanTerm = sanitizeText(body.term);
+      const cleanGrade = sanitizeText(body.grade);
+      const cleanSubject = sanitizeText(body.subject);
+      const cleanTitle = sanitizeText(body.title);
+      if (!cleanTerm || !cleanGrade || !cleanSubject || !cleanTitle) {
         return errorResponse('term, grade, subject, title 필수', 400);
       }
-      for (const f of ['term', 'grade', 'subject', 'title', 'description'] as const) {
-        const e = lenError(f, body[f]); if (e) return e;
+      for (const [f, v] of [
+        ['term', cleanTerm], ['grade', cleanGrade], ['subject', cleanSubject],
+        ['title', cleanTitle], ['description', body.description],
+      ] as const) {
+        const e = lenError(f as keyof typeof FIELD_MAX_LEN, v); if (e) return e;
       }
       const id = generateId();
       await executeUpdate(
         db,
         `INSERT INTO curricula (id, academy_id, term, grade, subject, title, description, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, academyId, body.term, body.grade, body.subject, body.title, body.description ?? null, userId]
+        [id, academyId, cleanTerm, cleanGrade, cleanSubject, cleanTitle, sanitizeNullable(body.description), userId]
       );
       const row = await executeFirst<CurriculumRow>(
         db, 'SELECT * FROM curricula WHERE id = ?', [id]
@@ -188,13 +219,20 @@ export async function handleCurriculum(
       if (!canEdit(c)) return errorResponse('편집 권한이 없습니다 (작성자/관리자만)', 403);
       const body = (await request.json().catch(() => ({}))) as Partial<CurriculumRow>;
       const updates: string[] = []; const params: any[] = [];
+      // SEC-CURR-M3: 필수 필드는 빈 값으로 PATCH 불가
+      const REQUIRED = new Set<keyof CurriculumRow>(['term', 'grade', 'subject', 'title']);
       for (const k of ['term', 'grade', 'subject', 'title', 'description'] as const) {
         if (k in body) {
           const e = lenError(k, (body as any)[k]);
           if (e) return e;
-          // description은 빈 문자열 → null 정규화
-          const val = k === 'description' ? normalizeNullable((body as any)[k]) : (body as any)[k];
-          updates.push(`${k} = ?`); params.push(val);
+          // SEC-CURR-M2: 모든 텍스트 필드를 sanitize. description은 nullable.
+          const cleaned = k === 'description'
+            ? sanitizeNullable((body as any)[k])
+            : sanitizeText((body as any)[k]);
+          if (REQUIRED.has(k as any) && (cleaned === null || cleaned === '')) {
+            return errorResponse(`${k}는 비울 수 없습니다`, 400);
+          }
+          updates.push(`${k} = ?`); params.push(cleaned);
         }
       }
       if (updates.length === 0) return successResponse({ ok: true });
@@ -227,6 +265,15 @@ export async function handleCurriculum(
         items?: Array<{ id: string; order_idx: number }>;
       };
       if (!Array.isArray(body.items)) return errorResponse('items 배열 필요', 400);
+      // SEC-CURR-M1: order_idx 정수 범위 검증 + id 타입 검증
+      for (const it of body.items) {
+        if (!it || typeof it.id !== 'string' || !it.id) {
+          return errorResponse('items[].id가 유효하지 않습니다', 400);
+        }
+        if (!isValidOrderIdx(it.order_idx)) {
+          return errorResponse(`items[].order_idx는 0~${ORDER_IDX_MAX} 정수여야 합니다`, 400);
+        }
+      }
       // batch 처리 — N+1 회피
       const stmts = body.items.map((it) =>
         db.prepare(
@@ -243,12 +290,28 @@ export async function handleCurriculum(
       if (!c) return notFoundResponse();
       if (!canEdit(c)) return errorResponse('편집 권한 없음', 403);
       const body = (await request.json().catch(() => ({}))) as Partial<CurriculumItemRow>;
-      if (!body.unit_name) return errorResponse('unit_name 필수', 400);
-      for (const f of ['textbook', 'unit_name', 'description', 'default_purpose'] as const) {
-        const e = lenError(f, body[f]); if (e) return e;
+      // SEC-CURR-M2: unit_name 위생화 + 필수
+      const cleanUnitName = sanitizeText(body.unit_name);
+      if (!cleanUnitName) return errorResponse('unit_name 필수', 400);
+      for (const [f, v] of [
+        ['textbook', body.textbook], ['unit_name', cleanUnitName],
+        ['description', body.description], ['default_purpose', body.default_purpose],
+      ] as const) {
+        const e = lenError(f as keyof typeof FIELD_MAX_LEN, v); if (e) return e;
       }
-      const kind = body.kind && (ALLOWED_KINDS as readonly string[]).includes(body.kind)
-        ? body.kind : 'type';
+      // SEC-CURR-L1: kind 명시 시 화이트리스트 검증 (silent skip 제거)
+      let kind: string = 'type';
+      if (body.kind !== undefined) {
+        if (!(ALLOWED_KINDS as readonly string[]).includes(body.kind)) {
+          return errorResponse(`kind는 ${ALLOWED_KINDS.join('|')}여야 합니다`, 400);
+        }
+        kind = body.kind;
+      }
+      // SEC-CURR-M1: order_idx 검증 (있으면)
+      const orderIdx = body.order_idx ?? 0;
+      if (!isValidOrderIdx(orderIdx)) {
+        return errorResponse(`order_idx는 0~${ORDER_IDX_MAX} 정수여야 합니다`, 400);
+      }
       const id = generateId();
       await executeUpdate(
         db,
@@ -257,12 +320,12 @@ export async function handleCurriculum(
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id, c.id,
-          normalizeNullable(body.textbook),
-          body.unit_name,
+          sanitizeNullable(body.textbook),
+          cleanUnitName,
           kind,
-          body.order_idx ?? 0,
-          normalizeNullable(body.description),
-          normalizeNullable(body.default_purpose),
+          orderIdx,
+          sanitizeNullable(body.description),
+          sanitizeNullable(body.default_purpose),
         ]
       );
       const row = await executeFirst<CurriculumItemRow>(
@@ -299,28 +362,38 @@ export async function handleCurriculum(
         // 명시적 if 분기로 exception flow control 제거
         if ('textbook' in body) {
           const e = lenError('textbook', body.textbook); if (e) return e;
-          updates.push('textbook = ?'); params.push(normalizeNullable(body.textbook));
+          updates.push('textbook = ?'); params.push(sanitizeNullable(body.textbook));
         }
         if ('unit_name' in body) {
-          const e = lenError('unit_name', body.unit_name); if (e) return e;
-          if (!body.unit_name || (typeof body.unit_name === 'string' && body.unit_name.trim() === '')) {
+          // SEC-CURR-M2 + M3: 위생화 후 빈 값이면 reject
+          const cleaned = sanitizeText(body.unit_name);
+          const e = lenError('unit_name', cleaned); if (e) return e;
+          if (!cleaned) {
             return errorResponse('unit_name은 비울 수 없습니다', 400);
           }
-          updates.push('unit_name = ?'); params.push(body.unit_name);
+          updates.push('unit_name = ?'); params.push(cleaned);
         }
-        if ('kind' in body && (ALLOWED_KINDS as readonly string[]).includes(body.kind!)) {
+        if ('kind' in body) {
+          // SEC-CURR-L1: silent skip 대신 무효값 명시적 reject
+          if (!(ALLOWED_KINDS as readonly string[]).includes(body.kind!)) {
+            return errorResponse(`kind는 ${ALLOWED_KINDS.join('|')}여야 합니다`, 400);
+          }
           updates.push('kind = ?'); params.push(body.kind);
         }
         if ('order_idx' in body) {
+          // SEC-CURR-M1: 정수 범위 검증
+          if (!isValidOrderIdx(body.order_idx)) {
+            return errorResponse(`order_idx는 0~${ORDER_IDX_MAX} 정수여야 합니다`, 400);
+          }
           updates.push('order_idx = ?'); params.push(body.order_idx);
         }
         if ('description' in body) {
           const e = lenError('description', body.description); if (e) return e;
-          updates.push('description = ?'); params.push(normalizeNullable(body.description));
+          updates.push('description = ?'); params.push(sanitizeNullable(body.description));
         }
         if ('default_purpose' in body) {
           const e = lenError('default_purpose', body.default_purpose); if (e) return e;
-          updates.push('default_purpose = ?'); params.push(normalizeNullable(body.default_purpose));
+          updates.push('default_purpose = ?'); params.push(sanitizeNullable(body.default_purpose));
         }
         if (updates.length === 0) return successResponse({ ok: true });
         params.push(itemId);
