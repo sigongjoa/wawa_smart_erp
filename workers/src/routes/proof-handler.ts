@@ -11,6 +11,25 @@ import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/re
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
 
+// SEC-PROOF: 텍스트 위생화 (C0/C1 제거 + trim) + 길이 캡
+function sanitizeText(v: any): string {
+  if (typeof v !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+function sanitizeNullable(v: any): string | null {
+  const cleaned = sanitizeText(v);
+  return cleaned === '' ? null : cleaned;
+}
+
+const MAX_TITLE_LEN = 200;
+const MAX_DESCRIPTION_LEN = 2000;
+const MAX_SHORT_LEN = 100;
+const MAX_CONTENT_LEN = 5000;
+const MAX_HINT_LEN = 1000;
+const MAX_STEPS = 50;
+const MAX_ASSIGN_STUDENTS = 100;
+
 // ── 입력 검증 ──
 
 interface ProofInput {
@@ -31,24 +50,43 @@ interface StepInput {
 }
 
 function validateProofInput(body: any): ProofInput {
-  if (!body.title || typeof body.title !== 'string' || body.title.trim().length === 0) {
-    throw new Error('입력 검증 오류: 증명 제목은 필수입니다');
+  // SEC-PROOF-H3+M1: sanitize + 길이 캡
+  const cleanTitle = sanitizeText(body.title);
+  const cleanGrade = sanitizeText(body.grade);
+  if (!cleanTitle) throw new Error('입력 검증 오류: 증명 제목은 필수입니다');
+  if (!cleanGrade) throw new Error('입력 검증 오류: 학년은 필수입니다');
+  if (cleanTitle.length > MAX_TITLE_LEN) throw new Error(`입력 검증 오류: 제목은 ${MAX_TITLE_LEN}자 이내`);
+  if (cleanGrade.length > MAX_SHORT_LEN) throw new Error(`입력 검증 오류: 학년은 ${MAX_SHORT_LEN}자 이내`);
+
+  let cleanDifficulty: number = 1;
+  if (body.difficulty !== undefined) {
+    const d = Number(body.difficulty);
+    if (!Number.isInteger(d) || d < 1 || d > 5) {
+      throw new Error('입력 검증 오류: 난이도는 1~5 사이 정수여야 합니다');
+    }
+    cleanDifficulty = d;
   }
-  if (!body.grade || typeof body.grade !== 'string') {
-    throw new Error('입력 검증 오류: 학년은 필수입니다');
-  }
-  if (body.difficulty !== undefined && (body.difficulty < 1 || body.difficulty > 5)) {
-    throw new Error('입력 검증 오류: 난이도는 1~5 사이여야 합니다');
-  }
+
+  const cleanChapter = sanitizeNullable(body.chapter);
+  const cleanDescription = sanitizeNullable(body.description);
+  const cleanDescImage = sanitizeNullable(body.description_image);
+  if (cleanChapter && cleanChapter.length > MAX_SHORT_LEN) throw new Error('입력 검증 오류: chapter 너무 김');
+  if (cleanDescription && cleanDescription.length > MAX_DESCRIPTION_LEN) throw new Error(`입력 검증 오류: description ${MAX_DESCRIPTION_LEN}자 초과`);
+
+  let cleanSteps: StepInput[] = [];
   if (body.steps) {
     if (!Array.isArray(body.steps)) {
       throw new Error('입력 검증 오류: steps는 배열이어야 합니다');
     }
-    for (let i = 0; i < body.steps.length; i++) {
-      const s = body.steps[i];
-      if (!s.content || typeof s.content !== 'string') {
-        throw new Error(`입력 검증 오류: Step ${i + 1}의 내용은 필수입니다`);
-      }
+    if (body.steps.length > MAX_STEPS) {
+      throw new Error(`입력 검증 오류: 단계는 최대 ${MAX_STEPS}개까지`);
+    }
+    cleanSteps = body.steps.map((s: any, i: number) => {
+      const c = sanitizeText(s.content);
+      if (!c) throw new Error(`입력 검증 오류: Step ${i + 1}의 내용은 필수입니다`);
+      if (c.length > MAX_CONTENT_LEN) throw new Error(`입력 검증 오류: Step ${i + 1} 내용 ${MAX_CONTENT_LEN}자 초과`);
+      const hint = sanitizeNullable(s.hint);
+      if (hint && hint.length > MAX_HINT_LEN) throw new Error(`입력 검증 오류: Step ${i + 1} hint ${MAX_HINT_LEN}자 초과`);
       if (s.blanks_json) {
         try {
           const blanks = JSON.parse(s.blanks_json);
@@ -57,16 +95,23 @@ function validateProofInput(body: any): ProofInput {
           throw new Error(`입력 검증 오류: Step ${i + 1}의 빈칸 JSON이 유효하지 않습니다`);
         }
       }
-    }
+      return {
+        content: c,
+        content_image: sanitizeNullable(s.content_image) ?? undefined,
+        blanks_json: s.blanks_json || undefined,
+        hint: hint ?? undefined,
+      };
+    });
   }
+
   return {
-    title: body.title.trim(),
-    grade: body.grade.trim(),
-    chapter: body.chapter?.trim() || null,
-    difficulty: body.difficulty || 1,
-    description: body.description?.trim() || null,
-    description_image: body.description_image || null,
-    steps: body.steps || [],
+    title: cleanTitle,
+    grade: cleanGrade,
+    chapter: cleanChapter ?? undefined,
+    difficulty: cleanDifficulty,
+    description: cleanDescription ?? undefined,
+    description_image: cleanDescImage ?? undefined,
+    steps: cleanSteps,
   };
 }
 
@@ -183,13 +228,40 @@ async function handleUpdateProof(request: Request, context: RequestContext, proo
   const sets: string[] = [];
   const params: unknown[] = [];
 
-  const fields = ['title', 'grade', 'chapter', 'difficulty', 'description', 'description_image'];
-  for (const f of fields) {
-    if (body[f] !== undefined) {
-      sets.push(`${f} = ?`);
-      params.push(body[f]);
-    }
+  // SEC-PROOF-H3: 화이트리스트 + sanitize + 타입/길이 검증. 이전엔 body 값 그대로 UPDATE.
+  if ('title' in body) {
+    const v = sanitizeText(body.title);
+    if (!v) return errorResponse('title은 비울 수 없습니다', 400);
+    if (v.length > MAX_TITLE_LEN) return errorResponse(`title은 ${MAX_TITLE_LEN}자 이내`, 400);
+    sets.push('title = ?'); params.push(v);
   }
+  if ('grade' in body) {
+    const v = sanitizeText(body.grade);
+    if (!v) return errorResponse('grade는 비울 수 없습니다', 400);
+    if (v.length > MAX_SHORT_LEN) return errorResponse(`grade는 ${MAX_SHORT_LEN}자 이내`, 400);
+    sets.push('grade = ?'); params.push(v);
+  }
+  if ('chapter' in body) {
+    const v = sanitizeNullable(body.chapter);
+    if (v && v.length > MAX_SHORT_LEN) return errorResponse(`chapter는 ${MAX_SHORT_LEN}자 이내`, 400);
+    sets.push('chapter = ?'); params.push(v);
+  }
+  if ('difficulty' in body) {
+    const d = Number(body.difficulty);
+    if (!Number.isInteger(d) || d < 1 || d > 5) return errorResponse('difficulty는 1~5 정수', 400);
+    sets.push('difficulty = ?'); params.push(d);
+  }
+  if ('description' in body) {
+    const v = sanitizeNullable(body.description);
+    if (v && v.length > MAX_DESCRIPTION_LEN) return errorResponse(`description은 ${MAX_DESCRIPTION_LEN}자 이내`, 400);
+    sets.push('description = ?'); params.push(v);
+  }
+  if ('description_image' in body) {
+    const v = sanitizeNullable(body.description_image);
+    sets.push('description_image = ?'); params.push(v);
+  }
+
+  if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
 
   sets.push('updated_at = ?');
   params.push(new Date().toISOString());
@@ -224,31 +296,58 @@ async function handleUpdateSteps(request: Request, context: RequestContext, proo
   if (!Array.isArray(body.steps)) {
     return errorResponse('입력 검증 오류: steps 배열이 필요합니다', 400);
   }
-
-  // 기존 단계 삭제 후 재삽입 (순서 보장)
-  await executeDelete(context.env.DB, 'DELETE FROM proof_steps WHERE proof_id = ?', [proofId]);
-
-  for (let i = 0; i < body.steps.length; i++) {
-    const step = body.steps[i];
-    if (!step.content || typeof step.content !== 'string') {
-      return errorResponse(`입력 검증 오류: Step ${i + 1}의 내용은 필수입니다`, 400);
-    }
-    const stepId = step.id || generatePrefixedId('pstep');
-    await executeInsert(
-      context.env.DB,
-      `INSERT INTO proof_steps (id, proof_id, step_order, content, content_image, blanks_json, hint)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [stepId, proofId, i + 1, step.content, step.content_image || null, step.blanks_json || null, step.hint || null]
-    );
+  if (body.steps.length > MAX_STEPS) {
+    return errorResponse(`단계는 최대 ${MAX_STEPS}개까지`, 400);
   }
 
-  await executeUpdate(
-    context.env.DB,
-    'UPDATE proofs SET updated_at = ? WHERE id = ?',
-    [new Date().toISOString(), proofId]
-  );
+  // SEC-PROOF-M1: 검증 + sanitize 먼저 (실패 시 DELETE 전에 reject)
+  type CleanStep = { id: string; content: string; content_image: string | null; blanks_json: string | null; hint: string | null };
+  const cleanSteps: CleanStep[] = [];
+  for (let i = 0; i < body.steps.length; i++) {
+    const step = body.steps[i];
+    const c = sanitizeText(step.content);
+    if (!c) return errorResponse(`Step ${i + 1}의 내용은 필수`, 400);
+    if (c.length > MAX_CONTENT_LEN) return errorResponse(`Step ${i + 1} 내용 ${MAX_CONTENT_LEN}자 초과`, 400);
+    const hint = sanitizeNullable(step.hint);
+    if (hint && hint.length > MAX_HINT_LEN) return errorResponse(`Step ${i + 1} hint ${MAX_HINT_LEN}자 초과`, 400);
+    if (step.blanks_json) {
+      try {
+        const blanks = JSON.parse(step.blanks_json);
+        if (!Array.isArray(blanks)) throw new Error();
+      } catch {
+        return errorResponse(`Step ${i + 1} blanks_json 유효하지 않음`, 400);
+      }
+    }
+    cleanSteps.push({
+      id: typeof step.id === 'string' && step.id ? step.id : generatePrefixedId('pstep'),
+      content: c,
+      content_image: sanitizeNullable(step.content_image),
+      blanks_json: step.blanks_json || null,
+      hint,
+    });
+  }
 
-  return successResponse({ proof_id: proofId, step_count: body.steps.length });
+  // SEC-PROOF-M1: DELETE + INSERT를 batch로 원자화 — 중간 실패 시 단계 손실 방지
+  const db = context.env.DB;
+  const stmts: any[] = [
+    db.prepare('DELETE FROM proof_steps WHERE proof_id = ?').bind(proofId),
+  ];
+  for (let i = 0; i < cleanSteps.length; i++) {
+    const s = cleanSteps[i];
+    stmts.push(
+      db.prepare(
+        `INSERT INTO proof_steps (id, proof_id, step_order, content, content_image, blanks_json, hint)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).bind(s.id, proofId, i + 1, s.content, s.content_image, s.blanks_json, s.hint)
+    );
+  }
+  stmts.push(
+    db.prepare('UPDATE proofs SET updated_at = ? WHERE id = ?')
+      .bind(new Date().toISOString(), proofId)
+  );
+  await db.batch(stmts);
+
+  return successResponse({ proof_id: proofId, step_count: cleanSteps.length });
 }
 
 async function handleDeleteProof(context: RequestContext, proofId: string): Promise<Response> {
@@ -440,46 +539,68 @@ async function handleCopyProof(request: Request, context: RequestContext, proofI
   const userId = getUserId(context);
   const now = new Date().toISOString();
 
-  // 증명 복사
-  const newProofId = generatePrefixedId('proof');
-  await executeInsert(
+  // SEC-PROOF-H1: 같은 학원이 같은 원본을 여러 번 복사해 share_count 부풀리기 차단.
+  // 학원당 1회로 제한 — 이미 복사한 경우 기존 사본을 idempotent로 응답.
+  const existingShare = await executeFirst<any>(
     context.env.DB,
-    `INSERT INTO proofs (id, academy_id, created_by, title, grade, chapter, difficulty, description, description_image, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [newProofId, academyId, userId, original.title, original.grade, original.chapter, original.difficulty, original.description, original.description_image, now, now]
+    `SELECT copied_proof_id FROM proof_shares
+     WHERE original_proof_id = ? AND copied_academy_id = ?
+     ORDER BY copied_at DESC LIMIT 1`,
+    [proofId, academyId]
   );
+  if (existingShare?.copied_proof_id) {
+    // 동일 학원에서 이미 복사한 경우 — share_count는 증가시키지 않음, 기존 사본 반환
+    const existingProof = await executeFirst<any>(
+      context.env.DB,
+      'SELECT id, title FROM proofs WHERE id = ?',
+      [existingShare.copied_proof_id]
+    );
+    if (existingProof) {
+      return successResponse({
+        id: existingProof.id,
+        copiedFrom: proofId,
+        title: existingProof.title,
+        alreadyCopied: true,
+      });
+    }
+    // 사본이 삭제됨 — 재복사 허용
+  }
 
-  // 단계 복사
+  const newProofId = generatePrefixedId('proof');
+  const shareId = generatePrefixedId('pshare');
+
+  // SEC-PROOF-M2: 단계 SELECT 후 모든 INSERT/UPDATE를 batch로 원자화
   const steps = await executeQuery<any>(
     context.env.DB,
     'SELECT * FROM proof_steps WHERE proof_id = ? ORDER BY step_order',
     [proofId]
   );
+
+  const db = context.env.DB;
+  const stmts: any[] = [
+    db.prepare(
+      `INSERT INTO proofs (id, academy_id, created_by, title, grade, chapter, difficulty, description, description_image, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(newProofId, academyId, userId, original.title, original.grade, original.chapter, original.difficulty, original.description, original.description_image, now, now),
+  ];
   for (const step of steps) {
-    const newStepId = generatePrefixedId('pstep');
-    await executeInsert(
-      context.env.DB,
-      `INSERT INTO proof_steps (id, proof_id, step_order, content, content_image, blanks_json, hint)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [newStepId, newProofId, step.step_order, step.content, step.content_image, step.blanks_json, step.hint]
+    stmts.push(
+      db.prepare(
+        `INSERT INTO proof_steps (id, proof_id, step_order, content, content_image, blanks_json, hint)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).bind(generatePrefixedId('pstep'), newProofId, step.step_order, step.content, step.content_image, step.blanks_json, step.hint)
     );
   }
-
-  // 공유 기록
-  const shareId = generatePrefixedId('pshare');
-  await executeInsert(
-    context.env.DB,
-    `INSERT INTO proof_shares (id, original_proof_id, shared_by, copied_by, copied_academy_id, copied_proof_id, copied_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [shareId, proofId, original.created_by, userId, academyId, newProofId, now]
+  stmts.push(
+    db.prepare(
+      `INSERT INTO proof_shares (id, original_proof_id, shared_by, copied_by, copied_academy_id, copied_proof_id, copied_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(shareId, proofId, original.created_by, userId, academyId, newProofId, now)
   );
-
-  // 원본 share_count 증가
-  await executeUpdate(
-    context.env.DB,
-    'UPDATE proofs SET share_count = share_count + 1 WHERE id = ?',
-    [proofId]
+  stmts.push(
+    db.prepare('UPDATE proofs SET share_count = share_count + 1 WHERE id = ?').bind(proofId)
   );
+  await db.batch(stmts);
 
   logger.logAudit('PROOF_COPY', 'Proof', newProofId, userId, { originalId: proofId, title: original.title });
 
@@ -499,6 +620,17 @@ async function handleAssignProof(request: Request, context: RequestContext, proo
   if (!Array.isArray(body.student_ids) || body.student_ids.length === 0) {
     return errorResponse('입력 검증 오류: student_ids 배열이 필요합니다', 400);
   }
+  // SEC-PROOF-H2: 길이 캡 — 100명 초과 reject. ID 형식 검증.
+  if (body.student_ids.length > MAX_ASSIGN_STUDENTS) {
+    return errorResponse(`한 번에 ${MAX_ASSIGN_STUDENTS}명까지 배정 가능`, 400);
+  }
+  const cleanIds: string[] = [];
+  for (const sid of body.student_ids) {
+    if (typeof sid === 'string' && sid && sid.length <= 64 && /^[a-zA-Z0-9_-]+$/.test(sid)) {
+      cleanIds.push(sid);
+    }
+  }
+  if (cleanIds.length === 0) return errorResponse('유효한 student_id가 없습니다', 400);
 
   const proof = await executeFirst<any>(
     context.env.DB,
@@ -507,35 +639,40 @@ async function handleAssignProof(request: Request, context: RequestContext, proo
   );
   if (!proof) return errorResponse('증명을 찾을 수 없습니다', 404);
 
-  const assigned: string[] = [];
-  for (const studentId of body.student_ids) {
-    // 학생이 본 학원 소속인지 확인
-    const student = await executeFirst<any>(
-      context.env.DB,
-      'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
-      [studentId, academyId]
-    );
-    if (!student) continue;
+  // SEC-PROOF-H2: 학생 academy 검증을 단일 쿼리로 (이전 N+1).
+  const placeholders = cleanIds.map(() => '?').join(',');
+  const validRows = await executeQuery<{ id: string }>(
+    context.env.DB,
+    `SELECT id FROM gacha_students WHERE academy_id = ? AND id IN (${placeholders})`,
+    [academyId, ...cleanIds]
+  );
+  const validIds = new Set(validRows.map(r => r.id));
 
-    // 이미 배정되었는지 확인
-    const existing = await executeFirst<any>(
-      context.env.DB,
-      'SELECT id FROM proof_assignments WHERE student_id = ? AND proof_id = ?',
-      [studentId, proofId]
-    );
-    if (existing) continue;
+  // 기존 배정 한꺼번에 조회
+  const existingRows = await executeQuery<{ student_id: string }>(
+    context.env.DB,
+    `SELECT student_id FROM proof_assignments WHERE proof_id = ? AND student_id IN (${placeholders})`,
+    [proofId, ...cleanIds]
+  );
+  const existingSet = new Set(existingRows.map(r => r.student_id));
 
-    const assignId = generatePrefixedId('passign');
-    await executeInsert(
-      context.env.DB,
-      `INSERT INTO proof_assignments (id, student_id, proof_id, assigned_by, assigned_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [assignId, studentId, proofId, userId, new Date().toISOString()]
-    );
-    assigned.push(studentId);
+  const toInsert = cleanIds.filter(id => validIds.has(id) && !existingSet.has(id));
+  if (toInsert.length === 0) {
+    return successResponse({ proof_id: proofId, assigned_students: [] });
   }
 
-  return successResponse({ proof_id: proofId, assigned_students: assigned });
+  // SEC-PROOF-H2: batch INSERT
+  const now = new Date().toISOString();
+  const db = context.env.DB;
+  const stmts = toInsert.map((studentId) =>
+    db.prepare(
+      `INSERT INTO proof_assignments (id, student_id, proof_id, assigned_by, assigned_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(generatePrefixedId('passign'), studentId, proofId, userId, now)
+  );
+  await db.batch(stmts);
+
+  return successResponse({ proof_id: proofId, assigned_students: toInsert });
 }
 
 async function handleUnassignProof(context: RequestContext, proofId: string, studentId: string): Promise<Response> {
