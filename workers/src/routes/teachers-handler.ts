@@ -645,12 +645,17 @@ async function handleResetTeacherPin(
   ]);
 
   logger.info(`PIN 재설정: ${teacherId} by ${context.auth!.userId} (sessions revoked)`);
-  return successResponse({
+  // TEACH-SEC-H2 partial: 평문 PIN 응답이라 proxy/CDN cache·로그 노출 차단을 위해
+  // Cache-Control: no-store + private 강제.
+  const resp = successResponse({
     tempPin,
     expiresInHours: TEMP_PIN_TTL_HOURS,
     mustChange: true,
     message: `임시 PIN을 안전한 채널로 ${TEMP_PIN_TTL_HOURS}시간 이내에 전달하세요. 첫 로그인 시 변경이 강제됩니다.`,
   });
+  resp.headers.set('Cache-Control', 'no-store, private, max-age=0');
+  resp.headers.set('Pragma', 'no-cache');
+  return resp;
 }
 
 /**

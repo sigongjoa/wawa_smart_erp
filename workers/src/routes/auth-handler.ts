@@ -59,7 +59,8 @@ export async function handleAuth(
       // 사용자 조회 (학원 slug + 이름으로 검색 — 다른 학원 이름 충돌 방지)
       const user = await executeFirst<any>(
         context.env.DB,
-        `SELECT u.id, u.email, u.name, u.role, u.academy_id, u.password_hash
+        `SELECT u.id, u.email, u.name, u.role, u.academy_id, u.password_hash,
+                u.password_must_change, u.password_reset_at
          FROM users u
          JOIN academies a ON u.academy_id = a.id
          WHERE u.name = ? AND a.slug = ? AND a.is_active = 1
@@ -80,6 +81,24 @@ export async function handleAuth(
         await accountLoginRecordFail(context.env.KV, slug, name);
         logger.warn('PIN 불일치', { slug });
         return unauthorizedResponse();
+      }
+
+      // SEC-AUTH-PWMC: 임시 PIN 24h 만료 enforcement (TEACH-SEC-H3)
+      // password_must_change=1 + password_reset_at + 24h 초과 → 로그인 거부
+      if (user.password_must_change === 1 && user.password_reset_at) {
+        const resetMs = new Date(user.password_reset_at + 'Z').getTime();
+        if (!isNaN(resetMs)) {
+          const ageHours = (Date.now() - resetMs) / (3600 * 1000);
+          if (ageHours > 24) {
+            logger.logSecurity('TEMP_PIN_EXPIRED_LOGIN_REJECTED', 'medium', {
+              userId: user.id, ageHours: Math.round(ageHours),
+            });
+            return errorResponse(
+              '임시 PIN이 만료되었습니다 (24시간 초과). 관리자에게 재발급을 요청하세요.',
+              401
+            );
+          }
+        }
       }
 
       // 성공 — 계정 잠금 카운터 리셋
@@ -138,6 +157,8 @@ export async function handleAuth(
             academyName: academyRow?.name,
             academySlug: academyRow?.slug,
             academyLogo: academyRow?.logo_url,
+            // SEC-AUTH-PWMC: 클라이언트는 이 플래그가 true면 변경 화면 강제
+            passwordMustChange: user.password_must_change === 1,
           },
         },
         200
@@ -169,6 +190,8 @@ export async function handleAuth(
         return unauthorizedResponse();
       }
 
+      // SEC-AUTH-H3: 회전 + 재사용 탐지.
+      // 이 토큰의 session row를 조회. 존재하지 않으면 (이미 회전됨) → 재사용 시도 → user 전체 폐기.
       const session = await executeFirst<{ user_id: string }>(
         context.env.DB,
         'SELECT user_id FROM sessions WHERE id = ? AND expires_at > datetime("now")',
@@ -176,6 +199,18 @@ export async function handleAuth(
       );
 
       if (!session) {
+        // 토큰은 verify 통과했지만 session 없음 — 이미 회전됐거나 logout된 토큰 재사용.
+        // payload.userId의 모든 활성 세션을 즉시 폐기 (도난 가능성 방어).
+        // refresh JWT 자체는 30일 유효이므로 회전 후에도 verify는 통과하지만, DB row 삭제로
+        // 무효화 — DB row 부재가 재사용 신호.
+        await executeUpdate(
+          context.env.DB,
+          'DELETE FROM sessions WHERE user_id = ?',
+          [payload.userId]
+        );
+        logger.logSecurity('REFRESH_TOKEN_REUSE_DETECTED', 'high', {
+          userId: payload.userId, tokenId: payload.tokenId,
+        });
         return unauthorizedResponse();
       }
 
@@ -198,12 +233,19 @@ export async function handleAuth(
       );
 
       const expiresAt = createTokenExpiry(parseInt(context.env.REFRESH_TOKEN_EXPIRES_IN) || 2592000);
-      await executeUpdate(
-        context.env.DB,
-        `INSERT INTO sessions (id, user_id, refresh_token, expires_at, created_at)
-         VALUES (?, ?, ?, ?, datetime('now'))`,
-        [refreshTokenId, user.id, newRefreshToken, expiresAt.toISOString()]
-      );
+
+      // SEC-AUTH-H3: 회전 — 이전 row 삭제 + 새 row 삽입을 batch로 원자화
+      await context.env.DB.batch([
+        context.env.DB
+          .prepare('DELETE FROM sessions WHERE id = ?')
+          .bind(payload.tokenId),
+        context.env.DB
+          .prepare(
+            `INSERT INTO sessions (id, user_id, refresh_token, expires_at, created_at)
+             VALUES (?, ?, ?, ?, datetime('now'))`
+          )
+          .bind(refreshTokenId, user.id, newRefreshToken, expiresAt.toISOString()),
+      ]);
 
       const accessMaxAge = parseInt(context.env.JWT_EXPIRES_IN) || 3600;
       const refreshMaxAge = parseInt(context.env.REFRESH_TOKEN_EXPIRES_IN) || 2592000;

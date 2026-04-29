@@ -12,25 +12,10 @@ import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/re
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
 
-// ── PIN 해싱 (PBKDF2-SHA256) ──
-
-async function hashPin(pin: string, salt: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw', encoder.encode(pin), 'PBKDF2', false, ['deriveBits']
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: encoder.encode(salt), iterations: 10000, hash: 'SHA-256' },
-    keyMaterial, 256
-  );
-  return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function generateSalt(): string {
-  const arr = new Uint8Array(16);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
-}
+// SEC-PIN-KDF: 신규 PIN 해싱은 utils/crypto.ts (100k iter, salt 포맷).
+// 기존 학생의 legacy hash(10k iter)는 gacha-play-handler.ts:handleLogin이
+// verify 시 자동으로 새 형식으로 재해시.
+import { hashPin } from '@/utils/crypto';
 
 // SEC-GSTU-M2: 텍스트 위생화 — C0/C1 제거 + trim
 function sanitizeText(v: any, max: number = 100): string {
@@ -167,15 +152,15 @@ async function handleCreateStudent(request: Request, context: RequestContext): P
   }
 
   const studentId = generatePrefixedId('gstu');
-  const salt = generateSalt();
-  const pinHash = await hashPin(input.pin, salt);
+  // SEC-PIN-KDF: 100k iter pbkdf2$... 형식. pin_salt는 NULL (포맷 안에 salt 인코딩됨).
+  const pinHash = await hashPin(input.pin);
   const now = new Date().toISOString();
 
   await executeInsert(
     context.env.DB,
     `INSERT INTO gacha_students (id, academy_id, teacher_id, name, pin_hash, pin_salt, grade, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [studentId, academyId, teacherId, input.name, pinHash, salt, input.grade, now]
+     VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+    [studentId, academyId, teacherId, input.name, pinHash, input.grade, now]
   );
 
   // 시험 배정/과제 등에서 FK가 students(id)를 참조하므로 동일 id로 students에도 insert
@@ -304,21 +289,27 @@ async function handleResetPin(request: Request, context: RequestContext, student
     return errorResponse('담당 학생이 아닙니다', 403);
   }
 
-  const salt = generateSalt();
-  const pinHash = await hashPin(pin, salt);
+  // SEC-PIN-KDF: 100k iter 형식 사용
+  const pinHash = await hashPin(pin);
 
   await executeUpdate(
     context.env.DB,
-    'UPDATE gacha_students SET pin_hash = ?, pin_salt = ?, updated_at = ? WHERE id = ?',
-    [pinHash, salt, new Date().toISOString(), studentId]
+    'UPDATE gacha_students SET pin_hash = ?, pin_salt = NULL, updated_at = ? WHERE id = ?',
+    [pinHash, new Date().toISOString(), studentId]
   );
 
   // generate=true 일 때만 평문 포함 (강사가 학생에게 전달용, 한 번만 노출)
-  return successResponse({
+  const resp = successResponse({
     id: studentId,
     pinReset: true,
     ...(body.generate === true ? { pin } : {}),
   });
+  // GSTU-H2 partial: 평문 PIN 노출 응답이면 cache 차단
+  if (body.generate === true) {
+    resp.headers.set('Cache-Control', 'no-store, private, max-age=0');
+    resp.headers.set('Pragma', 'no-cache');
+  }
+  return resp;
 }
 
 // ── 메인 라우터 ──

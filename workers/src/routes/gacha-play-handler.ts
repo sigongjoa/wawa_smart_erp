@@ -10,6 +10,7 @@ import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/re
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
 import { gachaCardFeedbackRateLimit } from '@/middleware/rateLimit';
+import { hashPin as hashPinV2, verifyPin as verifyPinV2 } from '@/utils/crypto';
 
 // SEC-GACHA-H3: 증명 풀이 시작 시각을 KV에 저장 (학생당, 증명당, 모드당).
 // submit 시 서버측에서 timeSpent 계산. 클라이언트 start_time 신뢰 제거.
@@ -46,9 +47,11 @@ function clearPinRate(ip: string) {
   pinRateStore.delete(`play-login:${ip}`);
 }
 
-// ── PIN 해싱 (gacha-student-handler와 동일) ──
+// ── PIN 해싱: 하위호환 (10k iter, hex hash). 신규 학생은 utils/crypto.ts 사용. ──
+// SEC-PIN-KDF: 학생 PIN을 utils/crypto.ts(100k iter, salt 포맷) 으로 통일 진행 중.
+// 기존 학생 PIN은 아래 hashPinLegacy로 verify, verify 성공 시 자동 재해시 (handleLogin 참조).
 
-async function hashPin(pin: string, salt: string): Promise<string> {
+async function hashPinLegacy(pin: string, salt: string): Promise<string> {
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     'raw', encoder.encode(pin), 'PBKDF2', false, ['deriveBits']
@@ -118,19 +121,43 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
     return errorResponse('학생을 찾을 수 없습니다', 404);
   }
 
-  // PIN 검증 — 후보 학생 중 PIN 해시 일치하는 학생 찾음
+  // SEC-PIN-KDF: PIN 검증 — 새 형식(pbkdf2$100000$...) 우선, legacy 10k hex 호환.
+  // legacy로 verify 성공 시 자동으로 100k 형식으로 재해시 저장.
   let student: any = null;
+  let needsUpgrade = false;
   for (const c of candidates) {
-    if (!c.pin_salt || !c.pin_hash) continue; // PIN 미설정 학생 스킵
-    const pinHash = await hashPin(pin, c.pin_salt);
-    if (pinHash === c.pin_hash) {
-      student = c;
-      break;
+    if (!c.pin_hash) continue; // PIN 미설정 학생 스킵
+    if (c.pin_hash.startsWith('pbkdf2$')) {
+      // 새 형식 (utils/crypto.ts) — salt가 hash 안에 인코딩됨
+      const ok = await verifyPinV2(pin, c.pin_hash);
+      if (ok) { student = c; break; }
+    } else if (c.pin_salt) {
+      // legacy 10k hex — 호환 검증
+      const pinHash = await hashPinLegacy(pin, c.pin_salt);
+      if (pinHash === c.pin_hash) {
+        student = c;
+        needsUpgrade = true;
+        break;
+      }
     }
   }
   if (!student) {
-    logger.logSecurity('PLAY_LOGIN_FAILED', 'medium', { name, academySlug: academy_slug, ip, candidates: candidates.length });
+    logger.logSecurity('PLAY_LOGIN_FAILED', 'medium', { name, academySlug: academy_slug, ip });
     return errorResponse('PIN이 올바르지 않습니다', 401);
+  }
+
+  // SEC-PIN-KDF: legacy hash → 100k iter 새 형식으로 자동 재해시 (단방향 마이그레이션)
+  if (needsUpgrade) {
+    try {
+      const upgraded = await hashPinV2(pin);
+      await executeUpdate(
+        context.env.DB,
+        'UPDATE gacha_students SET pin_hash = ?, pin_salt = NULL WHERE id = ?',
+        [upgraded, student.id]
+      );
+    } catch (e) {
+      logger.warn('PIN 자동 재해시 실패 (login은 성공)', e instanceof Error ? e : new Error(String(e)));
+    }
   }
 
   // 토큰 생성 + KV 저장 (24시간 TTL)
