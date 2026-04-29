@@ -53,6 +53,28 @@ const TargetStatusSchema = z.object({
   status: z.enum(TARGET_STATUS),
 });
 
+// SEC-ASSIGN-M1: 텍스트 위생화 — C0/C1 제어문자 제거 + trim
+function sanitizeText(v: any): string {
+  if (typeof v !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+function sanitizeNullable(v: any): string | null {
+  const cleaned = sanitizeText(v);
+  return cleaned === '' ? null : cleaned;
+}
+
+// SEC-ASSIGN-H2: parent-share용 origin allowlist
+function resolveSafeBase(env: any, requestOrigin: string): string {
+  const allowed = env.APP_BASE_URL as string | undefined;
+  if (allowed) {
+    if (requestOrigin && requestOrigin === allowed) return requestOrigin;
+    return allowed;
+  }
+  if (requestOrigin && /^https?:\/\//.test(requestOrigin)) return requestOrigin;
+  return '';
+}
+
 // ── 파일 ACL: assignment 파일 키는 모두 academy_id 검증 ──
 function isValidR2Key(key: string): boolean {
   return /^assignments\/[A-Za-z0-9\-_/.]+$/.test(key) && !key.includes('..');
@@ -211,6 +233,11 @@ export async function handleAssignments(
       const body = await request.json();
       const data = CreateAssignmentSchema.parse(body);
 
+      // SEC-ASSIGN-M1: title/instructions 위생화
+      const cleanTitle = sanitizeText(data.title);
+      const cleanInstructions = sanitizeNullable(data.instructions);
+      if (!cleanTitle) return errorResponse('title은 비울 수 없습니다', 400);
+
       // student_ids 전부 본인 학원 소속 검증
       const placeholders = data.student_ids.map(() => '?').join(',');
       const validStudents = await executeQuery<{ id: string }>(
@@ -225,31 +252,32 @@ export async function handleAssignments(
       }
 
       const assignmentId = generatePrefixedId('asn');
-      await executeUpdate(
-        context.env.DB,
-        `INSERT INTO assignments (id, academy_id, created_by, title, instructions, kind, due_at, attached_file_key, attached_file_name, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'published')`,
-        [
-          assignmentId, academyId, userId,
-          data.title, data.instructions ?? null,
-          data.kind, data.due_at ?? null,
-          data.attached_file_key ?? null, data.attached_file_name ?? null,
-        ]
-      );
+      const db = context.env.DB;
 
-      // bulk insert targets
+      // SEC-ASSIGN-H1: assignment + targets 모든 INSERT를 db.batch로 원자화 + N+1 제거
+      const stmts: any[] = [
+        db.prepare(
+          `INSERT INTO assignments (id, academy_id, created_by, title, instructions, kind, due_at, attached_file_key, attached_file_name, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'published')`
+        ).bind(
+          assignmentId, academyId, userId,
+          cleanTitle, cleanInstructions,
+          data.kind, data.due_at ?? null,
+          sanitizeNullable(data.attached_file_key), sanitizeNullable(data.attached_file_name),
+        ),
+      ];
       for (const studentId of data.student_ids) {
-        const targetId = generatePrefixedId('atg');
-        await executeUpdate(
-          context.env.DB,
-          `INSERT INTO assignment_targets (id, assignment_id, student_id, academy_id, status)
-           VALUES (?, ?, ?, ?, 'assigned')`,
-          [targetId, assignmentId, studentId, academyId]
+        stmts.push(
+          db.prepare(
+            `INSERT INTO assignment_targets (id, assignment_id, student_id, academy_id, status)
+             VALUES (?, ?, ?, ?, 'assigned')`
+          ).bind(generatePrefixedId('atg'), assignmentId, studentId, academyId)
         );
       }
+      await db.batch(stmts);
 
       logger.logAudit('ASSIGNMENT_CREATE', 'Assignment', assignmentId, userId, {
-        title: data.title, kind: data.kind, target_count: data.student_ids.length,
+        title: cleanTitle, kind: data.kind, target_count: data.student_ids.length,
       });
       return createdResponse({ id: assignmentId, target_count: data.student_ids.length });
     }
@@ -286,10 +314,18 @@ export async function handleAssignments(
       const data = UpdateAssignmentSchema.parse(body);
       const fields: string[] = [];
       const params: any[] = [];
+      // SEC-ASSIGN-M1: title/instructions sanitize
       for (const [k, v] of Object.entries(data)) {
         if (v === undefined) continue;
+        let cleanV: any = v;
+        if (k === 'title') {
+          cleanV = sanitizeText(v);
+          if (!cleanV) return errorResponse('title은 비울 수 없습니다', 400);
+        } else if (k === 'instructions') {
+          cleanV = sanitizeNullable(v);
+        }
         fields.push(`${k} = ?`);
-        params.push(v);
+        params.push(cleanV);
       }
       if (fields.length === 0) return successResponse(a);
       fields.push(`updated_at = datetime('now')`);
@@ -314,35 +350,27 @@ export async function handleAssignments(
       }
       const hard = new URL(request.url).searchParams.get('hard') === '1';
       if (hard) {
-        // targets 조회 → 자식 삭제 (CASCADE 미설정이라 수동 cascade)
-        const targets = await executeQuery<{ id: string }>(
-          context.env.DB,
-          `SELECT id FROM assignment_targets WHERE assignment_id = ? AND academy_id = ?`,
-          [id, academyId]
-        );
-        for (const t of targets) {
-          await executeUpdate(
-            context.env.DB,
-            `DELETE FROM assignment_responses WHERE target_id = ? AND academy_id = ?`,
-            [t.id, academyId]
-          );
-          await executeUpdate(
-            context.env.DB,
-            `DELETE FROM assignment_submissions WHERE target_id = ? AND academy_id = ?`,
-            [t.id, academyId]
-          );
-        }
-        await executeUpdate(
-          context.env.DB,
-          `DELETE FROM assignment_targets WHERE assignment_id = ? AND academy_id = ?`,
-          [id, academyId]
-        );
-        await executeUpdate(
-          context.env.DB,
-          `DELETE FROM assignments WHERE id = ? AND academy_id = ?`,
-          [id, academyId]
-        );
-        logger.logAudit('ASSIGNMENT_HARD_DELETE', 'Assignment', id, userId, { target_count: targets.length });
+        // PERF-ASSIGN-M2: target_id 서브쿼리로 한 번에 삭제 + db.batch 원자화 (이전: N+1)
+        const db = context.env.DB;
+        await db.batch([
+          db.prepare(
+            `DELETE FROM assignment_responses
+             WHERE academy_id = ? AND target_id IN (
+               SELECT id FROM assignment_targets WHERE assignment_id = ?
+             )`
+          ).bind(academyId, id),
+          db.prepare(
+            `DELETE FROM assignment_submissions
+             WHERE academy_id = ? AND target_id IN (
+               SELECT id FROM assignment_targets WHERE assignment_id = ?
+             )`
+          ).bind(academyId, id),
+          db.prepare(`DELETE FROM assignment_targets WHERE assignment_id = ? AND academy_id = ?`)
+            .bind(id, academyId),
+          db.prepare(`DELETE FROM assignments WHERE id = ? AND academy_id = ?`)
+            .bind(id, academyId),
+        ]);
+        logger.logAudit('ASSIGNMENT_HARD_DELETE', 'Assignment', id, userId);
         return successResponse({ message: '과제가 완전 삭제되었습니다' });
       }
       await executeUpdate(
@@ -360,19 +388,22 @@ export async function handleAssignments(
       const targetId = targetMatch[1];
       const t = await getTarget(context, targetId);
       if (!t) return notFoundResponse();
-      const submissions = await executeQuery<any>(
-        context.env.DB,
-        `SELECT * FROM assignment_submissions WHERE target_id = ? ORDER BY submitted_at DESC`,
-        [targetId]
-      );
-      const responses = await executeQuery<any>(
-        context.env.DB,
-        `SELECT r.*, u.name as teacher_name
-         FROM assignment_responses r
-         LEFT JOIN users u ON u.id = r.teacher_id
-         WHERE r.target_id = ? ORDER BY r.created_at DESC`,
-        [targetId]
-      );
+      // PERF-ASSIGN-M1: submissions/responses 병렬화
+      const [submissions, responses] = await Promise.all([
+        executeQuery<any>(
+          context.env.DB,
+          `SELECT * FROM assignment_submissions WHERE target_id = ? ORDER BY submitted_at DESC`,
+          [targetId]
+        ),
+        executeQuery<any>(
+          context.env.DB,
+          `SELECT r.*, u.name as teacher_name
+           FROM assignment_responses r
+           LEFT JOIN users u ON u.id = r.teacher_id
+           WHERE r.target_id = ? ORDER BY r.created_at DESC`,
+          [targetId]
+        ),
+      ]);
       // files JSON 파싱
       const parsedSubs = submissions.map((s) => ({
         ...s,
@@ -387,29 +418,43 @@ export async function handleAssignments(
       const targetId = respondMatch[1];
       const t = await getTarget(context, targetId);
       if (!t) return notFoundResponse();
+
+      // SEC-ASSIGN-H3: 본인이 발행한 과제 또는 admin 만 회신 가능. 이전엔 학원 내 누구든 가능.
+      const parentA = await executeFirst<{ created_by: string }>(
+        context.env.DB,
+        'SELECT created_by FROM assignments WHERE id = ? AND academy_id = ?',
+        [t.assignment_id, academyId]
+      );
+      if (role !== 'admin' && parentA?.created_by !== userId) {
+        return errorResponse('본인이 발행한 과제만 회신할 수 있습니다', 403);
+      }
+
       const body = await request.json();
       const data = RespondSchema.parse(body);
 
-      const responseId = generatePrefixedId('arsp');
-      await executeUpdate(
-        context.env.DB,
-        `INSERT INTO assignment_responses (id, target_id, submission_id, teacher_id, academy_id, comment, file_key, file_name, action)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          responseId, targetId, data.submission_id ?? null, userId, academyId,
-          data.comment ?? null, data.file_key ?? null, data.file_name ?? null, data.action,
-        ]
-      );
+      // SEC-ASSIGN-M1: comment / file_name 위생화
+      const cleanComment = sanitizeNullable(data.comment);
+      const cleanFileName = sanitizeNullable(data.file_name);
 
-      // target.status 업데이트
+      const responseId = generatePrefixedId('arsp');
       const newStatus = data.action === 'accept' ? 'completed' : 'needs_resubmit';
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE assignment_targets
-         SET status = ?, last_reviewed_at = datetime('now')
-         WHERE id = ? AND academy_id = ?`,
-        [newStatus, targetId, academyId]
-      );
+
+      // PERF: 두 UPDATE/INSERT를 batch로
+      const db = context.env.DB;
+      await db.batch([
+        db.prepare(
+          `INSERT INTO assignment_responses (id, target_id, submission_id, teacher_id, academy_id, comment, file_key, file_name, action)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          responseId, targetId, data.submission_id ?? null, userId, academyId,
+          cleanComment, sanitizeNullable(data.file_key), cleanFileName, data.action,
+        ),
+        db.prepare(
+          `UPDATE assignment_targets
+           SET status = ?, last_reviewed_at = datetime('now')
+           WHERE id = ? AND academy_id = ?`
+        ).bind(newStatus, targetId, academyId),
+      ]);
       logger.logAudit('ASSIGNMENT_RESPOND', 'AssignmentTarget', targetId, userId, { action: data.action });
       return createdResponse({ id: responseId, target_status: newStatus });
     }
@@ -444,8 +489,9 @@ export async function handleAssignments(
       const expiresAtMs = Date.now() + days * 24 * 3600 * 1000;
       const token = await signShareToken(targetId, 'homework', expiresAtMs, secret);
 
-      const origin = request.headers.get('origin') || '';
-      const base = origin || (context.env as any).APP_BASE_URL || '';
+      // SEC-ASSIGN-H2: origin allowlist — 임의 origin이 phishing URL로 응답되는 경로 차단
+      const requestOrigin = request.headers.get('origin') || '';
+      const base = resolveSafeBase(context.env, requestOrigin);
       const path = `/#/parent-homework/${targetId}?token=${encodeURIComponent(token)}`;
       const fullUrl = base ? `${base}${path}` : path;
 
@@ -473,21 +519,16 @@ export async function handleAssignments(
       if (role !== 'admin' && parent?.created_by !== userId) {
         return errorResponse('본인이 발행한 과제의 대상만 삭제할 수 있습니다', 403);
       }
-      await executeUpdate(
-        context.env.DB,
-        `DELETE FROM assignment_responses WHERE target_id = ? AND academy_id = ?`,
-        [targetId, academyId]
-      );
-      await executeUpdate(
-        context.env.DB,
-        `DELETE FROM assignment_submissions WHERE target_id = ? AND academy_id = ?`,
-        [targetId, academyId]
-      );
-      await executeUpdate(
-        context.env.DB,
-        `DELETE FROM assignment_targets WHERE id = ? AND academy_id = ?`,
-        [targetId, academyId]
-      );
+      // PERF-ASSIGN-M2: 3 DELETE를 batch로 원자화
+      const db = context.env.DB;
+      await db.batch([
+        db.prepare(`DELETE FROM assignment_responses WHERE target_id = ? AND academy_id = ?`)
+          .bind(targetId, academyId),
+        db.prepare(`DELETE FROM assignment_submissions WHERE target_id = ? AND academy_id = ?`)
+          .bind(targetId, academyId),
+        db.prepare(`DELETE FROM assignment_targets WHERE id = ? AND academy_id = ?`)
+          .bind(targetId, academyId),
+      ]);
       logger.logAudit('ASSIGNMENT_TARGET_DELETE', 'AssignmentTarget', targetId, userId);
       return successResponse({ message: '대상이 삭제되었습니다' });
     }
@@ -498,6 +539,17 @@ export async function handleAssignments(
       const targetId = targetStatusMatch[1];
       const t = await getTarget(context, targetId);
       if (!t) return notFoundResponse();
+
+      // SEC-ASSIGN-H3: 본인 발행 과제 또는 admin 만 상태 변경 가능
+      const parentS = await executeFirst<{ created_by: string }>(
+        context.env.DB,
+        'SELECT created_by FROM assignments WHERE id = ? AND academy_id = ?',
+        [t.assignment_id, academyId]
+      );
+      if (role !== 'admin' && parentS?.created_by !== userId) {
+        return errorResponse('본인이 발행한 과제만 상태 변경 가능', 403);
+      }
+
       const body = await request.json();
       const data = TargetStatusSchema.parse(body);
       await executeUpdate(
