@@ -11,6 +11,8 @@ import { RequestContext } from '@/types';
 import { executeFirst, executeQuery } from '@/utils/db';
 import { errorResponse, successResponse, notFoundResponse } from '@/utils/response';
 import { verifyShareToken, resolveShareSecret } from '@/utils/share-token';
+import { parentReportRateLimit } from '@/middleware/rateLimit';
+import { logger } from '@/utils/logger';
 
 function mapVerifyError(reason: string): { status: number; message: string } {
   if (reason === 'expired') return { status: 410, message: '링크가 만료되었습니다' };
@@ -56,8 +58,18 @@ export async function handleParentHomework(
     const targetId = fileMatch[1];
     const rawKey = decodeURIComponent(fileMatch[2]);
 
+    // SEC-PARENT-HW-M1: 토큰 brute force / 도용 방어 — IP+targetId 기준 rate limit
+    // (parentReportRateLimit 재사용 — 키 prefix 'pr:' 그대로 사용해도 충돌 적음)
+    const blocked = await parentReportRateLimit(context.env.KV, request, targetId);
+    if (blocked) return blocked;
+
     const verify = await verifyShareToken(token, targetId, 'homework', secret);
     if (!verify.ok) {
+      // SEC-PARENT-HW-M2: 토큰 검증 실패 보안 로그
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      logger.logSecurity('PARENT_HOMEWORK_TOKEN_INVALID', 'medium', {
+        targetId, kind: 'file', reason: verify.reason, ip,
+      });
       const err = mapVerifyError(verify.reason);
       return errorResponse(err.message, err.status);
     }
@@ -80,11 +92,19 @@ export async function handleParentHomework(
     const allowedKeys = new Set<string>();
     if (target.attached_file_key) allowedKeys.add(target.attached_file_key);
 
-    const subs = await executeQuery<{ files: string | null }>(
-      context.env.DB,
-      `SELECT files FROM assignment_submissions WHERE target_id = ?`,
-      [targetId]
-    );
+    // PERF-PARENT-HW-M1: subs/resps 병렬화
+    const [subs, resps] = await Promise.all([
+      executeQuery<{ files: string | null }>(
+        context.env.DB,
+        `SELECT files FROM assignment_submissions WHERE target_id = ?`,
+        [targetId]
+      ),
+      executeQuery<{ file_key: string | null }>(
+        context.env.DB,
+        `SELECT file_key FROM assignment_responses WHERE target_id = ? AND file_key IS NOT NULL`,
+        [targetId]
+      ),
+    ]);
     for (const s of subs) {
       try {
         const arr = JSON.parse(s.files || '[]');
@@ -95,12 +115,6 @@ export async function handleParentHomework(
         }
       } catch { /* ignore */ }
     }
-
-    const resps = await executeQuery<{ file_key: string | null }>(
-      context.env.DB,
-      `SELECT file_key FROM assignment_responses WHERE target_id = ? AND file_key IS NOT NULL`,
-      [targetId]
-    );
     for (const r of resps) {
       if (r.file_key) allowedKeys.add(r.file_key);
     }
@@ -123,8 +137,18 @@ export async function handleParentHomework(
   // ─── 상세 조회 ───
   if (detailMatch) {
     const targetId = detailMatch[1];
+
+    // SEC-PARENT-HW-M1: rate limit
+    const blocked = await parentReportRateLimit(context.env.KV, request, targetId);
+    if (blocked) return blocked;
+
     const verify = await verifyShareToken(token, targetId, 'homework', secret);
     if (!verify.ok) {
+      // SEC-PARENT-HW-M2: 보안 로그
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      logger.logSecurity('PARENT_HOMEWORK_TOKEN_INVALID', 'medium', {
+        targetId, kind: 'detail', reason: verify.reason, ip,
+      });
       const err = mapVerifyError(verify.reason);
       return errorResponse(err.message, err.status);
     }
@@ -135,24 +159,27 @@ export async function handleParentHomework(
       return errorResponse('이 과제 공유 링크는 더 이상 사용할 수 없습니다', 410);
     }
 
-    const submissions = await executeQuery<any>(
-      context.env.DB,
-      `SELECT id, submitted_at, note, files
-       FROM assignment_submissions
-       WHERE target_id = ?
-       ORDER BY submitted_at DESC`,
-      [targetId]
-    );
-    const responses = await executeQuery<any>(
-      context.env.DB,
-      `SELECT r.id, r.comment, r.file_key, r.file_name, r.action, r.created_at,
-              u.name as teacher_name
-       FROM assignment_responses r
-       LEFT JOIN users u ON u.id = r.teacher_id
-       WHERE r.target_id = ?
-       ORDER BY r.created_at DESC`,
-      [targetId]
-    );
+    // PERF-PARENT-HW-M1: submissions/responses 병렬화
+    const [submissions, responses] = await Promise.all([
+      executeQuery<any>(
+        context.env.DB,
+        `SELECT id, submitted_at, note, files
+         FROM assignment_submissions
+         WHERE target_id = ?
+         ORDER BY submitted_at DESC`,
+        [targetId]
+      ),
+      executeQuery<any>(
+        context.env.DB,
+        `SELECT r.id, r.comment, r.file_key, r.file_name, r.action, r.created_at,
+                u.name as teacher_name
+         FROM assignment_responses r
+         LEFT JOIN users u ON u.id = r.teacher_id
+         WHERE r.target_id = ?
+         ORDER BY r.created_at DESC`,
+        [targetId]
+      ),
+    ]);
 
     const parsedSubs = submissions.map((s) => ({
       id: s.id,

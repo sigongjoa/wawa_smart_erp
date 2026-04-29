@@ -39,15 +39,27 @@ export async function handleFile(
         return errorResponse('파일 크기가 10MB를 초과합니다', 413);
       }
 
+      // SEC-FILE-M1: 위험 mime type deny (XSS 호스팅 차단). 화이트리스트가 더 안전하지만
+      // 다양한 업로드 시나리오 지원을 위해 deny 리스트 + attachment 강제 다운로드.
+      const blockedMimes = ['text/html', 'text/javascript', 'application/javascript', 'application/x-javascript', 'image/svg+xml'];
+      const fileMime = (file.type || '').toLowerCase();
+      if (blockedMimes.some(m => fileMime.startsWith(m))) {
+        return errorResponse('허용되지 않는 파일 형식입니다', 415);
+      }
+
+      // SEC-FILE-M2: ext sanitize — 영숫자만 허용, 32자 캡
+      const rawExt = file.name.split('.').pop() || 'bin';
+      const extension = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 32) || 'bin';
+
       const timestamp = Date.now();
       const randomId = crypto.randomUUID();
-      const extension = file.name.split('.').pop() || 'bin';
       const key = `${folder}/${timestamp}-${randomId}-${userId}.${extension}`;
 
       const buffer = await file.arrayBuffer();
       await context.env.BUCKET.put(key, buffer, {
         httpMetadata: {
-          contentType: file.type || 'application/octet-stream',
+          // 신뢰할 수 없는 file.type 대신 안전한 기본값. 다운로드 시 attachment로 처리.
+          contentType: 'application/octet-stream',
         },
       });
 

@@ -7,8 +7,15 @@ import { errorResponse, successResponse, unauthorizedResponse } from '@/utils/re
 import { requireAuth } from '@/middleware/auth';
 import { getUserId } from '@/utils/context';
 import { logger } from '@/utils/logger';
-import { geminiGenerate } from '@/utils/gemini';
+import { geminiGenerate, wrapUserInput } from '@/utils/gemini';
 import { z } from 'zod';
+
+// SEC-AI-M1: 입력 길이 캡 — 토큰 폭주·prompt 비용 폭주 차단
+const MAX_NAME_LEN = 50;
+const MAX_SUBJECT_LEN = 100;
+const MAX_COMMENT_LEN = 1000;
+const MAX_TITLE_LEN = 200;
+const MAX_TRANSCRIPT_LEN = 50000;
 
 // 정기고사 문맥 주입용 옵션
 const ExamContextSchema = z.object({
@@ -17,22 +24,22 @@ const ExamContextSchema = z.object({
 }).optional();
 
 const GenerateCommentSchema = z.object({
-  studentName: z.string().min(1),
-  subject: z.string().min(1),
-  score: z.number().min(0),
-  yearMonth: z.string(),
-  existingComment: z.string().optional(),
+  studentName: z.string().min(1).max(MAX_NAME_LEN),
+  subject: z.string().min(1).max(MAX_SUBJECT_LEN),
+  score: z.number().min(0).max(1000),
+  yearMonth: z.string().regex(/^\d{4}-\d{2}$/, 'yearMonth는 YYYY-MM 형식'),
+  existingComment: z.string().max(MAX_COMMENT_LEN).optional(),
   examContext: ExamContextSchema,
 });
 
 const GenerateSummarySchema = z.object({
-  studentName: z.string().min(1),
-  yearMonth: z.string(),
+  studentName: z.string().min(1).max(MAX_NAME_LEN),
+  yearMonth: z.string().regex(/^\d{4}-\d{2}$/, 'yearMonth는 YYYY-MM 형식'),
   scores: z.array(z.object({
-    subject: z.string(),
-    score: z.number(),
-    comment: z.string().optional(),
-  })),
+    subject: z.string().min(1).max(MAX_SUBJECT_LEN),
+    score: z.number().min(0).max(1000),
+    comment: z.string().max(MAX_COMMENT_LEN).optional(),
+  })).max(20),
   examContext: ExamContextSchema,
 });
 
@@ -66,13 +73,20 @@ async function handleGenerateComment(
     const periodFeedbackLabel = isExamReview ? '이번 시험' : '이번 달';
     const nextPlanLabel = isExamReview ? '다음 학습 단계' : '다음 달 학습';
 
+    // SEC-AI-M2: 사용자 입력을 명시적 구분자로 감싸 prompt injection 차단
+    const wrappedName = wrapUserInput('학생 이름', input.studentName, MAX_NAME_LEN);
+    const wrappedSubject = wrapUserInput('과목명', input.subject, MAX_SUBJECT_LEN);
+    const wrappedMemo = input.existingComment
+      ? wrapUserInput('선생님 메모', input.existingComment, MAX_COMMENT_LEN)
+      : '';
+
     const prompt = `당신은 한국 수학 학원의 경험 많은 선생님입니다. 학부모에게 보내는 ${reportKindLabel} 리포트의 과목별 코멘트를 작성해주세요.
 
-학생: ${input.studentName}
-과목: ${input.subject}
+학생: ${wrappedName}
+과목: ${wrappedSubject}
 점수: ${input.score}점 (100점 만점)
 평가 기간: ${periodLabel}
-${input.existingComment ? `선생님 메모: "${input.existingComment}" — 이 메모를 핵심 내용으로 삼아 학부모에게 전달할 수 있는 상세한 코멘트로 확장해주세요.` : ''}
+${wrappedMemo ? `${wrappedMemo} — 이 메모를 핵심 내용으로 삼아 학부모에게 전달할 수 있는 상세한 코멘트로 확장해주세요.` : ''}
 
 작성 규칙:
 - 4~6문장으로 상세하게 작성 (선생님 메모가 짧더라도 반드시 풍부하게 확장)
@@ -124,9 +138,12 @@ async function handleGenerateSummary(
     const input = GenerateSummarySchema.parse(body);
 
     const avgScore = Math.round(input.scores.reduce((s, g) => s + g.score, 0) / input.scores.length);
-    const scoreList = input.scores.map(g =>
-      `- ${g.subject}: ${g.score}점${g.comment ? ` (선생님 메모: ${g.comment})` : ''}`
-    ).join('\n');
+    // SEC-AI-M2: scores의 subject/comment를 wrapUserInput로 감싸 prompt injection 차단
+    const scoreList = input.scores.map(g => {
+      const subj = wrapUserInput('과목', g.subject, MAX_SUBJECT_LEN);
+      const memo = g.comment ? wrapUserInput('선생님 메모', g.comment, MAX_COMMENT_LEN) : '';
+      return `- ${subj}: ${g.score}점${memo ? ` (메모: ${memo})` : ''}`;
+    }).join('\n');
 
     const isExamReview = !!input.examContext;
     const examLabel = examContextLabel(input.examContext);
@@ -139,9 +156,10 @@ async function handleGenerateSummary(
       ? '다음 학습 단계 (1~2문장) — 이번 시험 결과를 바탕으로 학원에서 할 구체적 액션 1~2가지.'
       : '다음 달 계획 (1~2문장) — 학원에서 할 구체적 액션 1~2가지.';
 
+    const wrappedSummaryName = wrapUserInput('학생 이름', input.studentName, MAX_NAME_LEN);
     const prompt = `당신은 한국의 "와와학습코칭센터" 학원 담당 선생님입니다. 학부모님께 보내는 ${reportKindLabel} 총평을 작성해주세요.
 
-학생: ${input.studentName}
+학생: ${wrappedSummaryName}
 평가 기간: ${periodLabel}
 전체 평균: ${avgScore}점
 
@@ -185,10 +203,10 @@ ${scoreList}
 // ==================== 회의 요약 ====================
 
 const MeetingSummarySchema = z.object({
-  transcript: z.string().min(1, '녹취록은 필수입니다'),
-  title: z.string().optional(),
-  participants: z.array(z.string()).optional(),
-  durationMinutes: z.number().optional(),
+  transcript: z.string().min(1, '녹취록은 필수입니다').max(MAX_TRANSCRIPT_LEN, `녹취록은 ${MAX_TRANSCRIPT_LEN}자 이내`),
+  title: z.string().max(MAX_TITLE_LEN).optional(),
+  participants: z.array(z.string().max(MAX_NAME_LEN)).max(50).optional(),
+  durationMinutes: z.number().min(0).max(1440).optional(),
 });
 
 async function handleMeetingSummary(
@@ -204,6 +222,11 @@ async function handleMeetingSummary(
     const participantList = input.participants?.join(', ') || '미지정';
     const duration = input.durationMinutes ? `${input.durationMinutes}분` : '미지정';
 
+    // SEC-AI-M2: title/participants/transcript를 wrapUserInput으로 감싸 prompt injection 차단
+    const wrappedTitle = wrapUserInput('회의 제목', input.title || '미팅', MAX_TITLE_LEN);
+    const wrappedParticipants = wrapUserInput('참석자 목록', participantList, MAX_TITLE_LEN);
+    const wrappedTranscript = wrapUserInput('녹취록', input.transcript, MAX_TRANSCRIPT_LEN);
+
     const prompt = `당신은 학원 강사 회의 내용을 정리하는 비서입니다.
 아래 회의 녹취록을 분석하여 JSON 형식으로 결과를 반환하세요.
 
@@ -216,12 +239,12 @@ async function handleMeetingSummary(
   - dueDate: 기한 (언급된 경우 YYYY-MM-DD 형식, 없으면 null)
 
 ## 회의 정보
-- 제목: ${input.title || '미팅'}
-- 참석자: ${participantList}
+- 제목: ${wrappedTitle}
+- 참석자: ${wrappedParticipants}
 - 소요 시간: ${duration}
 
 ## 녹취록
-${input.transcript}
+${wrappedTranscript}
 
 ## 출력 (순수 JSON만, 마크다운 코드블록 없이)
 {"summary":"...","keyDecisions":["..."],"extractedActions":[{"title":"...","assigneeName":"...","dueDate":"..."}]}`;
