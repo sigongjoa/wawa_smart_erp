@@ -64,6 +64,23 @@ async function handleUploadImage(
     const input = await parseUploadInput(request);
     logger.logRequest('POST', '/api/report/upload-image', undefined, ipAddress);
 
+    // SEC-RIMG-H2: studentId가 본인 학원 학생인지 검증 (cross-tenant report 발송 차단)
+    const student = await executeFirst<{ id: string }>(
+      context.env.DB,
+      'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+      [input.studentId, context.auth.academyId]
+    );
+    if (!student) {
+      return errorResponse('학생을 찾을 수 없습니다', 404);
+    }
+
+    // SEC-RIMG-M1: studentName 위생화 (R2 키에 들어가므로 안전한 문자만)
+    const safeStudentName = input.studentName
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x1F\x7F\/\\]/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 50);
+
     // Base64 크기 제한 (5MB 이미지 ≈ 6.7MB base64)
     if (input.imageBase64.length > 7 * 1024 * 1024) {
       return errorResponse('이미지 크기가 5MB를 초과합니다', 413);
@@ -83,7 +100,7 @@ async function handleUploadImage(
     const fileKey = input.reportType === 'monthly'
       ? input.yearMonth!
       : `${input.term}_${input.reportType}`;
-    const fileName = `${fileKey}_${input.studentName.replace(/\s+/g, '_')}_${generatePrefixedId('report')}.png`;
+    const fileName = `${fileKey}_${safeStudentName}_${generatePrefixedId('report')}.png`;
     const filePath = `reports/${context.auth.academyId}/${fileName}`;
 
     // R2에 업로드
@@ -278,15 +295,19 @@ export async function handleReportImage(
       return errorResponse('Method not allowed', 405);
     }
 
-    // /api/report/list — 임시 R2 리스트 (디버깅용)
+    // SEC-RIMG-H1: /api/report/list — 무인증 R2 list 차단.
+    // admin 인증 + 본인 학원 prefix 강제.
     if (pathname === '/api/report/list') {
-      const url = new URL(context.request.url);
-      const prefix = url.searchParams.get('prefix') || 'reports/';
-      const listed = await context.env.BUCKET.list({ prefix, limit: 1000 });
+      if (!context.auth) return unauthorizedResponse();
+      if (context.auth.role !== 'admin') {
+        return errorResponse('관리자만 사용 가능', 403);
+      }
+      const academyPrefix = `reports/${context.auth.academyId}/`;
+      const listed = await context.env.BUCKET.list({ prefix: academyPrefix, limit: 1000 });
       return successResponse({
         count: listed.objects.length,
         truncated: listed.truncated,
-        objects: listed.objects.map(o => ({
+        objects: listed.objects.map((o: any) => ({
           key: o.key,
           size: o.size,
           uploaded: o.uploaded,

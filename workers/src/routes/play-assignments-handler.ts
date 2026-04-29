@@ -41,6 +41,17 @@ function isValidR2Key(key: string): boolean {
   return /^assignments\/[A-Za-z0-9\-_/.]+$/.test(key) && !key.includes('..');
 }
 
+// SEC-PLAY-AS-M6: 텍스트 위생화
+function sanitizeNote(v: any): string | null {
+  if (typeof v !== 'string') return null;
+  // eslint-disable-next-line no-control-regex
+  const cleaned = v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, 2000);
+  return cleaned === '' ? null : cleaned;
+}
+
+// SEC-PLAY-AS-M1: 위험 mime deny
+const BLOCKED_MIMES = ['text/html', 'text/javascript', 'application/javascript', 'application/x-javascript', 'image/svg+xml'];
+
 export async function handlePlayAssignments(
   method: string,
   pathname: string,
@@ -59,11 +70,18 @@ export async function handlePlayAssignments(
       const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) return errorResponse('파일 크기가 10MB를 초과합니다', 413);
 
-      const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+      // SEC-PLAY-AS-M1: 위험 mime deny
+      const fileMime = (file.type || '').toLowerCase();
+      if (BLOCKED_MIMES.some(m => fileMime.startsWith(m))) {
+        return errorResponse('허용되지 않는 파일 형식입니다', 415);
+      }
+
+      const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 32) || 'bin';
       const key = `assignments/${auth.academyId}/submission/${auth.studentId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
       const buffer = await file.arrayBuffer();
       await context.env.BUCKET.put(key, buffer, {
-        httpMetadata: { contentType: file.type || 'application/octet-stream' },
+        // SEC-PLAY-AS-M4: 신뢰할 수 없는 file.type 대신 octet-stream 고정
+        httpMetadata: { contentType: 'application/octet-stream' },
       });
       return createdResponse({
         key,
@@ -85,21 +103,23 @@ export async function handlePlayAssignments(
       // 본인 업로드 (submission/:studentId/...)
       const ownSubmissionPrefix = `assignments/${auth.academyId}/submission/${auth.studentId}/`;
       if (!key.startsWith(ownSubmissionPrefix)) {
-        // 첨부/응답: 본인 target에 연결된 키인지 확인
-        const attachmentMatch = await executeFirst<{ count: number }>(
-          context.env.DB,
-          `SELECT COUNT(*) as count FROM assignment_targets t
-             JOIN assignments a ON a.id = t.assignment_id
-            WHERE t.student_id = ? AND a.attached_file_key = ?`,
-          [auth.studentId, key]
-        );
-        const responseMatch = await executeFirst<{ count: number }>(
-          context.env.DB,
-          `SELECT COUNT(*) as count FROM assignment_responses r
-             JOIN assignment_targets t ON t.id = r.target_id
-            WHERE t.student_id = ? AND r.file_key = ?`,
-          [auth.studentId, key]
-        );
+        // PERF-PLAY-AS-M5: 첨부/응답 ACL 두 query를 병렬화
+        const [attachmentMatch, responseMatch] = await Promise.all([
+          executeFirst<{ count: number }>(
+            context.env.DB,
+            `SELECT COUNT(*) as count FROM assignment_targets t
+               JOIN assignments a ON a.id = t.assignment_id
+              WHERE t.student_id = ? AND a.attached_file_key = ?`,
+            [auth.studentId, key]
+          ),
+          executeFirst<{ count: number }>(
+            context.env.DB,
+            `SELECT COUNT(*) as count FROM assignment_responses r
+               JOIN assignment_targets t ON t.id = r.target_id
+              WHERE t.student_id = ? AND r.file_key = ?`,
+            [auth.studentId, key]
+          ),
+        ]);
         if ((attachmentMatch?.count || 0) === 0 && (responseMatch?.count || 0) === 0) {
           return errorResponse('권한이 없습니다', 403);
         }
@@ -156,20 +176,23 @@ export async function handlePlayAssignments(
       );
       if (!t) return notFoundResponse();
 
-      const submissions = await executeQuery<any>(
-        context.env.DB,
-        `SELECT * FROM assignment_submissions WHERE target_id = ? ORDER BY submitted_at DESC`,
-        [targetId]
-      );
-      const responses = await executeQuery<any>(
-        context.env.DB,
-        `SELECT r.id, r.comment, r.file_key, r.file_name, r.action, r.created_at,
-                u.name as teacher_name
-         FROM assignment_responses r
-         LEFT JOIN users u ON u.id = r.teacher_id
-         WHERE r.target_id = ? ORDER BY r.created_at DESC`,
-        [targetId]
-      );
+      // PERF-PLAY-AS-M3: submissions/responses 병렬화
+      const [submissions, responses] = await Promise.all([
+        executeQuery<any>(
+          context.env.DB,
+          `SELECT * FROM assignment_submissions WHERE target_id = ? ORDER BY submitted_at DESC`,
+          [targetId]
+        ),
+        executeQuery<any>(
+          context.env.DB,
+          `SELECT r.id, r.comment, r.file_key, r.file_name, r.action, r.created_at,
+                  u.name as teacher_name
+           FROM assignment_responses r
+           LEFT JOIN users u ON u.id = r.teacher_id
+           WHERE r.target_id = ? ORDER BY r.created_at DESC`,
+          [targetId]
+        ),
+      ]);
 
       const parsedSubs = submissions.map((s) => ({
         ...s,
@@ -214,19 +237,21 @@ export async function handlePlayAssignments(
       }
 
       const submissionId = generatePrefixedId('asub');
-      await executeUpdate(
-        context.env.DB,
-        `INSERT INTO assignment_submissions (id, target_id, student_id, academy_id, note, files)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [submissionId, targetId, auth.studentId, auth.academyId, data.note ?? null, JSON.stringify(data.files)]
-      );
-      await executeUpdate(
-        context.env.DB,
-        `UPDATE assignment_targets
-         SET status = 'submitted', last_submitted_at = datetime('now')
-         WHERE id = ?`,
-        [targetId]
-      );
+      // SEC-PLAY-AS-M2: INSERT + UPDATE를 batch로 원자화 (중간 실패 시 status 미반영 방지)
+      // SEC-PLAY-AS-M6: note 위생화
+      const cleanNote = sanitizeNote(data.note);
+      const db = context.env.DB;
+      await db.batch([
+        db.prepare(
+          `INSERT INTO assignment_submissions (id, target_id, student_id, academy_id, note, files)
+           VALUES (?, ?, ?, ?, ?, ?)`
+        ).bind(submissionId, targetId, auth.studentId, auth.academyId, cleanNote, JSON.stringify(data.files)),
+        db.prepare(
+          `UPDATE assignment_targets
+           SET status = 'submitted', last_submitted_at = datetime('now')
+           WHERE id = ?`
+        ).bind(targetId),
+      ]);
       logger.logAudit('PLAY_ASSIGNMENT_SUBMIT', 'AssignmentSubmission', submissionId, auth.studentId, {
         target_id: targetId, file_count: data.files.length,
       });

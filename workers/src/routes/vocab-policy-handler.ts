@@ -91,6 +91,30 @@ async function handleUpsertPolicy(
 
   const sid = scope === 'academy' ? null : scopeId;
 
+  // SEC-VPOLICY-H1: teacher/student scope_id가 본인 학원 소속인지 검증.
+  // 누락 시 다른 학원 ID로 정책 INSERT → 정책 테이블 오염 + 의도치 않은 매칭.
+  if (scope === 'teacher') {
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid) || sid.length > 64) {
+      return errorResponse('teacher scope_id 형식 오류', 400);
+    }
+    const teacher = await executeFirst<{ id: string }>(
+      context.env.DB,
+      'SELECT id FROM users WHERE id = ? AND academy_id = ? AND role IN ("instructor","admin")',
+      [sid, academyId]
+    );
+    if (!teacher) return errorResponse('해당 강사가 본 학원 소속이 아닙니다', 404);
+  } else if (scope === 'student') {
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid) || sid.length > 64) {
+      return errorResponse('student scope_id 형식 오류', 400);
+    }
+    const student = await executeFirst<{ id: string }>(
+      context.env.DB,
+      'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+      [sid, academyId]
+    );
+    if (!student) return errorResponse('해당 학생이 본 학원 소속이 아닙니다', 404);
+  }
+
   // 기존 행 조회
   const existing = await executeFirst<{ id: string }>(
     context.env.DB,
