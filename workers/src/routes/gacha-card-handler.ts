@@ -147,13 +147,58 @@ async function handleUpdateCard(request: Request, context: RequestContext, cardI
   const sets: string[] = [];
   const params: unknown[] = [];
 
-  const fields = ['question', 'question_image', 'answer', 'topic', 'chapter', 'grade', 'type', 'student_id'];
-  for (const f of fields) {
-    if (body[f] !== undefined) {
-      sets.push(`${f} = ?`);
-      params.push(body[f]);
+  // SEC-GACHA-H4: type 화이트리스트 + student_id academy 격리 + 텍스트 길이 캡
+  const TYPE_VALUES = ['text', 'image'];
+  const MAX_TEXT_LEN = 2000;
+  const MAX_SHORT_LEN = 100;
+
+  // student_id 변경 시: 같은 academy의 학생만 허용 (또는 null로 공용 변환)
+  if ('student_id' in body) {
+    const newStudentId = body.student_id;
+    if (newStudentId !== null && newStudentId !== undefined && newStudentId !== '') {
+      if (typeof newStudentId !== 'string') {
+        return errorResponse('student_id 형식 오류', 400);
+      }
+      const owner = await executeFirst<any>(
+        context.env.DB,
+        'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+        [newStudentId, academyId]
+      );
+      if (!owner) return errorResponse('학생을 찾을 수 없습니다', 404);
+      sets.push('student_id = ?'); params.push(newStudentId);
+    } else {
+      sets.push('student_id = ?'); params.push(null);
     }
   }
+
+  if ('type' in body) {
+    if (!TYPE_VALUES.includes(body.type)) {
+      return errorResponse(`type은 ${TYPE_VALUES.join('|')}이어야 합니다`, 400);
+    }
+    sets.push('type = ?'); params.push(body.type);
+  }
+
+  // 텍스트 필드 — 길이 캡만 (sanitize는 생성 단계에서 별도 라운드로 묶어 처리)
+  for (const [f, max] of [
+    ['question', MAX_TEXT_LEN],
+    ['question_image', MAX_TEXT_LEN],
+    ['answer', MAX_SHORT_LEN],
+    ['topic', MAX_SHORT_LEN],
+    ['chapter', MAX_SHORT_LEN],
+    ['grade', MAX_SHORT_LEN],
+  ] as const) {
+    if (f in body) {
+      const v = body[f];
+      if (v !== null && typeof v !== 'string') {
+        return errorResponse(`${f} 형식 오류`, 400);
+      }
+      if (typeof v === 'string' && v.length > max) {
+        return errorResponse(`${f}는 ${max}자 이내여야 합니다`, 400);
+      }
+      sets.push(`${f} = ?`); params.push(v);
+    }
+  }
+
   if (sets.length === 0) {
     return errorResponse('입력 검증 오류: 수정할 필드가 없습니다', 400);
   }

@@ -9,6 +9,14 @@ import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/util
 import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
 import { handleRouteError } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
+import { gachaCardFeedbackRateLimit } from '@/middleware/rateLimit';
+
+// SEC-GACHA-H3: 증명 풀이 시작 시각을 KV에 저장 (학생당, 증명당, 모드당).
+// submit 시 서버측에서 timeSpent 계산. 클라이언트 start_time 신뢰 제거.
+const PROOF_START_TTL = 3 * 3600; // 3시간 — 충분히 풀 수 있는 여유
+function proofStartKey(studentId: string, proofId: string, mode: string): string {
+  return `proof:start:${studentId}:${proofId}:${mode}`;
+}
 
 // ── 유틸리티 ──
 
@@ -210,12 +218,19 @@ async function handleCardFeedback(request: Request, context: RequestContext, aut
     return errorResponse('입력 검증 오류: result는 success 또는 fail이어야 합니다', 400);
   }
 
+  // SEC-GACHA-H1: 본인 카드(student_id 일치) 또는 본인 강사 공용 카드(student_id IS NULL AND teacher_id 일치)만 피드백 허용
   const card = await executeFirst<any>(
     context.env.DB,
-    'SELECT * FROM gacha_cards WHERE id = ? AND academy_id = ?',
-    [cardId, auth.academyId]
+    `SELECT * FROM gacha_cards
+     WHERE id = ? AND academy_id = ?
+       AND ((student_id = ?) OR (student_id IS NULL AND teacher_id = ?))`,
+    [cardId, auth.academyId, auth.studentId, auth.teacherId]
   );
   if (!card) return errorResponse('카드를 찾을 수 없습니다', 404);
+
+  // SEC-GACHA-H2: 자가 box 부풀리기 차단 — (studentId, cardId)당 분 5회/일 30회
+  const blocked = await gachaCardFeedbackRateLimit(context.env.KV, auth.studentId, cardId);
+  if (blocked) return blocked;
 
   const boxBefore = card.box || 1;
   const boxAfter = result === 'success' ? Math.min(5, boxBefore + 1) : 1;
@@ -329,6 +344,13 @@ async function handleProofOrdering(context: RequestContext, auth: PlayAuth, proo
     content_image: s.content_image,
   }));
 
+  // SEC-GACHA-H3: 시작 시각을 서버 KV에 저장 — submit 시 서버측 timeSpent 계산용
+  await context.env.KV.put(
+    proofStartKey(auth.studentId, proofId, 'ordering'),
+    String(Date.now()),
+    { expirationTtl: PROOF_START_TTL }
+  );
+
   return successResponse({
     proof,
     steps: problemSteps,
@@ -395,6 +417,13 @@ async function handleProofFillBlank(context: RequestContext, auth: PlayAuth, pro
     };
   });
 
+  // SEC-GACHA-H3: 시작 시각 KV 저장
+  await context.env.KV.put(
+    proofStartKey(auth.studentId, proofId, 'fill_blank'),
+    String(Date.now()),
+    { expirationTtl: PROOF_START_TTL }
+  );
+
   return successResponse({
     proof,
     steps: problemSteps,
@@ -430,8 +459,12 @@ async function handleProofSubmit(request: Request, context: RequestContext, auth
 
   let score = 0;
   let detail: any = {};
-  const startTime = body.start_time ? new Date(body.start_time).getTime() : 0;
-  const timeSpent = startTime > 0 ? Math.floor((Date.now() - startTime) / 1000) : 0;
+  // SEC-GACHA-H3: 클라이언트 start_time 신뢰 제거 — KV에 저장된 서버 시각 사용
+  const startedAtRaw = await context.env.KV.get(proofStartKey(auth.studentId, proofId, mode));
+  const serverStartedAt = startedAtRaw ? parseInt(startedAtRaw) : 0;
+  const timeSpent = serverStartedAt > 0
+    ? Math.max(0, Math.floor((Date.now() - serverStartedAt) / 1000))
+    : 0;
 
   if (mode === 'ordering') {
     // answers: [stepId1, stepId2, ...] 순서대로
@@ -524,6 +557,9 @@ async function handleProofSubmit(request: Request, context: RequestContext, auth
       [session.id]
     );
   }
+
+  // SEC-GACHA-H3: 시작 시각 KV 정리 (재제출 방지·자원 회수)
+  try { await context.env.KV.delete(proofStartKey(auth.studentId, proofId, mode)); } catch { /* ignore */ }
 
   return successResponse({
     score,

@@ -373,6 +373,42 @@ export async function teacherNamesRateLimit(kv: KVLike, request: Request, slug: 
   return null;
 }
 
+// ──────────────────────────────────────────────────────────────────
+// 가챠 카드 피드백 — 자가 box 부풀리기 방어 (SEC-GACHA-H2)
+// (studentId, cardId) 페어 기준 분 5회, 일 30회.
+// 정상 학습 흐름은 카드당 일 1~3회. 30회/일 캡은 자가 부풀리기를 사실상 차단.
+// ──────────────────────────────────────────────────────────────────
+const GACHA_FEEDBACK_PER_MIN = 5;
+const GACHA_FEEDBACK_PER_DAY = 30;
+
+export async function gachaCardFeedbackRateLimit(
+  kv: KVLike,
+  studentId: string,
+  cardId: string
+): Promise<Response | null> {
+  const safeStudent = studentId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const safeCard = cardId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const minKey = `gcf:m:${safeStudent}:${safeCard}`;
+  const dayKey = `gcf:d:${safeStudent}:${safeCard}`;
+
+  const [mRaw, dRaw] = await Promise.all([kv.get(minKey), kv.get(dayKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const d = dRaw ? parseInt(dRaw) : 0;
+
+  if (m >= GACHA_FEEDBACK_PER_MIN || d >= GACHA_FEEDBACK_PER_DAY) {
+    return new Response(
+      JSON.stringify({ error: '카드 피드백 요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(minKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(dayKey, String(d + 1), { expirationTtl: 86400 }),
+  ]);
+  return null;
+}
+
 export async function setRateLimitHeaders(
   response: Response,
   ip: string,
