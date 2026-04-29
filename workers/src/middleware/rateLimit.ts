@@ -374,6 +374,42 @@ export async function teacherNamesRateLimit(kv: KVLike, request: Request, slug: 
 }
 
 // ──────────────────────────────────────────────────────────────────
+// 학부모 리포트 GET — 토큰 도용/brute force 방어 (SEC-PARENT-M1)
+// IP+studentId 페어 분 30회, 시간 200회.
+// HMAC 토큰이 이미 있지만 외부 노출 표면이라 방어 깊이 추가.
+// ──────────────────────────────────────────────────────────────────
+const PARENT_REPORT_PER_MIN = 30;
+const PARENT_REPORT_PER_HOUR = 200;
+
+export async function parentReportRateLimit(
+  kv: KVLike,
+  request: Request,
+  studentId: string
+): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const safeStudent = studentId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const minKey = `pr:m:${ip}:${safeStudent}`;
+  const hourKey = `pr:h:${ip}:${safeStudent}`;
+
+  const [mRaw, hRaw] = await Promise.all([kv.get(minKey), kv.get(hourKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const h = hRaw ? parseInt(hRaw) : 0;
+
+  if (m >= PARENT_REPORT_PER_MIN || h >= PARENT_REPORT_PER_HOUR) {
+    return new Response(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(minKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(hourKey, String(h + 1), { expirationTtl: 3600 }),
+  ]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────────────
 // 가챠 카드 피드백 — 자가 box 부풀리기 방어 (SEC-GACHA-H2)
 // (studentId, cardId) 페어 기준 분 5회, 일 30회.
 // 정상 학습 흐름은 카드당 일 1~3회. 30회/일 캡은 자가 부풀리기를 사실상 차단.

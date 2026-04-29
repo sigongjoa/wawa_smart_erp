@@ -17,6 +17,22 @@ import { executeFirst, executeQuery } from '@/utils/db';
 import { errorResponse, successResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
 import { requireAuth } from '@/middleware/auth';
 import { getAcademyId, getUserId } from '@/utils/context';
+import { parentReportRateLimit } from '@/middleware/rateLimit';
+import { logger } from '@/utils/logger';
+
+// SEC-PARENT-M2: origin allowlist — env에서 명시된 BASE_URL 또는 동일 origin만 허용.
+// 공격자가 임의 origin을 보내 phishing URL을 응답에 끼워넣는 경로 차단.
+function resolveSafeBase(env: RequestContext['env'], requestOrigin: string): string {
+  const allowed = (env as any).APP_BASE_URL as string | undefined;
+  if (allowed) {
+    // 정확 매칭만 허용 (origin 그대로)
+    if (requestOrigin && requestOrigin === allowed) return requestOrigin;
+    return allowed;
+  }
+  // ENV 미설정 시 origin 그대로 (단 https/http 스킴만)
+  if (requestOrigin && /^https?:\/\//.test(requestOrigin)) return requestOrigin;
+  return '';
+}
 
 // ─────────────── Secret 해결 ───────────────
 
@@ -184,8 +200,9 @@ export async function handleParentReport(
 
     const token = await signToken(studentId, month, expiresAtMs, secret);
 
-    const origin = request.headers.get('origin') || '';
-    const base = origin || (context.env as any).APP_BASE_URL || '';
+    // SEC-PARENT-M2: 공격자가 임의 origin을 보내 phishing URL을 응답에 끼워넣는 것 차단
+    const requestOrigin = request.headers.get('origin') || '';
+    const base = resolveSafeBase(context.env, requestOrigin);
     const path = `/#/parent-report/${studentId}?token=${encodeURIComponent(token)}&month=${month}`;
     const fullUrl = base ? `${base}${path}` : path;
 
@@ -208,8 +225,17 @@ export async function handleParentReport(
     const range = monthRange(month);
     if (!range) return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
 
+    // SEC-PARENT-M1: 토큰 도용/brute force 방어 — IP+studentId 기준 rate limit
+    const blocked = await parentReportRateLimit(context.env.KV, request, studentId);
+    if (blocked) return blocked;
+
     const verify = await verifyToken(token, studentId, month, secret);
     if (!verify.ok) {
+      // SEC-PARENT-M3: 토큰 검증 실패 보안 로그 (IP·studentId·reason 기록, 토큰 자체는 기록 안 함)
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      logger.logSecurity('PARENT_REPORT_TOKEN_INVALID', 'medium', {
+        studentId, month, reason: verify.reason, ip,
+      });
       return errorResponse(
         verify.reason === 'expired' ? '링크가 만료되었습니다' : '유효하지 않은 링크입니다',
         401
