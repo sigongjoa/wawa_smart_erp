@@ -95,10 +95,16 @@ export default function LoginPage() {
         academyName: u.academyName,
         academySlug: u.academySlug,
         academyLogo: u.academyLogo,
+        passwordMustChange: !!u.passwordMustChange,
       };
       login(safeUser);
       localStorage.setItem('lastSlug', slug);
-      navigate('/timer');
+      // SEC-AUTH-PWMC: 임시 PIN으로 로그인했으면 PIN 변경 화면으로 강제 라우팅
+      if (u.passwordMustChange) {
+        navigate('/change-pin');
+      } else {
+        navigate('/timer');
+      }
     } catch (err: any) {
       setError(err.message || '로그인에 실패했습니다');
     } finally {

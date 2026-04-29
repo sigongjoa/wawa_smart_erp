@@ -405,6 +405,14 @@ export const api = {
       body: JSON.stringify({ slug, name, pin }),
     }),
 
+  // SEC-AUTH-PWMC: 본인 PIN 변경. 임시 PIN 첫 로그인 시 강제 흐름.
+  // 성공 시 모든 세션 폐기되어 재로그인 필요.
+  changePin: (currentPin: string, newPin: string) =>
+    request<{ changed: boolean; message: string }>('/api/auth/change-pin', {
+      method: 'POST',
+      body: JSON.stringify({ currentPin, newPin }),
+    }),
+
   // 학원 공개 정보 (로그인 페이지용)
   getTeacherNames: (slug: string) =>
     request<{ teachers: string[]; academy: { name: string; logo: string | null } | null }>(

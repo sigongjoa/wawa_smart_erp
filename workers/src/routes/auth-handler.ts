@@ -261,6 +261,56 @@ export async function handleAuth(
       ]);
     }
 
+    // POST /api/auth/change-pin — 본인 PIN 변경 (password_must_change 해제용)
+    if (method === 'POST' && pathname === '/api/auth/change-pin') {
+      if (!context.auth) return unauthorizedResponse();
+
+      const body = (await request.json().catch(() => ({}))) as any;
+      const currentPin = typeof body.currentPin === 'string' ? body.currentPin : '';
+      const newPin = typeof body.newPin === 'string' ? body.newPin : '';
+
+      if (newPin.length < 4 || newPin.length > 20) {
+        return errorResponse('새 PIN은 4~20자', 400);
+      }
+      if (currentPin === newPin) {
+        return errorResponse('새 PIN은 기존과 달라야 합니다', 400);
+      }
+
+      const me = await executeFirst<{ id: string; password_hash: string }>(
+        context.env.DB,
+        'SELECT id, password_hash FROM users WHERE id = ?',
+        [context.auth.userId]
+      );
+      if (!me) return unauthorizedResponse();
+
+      const ok = await verifyPin(currentPin, me.password_hash);
+      if (!ok) {
+        logger.logSecurity('CHANGE_PIN_CURRENT_INVALID', 'medium', { userId: me.id, ip: ipAddress });
+        return errorResponse('현재 PIN이 올바르지 않습니다', 401);
+      }
+
+      const newHash = await hashPin(newPin);
+      // 변경 시 password_must_change=0, reset_at=NULL + 모든 다른 세션 폐기 (현재 세션만 남김)
+      await context.env.DB.batch([
+        context.env.DB.prepare(
+          `UPDATE users
+              SET password_hash = ?,
+                  password_must_change = 0,
+                  password_reset_at = NULL,
+                  updated_at = datetime('now')
+            WHERE id = ?`
+        ).bind(newHash, me.id),
+        // 다른 디바이스 세션 폐기. 현재 요청은 access JWT 사용이라 영향 없음.
+        // 단 클라이언트는 새 refresh를 발급받기 위해 재로그인 권장.
+        context.env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?`).bind(me.id),
+      ]);
+
+      logger.info(`PIN 변경 완료: ${me.id}`);
+      const resp = successResponse({ changed: true, message: 'PIN이 변경되었습니다. 다시 로그인하세요.' });
+      // 쿠키 정리 — 클라이언트는 재로그인 강제
+      return appendSetCookie(resp, [clearCookie(ACCESS_COOKIE), clearCookie(REFRESH_COOKIE)]);
+    }
+
     // POST /logout — 쿠키의 refresh 토큰으로 세션 DB 삭제 + 쿠키 clear
     if (method === 'POST' && pathname === '/api/auth/logout') {
       if (!context.auth) {

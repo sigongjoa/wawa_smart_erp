@@ -46,6 +46,7 @@ import { handleParentHomework } from '@/routes/parent-homework-handler';
 import { handleLessonItems } from '@/routes/lesson-items-handler';
 import { handleCurriculum } from '@/routes/curriculum-handler';
 import { expireExpiredAttempts } from '@/cron/expire-exam-attempts';
+import { cleanupExpiredSessions } from '@/cron/cleanup-sessions';
 import { tenantMiddleware } from '@/middleware/tenant';
 
 /**
@@ -321,8 +322,9 @@ export default {
     return await setRateLimitHeaders(response, ip, env.KV);
   },
 
-  // Cloudflare Cron Trigger — wrangler.toml triggers.crons 기준
+  // Cloudflare Cron Trigger — wrangler.toml triggers.crons 기준 (1분마다)
   scheduled: async (_event: any, env: Env, _ctx: any): Promise<void> => {
+    // 1) 만료된 exam attempt 처리 (매 1분)
     try {
       const result = await expireExpiredAttempts(env);
       if (result.expired > 0) {
@@ -330,6 +332,19 @@ export default {
       }
     } catch (error) {
       logger.error('[cron] expire-exam-attempts failed', error instanceof Error ? error : new Error(String(error)));
+    }
+
+    // 2) 만료된 refresh sessions 정리 (SEC-AUTH-M4) — 매 시각 정각 1회만
+    // 1분마다 DELETE는 비용 과다. 정각(minute=0)에만 실행 → 시간당 1회.
+    if (new Date().getUTCMinutes() === 0) {
+      try {
+        const result = await cleanupExpiredSessions(env);
+        if (result.deleted > 0) {
+          logger.info(`[cron] cleanup-sessions: ${result.deleted} expired session(s) deleted`);
+        }
+      } catch (error) {
+        logger.error('[cron] cleanup-sessions failed', error instanceof Error ? error : new Error(String(error)));
+      }
     }
   },
 };

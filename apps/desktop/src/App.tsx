@@ -4,6 +4,7 @@ import { useAuthStore } from './store';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ChangePinPage from './pages/ChangePinPage';
 import { ToastContainer } from './components/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -67,6 +68,14 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/change-pin"
+            element={
+              <ProtectedRoute>
+                <ChangePinPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/parent-report/:studentId" element={<ParentReportPage />} />
           <Route path="/parent/student/:studentId" element={<ParentLessonsPage />} />
           <Route path="/parent-homework/:targetId" element={<ParentHomeworkPage />} />
