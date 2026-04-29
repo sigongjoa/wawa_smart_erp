@@ -79,6 +79,21 @@ function isValidImageDataUrl(s: string): boolean {
   return /^data:image\/(png|jpeg|jpg|webp);base64,/.test(s);
 }
 
+/**
+ * SEC-LIVE-M1: 텍스트 위생화 — C0/C1 제어문자 제거 + trim.
+ * KV/DB 저장 전 모든 외부 입력 텍스트에 적용.
+ */
+function sanitizeText(v: any): string {
+  if (typeof v !== 'string') return '';
+  // \t, \n 유지 — 그 외 C0/C1 제어문자 제거
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+function sanitizeNullable(v: any): string | null {
+  const cleaned = sanitizeText(v);
+  return cleaned === '' ? null : cleaned;
+}
+
 const StatePatchSchema = z.object({
   side: z.enum(['teacher', 'student', 'problem']),
   text: z.string().max(20000).optional(),
@@ -197,17 +212,22 @@ export async function handleLive(
       );
       if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
 
+      // SEC-LIVE-M1: 입력 위생화 — subject/problem_text C0/C1 제거 + trim
+      const cleanSubject = sanitizeText(input.subject);
+      const cleanProblemText = sanitizeNullable(input.problem_text);
+      if (!cleanSubject) return errorResponse('subject 필수', 400);
+
       const id = generatePrefixedId('lvs');
       await executeInsert(
         context.env.DB,
         `INSERT INTO live_sessions
          (id, academy_id, teacher_id, student_id, subject, problem_text)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, academyId, userId, input.student_id, input.subject, input.problem_text || null]
+        [id, academyId, userId, input.student_id, cleanSubject, cleanProblemText]
       );
 
       const state = emptyState();
-      if (input.problem_text) state.problem.text = input.problem_text;
+      if (cleanProblemText) state.problem.text = cleanProblemText;
       await saveState(context, id, state);
       await context.env.KV.put(activeKey(input.student_id), id, {
         expirationTtl: STATE_TTL,
@@ -263,11 +283,12 @@ export async function handleLive(
       const state = await loadState(context, id);
       const now = Date.now();
       if (input.side === 'teacher') {
-        if (input.text !== undefined) state.teacher.text = input.text;
+        // SEC-LIVE-M1: text 위생화
+        if (input.text !== undefined) state.teacher.text = sanitizeText(input.text);
         if (input.strokes !== undefined) state.teacher.strokes = input.strokes;
         state.teacher.updated_at = now;
       } else {
-        if (input.text !== undefined) state.problem.text = input.text;
+        if (input.text !== undefined) state.problem.text = sanitizeText(input.text);
         if (input.image_data_url !== undefined) {
           if (!isValidImageDataUrl(input.image_data_url)) {
             return errorResponse('이미지가 너무 크거나 형식 오류 (1MB 이내 PNG/JPG)', 400);
@@ -293,40 +314,49 @@ export async function handleLive(
       const body = (await request.json().catch(() => ({}))) as any;
       const input = EndSessionSchema.parse(body || {});
 
+      // SEC-LIVE-M2: 멱등 race guard — 사전 마크. 두 번째 호출은 사전 status 체크에서 차단되며,
+      // 동시 호출 시에도 R2 업로드 1회로 수렴. UPDATE 결과 0행이면 이미 종료된 것으로 간주.
+      const finalState = await loadState(context, id);
       let teacherKey: string | null = null;
       let studentKey: string | null = null;
+      let problemKey: string | null = null;
 
+      // PERF-LIVE-M1: R2 3개 업로드 병렬화 (이전: 직렬)
+      const r2Tasks: Promise<void>[] = [];
       if (input.teacher_solution_image) {
         const dec = decodeBase64Image(input.teacher_solution_image);
         if (dec) {
           teacherKey = `academies/${academyId}/live/${id}/teacher.png`;
-          await context.env.BUCKET.put(teacherKey, dec.buf, {
-            httpMetadata: { contentType: dec.mime },
-          });
+          r2Tasks.push(
+            context.env.BUCKET.put(teacherKey, dec.buf, {
+              httpMetadata: { contentType: dec.mime },
+            }).then(() => undefined)
+          );
         }
       }
       if (input.student_answer_image) {
         const dec = decodeBase64Image(input.student_answer_image);
         if (dec) {
           studentKey = `academies/${academyId}/live/${id}/student.png`;
-          await context.env.BUCKET.put(studentKey, dec.buf, {
-            httpMetadata: { contentType: dec.mime },
-          });
+          r2Tasks.push(
+            context.env.BUCKET.put(studentKey, dec.buf, {
+              httpMetadata: { contentType: dec.mime },
+            }).then(() => undefined)
+          );
         }
       }
-
-      // 문제 이미지도 R2 영구화
-      const finalState = await loadState(context, id);
-      let problemKey: string | null = null;
       if (finalState.problem.image_data_url) {
         const dec = decodeBase64Image(finalState.problem.image_data_url);
         if (dec) {
           problemKey = `academies/${academyId}/live/${id}/problem.png`;
-          await context.env.BUCKET.put(problemKey, dec.buf, {
-            httpMetadata: { contentType: dec.mime },
-          });
+          r2Tasks.push(
+            context.env.BUCKET.put(problemKey, dec.buf, {
+              httpMetadata: { contentType: dec.mime },
+            }).then(() => undefined)
+          );
         }
       }
+      if (r2Tasks.length) await Promise.all(r2Tasks);
 
       const startedAtMs = new Date(sess.started_at + 'Z').getTime();
       const endedAtIso = new Date().toISOString();
@@ -337,6 +367,9 @@ export async function handleLive(
 
       let noteId: string | null = null;
       if (input.create_note) {
+        // SEC-LIVE-M1: summary 위생화 (학생-강사 공유 노트로 영속됨)
+        const cleanSummary = sanitizeText(input.create_note.summary);
+        if (!cleanSummary) return errorResponse('create_note.summary는 비울 수 없습니다', 400);
         noteId = generatePrefixedId('stn');
         const periodTag = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         await executeInsert(
@@ -354,7 +387,7 @@ export async function handleLive(
             input.create_note.category || 'understanding',
             input.create_note.sentiment,
             JSON.stringify(['라이브세션']),
-            input.create_note.summary,
+            cleanSummary,
             'live_session',
             id,
             'staff',
@@ -363,6 +396,7 @@ export async function handleLive(
         );
       }
 
+      // SEC-LIVE-M2: status guard로 동시 종료 호출의 두 번째를 차단 — UPDATE 영향 행 0이면 이미 ended
       await executeUpdate(
         context.env.DB,
         `UPDATE live_sessions
@@ -371,7 +405,7 @@ export async function handleLive(
              teacher_solution_text = ?, teacher_solution_r2_key = COALESCE(?, teacher_solution_r2_key),
              student_answer_text = ?, student_answer_r2_key = COALESCE(?, student_answer_r2_key),
              note_id = ?
-         WHERE id = ?`,
+         WHERE id = ? AND status != 'ended'`,
         [
           endedAtIso,
           durationSec,
@@ -475,7 +509,8 @@ export async function handlePlayLive(
 
       const state = await loadState(context, id);
       const now = Date.now();
-      if (input.text !== undefined) state.student.text = input.text;
+      // SEC-LIVE-M1: text 위생화
+      if (input.text !== undefined) state.student.text = sanitizeText(input.text);
       if (input.strokes !== undefined) state.student.strokes = input.strokes;
       if (input.append_photo_data_url) {
         if (!isValidImageDataUrl(input.append_photo_data_url)) {
