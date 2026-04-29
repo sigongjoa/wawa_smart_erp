@@ -374,6 +374,40 @@ export async function teacherNamesRateLimit(kv: KVLike, request: Request, slug: 
 }
 
 // ──────────────────────────────────────────────────────────────────
+// 학생 단어/문법 추가 — DB 폭격 방어 (SEC-VOCAB-M2)
+// 학생당 분 10회, 일 200회. 정상 학습 흐름은 충분히 통과.
+// ──────────────────────────────────────────────────────────────────
+const VOCAB_ADD_PER_MIN = 10;
+const VOCAB_ADD_PER_DAY = 200;
+
+export async function vocabAddRateLimit(
+  kv: KVLike,
+  studentId: string,
+  kind: 'word' | 'grammar'
+): Promise<Response | null> {
+  const safe = studentId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const minKey = `va:m:${kind}:${safe}`;
+  const dayKey = `va:d:${kind}:${safe}`;
+
+  const [mRaw, dRaw] = await Promise.all([kv.get(minKey), kv.get(dayKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const d = dRaw ? parseInt(dRaw) : 0;
+
+  if (m >= VOCAB_ADD_PER_MIN || d >= VOCAB_ADD_PER_DAY) {
+    return new Response(
+      JSON.stringify({ error: '추가 요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(minKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(dayKey, String(d + 1), { expirationTtl: 86400 }),
+  ]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────────────
 // 학부모 리포트 GET — 토큰 도용/brute force 방어 (SEC-PARENT-M1)
 // IP+studentId 페어 분 30회, 시간 200회.
 // HMAC 토큰이 이미 있지만 외부 노출 표면이라 방어 깊이 추가.

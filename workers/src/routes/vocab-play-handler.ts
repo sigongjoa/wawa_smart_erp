@@ -9,6 +9,18 @@ import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/util
 import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/utils/response';
 import { handleRouteError } from '@/utils/error-handler';
 import { resolveVocabPolicy, checkAvailability, parseBoxFilter } from '@/utils/vocab-policy';
+import { vocabAddRateLimit } from '@/middleware/rateLimit';
+
+// SEC-VOCAB-M1: 텍스트 위생화 — C0/C1 제어문자 제거 + trim
+function sanitizeText(v: any): string {
+  if (typeof v !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+function sanitizeNullable(v: any): string | null {
+  const cleaned = sanitizeText(v);
+  return cleaned === '' ? null : cleaned;
+}
 
 interface PlayAuth {
   studentId: string;
@@ -64,11 +76,12 @@ const AddGrammarSchema = z.object({
   question: z.string().trim().min(1).max(2000),
 });
 
+// SEC-VOCAB-H1: box 직접 PATCH 제거 — 시험 채점(handleSubmitPrintJob)만이 box 변경 채널.
+// 이전엔 학생이 box=5로 직접 변조 가능 → 시험 응시 없이 마스터 처리 가능했음.
 const PatchProgressSchema = z.object({
-  box: z.number().int().min(1).max(5).optional(),
   wrongCount: z.number().int().min(0).max(9999).optional(),
   reviewDelta: z.number().int().min(1).max(100).optional(),
-}).refine((v) => v.box !== undefined || v.wrongCount !== undefined || v.reviewDelta !== undefined, {
+}).refine((v) => v.wrongCount !== undefined || v.reviewDelta !== undefined, {
   message: '업데이트할 필드가 없습니다',
 });
 
@@ -140,6 +153,10 @@ async function handleGetMyWords(context: RequestContext, auth: PlayAuth): Promis
 }
 
 async function handleAddMyWord(request: Request, context: RequestContext, auth: PlayAuth): Promise<Response> {
+  // SEC-VOCAB-M2: rate limit — DB 폭격 방어
+  const blocked = await vocabAddRateLimit(context.env.KV, auth.studentId, 'word');
+  if (blocked) return blocked;
+
   let data: z.infer<typeof AddWordSchema>;
   try {
     data = AddWordSchema.parse(await request.json().catch(() => ({})));
@@ -148,6 +165,15 @@ async function handleAddMyWord(request: Request, context: RequestContext, auth: 
     if (zerr) return zerr;
     throw err;
   }
+
+  // SEC-VOCAB-M1: 입력 위생화 (필수 필드는 sanitize 후 빈값이면 reject)
+  const cleanEnglish = sanitizeText(data.english);
+  const cleanKorean = sanitizeText(data.korean);
+  const cleanExample = sanitizeNullable(data.example);
+  if (!cleanEnglish || !cleanKorean) {
+    return errorResponse('english/korean은 비울 수 없습니다', 400);
+  }
+
   const id = generatePrefixedId('vw');
   // 셀프-서브 모델: 학생 추가 단어는 자동 승인 → 즉시 시험 풀에 포함.
   // 교사 승인 단계 제거(routine 오버헤드 제거). 품질 관리는 사후 편집/삭제로.
@@ -155,7 +181,7 @@ async function handleAddMyWord(request: Request, context: RequestContext, auth: 
     context.env.DB,
     `INSERT INTO vocab_words (id, academy_id, student_id, english, korean, pos, example, status, added_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', 'student')`,
-    [id, auth.academyId, auth.studentId, data.english, data.korean, data.pos ?? null, data.example ?? null]
+    [id, auth.academyId, auth.studentId, cleanEnglish, cleanKorean, data.pos ?? null, cleanExample]
   );
   return successResponse({ id }, 201);
 }
@@ -175,6 +201,10 @@ async function handleGetMyGrammar(context: RequestContext, auth: PlayAuth): Prom
 }
 
 async function handleAddMyGrammar(request: Request, context: RequestContext, auth: PlayAuth): Promise<Response> {
+  // SEC-VOCAB-M2: rate limit
+  const blocked = await vocabAddRateLimit(context.env.KV, auth.studentId, 'grammar');
+  if (blocked) return blocked;
+
   let data: z.infer<typeof AddGrammarSchema>;
   try {
     data = AddGrammarSchema.parse(await request.json().catch(() => ({})));
@@ -183,12 +213,17 @@ async function handleAddMyGrammar(request: Request, context: RequestContext, aut
     if (zerr) return zerr;
     throw err;
   }
+
+  // SEC-VOCAB-M1: question 위생화
+  const cleanQuestion = sanitizeText(data.question);
+  if (!cleanQuestion) return errorResponse('question은 비울 수 없습니다', 400);
+
   const id = generatePrefixedId('vqa');
   await executeInsert(
     context.env.DB,
     `INSERT INTO vocab_grammar_qa (id, academy_id, student_id, question, status)
      VALUES (?, ?, ?, ?, 'pending')`,
-    [id, auth.academyId, auth.studentId, data.question]
+    [id, auth.academyId, auth.studentId, cleanQuestion]
   );
   return successResponse({ id }, 201);
 }
@@ -271,7 +306,7 @@ async function handlePatchWordProgress(
   }
   const sets: string[] = [];
   const params: unknown[] = [];
-  if (typeof data.box === 'number') { sets.push('box = ?'); params.push(data.box); }
+  // SEC-VOCAB-H1: box 직접 변경 채널 제거 — wrong_count / review_count만 PATCH 허용
   if (typeof data.wrongCount === 'number') { sets.push('wrong_count = ?'); params.push(data.wrongCount); }
   if (typeof data.reviewDelta === 'number') {
     sets.push('review_count = review_count + ?');
