@@ -32,6 +32,17 @@ function generateSalt(): string {
   return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// SEC-GSTU-M2: 텍스트 위생화 — C0/C1 제거 + trim
+function sanitizeText(v: any, max: number = 100): string {
+  if (typeof v !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, max);
+}
+function sanitizeNullable(v: any, max: number = 100): string | null {
+  const cleaned = sanitizeText(v, max);
+  return cleaned === '' ? null : cleaned;
+}
+
 // ── 입력 검증 ──
 
 interface CreateStudentInput {
@@ -48,29 +59,28 @@ interface UpdateStudentInput {
 }
 
 function validateCreateInput(body: any): CreateStudentInput {
-  if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
-    throw new Error('입력 검증 오류: ���생 이름은 필수입니다');
-  }
+  // SEC-GSTU-M2: name 위생화 + 길이 캡 50
+  const cleanName = sanitizeText(body.name, 50);
+  if (!cleanName) throw new Error('입력 검증 오류: 학생 이름은 필수입니다');
   if (!body.pin || typeof body.pin !== 'string' || !/^\d{4}$/.test(body.pin)) {
     throw new Error('입력 검증 오류: PIN은 4자리 숫자여야 합니다');
   }
   return {
-    name: body.name.trim(),
+    name: cleanName,
     pin: body.pin,
-    grade: body.grade?.trim() || null,
+    grade: sanitizeNullable(body.grade, 30) ?? undefined,
   };
 }
 
 function validateUpdateInput(body: any): UpdateStudentInput {
   const result: UpdateStudentInput = {};
   if (body.name !== undefined) {
-    if (typeof body.name !== 'string' || body.name.trim().length === 0) {
-      throw new Error('입력 검증 오류: 학생 이름이 유효하지 않습니다');
-    }
-    result.name = body.name.trim();
+    const cleanName = sanitizeText(body.name, 50);
+    if (!cleanName) throw new Error('입력 검증 오류: 학생 이름이 유효하지 않습니다');
+    result.name = cleanName;
   }
-  if (body.grade !== undefined) result.grade = body.grade?.trim() || null;
-  if (body.school !== undefined) result.school = body.school?.trim() || null;
+  if (body.grade !== undefined) result.grade = sanitizeNullable(body.grade, 30) ?? undefined;
+  if (body.school !== undefined) result.school = sanitizeNullable(body.school, 100);
   if (body.status !== undefined) {
     if (!['active', 'inactive'].includes(body.status)) {
       throw new Error('입력 검증 오류: 상태는 active 또는 inactive여야 합니다');
@@ -129,6 +139,10 @@ async function handleGetStudent(context: RequestContext, studentId: string): Pro
   );
   if (!student) {
     return errorResponse('학생을 찾을 수 없습니다', 404);
+  }
+  // SEC-GSTU-H1: instructor는 본인 학생만 조회. admin은 학원 전체.
+  if (context.auth!.role !== 'admin' && student.teacher_id !== getUserId(context)) {
+    return errorResponse('담당 학생이 아닙니다', 403);
   }
   return successResponse(student);
 }
@@ -198,6 +212,10 @@ async function handleUpdateStudent(request: Request, context: RequestContext, st
   if (!student) {
     return errorResponse('학생을 찾을 수 없습니다', 404);
   }
+  // SEC-GSTU-H1: instructor는 본인 담당 학생만 수정 가능. admin은 학원 전체.
+  if (context.auth!.role !== 'admin' && student.teacher_id !== getUserId(context)) {
+    return errorResponse('담당 학생이 아닙니다', 403);
+  }
 
   const sets: string[] = [];
   const params: unknown[] = [];
@@ -236,6 +254,10 @@ async function handleDeleteStudent(context: RequestContext, studentId: string): 
   if (!student) {
     return errorResponse('학생을 찾을 수 없습니다', 404);
   }
+  // SEC-GSTU-H1: instructor는 본인 학생만 삭제. admin은 학원 전체.
+  if (context.auth!.role !== 'admin' && student.teacher_id !== getUserId(context)) {
+    return errorResponse('담당 학생이 아닙니다', 403);
+  }
 
   // CASCADE로 관련 데이터 자동 삭제 (sessions, results, assignments)
   await executeDelete(context.env.DB, 'DELETE FROM gacha_students WHERE id = ?', [studentId]);
@@ -271,11 +293,15 @@ async function handleResetPin(request: Request, context: RequestContext, student
 
   const student = await executeFirst<any>(
     context.env.DB,
-    'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+    'SELECT id, teacher_id FROM gacha_students WHERE id = ? AND academy_id = ?',
     [studentId, academyId]
   );
   if (!student) {
     return errorResponse('학생을 찾을 수 없습니다', 404);
+  }
+  // SEC-GSTU-H1: instructor는 본인 학생만 PIN 리셋. admin은 학원 전체.
+  if (context.auth!.role !== 'admin' && student.teacher_id !== getUserId(context)) {
+    return errorResponse('담당 학생이 아닙니다', 403);
   }
 
   const salt = generateSalt();

@@ -12,6 +12,14 @@ import { logger } from '@/utils/logger';
 import { parsePagination } from '@/utils/pagination';
 import { paginatedList } from '@/utils/paginatedList';
 
+// SEC-MSG-M1: 텍스트 위생화 — C0/C1 제거 + trim + 길이 캡
+const MAX_CONTENT_LEN = 5000;
+function sanitizeContent(v: any): string {
+  if (typeof v !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, MAX_CONTENT_LEN);
+}
+
 interface Message {
   id: string;
   sender_id: string;
@@ -51,12 +59,16 @@ export async function handleMessage(
         return errorResponse('자신에게 메시지를 보낼 수 없습니다', 400);
       }
 
+      // SEC-MSG-M1: content 위생화 + 길이 캡
+      const cleanContent = sanitizeContent(content);
+      if (!cleanContent) return errorResponse('content는 비울 수 없습니다', 400);
+
       const id = crypto.randomUUID();
       const result = await executeInsert(
         context.env.DB,
         `INSERT INTO messages (id, sender_id, recipient_id, content, is_read, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-        [id, userId, recipientId, content, false]
+        [id, userId, recipientId, cleanContent, false]
       );
 
       if (!result.success) {
@@ -107,22 +119,32 @@ export async function handleMessage(
       const currentUserId = context.auth!.userId;
       const pg = parsePagination(new URL(request.url), { defaultLimit: 100, maxLimit: 500 });
 
-      // 양방향 conversation은 OR 두 쌍이라 paginatedList 단순 필터로 표현 어려움 → 직접 쿼리 + total 추가
-      const totalRow = await executeFirst<{ n: number }>(
+      // SEC-MSG-H1: 상대방이 같은 학원 소속인지 사전 검증 (cross-tenant 대화 차단)
+      const peer = await executeFirst<{ id: string }>(
         context.env.DB,
-        `SELECT COUNT(*) AS n FROM messages
-         WHERE (sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)`,
-        [currentUserId, conversationUserId, conversationUserId, currentUserId]
+        'SELECT id FROM users WHERE id = ? AND academy_id = ?',
+        [conversationUserId, context.auth!.academyId]
       );
-      const items = await executeQuery<Message>(
-        context.env.DB,
-        `SELECT * FROM messages
-         WHERE (sender_id = ? AND recipient_id = ?)
-            OR (sender_id = ? AND recipient_id = ?)
-         ORDER BY created_at ASC
-         LIMIT ? OFFSET ?`,
-        [currentUserId, conversationUserId, conversationUserId, currentUserId, pg.limit, pg.offset]
-      );
+      if (!peer) return notFoundResponse();
+
+      // PERF-MSG-M1: COUNT + 조회를 병렬로
+      const [totalRow, items] = await Promise.all([
+        executeFirst<{ n: number }>(
+          context.env.DB,
+          `SELECT COUNT(*) AS n FROM messages
+           WHERE (sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)`,
+          [currentUserId, conversationUserId, conversationUserId, currentUserId]
+        ),
+        executeQuery<Message>(
+          context.env.DB,
+          `SELECT * FROM messages
+           WHERE (sender_id = ? AND recipient_id = ?)
+              OR (sender_id = ? AND recipient_id = ?)
+           ORDER BY created_at ASC
+           LIMIT ? OFFSET ?`,
+          [currentUserId, conversationUserId, conversationUserId, currentUserId, pg.limit, pg.offset]
+        ),
+      ]);
       return successResponse({
         items,
         pagination: { total: Number(totalRow?.n ?? 0), limit: pg.limit, offset: pg.offset,
