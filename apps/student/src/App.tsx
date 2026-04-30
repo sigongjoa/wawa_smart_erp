@@ -18,6 +18,7 @@ const DexPage = lazy(() => import('./pages/DexPage'));
 const MePage = lazy(() => import('./pages/MePage'));
 const VocabExamPage = lazy(() => import('./pages/VocabExamPage'));
 const VocabExamResultPage = lazy(() => import('./pages/VocabExamResultPage'));
+const MedTermPage = lazy(() => import('./pages/MedTermPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/assignments" element={<AssignmentsPage />} />
             <Route path="/assignments/:targetId" element={<AssignmentDetailPage />} />
             <Route path="/dex" element={<DexPage />} />
+            <Route path="/medterm" element={<MedTermPage />} />
             <Route path="/archives" element={<MyArchivePage />} />
             <Route path="/me" element={<MePage />} />
           </Route>

@@ -2324,3 +2324,39 @@ export interface GachaStats {
     attempt_count: number;
   }>;
 }
+
+// ── MedTerm (의학용어 학습 — 강사) ──
+
+export interface MedBook { id: string; title: string; publisher: string | null; field: string | null; }
+export interface MedChapter {
+  id: string; book_id: string; chapter_no: number; title: string;
+  page_start: number | null; page_end: number | null; objectives: string | null;
+}
+export interface MedProgressBox {
+  study_mode: string;
+  box: number;
+  cnt: number;
+}
+export interface MedWeakTerm {
+  term: string;
+  meaning_ko: string;
+  wrong_count: number;
+  box: number;
+}
+
+export const medtermAdminApi = {
+  listBooks: () => request<{ items: MedBook[] }>('/api/medterm/books'),
+  listChapters: (bookId?: string) =>
+    request<{ items: MedChapter[] }>(
+      `/api/medterm/chapters${bookId ? `?book_id=${bookId}` : ''}`
+    ),
+  assign: (chapterId: string, studentIds: string[], modes: string[]) =>
+    request<{ assigned_students: number; terms: number; cards_created: number }>(
+      `/api/medterm/chapters/${chapterId}/assign`,
+      { method: 'POST', body: JSON.stringify({ student_ids: studentIds, modes }) }
+    ),
+  progress: (studentId: string, chapterId?: string) =>
+    request<{ box_distribution: MedProgressBox[]; weak_terms: MedWeakTerm[] }>(
+      `/api/medterm/progress?student_id=${studentId}${chapterId ? `&chapter_id=${chapterId}` : ''}`
+    ),
+};

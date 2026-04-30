@@ -1,0 +1,195 @@
+.medterm-page {
+  padding: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.medterm-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.medterm-header h2 {
+  font-size: 20px;
+  margin: 0;
+  color: #8B0000;
+}
+
+.medterm-progress {
+  font-size: 13px;
+  color: #666;
+}
+
+.medterm-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.medterm-mode-badge {
+  display: inline-block;
+  font-size: 12px;
+  background: #f5f5f5;
+  color: #555;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+
+.medterm-term {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1565C0;
+  text-align: center;
+  margin: 18px 0;
+  letter-spacing: 0.5px;
+}
+
+.medterm-prompt {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.medterm-meaning {
+  background: #f8f9ff;
+  border-left: 3px solid #1565C0;
+  padding: 12px 14px;
+  margin: 12px 0;
+  border-radius: 6px;
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+.medterm-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #fafafa;
+  box-sizing: border-box;
+}
+.medterm-input:focus {
+  outline: none;
+  border-color: #1565C0;
+  background: #fff;
+}
+.medterm-input:disabled {
+  background: #eee;
+  color: #666;
+}
+
+.medterm-decompose-slots {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 14px 0;
+}
+
+.medterm-slot {
+  width: 80px;
+  padding: 10px 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  text-align: center;
+  background: #fafafa;
+}
+.medterm-slot:focus {
+  outline: none;
+  border-color: #1565C0;
+  background: #fff;
+}
+
+.medterm-hint {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.medterm-feedback {
+  margin: 16px 0 8px;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.medterm-feedback.correct {
+  background: #E8F5E9;
+  border-left: 4px solid #2E7D32;
+  color: #1B5E20;
+}
+.medterm-feedback.wrong {
+  background: #FFEBEE;
+  border-left: 4px solid #C62828;
+  color: #B71C1C;
+}
+.medterm-feedback strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+.medterm-feedback-line {
+  font-size: 13px;
+}
+.medterm-feedback-answer code {
+  background: rgba(0,0,0,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'NanumGothicCoding', monospace;
+}
+.medterm-feedback-explain {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #444;
+}
+
+.medterm-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.medterm-submit, .medterm-next, .medterm-retry {
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.medterm-submit {
+  background: #1565C0;
+  color: white;
+}
+.medterm-submit:hover { background: #104a92; }
+
+.medterm-next {
+  background: #43A047;
+  color: white;
+}
+.medterm-next:hover { background: #357d3b; }
+
+.medterm-retry {
+  background: #757575;
+  color: white;
+  margin-top: 12px;
+}
+
+.medterm-error {
+  padding: 14px;
+  background: #FFEBEE;
+  border-left: 4px solid #C62828;
+  color: #B71C1C;
+  border-radius: 6px;
+}

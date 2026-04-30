@@ -25,6 +25,7 @@ const ExamManagementPage = lazy(() => import('./pages/ExamManagementPage'));
 const ExamPapersPage = lazy(() => import('./pages/ExamPapersPage'));
 const ExamQuestionEditorPage = lazy(() => import('./pages/ExamQuestionEditorPage'));
 const VocabAdminPage = lazy(() => import('./pages/VocabAdminPage'));
+const MedTermAdminPage = lazy(() => import('./pages/MedTermAdminPage'));
 const VocabWordsTab = lazy(() => import('./pages/vocab/VocabWordsTab'));
 const VocabWrongTab = lazy(() => import('./pages/vocab/VocabWrongTab'));
 const VocabGradeTab = lazy(() => import('./pages/vocab/VocabGradeTab'));
@@ -118,6 +119,7 @@ export default function App() {
             <Route path="/homeroom/consultations" element={<HomeroomConsultationsPage />} />
             <Route path="/homeroom/follow-ups" element={<HomeroomFollowUpsPage />} />
             <Route path="/homeroom/exams" element={<HomeroomExamsPage />} />
+            <Route path="/medterm" element={<MedTermAdminPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/timer" replace />} />
         </Routes>

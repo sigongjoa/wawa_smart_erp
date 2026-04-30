@@ -520,3 +520,56 @@ export function getImageUrl(key: string): string {
 export function getCardImageUrl(key: string): string {
   return `${API_BASE}/api/gacha/image/${key}`;
 }
+
+// ── MedTerm (의학용어 학습) ──
+
+export interface MedTermCard {
+  id: string;
+  term_id: string;
+  term: string;
+  meaning_ko: string;
+  meaning_long: string | null;
+  study_mode: 'meaning' | 'decompose' | 'compose' | 'plural' | 'figure';
+  box: number;
+  review_count: number;
+  wrong_count: number;
+  next_review: string;
+}
+
+export interface MedTermAnswerResult {
+  correct: boolean;
+  box_before: number;
+  box_after: number;
+  next_review: string;
+  answer: unknown;
+  explanation: string;
+}
+
+export interface MedTermPart {
+  id: string;
+  role: 'p' | 'r' | 'cv' | 's';
+  value: string;
+  meaning_ko: string;
+  position: number;
+}
+
+export interface MedTermDetail {
+  id: string;
+  term: string;
+  meaning_ko: string;
+  parts: MedTermPart[];
+}
+
+export const medtermApi = {
+  today: (limit = 20, chapterId?: string) =>
+    request<{ items: MedTermCard[]; count: number; server_time: string }>(
+      `/api/play/medterm/today?limit=${limit}${chapterId ? `&chapter_id=${chapterId}` : ''}`
+    ),
+  answer: (studentTermId: string, response: unknown) =>
+    request<MedTermAnswerResult>('/api/play/medterm/answer', {
+      method: 'POST',
+      body: JSON.stringify({ student_term_id: studentTermId, response }),
+    }),
+  term: (termId: string) =>
+    request<MedTermDetail>(`/api/play/medterm/term/${termId}`),
+};
