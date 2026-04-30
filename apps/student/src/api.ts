@@ -573,6 +573,45 @@ export interface MedTermDetail {
   parts: MedTermPart[];
 }
 
+export interface MedTermFigure {
+  id: string;
+  label: string;
+  caption: string | null;
+  fig_type: string;
+  has_image: boolean;
+}
+
+export interface MedTermFigureLabel {
+  id: string;
+  figure_id: string;
+  part_id: string | null;
+  x_ratio: number;
+  y_ratio: number;
+  text: string;
+}
+
+export interface MedTermExamAttempt {
+  id: string;
+  chapter_id: string;
+  status: 'created' | 'submitted' | 'graded';
+  total: number | null;
+  score: number | null;
+  correct_cnt: number | null;
+  created_at: string;
+  submitted_at: string | null;
+}
+
+export interface MedTermExamItem {
+  id: string;
+  no: number;
+  type: string;
+  topic: string | null;
+  difficulty: string;
+  question: string;
+  body: any;
+  figure_id: string | null;
+}
+
 export const medtermApi = {
   today: (limit = 20, chapterId?: string) =>
     request<{ items: MedTermCard[]; count: number; server_time: string }>(
@@ -585,4 +624,32 @@ export const medtermApi = {
     }),
   term: (termId: string) =>
     request<MedTermDetail>(`/api/play/medterm/term/${termId}`),
+
+  // 그림
+  figures: (chapterId: string) =>
+    request<{ items: MedTermFigure[] }>(`/api/play/medterm/figures?chapter_id=${chapterId}`),
+  figureLabels: (figureId: string) =>
+    request<{ items: MedTermFigureLabel[] }>(`/api/play/medterm/figures/${figureId}/labels`),
+  figureImageUrl: (figureId: string) => {
+    const base = (import.meta as any).env?.VITE_API_URL || '';
+    return `${base}/api/play/medterm/figures/${figureId}/image`;
+  },
+
+  // 단원평가
+  listExamAttempts: () =>
+    request<{ items: MedTermExamAttempt[] }>(`/api/play/medterm/exam-attempts`),
+  getExamAttempt: (id: string) =>
+    request<{ attempt: MedTermExamAttempt; items: MedTermExamItem[]; responses: Array<{ item_id: string; response: unknown; correct: number | null }> }>(
+      `/api/play/medterm/exam-attempts/${id}`
+    ),
+  saveExamResponse: (attemptId: string, itemId: string, response: unknown) =>
+    request<{ id: string; updated: boolean }>(`/api/play/medterm/exam-attempts/${attemptId}/responses`, {
+      method: 'POST',
+      body: JSON.stringify({ item_id: itemId, response }),
+    }),
+  submitExam: (attemptId: string) =>
+    request<{ status: string; total: number; correct_cnt: number; score: number } | { already_submitted: true; status: string; score: number; total: number; correct_cnt: number }>(
+      `/api/play/medterm/exam-attempts/${attemptId}/submit`,
+      { method: 'POST' }
+    ),
 };

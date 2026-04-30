@@ -17,6 +17,13 @@ import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/re
 import { handleRouteError } from '@/utils/error-handler';
 import { sanitizeText, isValidId } from '@/utils/sanitize';
 import { gradeItem, nextLeitner } from '@/utils/medterm-validate';
+import { handleMedTermFiguresPlay } from '@/routes/medterm-figures-handler';
+import {
+  handleGetAttempt as handleExamGetAttempt,
+  handleSaveResponse as handleExamSaveResponse,
+  handleSubmitAttempt as handleExamSubmit,
+  handleListAttemptsForStudent,
+} from '@/routes/medterm-exam-handler';
 
 interface PlayAuth {
   studentId: string;
@@ -159,8 +166,7 @@ async function handleAnswer(request: Request, context: RequestContext, auth: Pla
       break;
     }
     case 'figure':
-      // figure 라벨 매칭은 별도 핸들러에서 처리 (좌표 비교) — 여기서는 N/A
-      return errorResponse('figure 모드는 /answer-figure 사용', 400);
+      return handleFigureAnswer(context, auth, card.term_id, data.response, card.st_id, card.box);
     default:
       return errorResponse(`지원하지 않는 study_mode: ${card.study_mode}`, 400);
   }
@@ -197,6 +203,79 @@ async function handleAnswer(request: Request, context: RequestContext, auth: Pla
     next_review: nextReview.toISOString(),
     answer,                  // 학생 화면에 정답 표시
     explanation: card.meaning_ko, // 간단 해설
+  });
+}
+
+// ── figure 모드 채점 (좌표 거리 기반) ──────────────────────────────
+
+/**
+ * figure 모드 응답 형태:
+ *   { label_id: 'fl-...', x: 0.65, y: 0.27 }  — 학생이 라벨을 그림 위에 떨어뜨린 좌표
+ *   또는
+ *   { matches: [{label_id:'fl-...', x:0.6, y:0.3}, ...] }  — 다중 라벨
+ *
+ * 채점: 정답 라벨 좌표와 거리 ≤ THRESHOLD (0.10) 이면 정답.
+ */
+const FIG_THRESHOLD = 0.10;
+
+async function handleFigureAnswer(
+  context: RequestContext,
+  auth: PlayAuth,
+  termId: string,
+  response: unknown,
+  cardId: string,
+  currentBox: number
+): Promise<Response> {
+  // figure 모드 카드는 term ↔ figure 라벨이 연결된 경우에만 의미가 있음
+  // term_id 와 매칭되는 figure_labels 를 가져온다 (med_word_parts 매핑 통해)
+  // 단순화: term 의 part 들 중 하나가 figure 라벨에 등장하면 그 라벨이 정답
+  const expected = await executeFirst<{ x_ratio: number; y_ratio: number; figure_id: string }>(
+    context.env.DB,
+    `SELECT fl.x_ratio, fl.y_ratio, fl.figure_id
+     FROM med_figure_labels fl
+     JOIN med_term_parts tp ON tp.part_id = fl.part_id
+     WHERE tp.term_id = ?
+     LIMIT 1`,
+    [termId]
+  );
+  if (!expected) {
+    return errorResponse('이 용어에 대한 그림 라벨이 없습니다', 400);
+  }
+
+  const r = response as { x?: number; y?: number };
+  if (typeof r?.x !== 'number' || typeof r?.y !== 'number') {
+    return errorResponse('response 에 x, y 좌표 필요 (0.0~1.0)', 400);
+  }
+  if (r.x < 0 || r.x > 1 || r.y < 0 || r.y > 1) {
+    return errorResponse('좌표 범위 0.0~1.0', 400);
+  }
+
+  const dx = r.x - expected.x_ratio;
+  const dy = r.y - expected.y_ratio;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const isCorrect = distance <= FIG_THRESHOLD;
+
+  const { box, nextReview } = nextLeitner(currentBox, isCorrect);
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE med_student_terms
+     SET box = ?, review_count = review_count + 1,
+         wrong_count = wrong_count + ?,
+         last_reviewed = datetime('now'), next_review = ?
+     WHERE id = ? AND academy_id = ? AND student_id = ?`,
+    [box, isCorrect ? 0 : 1, nextReview.toISOString(),
+     cardId, auth.academyId, auth.studentId]
+  );
+
+  return successResponse({
+    correct: isCorrect,
+    distance: Math.round(distance * 1000) / 1000,
+    threshold: FIG_THRESHOLD,
+    box_before: currentBox,
+    box_after: box,
+    next_review: nextReview.toISOString(),
+    answer: { x: expected.x_ratio, y: expected.y_ratio },
+    explanation: '라벨 좌표 ≤ 임계값 (10%) 이면 정답',
   });
 }
 
@@ -256,6 +335,28 @@ export async function handleMedTermPlay(
     const termM = pathname.match(/^\/api\/play\/medterm\/term\/([^/]+)$/);
     if (termM && method === 'GET') {
       return handleGetTerm(request, context, auth, termM[1]);
+    }
+
+    // 그림 (학생용) — figures-handler 위임
+    if (pathname.startsWith('/api/play/medterm/figures')) {
+      return handleMedTermFiguresPlay(method, pathname, request, context, auth.academyId);
+    }
+
+    // 단원평가 응시
+    if (pathname === '/api/play/medterm/exam-attempts' && method === 'GET') {
+      return handleListAttemptsForStudent(context, auth);
+    }
+    const attM = pathname.match(/^\/api\/play\/medterm\/exam-attempts\/([^/]+)$/);
+    if (attM && method === 'GET') {
+      return handleExamGetAttempt(context, auth, attM[1]);
+    }
+    const respM = pathname.match(/^\/api\/play\/medterm\/exam-attempts\/([^/]+)\/responses$/);
+    if (respM && method === 'POST') {
+      return handleExamSaveResponse(request, context, auth, respM[1]);
+    }
+    const submM = pathname.match(/^\/api\/play\/medterm\/exam-attempts\/([^/]+)\/submit$/);
+    if (submM && method === 'POST') {
+      return handleExamSubmit(context, auth, submM[1]);
     }
 
     return errorResponse('Not Found', 404);

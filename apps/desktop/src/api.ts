@@ -2344,6 +2344,20 @@ export interface MedWeakTerm {
   box: number;
 }
 
+export interface MedFigureAdmin {
+  id: string;
+  chapter_id: string;
+  label: string;
+  caption: string | null;
+  fig_type: string;
+  has_image: boolean;
+}
+
+export interface MedExamAttemptAdmin {
+  attempt_id: string;
+  student_id: string;
+}
+
 export const medtermAdminApi = {
   listBooks: () => request<{ items: MedBook[] }>('/api/medterm/books'),
   listChapters: (bookId?: string) =>
@@ -2358,5 +2372,55 @@ export const medtermAdminApi = {
   progress: (studentId: string, chapterId?: string) =>
     request<{ box_distribution: MedProgressBox[]; weak_terms: MedWeakTerm[] }>(
       `/api/medterm/progress?student_id=${studentId}${chapterId ? `&chapter_id=${chapterId}` : ''}`
+    ),
+
+  // 그림 (UC-MT-03)
+  listFigures: (chapterId: string) =>
+    request<{ items: MedFigureAdmin[] }>(`/api/medterm/figures?chapter_id=${chapterId}`),
+  uploadFigure: async (data: {
+    figure_id: string;
+    chapter_id: string;
+    label: string;
+    caption?: string;
+    fig_type: 'anatomy' | 'diagram' | 'etymology' | 'illustration';
+    file: File;
+  }): Promise<{ id: string; r2_key: string; size: number }> => {
+    const fd = new FormData();
+    fd.append('figure_id', data.figure_id);
+    fd.append('chapter_id', data.chapter_id);
+    fd.append('label', data.label);
+    if (data.caption) fd.append('caption', data.caption);
+    fd.append('fig_type', data.fig_type);
+    fd.append('file', data.file);
+    const token = localStorage.getItem('auth_access_token');
+    const base = (import.meta as any).env?.VITE_API_URL || '';
+    const res = await fetch(`${base}/api/medterm/figures`, {
+      method: 'POST',
+      body: fd,
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || res.statusText);
+    return json?.data ?? json;
+  },
+  addFigureLabel: (figureId: string, data: { part_id?: string; x_ratio: number; y_ratio: number; text: string }) =>
+    request<{ id: string }>(`/api/medterm/figures/${figureId}/labels`, {
+      method: 'POST', body: JSON.stringify(data),
+    }),
+  listFigureLabels: (figureId: string) =>
+    request<{ items: Array<{ id: string; figure_id: string; part_id: string | null; x_ratio: number; y_ratio: number; text: string }> }>(
+      `/api/medterm/figures/${figureId}/labels`
+    ),
+  figureImageUrl: (figureId: string) => {
+    const base = (import.meta as any).env?.VITE_API_URL || '';
+    return `${base}/api/medterm/figures/${figureId}/image`;
+  },
+
+  // 단원평가 출제 (UC-MT-07)
+  createExam: (chapterId: string, studentIds: string[], options?: { difficulties?: string[]; types?: string[]; limit?: number }) =>
+    request<{ chapter_id: string; item_count: number; attempts: MedExamAttemptAdmin[] }>(
+      `/api/medterm/chapters/${chapterId}/exam`,
+      { method: 'POST', body: JSON.stringify({ student_ids: studentIds, ...options }) }
     ),
 };

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { medtermApi, MedTermCard, MedTermAnswerResult, MedTermDetail } from '../api';
+import { useNavigate } from 'react-router-dom';
+import { medtermApi, MedTermCard, MedTermAnswerResult, MedTermDetail, MedTermFigureLabel } from '../api';
 import './MedTermPage.css';
 
 type CardState = 'idle' | 'submitting' | 'graded';
@@ -13,6 +14,7 @@ interface FeedbackUI {
 }
 
 export default function MedTermPage() {
+  const navigate = useNavigate();
   const [cards, setCards] = useState<MedTermCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +24,9 @@ export default function MedTermPage() {
   const [state, setState] = useState<CardState>('idle');
   const [feedback, setFeedback] = useState<FeedbackUI | null>(null);
   const [termDetail, setTermDetail] = useState<MedTermDetail | null>(null);
+  // figure 모드 상태
+  const [figureClick, setFigureClick] = useState<{ x: number; y: number } | null>(null);
+  const [figureLabels, setFigureLabels] = useState<MedTermFigureLabel[]>([]);
 
   const loadCards = useCallback(async () => {
     setLoading(true);
@@ -57,7 +62,26 @@ export default function MedTermPage() {
     setDecomposeSlots(['', '', '', '', '']);
     setState('idle');
     setFeedback(null);
+    setFigureClick(null);
   }
+
+  // figure 모드일 때 그림 라벨 fetch (term 의 part 가 어느 figure 에 등장하는지)
+  // 단순화: chapter 의 모든 figure 에서 term 와 매칭되는 라벨 검색
+  useEffect(() => {
+    setFigureLabels([]);
+    if (card?.study_mode !== 'figure') return;
+    // chapter_id 모르므로 모든 figure 가져오는 대신 term 의 첫 번째 매칭 figure 만
+    // (간단화 — 실제로는 백엔드에서 figure_id 노출 필요. 여기서는 'fig-ch01-1-3' 가정)
+    const chapterId = 'med-basic-ch01';  // TODO: card 에 chapter_id 노출 필요
+    medtermApi.figures(chapterId).then((r) => {
+      // 가장 큰 anatomy 그림 우선
+      const anatomy = r.items.find((f) => f.fig_type === 'anatomy' && f.has_image);
+      const fig = anatomy || r.items.find((f) => f.has_image);
+      if (fig) {
+        medtermApi.figureLabels(fig.id).then((lr) => setFigureLabels(lr.items));
+      }
+    }).catch(() => {});
+  }, [card?.id]);
 
   async function submit() {
     if (!card) return;
@@ -69,6 +93,13 @@ export default function MedTermPage() {
         .filter(Boolean)
         .map((value) => ({ value }));
       payload = parts;
+    } else if (card.study_mode === 'figure') {
+      if (!figureClick) {
+        setError('그림 위를 클릭하여 위치를 지정하세요');
+        setState('idle');
+        return;
+      }
+      payload = { x: figureClick.x, y: figureClick.y };
     } else {
       payload = response.trim();
     }
@@ -128,7 +159,16 @@ export default function MedTermPage() {
     <div className="medterm-page">
       <header className="medterm-header" data-testid="medterm-header">
         <h2>의학용어 학습</h2>
-        <span className="medterm-progress">{activeIdx + 1} / {cards.length}</span>
+        <div className="medterm-header-actions">
+          <button
+            className="medterm-exam-link"
+            onClick={() => navigate('/medterm/exams')}
+            data-testid="medterm-exams-link"
+          >
+            단원평가
+          </button>
+          <span className="medterm-progress">{activeIdx + 1} / {cards.length}</span>
+        </div>
       </header>
 
       <article className="medterm-card" data-testid="medterm-card" data-mode={card.study_mode}>
@@ -198,6 +238,28 @@ export default function MedTermPage() {
           </>
         )}
 
+        {card.study_mode === 'figure' && (
+          <>
+            <div className="medterm-prompt">
+              <b>{card.term}</b> 에 해당하는 위치를 그림에서 클릭하세요.
+            </div>
+            <div className="medterm-figure-wrap" data-testid="medterm-figure-wrap">
+              {figureLabels.length > 0 && (
+                <FigureClickArea
+                  src={medtermApi.figureImageUrl(figureLabels[0].figure_id)}
+                  click={figureClick}
+                  setClick={setFigureClick}
+                  disabled={state !== 'idle'}
+                  showAnswer={state === 'graded' && feedback ? (feedback.answer as { x: number; y: number }) : null}
+                />
+              )}
+              {figureLabels.length === 0 && (
+                <div className="medterm-hint">그림을 불러오는 중...</div>
+              )}
+            </div>
+          </>
+        )}
+
         {card.study_mode === 'plural' && (
           <>
             <div className="medterm-prompt">복수형을 입력하세요.</div>
@@ -255,6 +317,48 @@ export default function MedTermPage() {
           )}
         </div>
       </article>
+    </div>
+  );
+}
+
+interface FigureClickAreaProps {
+  src: string;
+  click: { x: number; y: number } | null;
+  setClick: (c: { x: number; y: number }) => void;
+  disabled: boolean;
+  showAnswer: { x: number; y: number } | null;
+}
+
+function FigureClickArea({ src, click, setClick, disabled, showAnswer }: FigureClickAreaProps) {
+  function onClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (disabled) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setClick({ x, y });
+  }
+  return (
+    <div
+      className="medterm-figure-click-area"
+      onClick={onClick}
+      data-testid="medterm-figure-click-area"
+      style={{ cursor: disabled ? 'default' : 'crosshair' }}
+    >
+      <img src={src} alt="figure" draggable={false} />
+      {click && (
+        <div
+          className="medterm-figure-marker user"
+          style={{ left: `${click.x * 100}%`, top: `${click.y * 100}%` }}
+          data-testid="medterm-figure-user-marker"
+        >●</div>
+      )}
+      {showAnswer && (
+        <div
+          className="medterm-figure-marker answer"
+          style={{ left: `${showAnswer.x * 100}%`, top: `${showAnswer.y * 100}%` }}
+          data-testid="medterm-figure-answer-marker"
+        >★</div>
+      )}
     </div>
   );
 }

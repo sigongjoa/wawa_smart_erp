@@ -18,6 +18,54 @@
   color: #8B0000;
 }
 
+.medterm-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.medterm-exam-link {
+  background: #8B0000;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.medterm-exam-link:hover { background: #6a0000; }
+
+.medterm-figure-wrap {
+  margin: 14px 0;
+}
+.medterm-figure-click-area {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.medterm-figure-click-area img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+}
+.medterm-figure-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 22px;
+  pointer-events: none;
+  font-weight: 900;
+}
+.medterm-figure-marker.user { color: #1565C0; }
+.medterm-figure-marker.answer {
+  color: #2E7D32;
+  text-shadow: 0 0 3px rgba(0,0,0,0.4);
+}
+
 .medterm-progress {
   font-size: 13px;
   color: #666;

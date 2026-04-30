@@ -38,6 +38,8 @@ import { handleVocabPlay } from '@/routes/vocab-play-handler';
 import { handleVocabPolicy } from '@/routes/vocab-policy-handler';
 import { handleMedTerm } from '@/routes/medterm-handler';
 import { handleMedTermPlay } from '@/routes/medterm-play-handler';
+import { handleMedTermFigures } from '@/routes/medterm-figures-handler';
+import { handleMedTermExam } from '@/routes/medterm-exam-handler';
 import { handleExamPlay } from '@/routes/exam-play-handler';
 import { handleExamAttempt } from '@/routes/exam-attempt-handler';
 import { handleAssignments } from '@/routes/assignments-handler';
@@ -291,7 +293,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleVocab(method, pathname, request, context), env, origin);
       }
 
-      // MedTerm (의학용어 학습 — 강사용)
+      // MedTerm — 강사용 (라우트 우선순위: 더 구체적인 경로 먼저)
+      if (pathname.startsWith('/api/medterm/figures')) {
+        return addCorsHeaders(await handleMedTermFigures(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/medterm/exam-attempts') ||
+          pathname.match(/^\/api\/medterm\/chapters\/[^/]+\/exam$/)) {
+        return addCorsHeaders(await handleMedTermExam(method, pathname, request, context), env, origin);
+      }
       if (pathname.startsWith('/api/medterm/')) {
         return addCorsHeaders(await handleMedTerm(method, pathname, request, context), env, origin);
       }
