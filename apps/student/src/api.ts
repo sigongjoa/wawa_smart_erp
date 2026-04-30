@@ -219,7 +219,13 @@ export const api = {
     ),
 
   // ── 영어 시험 응시 (PIN 인증) ──
-  listExams: () => request<ExamListItem[]>('/api/play/exams'),
+  // 응답이 paginated 객체로 변경되어도 견고하도록 정규화
+  listExams: async (): Promise<ExamListItem[]> => {
+    const r = await request<ExamListItem[] | { items: ExamListItem[] }>('/api/play/exams');
+    if (Array.isArray(r)) return r;
+    if (r && Array.isArray((r as any).items)) return (r as any).items;
+    return [];
+  },
   startExam: (assignmentId: string) =>
     request<{ id: string; status: string; durationMinutes: number; startedAt: string }>(
       `/api/play/exams/${assignmentId}/start`,
@@ -238,7 +244,14 @@ export const api = {
     ),
 
   // ── 과제 (PIN 인증) ──
-  getAssignments: () => request<AssignmentListItem[]>('/api/play/assignments'),
+  // 서버는 paginatedList 결과 ({items: [...], total, ...}) 또는 일반 배열을 반환할 수 있다.
+  // 클라이언트는 항상 배열 형태로 사용 — 양쪽 응답 형태를 모두 받아 정규화한다.
+  getAssignments: async (): Promise<AssignmentListItem[]> => {
+    const r = await request<AssignmentListItem[] | { items: AssignmentListItem[] }>('/api/play/assignments');
+    if (Array.isArray(r)) return r;
+    if (r && Array.isArray((r as any).items)) return (r as any).items;
+    return [];
+  },
   getAssignmentDetail: (targetId: string) =>
     request<AssignmentDetail>(`/api/play/assignments/${targetId}`),
   submitAssignment: (targetId: string, data: { note?: string | null; files: Array<{ key: string; name: string; size: number; mime?: string | null }> }) =>

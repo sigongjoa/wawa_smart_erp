@@ -23,9 +23,10 @@ export default function HomePage() {
       api.listExams().catch(() => []),
     ]).then(([sess, prfs, asns, exs]) => {
       setSession(sess);
-      setProofs(prfs || []);
-      setAssignments(asns || []);
-      setExams(exs || []);
+      // 서버 응답 변경(paginated 객체 등)에도 견고하게 — 배열 강제 정규화
+      setProofs(Array.isArray(prfs) ? prfs : []);
+      setAssignments(Array.isArray(asns) ? asns : []);
+      setExams(Array.isArray(exs) ? exs : []);
     }).finally(() => setLoading(false));
   }, []);
 
