@@ -33,6 +33,26 @@ lerna-debug.log*
 Thumbs.db
 
 # ========================================
+# 저작권 보호: 교재 스캔·추출물 (외부 출판물)
+# ========================================
+medterm_preprocess/raw/
+medterm_preprocess/images/
+medterm_preprocess/images_auto/
+medterm_preprocess/output/pages_*.json
+medterm_preprocess/output/exam_*.json
+medterm_preprocess/output/059_seed_chapter01.sql
+medterm_preprocess/output/*.pdf
+medterm_preprocess/output/preview_*.png
+
+# ========================================
+# DB 백업 (개인정보 포함 가능)
+# ========================================
+backups/
+erpbackup/
+*.d1.sql
+*-backup-*.sql
+
+# ========================================
 # SECRETS & ENVIRONMENT (최우선 보호)
 # ========================================
 .env

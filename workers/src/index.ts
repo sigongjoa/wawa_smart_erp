@@ -36,6 +36,8 @@ import { handleExamPaper } from '@/routes/exam-paper-handler';
 import { handleVocab } from '@/routes/vocab-handler';
 import { handleVocabPlay } from '@/routes/vocab-play-handler';
 import { handleVocabPolicy } from '@/routes/vocab-policy-handler';
+import { handleMedTerm } from '@/routes/medterm-handler';
+import { handleMedTermPlay } from '@/routes/medterm-play-handler';
 import { handleExamPlay } from '@/routes/exam-play-handler';
 import { handleExamAttempt } from '@/routes/exam-attempt-handler';
 import { handleAssignments } from '@/routes/assignments-handler';
@@ -124,6 +126,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학생 앱 (PIN 토큰 인증 — JWT 미들웨어 스킵)
       if (pathname.startsWith('/api/play/vocab/')) {
         return addCorsHeaders(await handleVocabPlay(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/play/medterm/')) {
+        return addCorsHeaders(await handleMedTermPlay(method, pathname, request, context), env, origin);
       }
       if (pathname.startsWith('/api/play/exam-attempts')) {
         return addCorsHeaders(await handleExamAttempt(method, pathname, request, context), env, origin);
@@ -284,6 +289,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // Vocab Gacha (영단어 학습)
       if (pathname.startsWith('/api/vocab/')) {
         return addCorsHeaders(await handleVocab(method, pathname, request, context), env, origin);
+      }
+
+      // MedTerm (의학용어 학습 — 강사용)
+      if (pathname.startsWith('/api/medterm/')) {
+        return addCorsHeaders(await handleMedTerm(method, pathname, request, context), env, origin);
       }
 
       // 과제 회수·첨삭 (선생님/admin)
