@@ -50,6 +50,10 @@
   --info: #3b82f6;
   --info-surface: #eff6ff;
 
+  /* 도메인 시그니처 — 의학용어 (보건고 짙은 적색) */
+  --medterm-signature: #8B0000;
+  --medterm-signature-hover: #6a0000;
+
   /* Spacing scale (4px base) */
   --sp-1: 4px;
   --sp-2: 8px;
