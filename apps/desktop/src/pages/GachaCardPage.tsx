@@ -34,7 +34,9 @@ export default function GachaCardPage() {
       if (studentFilter) params.student_id = studentFilter;
       if (topicFilter) params.topic = topicFilter;
       const data = await api.getGachaCards(params);
-      setCards(data || []);
+      // 서버 응답이 paginated({items}) 형태일 수도 있어 배열로 정규화
+      const arr = Array.isArray(data) ? data : ((data as any)?.items ?? []);
+      setCards(arr);
     } catch {
       setCards([]);
     } finally {
@@ -44,7 +46,9 @@ export default function GachaCardPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    api.getGachaStudents().then(setStudents).catch(() => {});
+    api.getGachaStudents()
+      .then((d) => setStudents(Array.isArray(d) ? d : ((d as any)?.items ?? [])))
+      .catch(() => {});
   }, []);
 
   const topics = useMemo(() => {

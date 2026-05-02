@@ -1097,8 +1097,13 @@ export const api = {
 
   // ── 가차 학생 관리 ──
 
-  getGachaStudents: (scope?: 'all' | 'mine') =>
-    request<GachaStudent[]>(scope === 'all' ? '/api/gacha/students?scope=all' : '/api/gacha/students'),
+  getGachaStudents: async (scope?: 'all' | 'mine') => {
+    const data = await request<GachaStudent[] | { items?: GachaStudent[] }>(
+      scope === 'all' ? '/api/gacha/students?scope=all' : '/api/gacha/students'
+    );
+    // 서버가 paginated({items}) 응답으로 회귀하더라도 배열로 정규화
+    return Array.isArray(data) ? data : ((data as any)?.items ?? []);
+  },
 
   createGachaStudent: (data: { name: string; pin: string; grade?: string }) =>
     request<{ id: string; name: string; grade: string }>('/api/gacha/students', {
@@ -1129,13 +1134,17 @@ export const api = {
 
   // ── 가차 카드 관리 ──
 
-  getGachaCards: (params?: { student_id?: string; topic?: string; grade?: string }) => {
+  getGachaCards: async (params?: { student_id?: string; topic?: string; grade?: string }) => {
     const qs = new URLSearchParams();
     if (params?.student_id) qs.set('student_id', params.student_id);
     if (params?.topic) qs.set('topic', params.topic);
     if (params?.grade) qs.set('grade', params.grade);
     const q = qs.toString();
-    return request<GachaCard[]>(`/api/gacha/cards${q ? '?' + q : ''}`);
+    const data = await request<GachaCard[] | { items?: GachaCard[] }>(
+      `/api/gacha/cards${q ? '?' + q : ''}`
+    );
+    // 서버 paginated 응답 정규화
+    return Array.isArray(data) ? data : ((data as any)?.items ?? []);
   },
 
   createGachaCard: (data: { student_id?: string; type: string; question?: string; question_image?: string; answer: string; topic?: string; chapter?: string; grade?: string }) =>
