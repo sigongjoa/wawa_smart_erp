@@ -967,20 +967,20 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
         onClick={toggle}
         style={{
           padding: '8px 14px', borderRadius: 8,
-          background: '#eef0f8', color: '#2d3a8c', border: '1px solid #2d3a8c',
+          background: '#eef0f8', color: 'var(--primary)', border: '1px solid #2d3a8c',
           cursor: 'pointer', fontWeight: 600, fontSize: 13,
         }}
       >영어 문제 입력 {open ? '▴' : '▾'}</button>
       {open && (
         <div style={{
           position: 'absolute', right: 0, top: '110%', zIndex: 20,
-          background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+          background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 8,
           minWidth: 280, maxHeight: 400, overflowY: 'auto',
           boxShadow: '0 4px 16px rgba(0,0,0,0.08)', padding: 8,
         }}>
-          {loading && <div style={{ padding: 12, color: '#4a5568', fontSize: 13 }}>불러오는 중...</div>}
+          {loading && <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: 13 }}>불러오는 중...</div>}
           {!loading && papers.length === 0 && (
-            <div style={{ padding: 12, color: '#4a5568', fontSize: 13 }}>
+            <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: 13 }}>
               이 기간에 시험지가 없습니다.
             </div>
           )}
@@ -996,14 +996,14 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
                 padding: '10px 12px', textAlign: 'left',
                 background: 'transparent', border: 'none',
                 borderRadius: 6, cursor: 'pointer',
-                fontSize: 13, color: '#1a202c',
+                fontSize: 13, color: 'var(--text-primary)',
               }}
               onMouseEnter={e => (e.currentTarget.style.background = '#f7fafc')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               <div style={{ fontWeight: 600 }}>{p.title}</div>
               {p.grade_filter && (
-                <div style={{ fontSize: 11, color: '#4a5568', marginTop: 2 }}>{p.grade_filter}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{p.grade_filter}</div>
               )}
             </button>
           ))}

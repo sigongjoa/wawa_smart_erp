@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { api, VocabWord } from '../../api';
-import { toast } from '../../components/Toast';
+import { toast, useConfirm } from '../../components/Toast';
 import type { VocabOutletContext } from '../VocabAdminPage';
 
 type StudentGroup = {
@@ -17,6 +17,7 @@ const POS_LABEL: Record<string, string> = {
 
 export default function VocabWrongTab() {
   const { setHeaderAction } = useOutletContext<VocabOutletContext>();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [groups, setGroups] = useState<StudentGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,7 @@ export default function VocabWrongTab() {
   }, []);
 
   const resetWrong = useCallback(async (word: VocabWord) => {
-    if (!confirm(`'${(word as any).english}' 의 오답 기록을 초기화할까요?\nBox는 1로 리셋되고 오답 수는 0이 됩니다.`)) return;
+    if (!(await confirm(`'${(word as any).english}' 의 오답 기록을 초기화할까요?\nBox는 1로 리셋되고 오답 수는 0이 됩니다.`))) return;
     try {
       await api.updateVocabWord(word.id, { box: 1 });
       toast.success('오답 초기화됨');
@@ -179,6 +180,7 @@ export default function VocabWrongTab() {
           );
         })}
       </div>
+      {ConfirmDialog}
     </>
   );
 }

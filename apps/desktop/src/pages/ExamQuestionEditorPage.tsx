@@ -116,15 +116,15 @@ export default function ExamQuestionEditorPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <button
           onClick={() => navigate(backTo)}
-          style={{ background: 'transparent', border: 'none', color: '#4a5568', cursor: 'pointer', fontSize: 14 }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
         >← 돌아가기</button>
       </div>
-      <h1 style={{ fontSize: 22, margin: '4px 0 20px', color: '#1a202c' }}>
-        문제 입력 {paperTitleQ && <span style={{ color: '#4a5568', fontWeight: 400 }}>— {paperTitleQ}</span>}
+      <h1 style={{ fontSize: 22, margin: '4px 0 20px', color: 'var(--text-primary)' }}>
+        문제 입력 {paperTitleQ && <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>— {paperTitleQ}</span>}
       </h1>
 
       <div style={{
-        background: '#f7fafc', borderRadius: 10, padding: 16, marginBottom: 16,
+        background: 'var(--bg-tertiary)', borderRadius: 10, padding: 16, marginBottom: 16,
         display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap',
       }}>
         <label style={{ fontSize: 14 }}>
@@ -143,10 +143,10 @@ export default function ExamQuestionEditorPage() {
             onChange={e => setDurationMinutes(Number(e.target.value) || 50)}
             min={10}
             max={180}
-            style={{ width: 80, padding: '6px 10px', borderRadius: 6, border: '1px solid #cbd5e0' }}
+            style={{ width: 80, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-primary)' }}
           /> 분
         </label>
-        <span style={{ fontSize: 13, color: '#4a5568' }}>
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
           · {readyCount}/{questions.length} 완성
         </span>
       </div>
@@ -163,21 +163,21 @@ export default function ExamQuestionEditorPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {questions.map((q, qIdx) => (
           <div key={qIdx} style={{
-            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16,
+            background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: 16,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <strong style={{ color: '#2d3a8c', fontSize: 16 }}>Q{q.questionNo}</strong>
-              <label style={{ fontSize: 13, color: '#4a5568' }}>
+              <strong style={{ color: 'var(--primary)', fontSize: 16 }}>Q{q.questionNo}</strong>
+              <label style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                 점수:&nbsp;
                 <input
                   type="number"
                   value={q.points ?? 1}
                   step={0.5}
                   onChange={e => updateQ(qIdx, { points: Number(e.target.value) || 1 })}
-                  style={{ width: 60, padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e0' }}
+                  style={{ width: 60, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)' }}
                 />
               </label>
-              <label style={{ fontSize: 13, color: '#4a5568' }}>
+              <label style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                 유형:&nbsp;
                 <input
                   type="text"
@@ -185,14 +185,14 @@ export default function ExamQuestionEditorPage() {
                   list="exam-category-suggest"
                   placeholder="예: 어법/독해"
                   onChange={e => updateQ(qIdx, { category: e.target.value || null })}
-                  style={{ width: 130, padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e0' }}
+                  style={{ width: 130, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)' }}
                 />
               </label>
               <div style={{ marginLeft: 'auto' }}>
                 <button
                   onClick={() => removeQuestion(qIdx)}
                   style={{
-                    background: '#fed7d7', color: '#c53030', border: 'none',
+                    background: 'var(--danger-surface)', color: 'var(--danger-text)', border: 'none',
                     padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer',
                   }}
                 >삭제</button>
@@ -205,7 +205,7 @@ export default function ExamQuestionEditorPage() {
               placeholder="문제 지문…"
               rows={3}
               style={{
-                width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e0',
+                width: '100%', padding: 10, borderRadius: 6, border: '1px solid var(--border-primary)',
                 fontSize: 14, fontFamily: 'inherit', resize: 'vertical', marginBottom: 10,
               }}
             />
@@ -241,7 +241,7 @@ export default function ExamQuestionEditorPage() {
                   </div>
                 );
               })}
-              <div style={{ fontSize: 12, color: '#4a5568', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
                 ← 번호 버튼을 눌러 정답 설정 (현재: {q.correctChoice})
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function ExamQuestionEditorPage() {
         onClick={addQuestion}
         style={{
           marginTop: 12, padding: '10px 20px', borderRadius: 8,
-          background: '#eef0f8', color: '#2d3a8c', border: '1px dashed #2d3a8c',
+          background: '#eef0f8', color: 'var(--primary)', border: '1px dashed #2d3a8c',
           cursor: 'pointer', fontWeight: 600,
         }}
       >+ 문제 추가</button>
@@ -272,7 +272,7 @@ export default function ExamQuestionEditorPage() {
           onClick={() => navigate(backTo)}
           style={{
             flex: 1, padding: '12px', borderRadius: 10,
-            background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568',
+            background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)',
             cursor: 'pointer', fontWeight: 600,
           }}
         >취소</button>

@@ -502,7 +502,7 @@ export default function ExamTimerPage() {
             <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>
               일시정지 — {pauseTarget.studentName || '학생'}
             </h3>
-            <p style={{ fontSize: 13, color: '#666', margin: '0 0 12px' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
               사유는 필수입니다. 재개 시까지 시계가 멈춥니다.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

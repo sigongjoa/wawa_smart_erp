@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { api, VocabWord } from '../../api';
-import { toast } from '../../components/Toast';
+import { toast, useConfirm } from '../../components/Toast';
 import VocabWordModal from './VocabWordModal';
 import type { VocabOutletContext } from '../VocabAdminPage';
 import { MetricTabs } from '../../components/list/MetricTabs';
@@ -22,6 +22,7 @@ const PAGE_SIZE = 50;
 
 export default function VocabWordsTab() {
   const { setHeaderAction } = useOutletContext<VocabOutletContext>();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [students, setStudents] = useState<GachaStudentLite[]>([]);
   const [words, setWords] = useState<VocabWord[]>([]);
@@ -117,7 +118,7 @@ export default function VocabWordsTab() {
   }, [refresh]);
 
   const handleReject = useCallback(async (id: string, english: string) => {
-    if (!confirm(`'${english}' 거절할까요?\n학생 단어장에서 빠지고 복구할 수 없어요.`)) return;
+    if (!(await confirm(`'${english}' 거절할까요?\n학생 단어장에서 빠지고 복구할 수 없어요.`))) return;
     try {
       await api.deleteVocabWord(id);
       toast.success(`'${english}' 거절됨`);
@@ -128,7 +129,7 @@ export default function VocabWordsTab() {
   }, [refresh]);
 
   const handleDelete = useCallback(async (id: string, english: string) => {
-    if (!confirm(`'${english}' 삭제할까요?\n복구할 수 없어요.`)) return;
+    if (!(await confirm(`'${english}' 삭제할까요?\n복구할 수 없어요.`))) return;
     try {
       await api.deleteVocabWord(id);
       toast.success(`'${english}' 삭제됨`);
@@ -212,7 +213,7 @@ export default function VocabWordsTab() {
             필터 초기화
           </button>
         )}
-        <div style={{ marginLeft: 'auto', fontSize: 13, color: '#64748b' }}>
+        <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-secondary)' }}>
           {total > 0 ? `${total.toLocaleString()}건 중 ${rangeStart}-${rangeEnd}` : ''}
         </div>
       </div>
@@ -279,7 +280,7 @@ export default function VocabWordsTab() {
                         if (v !== (w.category ?? '')) handleCategoryChange(w.id, v);
                       }}
                       placeholder="—"
-                      style={{ width: 90, padding: '4px 6px', fontSize: 12, borderRadius: 4, border: '1px solid #cbd5e0' }}
+                      style={{ width: 90, padding: '4px 6px', fontSize: 12, borderRadius: 4, border: '1px solid var(--border-primary)' }}
                       aria-label="유형 변경"
                     />
                   </td>
@@ -346,6 +347,7 @@ export default function VocabWordsTab() {
           onSaved={() => { setModalOpen(false); refresh(); }}
         />
       )}
+      {ConfirmDialog}
     </>
   );
 }

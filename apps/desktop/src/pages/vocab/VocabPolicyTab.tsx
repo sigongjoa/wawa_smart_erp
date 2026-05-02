@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, GachaStudent, VocabExamPolicy, VocabExamPolicyInput } from '../../api';
-import { toast } from '../../components/Toast';
+import { toast, useConfirm } from '../../components/Toast';
 import Modal from '../../components/Modal';
 
 const DEFAULT_INPUT: VocabExamPolicyInput = {
@@ -56,6 +56,7 @@ function validatePolicy(input: VocabExamPolicyInput): string | null {
 }
 
 export default function VocabPolicyTab() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [policies, setPolicies] = useState<VocabExamPolicy[]>([]);
   const [students, setStudents] = useState<GachaStudent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +138,7 @@ export default function VocabPolicyTab() {
   }
 
   async function clearStudent(sid: string) {
-    if (!confirm('이 학생의 오버라이드를 삭제할까요?\n학원 기본 정책이 적용됩니다.')) return;
+    if (!(await confirm('이 학생의 오버라이드를 삭제할까요?\n학원 기본 정책이 적용됩니다.'))) return;
     setSavingScope(sid);
     try {
       await api.deleteVocabPolicy('student', sid);
@@ -292,6 +293,7 @@ export default function VocabPolicyTab() {
           </Modal.Footer>
         </Modal>
       )}
+      {ConfirmDialog}
     </div>
   );
 }

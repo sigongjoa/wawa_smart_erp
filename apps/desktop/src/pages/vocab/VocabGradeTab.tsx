@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { api, type VocabPrintJobSummary, type VocabPrintJobAnswerRow } from '../../api';
-import { toast } from '../../components/Toast';
+import { toast, useConfirm } from '../../components/Toast';
 import Modal from '../../components/Modal';
 import type { VocabOutletContext } from '../VocabAdminPage';
 
@@ -34,6 +34,7 @@ function fmtTime(iso: string | null): string {
 
 export default function VocabGradeTab() {
   const { setHeaderAction } = useOutletContext<VocabOutletContext>();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [students, setStudents] = useState<GachaStudentLite[]>([]);
   const [jobs, setJobs] = useState<VocabPrintJobSummary[]>([]);
@@ -103,7 +104,7 @@ export default function VocabGradeTab() {
   }, [loading, jobs.length, offset, total]);
 
   const handleVoid = useCallback(async (job: VocabPrintJobSummary) => {
-    if (!confirm(`${job.student_name}의 시험지를 무효화할까요?\n학생 앱에서 더 이상 보이지 않아요.`)) return;
+    if (!(await confirm(`${job.student_name}의 시험지를 무효화할까요?\n학생 앱에서 더 이상 보이지 않아요.`))) return;
     try {
       await api.voidVocabPrintJob(job.job_id);
       toast.success('무효 처리됨');
@@ -111,10 +112,10 @@ export default function VocabGradeTab() {
     } catch (e: any) {
       toast.error(e?.message || '처리 실패');
     }
-  }, [loadJobs]);
+  }, [loadJobs, confirm]);
 
   const handleDelete = useCallback(async (job: VocabPrintJobSummary) => {
-    if (!confirm(`${job.student_name}의 시험지를 삭제할까요?\n채점 기록은 남지만 응시 내역이 사라집니다.`)) return;
+    if (!(await confirm(`${job.student_name}의 시험지를 삭제할까요?\n채점 기록은 남지만 응시 내역이 사라집니다.`))) return;
     try {
       await api.deleteVocabPrintJob(job.job_id);
       toast.success('삭제됨');
@@ -122,7 +123,7 @@ export default function VocabGradeTab() {
     } catch (e: any) {
       toast.error(e?.message || '삭제 실패');
     }
-  }, [loadJobs]);
+  }, [loadJobs, confirm]);
 
   const clearFilters = useCallback(() => {
     setFilter('all');
@@ -204,7 +205,7 @@ export default function VocabGradeTab() {
             필터 초기화
           </button>
         )}
-        <div style={{ marginLeft: 'auto', fontSize: 13, color: '#64748b' }}>
+        <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-secondary)' }}>
           {total > 0 ? `${total.toLocaleString()}건 중 ${rangeStart}-${rangeEnd}` : ''}
         </div>
       </div>
@@ -305,7 +306,7 @@ export default function VocabGradeTab() {
             gap: 12,
             padding: '12px 0',
             fontSize: 13,
-            color: '#475569',
+            color: 'var(--text-secondary)',
           }}
         >
           <button
@@ -334,6 +335,7 @@ export default function VocabGradeTab() {
           onClose={() => setDetailJobId(null)}
         />
       )}
+      {ConfirmDialog}
     </>
   );
 }

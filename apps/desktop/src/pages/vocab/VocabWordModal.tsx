@@ -75,7 +75,7 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
             />
           </label>
           <label className="form-field">
-            <span className="form-label">유형 <span style={{ color: '#94a3b8', fontWeight: 400 }}>(선택)</span></span>
+            <span className="form-label">유형 <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(선택)</span></span>
             <input
               className="form-input"
               value={category}
