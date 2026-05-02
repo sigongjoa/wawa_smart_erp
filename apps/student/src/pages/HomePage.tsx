@@ -14,6 +14,7 @@ export default function HomePage() {
   const [exams, setExams] = useState<ExamListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [examChecking, setExamChecking] = useState(true);
+  const [examMsg, setExamMsg] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -128,6 +129,7 @@ export default function HomePage() {
           type="button"
           className="hp-tile hp-tile--water"
           onClick={goWordGacha}
+          aria-label="영단어 학습으로 이동"
         >
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
@@ -143,6 +145,7 @@ export default function HomePage() {
           className="hp-tile hp-tile--grass"
           disabled={proofs.length === 0}
           onClick={() => proofs.length > 0 && navigate(`/proof/${proofs[0].id}/ordering`)}
+          aria-label={`증명 ${session?.proofs_done ?? 0}/${session?.proofs_target ?? 5}`}
         >
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
@@ -158,6 +161,7 @@ export default function HomePage() {
           type="button"
           className="hp-tile hp-tile--electric"
           onClick={() => navigate('/assignments')}
+          aria-label={`과제 ${pendingAssignments.length}건`}
         >
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
@@ -172,17 +176,18 @@ export default function HomePage() {
           type="button"
           className="hp-tile hp-tile--ground"
           data-empty={exams.length === 0}
+          aria-label={exams.length > 0 ? `시험 ${exams.length}건` : '시험 — 선생님께 문의'}
           onClick={() => {
             if (exams.length === 0) {
-              alert('배정된 시험이 없어요.\n선생님께 문의해주세요.');
+              setExamMsg('배정된 시험이 없어요. 선생님께 문의해주세요.');
               return;
             }
             const first = exams[0];
             const ready = first.questionCount > 0;
             const done = first.attemptStatus === 'submitted' || first.attemptStatus === 'expired';
             if (ready && !done) navigate(`/exam/${first.assignmentId}`);
-            else if (done) alert('이미 응시한 시험입니다.');
-            else alert('시험지가 아직 준비되지 않았어요.\n선생님께 문의해주세요.');
+            else if (done) setExamMsg('이미 응시한 시험입니다.');
+            else setExamMsg('시험지가 아직 준비되지 않았어요. 선생님께 문의해주세요.');
           }}
         >
           <div className="hp-tile-head">
@@ -198,6 +203,12 @@ export default function HomePage() {
           </div>
         </button>
       </section>
+
+      {examMsg && (
+        <div className="hp-banner" role="status" onClick={() => setExamMsg(null)}>
+          {examMsg}
+        </div>
+      )}
 
       {/* 4. 과제 섹션 */}
       {pendingAssignments.length > 0 && (

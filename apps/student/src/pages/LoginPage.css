@@ -231,7 +231,7 @@
 .lg-error {
   padding: 14px 16px;
   background: var(--danger);
-  color: #fff;
+  color: var(--text-on-primary);
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: var(--fw-bold);
@@ -251,7 +251,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  background: #fff;
+  background: var(--bg-card);
   color: var(--danger);
   font-family: var(--font-display);
   font-size: 14px;
