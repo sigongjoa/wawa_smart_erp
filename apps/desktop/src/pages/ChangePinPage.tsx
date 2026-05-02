@@ -53,12 +53,12 @@ export default function ChangePinPage() {
     <div style={{ maxWidth: 400, margin: '60px auto', padding: 24 }}>
       <h1 style={{ marginBottom: 8 }}>PIN 변경</h1>
       {user?.passwordMustChange ? (
-        <p style={{ color: '#c00', fontSize: 14, marginBottom: 24 }}>
+        <p style={{ color: 'var(--danger)', fontSize: 14, marginBottom: 24 }}>
           관리자가 발급한 임시 PIN으로 로그인하셨습니다.
           계속 사용하려면 PIN을 변경해주세요.
         </p>
       ) : (
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 24 }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
           현재 PIN과 새 PIN을 입력하세요.
         </p>
       )}
@@ -102,7 +102,7 @@ export default function ChangePinPage() {
           />
         </label>
 
-        {error && <div style={{ color: '#c00', fontSize: 14 }}>{error}</div>}
+        {error && <div style={{ color: 'var(--danger)', fontSize: 14 }}>{error}</div>}
 
         <button
           type="submit"

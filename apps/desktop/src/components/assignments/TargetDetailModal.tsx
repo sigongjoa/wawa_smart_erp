@@ -119,19 +119,19 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
             <AssignmentStatusBadge status={target.status} />
-            {target.due_at && <span style={{ color: '#888' }}>마감: {new Date(target.due_at).toLocaleString('ko-KR')}</span>}
-            {target.last_submitted_at && <span style={{ color: '#888' }}>최근 제출: {new Date(target.last_submitted_at).toLocaleString('ko-KR')}</span>}
+            {target.due_at && <span style={{ color: 'var(--text-tertiary)' }}>마감: {new Date(target.due_at).toLocaleString('ko-KR')}</span>}
+            {target.last_submitted_at && <span style={{ color: 'var(--text-tertiary)' }}>최근 제출: {new Date(target.last_submitted_at).toLocaleString('ko-KR')}</span>}
           </div>
 
           {target.instructions && (
-            <div style={{ background: '#f9fafb', padding: 10, borderRadius: 6, fontSize: 13, whiteSpace: 'pre-wrap' }}>
+            <div style={{ background: 'var(--bg-tertiary)', padding: 10, borderRadius: 6, fontSize: 13, whiteSpace: 'pre-wrap' }}>
               {target.instructions}
             </div>
           )}
           {target.attached_file_key && (
             <div style={{ fontSize: 13 }}>
               첨부:{' '}
-              <a href={api.assignmentFileUrl(target.attached_file_key)} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>
+              <a href={api.assignmentFileUrl(target.attached_file_key)} target="_blank" rel="noreferrer" style={{ color: 'var(--info)' }}>
                 {target.attached_file_name || target.attached_file_key.split('/').pop()}
               </a>
             </div>
@@ -139,7 +139,7 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
 
           {/* 이미지 갤러리 */}
           {galleryImages.length > 0 && (
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
+            <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12 }}>
               <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>제출 이미지 ({galleryImages.length})</h4>
               <div style={{
                 display: 'grid',
@@ -153,7 +153,7 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
                     onClick={() => setLightbox({ src: api.assignmentFileUrl(f.key), name: f.name })}
                     style={{
                       padding: 0, border: '2px solid #e5e7eb', borderRadius: 8,
-                      overflow: 'hidden', cursor: 'pointer', background: '#fff',
+                      overflow: 'hidden', cursor: 'pointer', background: 'var(--bg-secondary)',
                       aspectRatio: '1 / 1',
                     }}
                     aria-label={`${f.name} 크게 보기`}
@@ -171,17 +171,17 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
           )}
 
           {/* 타임라인 */}
-          <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
+          <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12 }}>
             <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>제출·회신 타임라인</h4>
             {submissions.length === 0 && responses.length === 0 && (
-              <p style={{ fontSize: 13, color: '#888' }}>아직 활동이 없습니다.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>아직 활동이 없습니다.</p>
             )}
             <Timeline submissions={submissions} responses={responses} />
           </div>
 
           {/* 회신 작성 */}
           {!isCompleted && (
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
+            <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12 }}>
               <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>회신 작성</h4>
               <textarea
                 className="input"
@@ -195,13 +195,13 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 {respondFile ? (
                   <>
-                    <span style={{ fontSize: 13, color: '#2563eb' }}>{respondFile.fileName}</span>
-                    <button type="button" onClick={() => setRespondFile(null)} style={{ padding: '2px 8px', fontSize: 12, background: '#fff', border: '1px solid #fecaca', color: '#e53e3e', borderRadius: 4, cursor: 'pointer' }}>제거</button>
+                    <span style={{ fontSize: 13, color: 'var(--info)' }}>{respondFile.fileName}</span>
+                    <button type="button" onClick={() => setRespondFile(null)} style={{ padding: '2px 8px', fontSize: 12, background: 'var(--bg-secondary)', border: '1px solid var(--danger-surface)', color: 'var(--danger)', borderRadius: 4, cursor: 'pointer' }}>제거</button>
                   </>
                 ) : (
                   <input type="file" onChange={handleFile} disabled={uploading} accept=".pdf,.png,.jpg,.jpeg" />
                 )}
-                {uploading && <span style={{ fontSize: 12, color: '#888' }}>업로드 중...</span>}
+                {uploading && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>업로드 중...</span>}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
@@ -209,7 +209,7 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
                   className="btn btn-secondary"
                   disabled={submitting}
                   onClick={() => respond('needs_resubmit')}
-                  style={{ color: 'var(--danger-text)', borderColor: '#fecaca' }}
+                  style={{ color: 'var(--danger-text)', borderColor: 'var(--danger-surface)' }}
                 >
                   재제출 요청
                 </button>
@@ -264,14 +264,14 @@ function Timeline({ submissions, responses }: { submissions: any[]; responses: a
         if (ev.kind === 'sub') {
           const s = ev.data;
           return (
-            <div key={idx} style={{ background: '#eff6ff', padding: 10, borderRadius: 6, borderLeft: '3px solid #2563eb' }}>
-              <div style={{ fontSize: 12, color: '#888' }}>학생 제출 · {new Date(s.submitted_at).toLocaleString('ko-KR')}</div>
+            <div key={idx} style={{ background: 'var(--info-surface)', padding: 10, borderRadius: 6, borderLeft: '3px solid var(--info)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>학생 제출 · {new Date(s.submitted_at).toLocaleString('ko-KR')}</div>
               {s.note && <div style={{ fontSize: 13, marginTop: 4, whiteSpace: 'pre-wrap' }}>{s.note}</div>}
               {s.files && s.files.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                   {s.files.map((f: any, i: number) => (
                     <a key={i} href={api.assignmentFileUrl(f.key)} target="_blank" rel="noreferrer"
-                       style={{ fontSize: 12, color: '#2563eb', background: '#fff', padding: '2px 8px', borderRadius: 4, border: '1px solid #dbeafe' }}>
+                       style={{ fontSize: 12, color: 'var(--info)', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--info-surface)' }}>
                       {f.name}
                     </a>
                   ))}
@@ -283,15 +283,15 @@ function Timeline({ submissions, responses }: { submissions: any[]; responses: a
         const r = ev.data;
         const isResubmit = r.action === 'needs_resubmit';
         return (
-          <div key={idx} style={{ background: isResubmit ? '#fef2f2' : '#f0fdf4', padding: 10, borderRadius: 6, borderLeft: `3px solid ${isResubmit ? 'var(--danger-text)' : '#16a34a'}` }}>
-            <div style={{ fontSize: 12, color: '#888' }}>
+          <div key={idx} style={{ background: isResubmit ? 'var(--danger-surface)' : 'var(--success-surface)', padding: 10, borderRadius: 6, borderLeft: `3px solid ${isResubmit ? 'var(--danger)' : 'var(--success)'}` }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
               {r.teacher_name || '선생님'} 회신 · {new Date(r.created_at).toLocaleString('ko-KR')}
               {isResubmit && <span style={{ marginLeft: 6, color: 'var(--danger-text)', fontWeight: 600 }}>[재제출 요청]</span>}
             </div>
             {r.comment && <div style={{ fontSize: 13, marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.comment}</div>}
             {r.file_key && (
               <a href={api.assignmentFileUrl(r.file_key)} target="_blank" rel="noreferrer"
-                 style={{ display: 'inline-block', marginTop: 6, fontSize: 12, color: '#2563eb', background: '#fff', padding: '2px 8px', borderRadius: 4, border: '1px solid #dbeafe' }}>
+                 style={{ display: 'inline-block', marginTop: 6, fontSize: 12, color: 'var(--info)', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--info-surface)' }}>
                 {r.file_name || r.file_key.split('/').pop()}
               </a>
             )}
@@ -323,7 +323,7 @@ function ImageLightbox({ src, name, onClose }: { src: string; name: string; onCl
       <img
         src={src}
         alt={name}
-        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', border: '4px solid #fff' }}
+        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', border: '4px solid var(--bg-secondary)' }}
       />
       <button
         type="button"
@@ -332,7 +332,7 @@ function ImageLightbox({ src, name, onClose }: { src: string; name: string; onCl
         style={{
           position: 'absolute', top: 16, right: 16,
           width: 44, height: 44, borderRadius: 22,
-          background: '#fff', border: '2px solid #000',
+          background: 'var(--bg-secondary)', border: '2px solid #000',
           fontSize: 20, fontWeight: 700, cursor: 'pointer',
         }}
       >×</button>
@@ -371,7 +371,7 @@ function ParentShareModal({ targetId, onClose }: { targetId: string; onClose: ()
       <Modal.Body>
         {!result ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#4a5568' }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
               이 과제의 제출물과 피드백을 학부모에게 읽기 전용으로 공유합니다.
             </p>
             <label style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -379,7 +379,7 @@ function ParentShareModal({ targetId, onClose }: { targetId: string; onClose: ()
               <select
                 value={days}
                 onChange={(e) => setDays(Number(e.target.value))}
-                style={{ padding: '8px 10px', fontSize: 14, border: '1.5px solid #cbd5e1', borderRadius: 6 }}
+                style={{ padding: '8px 10px', fontSize: 14, border: '1.5px solid var(--border-primary)', borderRadius: 6 }}
               >
                 <option value={7}>7일</option>
                 <option value={14}>14일</option>
@@ -390,14 +390,14 @@ function ParentShareModal({ targetId, onClose }: { targetId: string; onClose: ()
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: 13, color: '#16a34a' }}>링크가 생성되고 클립보드에 복사되었습니다.</div>
+            <div style={{ fontSize: 13, color: 'var(--success)' }}>링크가 생성되고 클립보드에 복사되었습니다.</div>
             <input
               readOnly
               value={result.url}
               onFocus={(e) => e.currentTarget.select()}
-              style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid #cbd5e1', borderRadius: 6, fontFamily: 'monospace' }}
+              style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid var(--border-primary)', borderRadius: 6, fontFamily: 'monospace' }}
             />
-            <div style={{ fontSize: 12, color: '#6b7280' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               만료: {new Date(result.expires_at).toLocaleString('ko-KR')}
             </div>
           </div>

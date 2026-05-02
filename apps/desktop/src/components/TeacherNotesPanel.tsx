@@ -317,7 +317,7 @@ export default function TeacherNotesPanel({ studentId }: Props) {
                   <span className="badge">{CATEGORY_LABEL[n.category]}</span>
                   <span
                     className="badge"
-                    style={{ background: SENTIMENT_COLOR[n.sentiment], color: '#fff' }}
+                    style={{ background: SENTIMENT_COLOR[n.sentiment], color: 'var(--text-on-primary)' }}
                   >
                     {SENTIMENT_LABEL[n.sentiment]}
                   </span>

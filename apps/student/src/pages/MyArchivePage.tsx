@@ -45,9 +45,9 @@ export default function MyArchivePage() {
       </header>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>불러오는 중…</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>불러오는 중…</div>
       ) : items.length === 0 ? (
-        <div style={{ background: '#fff', borderRadius: 12, padding: 40, textAlign: 'center', color: '#999' }}>
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 12, padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>
           공유된 자료가 없습니다.
         </div>
       ) : (
@@ -59,7 +59,7 @@ export default function MyArchivePage() {
                 style={{
                   padding: '6px 14px',
                   borderRadius: 999,
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--border-primary)',
                   background: subject === '' ? '#4a5cff' : '#fff',
                   color: subject === '' ? '#fff' : '#333',
                   whiteSpace: 'nowrap',
@@ -74,7 +74,7 @@ export default function MyArchivePage() {
                   style={{
                     padding: '6px 14px',
                     borderRadius: 999,
-                    border: '1px solid #ddd',
+                    border: '1px solid var(--border-primary)',
                     background: subject === s ? '#4a5cff' : '#fff',
                     color: subject === s ? '#fff' : '#333',
                     whiteSpace: 'nowrap',
@@ -88,44 +88,44 @@ export default function MyArchivePage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {filtered.map((a) => (
-              <article key={a.id} style={{ background: '#fff', padding: 14, borderRadius: 12 }}>
+              <article key={a.id} style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 }}>
                   <h2 style={{ margin: 0, fontSize: 15 }}>
                     {a.title}
                     {isNew(a.distributed_at) && (
-                      <span style={{ marginLeft: 6, background: '#ff4757', color: '#fff', padding: '1px 6px', borderRadius: 4, fontSize: 10 }}>NEW</span>
+                      <span style={{ marginLeft: 6, background: 'var(--danger)', color: 'var(--text-on-primary)', padding: '1px 6px', borderRadius: 4, fontSize: 10 }}>NEW</span>
                     )}
                   </h2>
-                  <span style={{ background: '#eef', color: '#447', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>
+                  <span style={{ background: 'var(--info-surface)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>
                     {a.purpose}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
                   {[a.subject, a.grade, a.topic].filter(Boolean).join(' · ') || '—'}
                 </div>
                 {a.description && (
-                  <p style={{ fontSize: 13, color: '#444', marginTop: 6, whiteSpace: 'pre-wrap' }}>{a.description}</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 6, whiteSpace: 'pre-wrap' }}>{a.description}</p>
                 )}
                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {a.files.map((f) => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 8, background: '#f7f7fb', borderRadius: 8 }}>
-                      <span style={{ background: '#fff', padding: '2px 6px', borderRadius: 4, fontSize: 10, color: '#447', fontWeight: 600 }}>
+                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 8, background: 'var(--bg-tertiary)', borderRadius: 8 }}>
+                      <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4, fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600 }}>
                         {ROLE_LABEL[f.file_role]}
                       </span>
                       <div style={{ flex: 1, fontSize: 12 }}>
                         <div>{f.file_name}</div>
-                        <div style={{ fontSize: 10, color: '#999' }}>{(f.size_bytes / 1024).toFixed(0)} KB</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{(f.size_bytes / 1024).toFixed(0)} KB</div>
                       </div>
                       {a.can_download ? (
                         <button
                           type="button"
                           onClick={() => downloadBlob(api.archiveDownloadUrl(a.id, f.id), f.file_name)}
-                          style={{ background: '#4a5cff', color: '#fff', padding: '6px 10px', borderRadius: 6, border: 0, fontSize: 12, cursor: 'pointer' }}
+                          style={{ background: 'var(--primary)', color: 'var(--text-on-primary)', padding: '6px 10px', borderRadius: 6, border: 0, fontSize: 12, cursor: 'pointer' }}
                         >
                           받기
                         </button>
                       ) : (
-                        <span style={{ fontSize: 11, color: '#999' }}>열람 전용</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>열람 전용</span>
                       )}
                     </div>
                   ))}

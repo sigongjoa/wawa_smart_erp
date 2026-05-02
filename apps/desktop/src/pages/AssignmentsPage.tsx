@@ -149,10 +149,10 @@ export default function AssignmentsPage() {
 
   const statsCards = useMemo(
     () => [
-      { key: 'inbox', label: '회신 대기', value: stats.inbox_count || 0, color: '#2563eb' },
+      { key: 'inbox', label: '회신 대기', value: stats.inbox_count || 0, color: 'var(--info)' },
       { key: 'resubmit', label: '재제출 진행', value: stats.resubmit_count || 0, color: 'var(--danger-text)' },
-      { key: 'assigned', label: '미제출', value: stats.assigned_count || 0, color: '#9ca3af' },
-      { key: 'completed', label: '완료', value: stats.completed_count || 0, color: '#16a34a' },
+      { key: 'assigned', label: '미제출', value: stats.assigned_count || 0, color: 'var(--text-tertiary)' },
+      { key: 'completed', label: '완료', value: stats.completed_count || 0, color: 'var(--success)' },
     ],
     [stats]
   );
@@ -163,7 +163,7 @@ export default function AssignmentsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22 }}>과제 회수·첨삭</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#666' }}>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
             수행평가·시험지를 학생에게 발행하고, 제출물을 회수해서 피드백합니다.
           </p>
         </div>
@@ -178,18 +178,18 @@ export default function AssignmentsPage() {
           <div
             key={c.key}
             style={{
-              background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: 12,
+              background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)', borderRadius: 8, padding: 12,
               display: 'flex', flexDirection: 'column', gap: 4,
             }}
           >
-            <div style={{ fontSize: 12, color: '#666' }}>{c.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.label}</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>{c.value}</div>
           </div>
         ))}
       </div>
 
       {/* 탭 */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #eee', marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-secondary)', marginBottom: 12 }}>
         <TabButton active={tab === 'inbox'} onClick={() => setTab('inbox')}>
           회신 대기 {stats.inbox_count ? `(${stats.inbox_count})` : ''}
         </TabButton>
@@ -283,10 +283,10 @@ const InboxTab = memo(function InboxTab({
   onSelect: (targetId: string) => void;
   onDelete: (targetId: string, studentName: string, title: string) => void;
 }) {
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>로딩 중...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>로딩 중...</div>;
   if (rows.length === 0) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#888', background: '#f9fafb', borderRadius: 8 }}>
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
         회신 대기 중인 제출물이 없습니다.
       </div>
     );
@@ -297,7 +297,7 @@ const InboxTab = memo(function InboxTab({
         <div
           key={r.target_id}
           style={{
-            background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: 12,
+            background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)', borderRadius: 8, padding: 12,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
           }}
         >
@@ -307,13 +307,13 @@ const InboxTab = memo(function InboxTab({
           >
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <AssignmentStatusBadge status={r.status} size="sm" />
-              <span style={{ fontSize: 11, color: '#888' }}>{KIND_LABEL[r.kind] || r.kind}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{KIND_LABEL[r.kind] || r.kind}</span>
               <strong style={{ fontSize: 14 }}>{r.title}</strong>
             </div>
-            <div style={{ fontSize: 13, color: '#555' }}>
-              {r.student_name} {r.student_grade && <span style={{ color: '#888' }}>({r.student_grade})</span>}
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              {r.student_name} {r.student_grade && <span style={{ color: 'var(--text-tertiary)' }}>({r.student_grade})</span>}
               {r.last_submitted_at && (
-                <span style={{ marginLeft: 8, color: '#888' }}>
+                <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>
                   · 제출: {new Date(r.last_submitted_at).toLocaleString('ko-KR')}
                 </span>
               )}
@@ -321,7 +321,7 @@ const InboxTab = memo(function InboxTab({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             {r.due_at && (
-              <span style={{ fontSize: 12, color: isOverdue(r.due_at) ? 'var(--danger-text)' : '#888' }}>
+              <span style={{ fontSize: 12, color: isOverdue(r.due_at) ? 'var(--danger-text)' : 'var(--text-tertiary)' }}>
                 마감: {new Date(r.due_at).toLocaleDateString('ko-KR')}
               </span>
             )}
@@ -331,7 +331,7 @@ const InboxTab = memo(function InboxTab({
               aria-label={`${r.student_name || ''} ${r.title} 삭제`}
               style={{
                 padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                background: '#fff', color: 'var(--danger-text)',
+                background: 'var(--bg-secondary)', color: 'var(--danger-text)',
                 border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
               }}
             >
@@ -378,9 +378,9 @@ const ListTab = memo(function ListTab({
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>로딩 중...</div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>로딩 중...</div>
       ) : rows.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#888', background: '#f9fafb', borderRadius: 8 }}>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
           발행한 과제가 없습니다.
         </div>
       ) : (
@@ -389,7 +389,7 @@ const ListTab = memo(function ListTab({
             <div
               key={a.id}
               style={{
-                background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: 12,
+                background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)', borderRadius: 8, padding: 12,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
               }}
             >
@@ -398,17 +398,17 @@ const ListTab = memo(function ListTab({
                 style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, cursor: 'pointer', minWidth: 0 }}
               >
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: '#666', background: '#f3f4f6', padding: '2px 6px', borderRadius: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: 4 }}>
                     {KIND_LABEL[a.kind] || a.kind}
                   </span>
                   {a.status === 'closed' && (
-                    <span style={{ fontSize: 11, color: '#fff', background: '#888', padding: '2px 6px', borderRadius: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-on-primary)', background: 'var(--text-tertiary)', padding: '2px 6px', borderRadius: 4 }}>
                       닫힘
                     </span>
                   )}
                   <strong style={{ fontSize: 14 }}>{a.title}</strong>
                 </div>
-                <div style={{ fontSize: 12, color: '#666' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                   대상 {a.target_count}명 · 제출 {a.submitted_count} · 완료 {a.completed_count}
                   {a.due_at && (
                     <span style={{ marginLeft: 8 }}>
@@ -418,7 +418,7 @@ const ListTab = memo(function ListTab({
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: '#888' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                   {new Date(a.created_at).toLocaleDateString('ko-KR')}
                 </span>
                 {a.status === 'published' && (
@@ -427,7 +427,7 @@ const ListTab = memo(function ListTab({
                     onClick={(e) => { e.stopPropagation(); onClose(a.id, a.title); }}
                     style={{
                       padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                      background: '#fff', color: '#4b5563',
+                      background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
                       border: '1.5px solid #d1d5db', borderRadius: 6, cursor: 'pointer',
                     }}
                   >
@@ -439,7 +439,7 @@ const ListTab = memo(function ListTab({
                   onClick={(e) => { e.stopPropagation(); onDelete(a.id, a.title); }}
                   style={{
                     padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                    background: '#fff', color: 'var(--danger-text)',
+                    background: 'var(--bg-secondary)', color: 'var(--danger-text)',
                     border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
                   }}
                 >
@@ -491,7 +491,7 @@ function AssignmentDetailModal({
     <Modal onClose={onClose} className="modal-content--lg">
       <Modal.Header>
         {assignment.title}
-        <div style={{ fontSize: 12, color: '#888', fontWeight: 400, marginTop: 2 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400, marginTop: 2 }}>
           {KIND_LABEL[assignment.kind] || assignment.kind}
           {assignment.due_at && ` · 마감 ${new Date(assignment.due_at).toLocaleString('ko-KR')}`}
           {assignment.status === 'closed' && ' · 닫힘'}
@@ -499,7 +499,7 @@ function AssignmentDetailModal({
       </Modal.Header>
       <Modal.Body>
         {assignment.instructions && (
-          <div style={{ background: '#f9fafb', padding: 10, borderRadius: 6, fontSize: 13, marginBottom: 12, whiteSpace: 'pre-wrap' }}>
+          <div style={{ background: 'var(--bg-tertiary)', padding: 10, borderRadius: 6, fontSize: 13, marginBottom: 12, whiteSpace: 'pre-wrap' }}>
             {assignment.instructions}
           </div>
         )}
@@ -511,7 +511,7 @@ function AssignmentDetailModal({
               key={t.id}
               onClick={() => onSelectTarget(t.id)}
               style={{
-                border: '1px solid #eee', borderRadius: 6, padding: 10,
+                border: '1px solid var(--border-secondary)', borderRadius: 6, padding: 10,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 cursor: 'pointer', fontSize: 13,
               }}
@@ -519,9 +519,9 @@ function AssignmentDetailModal({
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <AssignmentStatusBadge status={t.status} size="sm" />
                 <strong>{t.student_name || '-'}</strong>
-                {t.student_grade && <span style={{ color: '#888', fontSize: 12 }}>{t.student_grade}</span>}
+                {t.student_grade && <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{t.student_grade}</span>}
               </div>
-              <div style={{ fontSize: 11, color: '#888' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                 제출 {t.submission_count || 0} · 회신 {t.response_count || 0}
                 {t.last_submitted_at && (
                   <span style={{ marginLeft: 6 }}>
@@ -538,7 +538,7 @@ function AssignmentDetailModal({
           type="button"
           className="btn btn-secondary"
           onClick={onHardDelete}
-          style={{ color: 'var(--danger-text)', borderColor: '#fecaca' }}
+          style={{ color: 'var(--danger-text)', borderColor: 'var(--danger-surface)' }}
         >
           완전 삭제
         </button>

@@ -821,7 +821,7 @@ export default function TimerPage() {
                   style={{ width: '100%', marginTop: 4 }}
                 />
               </label>
-              <div style={{ maxHeight: 150, overflow: 'auto', border: '1px solid var(--border, #ddd)', borderRadius: 6, fontSize: 13 }}>
+              <div style={{ maxHeight: 150, overflow: 'auto', border: '1px solid var(--border-primary)', borderRadius: 6, fontSize: 13 }}>
                 {filteredAdhocStudents.map(s => (
                   <button
                     key={s.id}
@@ -833,11 +833,11 @@ export default function TimerPage() {
                       background: adhocForm.studentId === s.id ? 'var(--primary-surface, #e8e5ff)' : 'transparent',
                     }}
                   >
-                    {s.name} <span style={{ color: '#888', fontSize: 12 }}>{s.grade}</span>
+                    {s.name} <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{s.grade}</span>
                   </button>
                 ))}
                 {filteredAdhocStudents.length === 0 && (
-                  <div style={{ padding: '8px 10px', color: '#999' }}>결과 없음</div>
+                  <div style={{ padding: '8px 10px', color: 'var(--text-tertiary)' }}>결과 없음</div>
                 )}
               </div>
 

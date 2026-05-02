@@ -125,7 +125,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={clearLastSlug}
-                style={{ background: 'none', border: 'none', color: '#888', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', marginBottom: 8 }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', marginBottom: 8 }}
               >
                 다른 학원으로 로그인
               </button>
@@ -185,9 +185,9 @@ export default function LoginPage() {
           {loading ? '로그인 중...' : '로그인'}
         </button>
 
-        <p style={{ fontSize: 13, color: '#888', marginTop: 12, textAlign: 'center' }}>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 12, textAlign: 'center' }}>
           학원이 없으신가요?{' '}
-          <a href="#/register" style={{ color: '#4a90d9' }}>새 학원 등록</a>
+          <a href="#/register" style={{ color: 'var(--info)' }}>새 학원 등록</a>
         </p>
       </form>
     </div>

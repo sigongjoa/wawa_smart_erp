@@ -88,7 +88,7 @@ export default function RegisterPage() {
         {step === 'slug' && (
           <>
             <label htmlFor="reg-slug">학원코드</label>
-            <p style={{ fontSize: 12, color: '#888', margin: '0 0 8px' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
               영문 소문자, 숫자, 하이픈만 가능 (3~30자). 로그인 시 사용됩니다.
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -115,7 +115,7 @@ export default function RegisterPage() {
             </div>
 
             {slugAvailable === true && (
-              <p style={{ color: '#22c55e', fontSize: 13, margin: '8px 0' }}>
+              <p style={{ color: 'var(--success)', fontSize: 13, margin: '8px 0' }}>
                 사용 가능한 학원코드입니다
               </p>
             )}
@@ -129,18 +129,18 @@ export default function RegisterPage() {
               다음
             </button>
 
-            <p style={{ fontSize: 13, color: '#888', marginTop: 16, textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 16, textAlign: 'center' }}>
               이미 학원이 있나요?{' '}
-              <a href="#/login" style={{ color: '#4a90d9' }}>로그인</a>
+              <a href="#/login" style={{ color: 'var(--info)' }}>로그인</a>
             </p>
           </>
         )}
 
         {step === 'info' && (
           <form onSubmit={handleRegister}>
-            <p style={{ fontSize: 13, color: '#4a90d9', margin: '0 0 16px' }}>
+            <p style={{ fontSize: 13, color: 'var(--info)', margin: '0 0 16px' }}>
               학원코드: <strong>{slug}</strong>
-              <button type="button" onClick={() => setStep('slug')} style={{ marginLeft: 8, fontSize: 12, color: '#888', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>변경</button>
+              <button type="button" onClick={() => setStep('slug')} style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>변경</button>
             </p>
 
             <label htmlFor="reg-academy">학원 이름</label>
@@ -201,9 +201,9 @@ export default function RegisterPage() {
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>&#10003;</div>
             <h3 style={{ marginBottom: 8 }}>{result.academyName}</h3>
-            <p style={{ color: '#888', marginBottom: 24 }}>학원이 성공적으로 등록되었습니다!</p>
+            <p style={{ color: 'var(--text-tertiary)', marginBottom: 24 }}>학원이 성공적으로 등록되었습니다!</p>
 
-            <div style={{ background: '#f5f5f5', borderRadius: 8, padding: 16, marginBottom: 24, textAlign: 'left' }}>
+            <div style={{ background: 'var(--bg-tertiary)', borderRadius: 8, padding: 16, marginBottom: 24, textAlign: 'left' }}>
               <p style={{ fontSize: 13, margin: '0 0 4px' }}><strong>학원코드:</strong> {result.slug}</p>
               <p style={{ fontSize: 13, margin: 0 }}>로그인 시 이 코드를 입력하세요.</p>
             </div>

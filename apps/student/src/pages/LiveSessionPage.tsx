@@ -96,7 +96,7 @@ export default function LiveSessionPage() {
   };
 
   if (loading) return <div style={{ padding: 16 }}>불러오는 중...</div>;
-  if (error || !state) return <div style={{ padding: 16, color: '#dc2626' }}>{error || '세션 없음'}</div>;
+  if (error || !state) return <div style={{ padding: 16, color: 'var(--danger-text)' }}>{error || '세션 없음'}</div>;
 
   const ended = state.status === 'ended';
 
@@ -105,7 +105,7 @@ export default function LiveSessionPage() {
       <div style={{ padding: 24, textAlign: 'center' }}>
         <h2>수고했어요!</h2>
         <p>선생님이 라이브 세션을 종료했습니다.</p>
-        <p style={{ color: '#64748b', fontSize: 13 }}>잠시 후 홈으로 돌아갑니다...</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>잠시 후 홈으로 돌아갑니다...</p>
       </div>
     );
   }
@@ -115,8 +115,8 @@ export default function LiveSessionPage() {
       {/* 상단: 선생님이 띄운 문제 */}
       <section
         style={{
-          background: '#fff',
-          border: '1px solid #cbd5e1',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-primary)',
           borderRadius: 8,
           padding: 10,
         }}
@@ -135,15 +135,15 @@ export default function LiveSessionPage() {
           />
         )}
         {!state.problem.text && !state.problem.image_data_url && (
-          <div style={{ color: '#94a3b8', fontSize: 13 }}>(선생님이 곧 문제를 띄울 거예요)</div>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>(선생님이 곧 문제를 띄울 거예요)</div>
         )}
       </section>
 
       {/* 하단: 내 풀이 */}
       <section
         style={{
-          background: '#fff',
-          border: '1px solid #cbd5e1',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-primary)',
           borderRadius: 8,
           padding: 10,
           flex: 1,
@@ -179,7 +179,7 @@ export default function LiveSessionPage() {
           <label
             style={{
               padding: '10px 14px', minHeight: 40, display: 'inline-flex', alignItems: 'center',
-              background: '#fff',
+              background: 'var(--bg-secondary)',
               border: '1px solid #94a3b8', borderRadius: 4,
               cursor: 'pointer', fontWeight: 600,
             }}
@@ -202,7 +202,7 @@ export default function LiveSessionPage() {
           <textarea
             style={{
               width: '100%', minHeight: 200,
-              padding: 8, border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 15,
+              padding: 8, border: '1px solid var(--border-primary)', borderRadius: 6, fontSize: 15,
               boxSizing: 'border-box',
             }}
             placeholder="여기에 풀이를 적어주세요. 자동 저장됩니다."
@@ -222,13 +222,13 @@ export default function LiveSessionPage() {
           <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {state.student.photo_data_urls.map((u, i) => (
               <img key={i} src={u} alt={`사진 ${i + 1}`}
-                style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid #cbd5e1' }}
+                style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border-primary)' }}
               />
             ))}
           </div>
         )}
 
-        <div style={{ marginTop: 6, fontSize: 12, color: '#64748b', textAlign: 'right' }}>
+        <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-secondary)', textAlign: 'right' }}>
           {savedAt ? `저장됨 · ${Math.round((Date.now() - savedAt) / 1000)}초 전` : '입력 시 자동 저장'}
         </div>
       </section>

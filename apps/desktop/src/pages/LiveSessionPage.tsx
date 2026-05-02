@@ -207,7 +207,7 @@ export default function LiveSessionPage() {
           </button>
         )}
         {ended && (
-          <span className="badge" style={{ background: '#94a3b8', color: '#fff' }}>종료됨</span>
+          <span className="badge" style={{ background: 'var(--text-tertiary)', color: 'var(--text-on-primary)' }}>종료됨</span>
         )}
       </div>
 

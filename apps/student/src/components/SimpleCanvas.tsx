@@ -153,7 +153,7 @@ export default function SimpleCanvas({
           <button
             type="button"
             onClick={() => setErasing((v) => !v)}
-            style={{ padding: '4px 8px', background: erasing ? '#fef3c7' : '#fff', border: '1px solid #94a3b8', borderRadius: 4 }}
+            style={{ padding: '4px 8px', background: erasing ? 'var(--warning-surface)' : 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 4 }}
           >지우개</button>
           <button type="button" onClick={undo} style={{ padding: '4px 8px' }}>↶</button>
           <button type="button" onClick={clearAll} style={{ padding: '4px 8px' }}>전체지움</button>

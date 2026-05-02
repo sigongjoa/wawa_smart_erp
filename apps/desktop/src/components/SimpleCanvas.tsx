@@ -178,7 +178,7 @@ export default function SimpleCanvas({
             type="button"
             className={`btn btn-ghost btn-sm ${erasing ? 'active' : ''}`}
             onClick={() => setErasing((v) => !v)}
-            style={{ background: erasing ? '#fef3c7' : undefined }}
+            style={{ background: erasing ? 'var(--warning-surface)' : undefined }}
           >
             지우개
           </button>
