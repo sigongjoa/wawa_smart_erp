@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { Check, AlertTriangle } from 'lucide-react';
 import {
   medtermAdminApi, MedBook, MedChapter,
   MedProgressBox, MedWeakTerm, MedFigureAdmin, MedExamAttemptAdmin,
@@ -264,7 +265,17 @@ export default function MedTermAdminPage() {
                     <td><code>{f.id}</code></td>
                     <td>{f.label}</td>
                     <td>{f.fig_type}</td>
-                    <td>{f.has_image ? '✅ 업로드됨' : '⚠️ 없음'}</td>
+                    <td>
+                      {f.has_image ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--success-text)' }}>
+                          <Check size={14} aria-hidden /> 업로드됨
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--warning-text)' }}>
+                          <AlertTriangle size={14} aria-hidden /> 없음
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

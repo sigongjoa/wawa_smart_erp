@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 import { medtermApi, MedTermCard, MedTermAnswerResult, MedTermDetail, MedTermFigureLabel } from '../api';
 import './MedTermPage.css';
 
@@ -147,7 +148,7 @@ export default function MedTermPage() {
     return (
       <div className="medterm-page" data-testid="medterm-empty">
         <h2>의학용어 학습</h2>
-        <p>오늘 학습할 카드가 없습니다 🎉</p>
+        <p>오늘 학습할 카드가 없습니다.</p>
         <p className="medterm-hint">강사가 챕터를 할당하면 여기에 카드가 표시됩니다.</p>
       </div>
     );
@@ -283,7 +284,10 @@ export default function MedTermPage() {
             data-testid="medterm-feedback"
             data-correct={feedback.correct}
           >
-            <strong>{feedback.correct ? '✅ 정답' : '❌ 오답'}</strong>
+            <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {feedback.correct ? <Check size={18} aria-hidden /> : <X size={18} aria-hidden />}
+              {feedback.correct ? '정답' : '오답'}
+            </strong>
             <div className="medterm-feedback-line">
               박스: {feedback.box_before} → <b>{feedback.box_after}</b>
             </div>

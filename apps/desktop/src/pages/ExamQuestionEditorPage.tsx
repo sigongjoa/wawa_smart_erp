@@ -26,7 +26,7 @@ export default function ExamQuestionEditorPage() {
   const [subject, setSubject] = useState('english');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +51,7 @@ export default function ExamQuestionEditorPage() {
           );
         }
       } catch (e: unknown) {
-        setMsg('불러오기 실패: ' + errorMessage(e, ''));
+        setMsg({ kind: 'err', text: '불러오기 실패: ' + errorMessage(e, '') });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -90,16 +90,16 @@ export default function ExamQuestionEditorPage() {
       q.correctChoice < 1 || q.correctChoice > 5
     );
     if (invalid) {
-      setMsg(`Q${invalid.questionNo} 미완성 (지문/보기5개/정답 확인)`);
+      setMsg({ kind: 'err', text: `Q${invalid.questionNo} 미완성 (지문/보기5개/정답 확인)` });
       return;
     }
     setSaving(true);
     try {
       await api.patchExamPaperMeta(paperId, { subject, durationMinutes });
       await api.putExamPaperQuestions(paperId, questions);
-      setMsg(`✅ ${questions.length}문항 저장됨`);
+      setMsg({ kind: 'ok', text: `${questions.length}문항 저장됨` });
     } catch (e: unknown) {
-      setMsg('저장 실패: ' + errorMessage(e, ''));
+      setMsg({ kind: 'err', text: '저장 실패: ' + errorMessage(e, '') });
     } finally {
       setSaving(false);
     }
@@ -261,9 +261,10 @@ export default function ExamQuestionEditorPage() {
       {msg && (
         <div style={{
           marginTop: 16, padding: 10, borderRadius: 8,
-          background: msg.startsWith('✅') ? '#d1fae5' : '#fee2e2',
-          color: msg.startsWith('✅') ? '#065f46' : '#991b1b', fontSize: 14,
-        }}>{msg}</div>
+          background: msg.kind === 'ok' ? 'var(--success-surface)' : 'var(--danger-surface)',
+          color: msg.kind === 'ok' ? 'var(--success-text)' : 'var(--danger-text)',
+          fontSize: 14,
+        }}>{msg.text}</div>
       )}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20, position: 'sticky', bottom: 0, paddingBottom: 10 }}>

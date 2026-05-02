@@ -323,7 +323,7 @@ export default function ReportPage() {
 
   const statusIcon = (key: string) => {
     const s = cellStatus.statuses[key];
-    if (s === 'saving') return '⏳';
+    if (s === 'saving') return '…';
     if (s === 'saved') return '✓';
     if (s === 'error') return '✗';
     return '';

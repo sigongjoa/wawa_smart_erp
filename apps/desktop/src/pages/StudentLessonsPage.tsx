@@ -421,7 +421,7 @@ export default function StudentLessonsPage() {
             ) : (
               <>
                 <LessonSectionHeader
-                  label={`📚 이번 학기 진도 (${curriculumItems.length})`}
+                  label={`이번 학기 진도 (${curriculumItems.length})`}
                   onCreate={() => setShowApply(true)}
                   createLabel="+ 적용"
                   hidden={curriculumItems.length === 0}
@@ -435,7 +435,7 @@ export default function StudentLessonsPage() {
                   />
                 ))}
                 <LessonSectionHeader
-                  label={`📝 시험대비·기타 (${otherItems.length})`}
+                  label={`시험대비·기타 (${otherItems.length})`}
                   onCreate={() => { setCreateSource('exam_prep'); setShowCreate(true); setDraft({ kind: 'free' }); }}
                   createLabel="+ 추가"
                   hidden={otherItems.length === 0}

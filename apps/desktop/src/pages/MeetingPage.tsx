@@ -163,7 +163,14 @@ export default function MeetingPage() {
         ) : (
           <div className="meeting-list">
             {meetings.map((m) => (
-              <div key={m.id} className="meeting-card" onClick={() => openDetail(m.id)}>
+              <div
+                key={m.id}
+                className="meeting-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => openDetail(m.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(m.id); } }}
+              >
                 <div className="meeting-card-header">
                   <span className="meeting-card-title">{m.title}</span>
                   <span className={`meeting-status meeting-status--${m.status}`}>

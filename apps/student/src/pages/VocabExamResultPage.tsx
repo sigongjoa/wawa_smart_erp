@@ -38,9 +38,9 @@ export default function VocabExamResultPage() {
         </div>
         <div className="vresult-pct">{pct}점</div>
         <div className="vresult-msg">
-          {pct >= 90 ? '훌륭해요! 🎉'
-            : pct >= 70 ? '잘했어요 👏'
-            : pct >= 50 ? '거의 다 왔어요 💪'
+          {pct >= 90 ? '훌륭해요'
+            : pct >= 70 ? '잘했어요'
+            : pct >= 50 ? '거의 다 왔어요'
             : '다시 외우면 더 잘할 수 있어요'}
         </div>
       </div>

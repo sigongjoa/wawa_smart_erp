@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Check, X, Clock } from 'lucide-react';
 import { api } from '../api';
 import { toast, useConfirm } from './Toast';
 
@@ -162,8 +163,10 @@ export default function MakeupSessionsModal({ makeupId, studentName, absenceDate
                 <ul>
                   {sessions.map((s) => (
                     <li key={s.id} className={`ms-item ms-item--${s.status}`}>
-                      <span className="ms-item-icon">
-                        {s.status === 'completed' ? '✅' : s.status === 'cancelled' ? '❌' : '⏳'}
+                      <span className="ms-item-icon" aria-label={s.status}>
+                        {s.status === 'completed' ? <Check size={16} aria-hidden /> :
+                         s.status === 'cancelled' ? <X size={16} aria-hidden /> :
+                         <Clock size={16} aria-hidden />}
                       </span>
                       <span className="ms-item-idx">{s.session_index}회차</span>
                       <span className="ms-item-date">

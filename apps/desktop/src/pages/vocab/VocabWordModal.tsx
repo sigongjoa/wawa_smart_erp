@@ -15,6 +15,7 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
   const [studentId, setStudentId] = useState('');
   const [english, setEnglish] = useState('');
   const [korean, setKorean] = useState('');
+  const [category, setCategory] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
         student_id: studentId,
         english: english.trim(),
         korean: korean.trim(),
+        category: category.trim() || null,
       });
       toast.success('단어가 추가되었습니다');
       onSaved();
@@ -71,6 +73,24 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
               onChange={e => setKorean(e.target.value)}
               placeholder="예: 사과"
             />
+          </label>
+          <label className="form-field">
+            <span className="form-label">유형 <span style={{ color: '#94a3b8', fontWeight: 400 }}>(선택)</span></span>
+            <input
+              className="form-input"
+              value={category}
+              list="vocab-category-suggest"
+              onChange={e => setCategory(e.target.value)}
+              placeholder="예: 기초/숙어/파생어/동사구"
+            />
+            <datalist id="vocab-category-suggest">
+              <option value="기초" />
+              <option value="숙어" />
+              <option value="파생어" />
+              <option value="동사구" />
+              <option value="형용사" />
+              <option value="부사" />
+            </datalist>
           </label>
           {error && <div className="form-error" role="alert">{error}</div>}
         </div>

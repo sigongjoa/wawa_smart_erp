@@ -112,7 +112,18 @@ variant: `success` / `warning` / `danger` / `info` / `neutral`. pill 형태 (`ra
 
 ## 4. 아이콘
 
-**미정 — P1 결정 필요**. 현재 일부 페이지에 이모지(✅❌⚠️) 사용 → SVG 라이브러리 도입 후 치환 예정 (`lucide-react` 후보). 결정 시 본 문서 갱신.
+**라이브러리**: [`lucide-react`](https://lucide.dev/) (line icon, tree-shakeable)
+
+```tsx
+import { Check, X, Clock, AlertTriangle } from 'lucide-react';
+<Check size={16} aria-hidden />
+```
+
+**규칙**:
+- 이모지를 아이콘으로 쓰지 않음 (OS·브라우저별 렌더 다름)
+- 텍스트와 함께 쓸 때 `display: inline-flex; gap: 4px; align-items: center`
+- 의미 없는 장식이면 `aria-hidden`, 의미 있으면 `aria-label` + 텍스트 또는 `role="img"`
+- 색은 부모의 `color` 토큰 상속 — 직접 색 지정 금지
 
 ## 5. 접근성
 
