@@ -241,7 +241,7 @@
 }
 .ad-file-remove:hover {
   background: var(--danger);
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 /* ─ Note textarea ─────────────────────────────────── */
@@ -375,7 +375,7 @@
   padding: 2px 6px;
 }
 .ad-event-meta-tag--danger {
-  color: #fff;
+  color: var(--text-on-primary);
   background: var(--danger);
 }
 
@@ -412,12 +412,31 @@
   margin: var(--sp-4) var(--sp-5);
   padding: 14px 16px;
   background: var(--danger);
-  color: #fff;
-  border-left: 4px solid #fff;
-  border-right: 4px solid #fff;
+  color: var(--text-on-primary);
+  border-left: 4px solid var(--text-on-primary);
+  border-right: 4px solid var(--text-on-primary);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: var(--fw-bold);
   letter-spacing: 1px;
   text-transform: uppercase;
+}
+
+/* ─ Feedback Banner (alert() 대체) ──────────── */
+.ad-feedback {
+  margin: var(--sp-3) 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-sm);
+  border: var(--border-hairline);
+  font-size: var(--fs-body);
+  cursor: pointer;
+  line-height: 1.5;
+}
+.ad-feedback--ok {
+  background: var(--success-surface);
+  color: var(--success);
+}
+.ad-feedback--err {
+  background: var(--danger-surface);
+  color: var(--danger);
 }

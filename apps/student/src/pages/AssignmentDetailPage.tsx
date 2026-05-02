@@ -11,14 +11,6 @@ const STATUS_LABEL: Record<string, string> = {
   completed: '완료',
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  assigned: '#f59e0b',
-  submitted: '#2563eb',
-  reviewed: '#7c3aed',
-  needs_resubmit: '#dc2626',
-  completed: '#16a34a',
-};
-
 export default function AssignmentDetailPage() {
   const { targetId } = useParams<{ targetId: string }>();
   const navigate = useNavigate();
@@ -29,6 +21,7 @@ export default function AssignmentDetailPage() {
   const [note, setNote] = useState('');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const load = () => {
     if (!targetId) return;
@@ -50,7 +43,7 @@ export default function AssignmentDetailPage() {
         setFiles((prev) => [...prev, { key: res.key, name: res.fileName, size: res.fileSize, mime: res.contentType }]);
       }
     } catch (err: any) {
-      alert(err.message || '업로드 실패');
+      setFeedback({ kind: 'err', text: err.message || '업로드 실패' });
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -81,17 +74,17 @@ export default function AssignmentDetailPage() {
 
   const handleSubmit = async () => {
     if (!targetId || files.length === 0) {
-      alert('제출할 파일을 1개 이상 첨부해주세요');
+      setFeedback({ kind: 'err', text: '제출할 파일을 1개 이상 첨부해주세요' });
       return;
     }
     setSubmitting(true);
     try {
       await api.submitAssignment(targetId, { note: note.trim() || null, files });
-      alert('제출되었어요!');
+      setFeedback({ kind: 'ok', text: '제출되었어요!' });
       setFiles([]); setNote('');
       load();
     } catch (err: any) {
-      alert(err.message || '제출 실패');
+      setFeedback({ kind: 'err', text: err.message || '제출 실패' });
     } finally {
       setSubmitting(false);
     }
@@ -135,6 +128,16 @@ export default function AssignmentDetailPage() {
       <button type="button" className="ad-back" onClick={() => navigate('/assignments')}>
         <span aria-hidden="true">←</span> LIST
       </button>
+
+      {feedback && (
+        <div
+          className={`ad-feedback ad-feedback--${feedback.kind}`}
+          role={feedback.kind === 'err' ? 'alert' : 'status'}
+          onClick={() => setFeedback(null)}
+        >
+          {feedback.text}
+        </div>
+      )}
 
       {/* 헤더 */}
       <header className="ad-head">

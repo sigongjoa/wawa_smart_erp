@@ -1,0 +1,111 @@
+/* ─ Assignments List Page ───────────────────── */
+
+.asgn-list {
+  padding: var(--sp-4);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.asgn-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-4);
+}
+
+.asgn-list-title {
+  margin: 0;
+  font-size: var(--fs-title-2);
+  font-weight: var(--fw-bold);
+}
+
+.asgn-list-error {
+  background: var(--danger-surface);
+  color: var(--danger);
+  padding: var(--sp-3);
+  border-radius: var(--r-sm);
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-body);
+}
+
+.asgn-list-empty {
+  text-align: center;
+  color: var(--ink-40);
+  padding: var(--sp-10);
+  background: var(--bg-canvas);
+  border-radius: var(--r-sm);
+}
+
+.asgn-list-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.asgn-row {
+  text-align: left;
+  padding: var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  border: var(--border-hairline);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  transition: border-color var(--dur-fast) var(--ease-out-quart);
+}
+.asgn-row:hover { border-color: var(--ink-20); }
+
+.asgn-row-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.asgn-status {
+  font-size: var(--fs-caption);
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  color: var(--text-on-primary);
+  font-weight: var(--fw-semi);
+}
+.asgn-status[data-status="assigned"]       { background: var(--type-electric); color: var(--ink); }
+.asgn-status[data-status="submitted"]      { background: var(--type-water); }
+.asgn-status[data-status="reviewed"]       { background: var(--type-dragon); }
+.asgn-status[data-status="needs_resubmit"] { background: var(--danger); }
+.asgn-status[data-status="completed"]      { background: var(--type-grass); }
+
+.asgn-kind {
+  font-size: var(--fs-caption);
+  color: var(--ink-60);
+  background: var(--ink-09);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.asgn-overdue {
+  font-size: var(--fs-caption);
+  color: var(--text-on-primary);
+  background: var(--danger);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: var(--fw-semi);
+}
+
+.asgn-row-title {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semi);
+  color: var(--ink);
+}
+
+.asgn-row-sub {
+  font-size: var(--fs-caption);
+  color: var(--ink-60);
+}
+
+.asgn-row-response {
+  margin-left: var(--sp-2);
+  color: var(--type-water);
+  font-weight: var(--fw-semi);
+}
