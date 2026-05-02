@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from '../Modal';
 import { api, type TeacherOption } from '../../api';
-import { toast } from '../Toast';
+import { toast, useConfirm } from '../Toast';
 import { useAuthStore } from '../../store';
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 export default function TeacherEditModal({ teacher, onClose, onChanged }: Props) {
   const me = useAuthStore((s) => s.user);
   const isSelf = me?.id === teacher.id;
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [name, setName] = useState(teacher.name);
   const [role, setRole] = useState<'admin' | 'instructor'>(teacher.role);
@@ -54,7 +55,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
   };
 
   const handleResetPin = async () => {
-    if (!window.confirm(`${teacher.name} 선생님의 PIN을 재설정합니다. 계속하시겠습니까?`)) return;
+    if (!(await confirm(`${teacher.name} 선생님의 PIN을 재설정합니다. 계속하시겠습니까?`))) return;
     setResetting(true);
     setNewPin(null);
     try {
@@ -69,7 +70,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`${teacher.name} 선생님을 비활성화합니다. 로그인이 차단되며, 기존 수업·성적 기록은 유지됩니다. 계속하시겠습니까?`)) return;
+    if (!(await confirm(`${teacher.name} 선생님을 비활성화합니다. 로그인이 차단되며, 기존 수업·성적 기록은 유지됩니다. 계속하시겠습니까?`))) return;
     setSaving(true);
     try {
       await api.deleteTeacher(teacher.id);
@@ -89,7 +90,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
         <Modal.Body>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {isSelf && (
-              <p style={{ fontSize: 12, color: 'var(--warning-text)', background: '#fef3c7', padding: '8px 12px', borderRadius: 6, margin: 0 }}>
+              <p style={{ fontSize: 12, color: 'var(--warning-text)', background: 'var(--warning-surface)', padding: '8px 12px', borderRadius: 6, margin: 0 }}>
                 본인 계정입니다. 권한과 상태는 본인이 변경할 수 없습니다.
               </p>
             )}
@@ -145,7 +146,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 12, marginTop: 4 }}>
+            <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12, marginTop: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <button
                   type="button"
@@ -156,13 +157,13 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
                   {resetting ? '발급 중...' : 'PIN 재설정'}
                 </button>
                 {newPin && (
-                  <div style={{ background: '#f0f7ff', padding: '6px 12px', borderRadius: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, color: '#555' }}>임시 PIN:</span>
+                  <div style={{ background: 'var(--info-surface)', padding: '6px 12px', borderRadius: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>임시 PIN:</span>
                     <strong style={{ fontFamily: 'monospace', fontSize: 18, letterSpacing: 2 }}>{newPin}</strong>
                     <button
                       type="button"
                       onClick={() => { navigator.clipboard.writeText(newPin); toast.info('복사됨'); }}
-                      style={{ padding: '2px 8px', fontSize: 12, background: '#4a90d9', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                      style={{ padding: '2px 8px', fontSize: 12, background: 'var(--info)', color: 'var(--text-on-primary)', border: 'none', borderRadius: 4, cursor: 'pointer' }}
                     >
                       복사
                     </button>
@@ -176,7 +177,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
               )}
             </div>
 
-            <div style={{ fontSize: 12, color: '#888', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {teacher.last_login_at && (
                 <span>마지막 로그인: {new Date(teacher.last_login_at).toLocaleString('ko-KR')}</span>
               )}
@@ -193,7 +194,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
               className="btn btn-secondary"
               onClick={handleDelete}
               disabled={saving}
-              style={{ color: '#e53e3e', borderColor: '#fecaca', marginRight: 'auto' }}
+              style={{ color: 'var(--danger)', borderColor: 'var(--danger-surface)', marginRight: 'auto' }}
             >
               비활성화
             </button>
@@ -204,6 +205,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
           </button>
         </Modal.Footer>
       </form>
+      {ConfirmDialog}
     </Modal>
   );
 }

@@ -37,7 +37,7 @@ export default function TeacherList({ onCreateInvite }: Props) {
   return (
     <div className="settings-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0 }}>선생님 목록 <span style={{ fontSize: 13, color: '#888', fontWeight: 400 }}>({activeCount}명 활성)</span></h3>
+        <h3 style={{ margin: 0 }}>선생님 목록 <span style={{ fontSize: 13, color: 'var(--text-tertiary)', fontWeight: 400 }}>({activeCount}명 활성)</span></h3>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={onCreateInvite}>초대 코드 생성</button>
           <button className="btn btn-primary" onClick={() => setAdding(true)}>직접 추가</button>
@@ -65,14 +65,14 @@ export default function TeacherList({ onCreateInvite }: Props) {
       </div>
 
       {loading ? (
-        <p style={{ color: '#888' }}>로딩 중...</p>
+        <p style={{ color: 'var(--text-tertiary)' }}>로딩 중...</p>
       ) : filtered.length === 0 ? (
-        <p style={{ color: '#888' }}>표시할 선생님이 없습니다.</p>
+        <p style={{ color: 'var(--text-tertiary)' }}>표시할 선생님이 없습니다.</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #eee', textAlign: 'left', color: '#555' }}>
+              <tr style={{ borderBottom: '1px solid var(--border-secondary)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                 <th style={{ padding: '8px 10px' }}>이름</th>
                 <th style={{ padding: '8px 10px' }}>권한</th>
                 <th style={{ padding: '8px 10px' }}>담당 과목</th>
@@ -85,28 +85,28 @@ export default function TeacherList({ onCreateInvite }: Props) {
               {filtered.map((t) => {
                 const st = t.status || 'active';
                 return (
-                  <tr key={t.id} style={{ borderBottom: '1px solid #f5f5f5', opacity: st === 'disabled' ? 0.55 : 1 }}>
+                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border-secondary)', opacity: st === 'disabled' ? 0.55 : 1 }}>
                     <td style={{ padding: '10px' }}>
                       <strong>{t.name}</strong>
                     </td>
                     <td style={{ padding: '10px' }}>
                       {t.role === 'admin' ? (
-                        <span style={{ background: '#ede9fe', color: '#6d28d9', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>관리자</span>
+                        <span style={{ background: 'var(--primary-surface)', color: 'var(--primary)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>관리자</span>
                       ) : (
-                        <span style={{ background: '#f5f5f5', color: '#555', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>강사</span>
+                        <span style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>강사</span>
                       )}
                     </td>
-                    <td style={{ padding: '10px', color: '#555' }}>
+                    <td style={{ padding: '10px', color: 'var(--text-secondary)' }}>
                       {(t.subjects && t.subjects.length > 0) ? t.subjects.join(', ') : '—'}
                     </td>
                     <td style={{ padding: '10px' }}>
                       {st === 'active' ? (
-                        <span style={{ color: '#22c55e', fontSize: 13 }}>● 활성</span>
+                        <span style={{ color: 'var(--success)', fontSize: 13 }}>● 활성</span>
                       ) : (
-                        <span style={{ color: '#9ca3af', fontSize: 13 }}>● 비활성</span>
+                        <span style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>● 비활성</span>
                       )}
                     </td>
-                    <td style={{ padding: '10px', color: '#888', fontSize: 13 }}>
+                    <td style={{ padding: '10px', color: 'var(--text-tertiary)', fontSize: 13 }}>
                       {t.last_login_at ? new Date(t.last_login_at).toLocaleDateString('ko-KR') : '—'}
                     </td>
                     <td style={{ padding: '10px' }}>

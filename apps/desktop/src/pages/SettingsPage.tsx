@@ -82,7 +82,7 @@ export default function SettingsPage() {
       {isAdmin && (
         <div className="settings-section" style={{ marginTop: 24 }}>
           <h3>학원 · 선생님 관리</h3>
-          <p style={{ fontSize: 13, color: '#888', margin: '0 0 12px' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 12px' }}>
             학원 정보 수정, 선생님 초대·추가·권한 관리는 <strong>학원 관리</strong> 페이지에서 할 수 있습니다.
           </p>
           <Link to="/academy" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>

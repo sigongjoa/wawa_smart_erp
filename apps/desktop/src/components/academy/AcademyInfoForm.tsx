@@ -70,7 +70,7 @@ export default function AcademyInfoForm() {
     <div className="settings-section">
       <h3>학원 정보</h3>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 13, color: '#888', marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16, flexWrap: 'wrap' }}>
         <span>학원코드: <strong style={{ fontFamily: 'monospace' }}>{academy.slug}</strong></span>
         <span>|</span>
         <span>요금제: <strong>{academy.plan?.toUpperCase() || 'FREE'}</strong></span>
@@ -86,7 +86,7 @@ export default function AcademyInfoForm() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 12 }}>
         <div>
-          <label htmlFor="academy-name" style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>학원 이름 *</label>
+          <label htmlFor="academy-name" style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>학원 이름 *</label>
           <input
             id="academy-name"
             className="input"
@@ -96,7 +96,7 @@ export default function AcademyInfoForm() {
           />
         </div>
         <div>
-          <label htmlFor="academy-phone" style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>연락처</label>
+          <label htmlFor="academy-phone" style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>연락처</label>
           <input
             id="academy-phone"
             className="input"
@@ -106,7 +106,7 @@ export default function AcademyInfoForm() {
           />
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <label htmlFor="academy-address" style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>주소</label>
+          <label htmlFor="academy-address" style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>주소</label>
           <input
             id="academy-address"
             className="input"

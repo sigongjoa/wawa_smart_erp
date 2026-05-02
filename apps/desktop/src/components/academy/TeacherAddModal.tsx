@@ -53,7 +53,7 @@ export default function TeacherAddModal({ onClose, onCreated }: Props) {
       <form onSubmit={handleSubmit}>
         <Modal.Body>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <p style={{ fontSize: 13, color: '#888', margin: 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
               초대 코드 없이 직접 계정을 만듭니다. 생성된 PIN을 본인에게 전달하세요.
             </p>
 

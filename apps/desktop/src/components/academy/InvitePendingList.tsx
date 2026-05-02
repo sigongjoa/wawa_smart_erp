@@ -1,6 +1,6 @@
 import { useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import { api } from '../../api';
-import { toast } from '../Toast';
+import { toast, useConfirm } from '../Toast';
 
 interface Invite {
   id: string;
@@ -17,6 +17,7 @@ export interface InvitePendingHandle {
 }
 
 function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<'instructor' | 'admin'>('instructor');
@@ -54,7 +55,7 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
   }));
 
   const handleCancel = async (id: string) => {
-    if (!window.confirm('이 초대 코드를 취소합니다. 계속하시겠습니까?')) return;
+    if (!(await confirm('이 초대 코드를 취소합니다. 계속하시겠습니까?'))) return;
     setCancellingId(id);
     try {
       await api.cancelInvite(id);
@@ -78,7 +79,7 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
   return (
     <div className="settings-section">
       <h3>초대 코드</h3>
-      <p style={{ fontSize: 13, color: '#888', margin: '0 0 12px' }}>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 12px' }}>
         새 선생님이 직접 가입할 수 있는 코드를 생성합니다. 7일간 유효.
       </p>
 
@@ -86,7 +87,7 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as any)}
-          style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
+          style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-primary)' }}
         >
           <option value="instructor">강사</option>
           <option value="admin">관리자</option>
@@ -97,16 +98,16 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
       </div>
 
       {latestCode && (
-        <div style={{ marginBottom: 16, background: '#f0f7ff', borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ marginBottom: 16, background: 'var(--info-surface)', borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: 4, fontFamily: 'monospace' }}>{latestCode.code}</span>
           <button
             type="button"
             onClick={() => copy(latestCode.code)}
-            style={{ padding: '4px 12px', fontSize: 13, background: '#4a90d9', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+            style={{ padding: '4px 12px', fontSize: 13, background: 'var(--info)', color: 'var(--text-on-primary)', border: 'none', borderRadius: 4, cursor: 'pointer' }}
           >
             복사
           </button>
-          <span style={{ fontSize: 12, color: '#888' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             만료: {new Date(latestCode.expiresAt).toLocaleDateString('ko-KR')}
           </span>
         </div>
@@ -114,14 +115,14 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
 
       <h4 style={{ fontSize: 14, marginBottom: 8 }}>대기 중 ({pending.length})</h4>
       {loading ? (
-        <p style={{ color: '#888', fontSize: 13 }}>로딩 중...</p>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>로딩 중...</p>
       ) : pending.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>대기 중인 초대 코드가 없습니다.</p>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>대기 중인 초대 코드가 없습니다.</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #eee', textAlign: 'left', color: '#555' }}>
+              <tr style={{ borderBottom: '1px solid var(--border-secondary)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                 <th style={{ padding: '6px 8px' }}>코드</th>
                 <th style={{ padding: '6px 8px' }}>역할</th>
                 <th style={{ padding: '6px 8px' }}>만료</th>
@@ -131,15 +132,15 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
             </thead>
             <tbody>
               {pending.map((inv) => (
-                <tr key={inv.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-secondary)' }}>
                   <td style={{ padding: '8px', fontFamily: 'monospace', letterSpacing: 1 }}>{inv.code}</td>
                   <td style={{ padding: '8px' }}>{inv.role === 'admin' ? '관리자' : '강사'}</td>
-                  <td style={{ padding: '8px', color: '#888' }}>{new Date(inv.expires_at).toLocaleDateString('ko-KR')}</td>
+                  <td style={{ padding: '8px', color: 'var(--text-tertiary)' }}>{new Date(inv.expires_at).toLocaleDateString('ko-KR')}</td>
                   <td style={{ padding: '8px' }}>
                     <button
                       type="button"
                       onClick={() => copy(inv.code)}
-                      style={{ padding: '2px 8px', fontSize: 12, background: '#f5f5f5', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                      style={{ padding: '2px 8px', fontSize: 12, background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)', borderRadius: 4, cursor: 'pointer' }}
                     >복사</button>
                   </td>
                   <td style={{ padding: '8px' }}>
@@ -147,7 +148,7 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
                       type="button"
                       onClick={() => handleCancel(inv.id)}
                       disabled={cancellingId === inv.id}
-                      style={{ padding: '2px 8px', fontSize: 12, background: '#fff', border: '1px solid #fecaca', color: '#e53e3e', borderRadius: 4, cursor: 'pointer' }}
+                      style={{ padding: '2px 8px', fontSize: 12, background: 'var(--bg-secondary)', border: '1px solid var(--danger-surface)', color: 'var(--danger)', borderRadius: 4, cursor: 'pointer' }}
                     >
                       {cancellingId === inv.id ? '취소 중...' : '취소'}
                     </button>
@@ -161,12 +162,12 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
 
       {history.length > 0 && (
         <details style={{ marginTop: 16 }}>
-          <summary style={{ cursor: 'pointer', fontSize: 13, color: '#888' }}>
+          <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-tertiary)' }}>
             이전 초대 이력 ({history.length})
           </summary>
           <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse', marginTop: 8 }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #eee', textAlign: 'left', color: '#888' }}>
+              <tr style={{ borderBottom: '1px solid var(--border-secondary)', textAlign: 'left', color: 'var(--text-tertiary)' }}>
                 <th style={{ padding: '6px 8px' }}>코드</th>
                 <th style={{ padding: '6px 8px' }}>역할</th>
                 <th style={{ padding: '6px 8px' }}>상태</th>
@@ -175,11 +176,11 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
             </thead>
             <tbody>
               {history.map((inv) => (
-                <tr key={inv.id} style={{ borderBottom: '1px solid #f5f5f5', color: '#888' }}>
+                <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-tertiary)' }}>
                   <td style={{ padding: '6px 8px', fontFamily: 'monospace' }}>{inv.code}</td>
                   <td style={{ padding: '6px 8px' }}>{inv.role === 'admin' ? '관리자' : '강사'}</td>
                   <td style={{ padding: '6px 8px' }}>
-                    {inv.used_by ? <span style={{ color: '#22c55e' }}>사용됨</span> : <span>만료</span>}
+                    {inv.used_by ? <span style={{ color: 'var(--success)' }}>사용됨</span> : <span>만료</span>}
                   </td>
                   <td style={{ padding: '6px 8px' }}>{new Date(inv.expires_at).toLocaleDateString('ko-KR')}</td>
                 </tr>
@@ -188,6 +189,7 @@ function InvitePendingListInner(_props: {}, ref: React.Ref<InvitePendingHandle>)
           </table>
         </details>
       )}
+      {ConfirmDialog}
     </div>
   );
 }
