@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, X, Clock } from 'lucide-react';
 import { api } from '../api';
 import { toast, useConfirm } from './Toast';
+import DialogShell from './DialogShell';
 
 interface Session {
   id: string;
@@ -124,7 +125,7 @@ export default function MakeupSessionsModal({ makeupId, studentName, absenceDate
                        : progress > 0 ? 'ms-bar--progress' : 'ms-bar--idle';
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <DialogShell ariaLabel={`보강 회차 — ${studentName}`} onClose={onClose}>
       {ConfirmDialog}
       <div className="modal-content ms-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -222,6 +223,6 @@ export default function MakeupSessionsModal({ makeupId, studentName, absenceDate
           </div>
         )}
       </div>
-    </div>
+    </DialogShell>
   );
 }

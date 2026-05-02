@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Proof, ProofDetail, ProofStep, ProofStepInput, GachaStudent } from '../api';
 import { toast, useConfirm } from '../components/Toast';
+import DialogShell from '../components/DialogShell';
 
 const GRADE_OPTIONS = ['중1', '중2', '중3', '고1', '고2', '고3'];
 const DIFFICULTY_OPTIONS = [1, 2, 3, 4, 5];
@@ -495,7 +496,11 @@ export default function ProofEditorPage() {
 
       {/* ── 미리보기 모달 ── */}
       {previewProof && (
-        <div className="gacha-modal-overlay" onClick={() => setPreviewProof(null)}>
+        <DialogShell
+          ariaLabel={`증명 미리보기 — ${previewProof.title}`}
+          onClose={() => setPreviewProof(null)}
+          overlayClassName="gacha-modal-overlay"
+        >
           <div className="gacha-modal gacha-modal--wide" onClick={e => e.stopPropagation()}>
             <h2>{previewProof.title}</h2>
             <p>{previewProof.grade} {previewProof.chapter && `· ${previewProof.chapter}`} · {difficultyStars(previewProof.difficulty)}</p>
@@ -517,12 +522,16 @@ export default function ProofEditorPage() {
             </div>
             <button className="btn-secondary" onClick={() => setPreviewProof(null)}>닫기</button>
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {/* ── 배정 모달 ── */}
       {assignProofId && (
-        <div className="gacha-modal-overlay" onClick={() => setAssignProofId(null)}>
+        <DialogShell
+          ariaLabel="학생 배정"
+          onClose={() => setAssignProofId(null)}
+          overlayClassName="gacha-modal-overlay"
+        >
           <div className="gacha-modal" onClick={e => e.stopPropagation()}>
             <h3>학생 배정</h3>
             <div className="proof-assign-list">
@@ -548,7 +557,7 @@ export default function ProofEditorPage() {
               </button>
             </div>
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {/* ── 목록 ── */}

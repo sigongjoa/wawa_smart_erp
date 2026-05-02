@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, GachaStudent } from '../api';
 import { toast, useConfirm } from '../components/Toast';
+import DialogShell from '../components/DialogShell';
 import { useAuthStore } from '../store';
 
 const GRADE_OPTIONS = ['중1', '중2', '중3', '고1', '고2', '고3'];
@@ -196,13 +197,10 @@ export default function GachaStudentPage() {
 
       {/* PIN 초기화 모달 */}
       {resetPinId && (
-        <div
-          className="gacha-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="PIN 재설정"
-          onClick={() => { setResetPinId(null); setGeneratedPin(null); setNewPin(''); }}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setResetPinId(null); setGeneratedPin(null); setNewPin(''); } }}
+        <DialogShell
+          ariaLabel="PIN 재설정"
+          onClose={() => { setResetPinId(null); setGeneratedPin(null); setNewPin(''); }}
+          overlayClassName="gacha-modal-overlay"
         >
           <div className="gacha-modal" onClick={e => e.stopPropagation()}>
             <h3>PIN 재설정</h3>
@@ -249,7 +247,7 @@ export default function GachaStudentPage() {
               </>
             )}
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {/* 목록 */}
