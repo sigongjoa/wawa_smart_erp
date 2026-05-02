@@ -103,20 +103,20 @@ export default function ParentHomeworkPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafbfc', padding: '24px 16px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', padding: '24px 16px' }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         {/* 헤더 */}
         <header style={{
           background: '#fff', border: '2px solid #1a1d24', borderRadius: 12,
           padding: 20, marginBottom: 16,
         }}>
-          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
             {data.student.name}{data.student.grade ? ` · ${data.student.grade}` : ''}
           </div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1a1d24' }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>
             {data.assignment.title}
           </h1>
-          <div style={{ marginTop: 10, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, color: '#4b5563' }}>
+          <div style={{ marginTop: 10, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-secondary)' }}>
             {data.assignment.due_at && (
               <span>마감 {new Date(data.assignment.due_at).toLocaleDateString('ko-KR')}</span>
             )}
@@ -130,7 +130,7 @@ export default function ParentHomeworkPage() {
           {data.assignment.instructions && (
             <div style={{
               marginTop: 12, padding: 12, background: '#f3f4f6', borderRadius: 8,
-              fontSize: 13, whiteSpace: 'pre-wrap', color: '#374151',
+              fontSize: 13, whiteSpace: 'pre-wrap', color: 'var(--text-primary)',
             }}>
               {data.assignment.instructions}
             </div>
@@ -141,7 +141,7 @@ export default function ParentHomeworkPage() {
         {events.length === 0 ? (
           <div style={{
             background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12,
-            padding: 32, textAlign: 'center', color: '#6b7280',
+            padding: 32, textAlign: 'center', color: 'var(--text-secondary)',
           }}>
             아직 제출 기록이 없습니다.
           </div>
@@ -161,11 +161,11 @@ export default function ParentHomeworkPage() {
                       padding: 16,
                     }}
                   >
-                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, fontWeight: 600 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>
                       학생 제출 · {new Date(s.submitted_at).toLocaleString('ko-KR')}
                     </div>
                     {s.note && (
-                      <div style={{ fontSize: 14, marginBottom: 10, color: '#374151', whiteSpace: 'pre-wrap' }}>
+                      <div style={{ fontSize: 14, marginBottom: 10, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
                         {s.note}
                       </div>
                     )}
@@ -231,14 +231,14 @@ export default function ParentHomeworkPage() {
                     padding: 16,
                   }}
                 >
-                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, fontWeight: 600 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>
                     {r.teacher_name || '선생님'} 피드백 · {new Date(r.created_at).toLocaleString('ko-KR')}
                     {isResubmit && (
                       <span style={{ marginLeft: 8, color: 'var(--danger-text)' }}>[재제출 요청]</span>
                     )}
                   </div>
                   {r.comment && (
-                    <div style={{ fontSize: 14, color: '#1f2937', whiteSpace: 'pre-wrap', marginBottom: r.file_key ? 10 : 0 }}>
+                    <div style={{ fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', marginBottom: r.file_key ? 10 : 0 }}>
                       {r.comment}
                     </div>
                   )}
@@ -263,7 +263,7 @@ export default function ParentHomeworkPage() {
           </div>
         )}
 
-        <footer style={{ marginTop: 24, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
+        <footer style={{ marginTop: 24, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
           와와 학원 · 이 페이지는 보호된 링크로만 열람할 수 있습니다.
         </footer>
       </div>
@@ -296,7 +296,7 @@ function Lightbox({ src, name, onClose }: { src: string; name: string; onClose: 
       <img
         src={src}
         alt={name}
-        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', border: '4px solid #fff' }}
+        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', border: '4px solid var(--bg-secondary)' }}
       />
       <button
         type="button"
