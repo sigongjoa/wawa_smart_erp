@@ -227,14 +227,14 @@ export default function ParentHomeworkPage() {
                   style={{
                     background: '#fff', borderRadius: 12,
                     border: '1.5px solid #e5e7eb',
-                    borderLeft: `4px solid ${isResubmit ? '#dc2626' : '#16a34a'}`,
+                    borderLeft: `4px solid ${isResubmit ? 'var(--danger-text)' : '#16a34a'}`,
                     padding: 16,
                   }}
                 >
                   <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, fontWeight: 600 }}>
                     {r.teacher_name || '선생님'} 피드백 · {new Date(r.created_at).toLocaleString('ko-KR')}
                     {isResubmit && (
-                      <span style={{ marginLeft: 8, color: '#dc2626' }}>[재제출 요청]</span>
+                      <span style={{ marginLeft: 8, color: 'var(--danger-text)' }}>[재제출 요청]</span>
                     )}
                   </div>
                   {r.comment && (

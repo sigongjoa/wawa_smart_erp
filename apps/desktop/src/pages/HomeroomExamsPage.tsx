@@ -131,8 +131,8 @@ export default function HomeroomExamsPage() {
                       <span
                         className="badge"
                         style={{
-                          borderColor: d <= 3 ? '#dc2626' : d <= 7 ? '#d97706' : '#2563eb',
-                          color: d <= 3 ? '#dc2626' : d <= 7 ? '#d97706' : '#2563eb',
+                          borderColor: d <= 3 ? 'var(--danger-text)' : d <= 7 ? '#d97706' : '#2563eb',
+                          color: d <= 3 ? 'var(--danger-text)' : d <= 7 ? '#d97706' : '#2563eb',
                         }}
                       >
                         D-{d}
@@ -155,7 +155,7 @@ export default function HomeroomExamsPage() {
                           ✓ {ec.pre.length}건
                         </span>
                       ) : (
-                        <span style={{ color: '#b45309' }}>미실시</span>
+                        <span style={{ color: 'var(--warning-text)' }}>미실시</span>
                       )}
                     </td>
                     <td style={{ padding: '8px' }}>

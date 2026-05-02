@@ -163,7 +163,7 @@ export default function HomeroomConsultationsPage() {
                         <td
                           style={{
                             padding: '8px',
-                            color: cs.length ? 'var(--accent)' : '#b45309',
+                            color: cs.length ? 'var(--accent)' : 'var(--warning-text)',
                             fontWeight: 600,
                           }}
                         >
@@ -171,7 +171,7 @@ export default function HomeroomConsultationsPage() {
                         </td>
                         <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>
                           {sorted.length === 0 ? (
-                            <span style={{ color: '#b45309' }}>기록 없음</span>
+                            <span style={{ color: 'var(--warning-text)' }}>기록 없음</span>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                               {sorted.slice(0, 3).map((c) => (

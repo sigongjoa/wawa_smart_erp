@@ -1,0 +1,142 @@
+/* ═══════════════════════════════════════════════════════
+   WAWA Smart ERP — Desktop Design Tokens (SSoT)
+   참조: design/system/DESKTOP.md
+   Toss-inspired: Deep Indigo + Warm Mint + Slate neutrals.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Fonts ── */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+:root {
+  /* Primary */
+  --primary: #2d3a8c;
+  --primary-light: #4f5cb3;
+  --primary-surface: #eef0f8;
+  --primary-hover: #252f73;
+
+  /* Accent — mint/teal for CTAs */
+  --accent: #00c4a3;
+  --accent-light: #b2f0e4;
+  --accent-surface: #e8faf6;
+  --accent-hover: #00a88b;
+
+  /* Neutrals — cool slate, NOT gray */
+  --bg-primary: #f8f9fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f6;
+  --bg-elevated: #ffffff;
+  --bg-inverse: #191f33;
+
+  --text-primary: #1a1e2e;
+  --text-secondary: #5e6478;
+  --text-tertiary: #9098ad;
+  --text-inverse: #f2f3f7;
+  --text-on-primary: #ffffff;
+
+  --border-primary: #e3e6ed;
+  --border-secondary: #eff1f5;
+  --border-focus: var(--primary);
+
+  /* Status */
+  --success: #22a861;
+  --success-surface: #edf9f2;
+  --warning: #f59e0b;
+  --warning-surface: #fef9ec;
+  --warning-text: #b45309;            /* warning surface 위 텍스트용 — 다크에서 토큰 오버라이드 */
+  --danger: #ef4444;
+  --danger-surface: #fef2f2;
+  --danger-text: #dc2626;             /* danger surface 위·강조 텍스트 */
+  --success-text: #1a7f37;            /* success surface 위 텍스트 */
+  --info: #3b82f6;
+  --info-surface: #eff6ff;
+
+  /* Spacing scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 28px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadow */
+  --shadow-xs: 0 1px 2px rgba(26,30,46,0.04);
+  --shadow-sm: 0 2px 8px rgba(26,30,46,0.06);
+  --shadow-md: 0 4px 16px rgba(26,30,46,0.08);
+  --shadow-lg: 0 12px 40px rgba(26,30,46,0.12);
+  --shadow-overlay: 0 20px 60px rgba(26,30,46,0.18);
+
+  /* Transition */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --header-height: 0px;
+  --content-max: 960px;
+  --bottom-nav-height: 64px;
+}
+
+/* ── Dark Mode (부분 적용 — 다크 완전 대응은 v2) ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #7b8cde;
+    --primary-light: #9aa6e8;
+    --primary-surface: rgba(123,140,222,0.12);
+    --primary-hover: #6a7bd0;
+
+    --accent: #2ee8c8;
+    --accent-light: rgba(46,232,200,0.15);
+    --accent-surface: rgba(46,232,200,0.08);
+    --accent-hover: #24d4b5;
+
+    --bg-primary: #111318;
+    --bg-secondary: #1a1d24;
+    --bg-tertiary: #22262e;
+    --bg-elevated: #252930;
+    --bg-inverse: #e8eaf0;
+
+    --text-primary: #e8eaf0;
+    --text-secondary: #9da3b4;
+    --text-tertiary: #6b7280;
+    --text-inverse: #111318;
+    --text-on-primary: #111318;
+
+    --border-primary: #2e3340;
+    --border-secondary: #252930;
+    --border-focus: var(--primary);
+
+    --success: #34d399;
+    --success-surface: rgba(52,211,153,0.1);
+    --success-text: #6ee7b7;
+    --warning: #fbbf24;
+    --warning-surface: rgba(251,191,36,0.1);
+    --warning-text: #fbbf24;
+    --danger: #f87171;
+    --danger-surface: rgba(248,113,113,0.1);
+    --danger-text: #f87171;
+    --info: #60a5fa;
+    --info-surface: rgba(96,165,250,0.1);
+
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+    --shadow-overlay: 0 20px 60px rgba(0,0,0,0.5);
+  }
+}

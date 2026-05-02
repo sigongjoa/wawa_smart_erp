@@ -325,7 +325,7 @@ export default function TeacherNotesPanel({ studentId }: Props) {
                     <span className="badge">{VISIBILITY_LABEL[n.visibility]}</span>
                   )}
                   {n.source === 'live_session' && (
-                    <span className="badge" style={{ background: '#dc2626', color: '#fff' }}>
+                    <span className="badge" style={{ background: 'var(--danger)', color: 'var(--text-on-primary)' }}>
                       LIVE
                     </span>
                   )}

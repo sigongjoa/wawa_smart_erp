@@ -159,7 +159,7 @@ export default function StudentProfilePage() {
                   }
                 }}
               >
-                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#dc2626', marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true" />
+                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)', marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true" />
                 라이브 시작
               </button>
             )}

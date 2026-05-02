@@ -70,7 +70,7 @@ export function ParentGateView({ loading, error, children }: Props) {
       <div style={errorShellStyle}>
         <div style={errorCardStyle} role="alert">
           <h2 style={{ margin: '0 0 8px', fontSize: 18 }}>{title}</h2>
-          <p style={{ color: '#666', margin: '0 0 12px' }}>{error.message}</p>
+          <p style={{ color: 'var(--text-secondary)', margin: '0 0 12px' }}>{error.message}</p>
           <p style={{ color: '#999', fontSize: 13, margin: 0 }}>
             학원에 문의해 새 링크를 요청해 주세요.
           </p>

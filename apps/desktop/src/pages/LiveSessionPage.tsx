@@ -173,7 +173,7 @@ export default function LiveSessionPage() {
   };
 
   if (loading) return <div style={{ padding: 16 }}>불러오는 중...</div>;
-  if (error || !session || !state) return <div style={{ padding: 16, color: '#dc2626' }}>{error || '세션 없음'}</div>;
+  if (error || !session || !state) return <div style={{ padding: 16, color: 'var(--danger-text)' }}>{error || '세션 없음'}</div>;
 
   const displayName = studentName || session.student_id;
   const ended = state.status === 'ended' || session.status === 'ended';
@@ -186,7 +186,7 @@ export default function LiveSessionPage() {
           ← 학생 프로필
         </button>
         <h2 style={{ margin: 0, fontSize: 18 }}>
-          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#dc2626', marginRight: 8, verticalAlign: 'middle' }} aria-hidden="true" />
+          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--danger-text)', marginRight: 8, verticalAlign: 'middle' }} aria-hidden="true" />
           라이브 — {displayName} <span style={{ color: 'var(--text-tertiary)' }}>· {session.subject}</span>
         </h2>
         <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>

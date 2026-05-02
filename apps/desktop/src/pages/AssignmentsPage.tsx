@@ -150,7 +150,7 @@ export default function AssignmentsPage() {
   const statsCards = useMemo(
     () => [
       { key: 'inbox', label: '회신 대기', value: stats.inbox_count || 0, color: '#2563eb' },
-      { key: 'resubmit', label: '재제출 진행', value: stats.resubmit_count || 0, color: '#dc2626' },
+      { key: 'resubmit', label: '재제출 진행', value: stats.resubmit_count || 0, color: 'var(--danger-text)' },
       { key: 'assigned', label: '미제출', value: stats.assigned_count || 0, color: '#9ca3af' },
       { key: 'completed', label: '완료', value: stats.completed_count || 0, color: '#16a34a' },
     ],
@@ -321,7 +321,7 @@ const InboxTab = memo(function InboxTab({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             {r.due_at && (
-              <span style={{ fontSize: 12, color: isOverdue(r.due_at) ? '#dc2626' : '#888' }}>
+              <span style={{ fontSize: 12, color: isOverdue(r.due_at) ? 'var(--danger-text)' : '#888' }}>
                 마감: {new Date(r.due_at).toLocaleDateString('ko-KR')}
               </span>
             )}
@@ -331,7 +331,7 @@ const InboxTab = memo(function InboxTab({
               aria-label={`${r.student_name || ''} ${r.title} 삭제`}
               style={{
                 padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                background: '#fff', color: '#dc2626',
+                background: '#fff', color: 'var(--danger-text)',
                 border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
               }}
             >
@@ -439,7 +439,7 @@ const ListTab = memo(function ListTab({
                   onClick={(e) => { e.stopPropagation(); onDelete(a.id, a.title); }}
                   style={{
                     padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                    background: '#fff', color: '#dc2626',
+                    background: '#fff', color: 'var(--danger-text)',
                     border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
                   }}
                 >
@@ -538,7 +538,7 @@ function AssignmentDetailModal({
           type="button"
           className="btn btn-secondary"
           onClick={onHardDelete}
-          style={{ color: '#dc2626', borderColor: '#fecaca' }}
+          style={{ color: 'var(--danger-text)', borderColor: '#fecaca' }}
         >
           완전 삭제
         </button>

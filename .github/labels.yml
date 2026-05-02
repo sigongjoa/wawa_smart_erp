@@ -1,0 +1,75 @@
+# WAWA Smart ERP — GitHub 라벨 정의
+# 적용: gh label create -R <owner>/<repo> --file .github/labels.yml
+# 또는 https://github.com/marketplace/actions/github-labeler 액션으로 자동 동기화
+
+# ===== 워크플로 라벨 =====
+- name: audit
+  color: "8B5CF6"
+  description: "디자인/UX audit 라운드 트래킹"
+
+- name: analyze
+  color: "3B82F6"
+  description: "/sc:analyze 라운드 트래킹"
+
+- name: security
+  color: "DC2626"
+  description: "보안 라운드 트래킹"
+
+# ===== severity (audit/analyze/security 공통) =====
+- name: "audit:p0"
+  color: "B91C1C"
+  description: "audit P0 — 즉시 수정 필요 (접근성·심각한 사용성)"
+- name: "audit:p1"
+  color: "EA580C"
+  description: "audit P1 — 다음 스프린트 내 수정"
+- name: "audit:p2"
+  color: "CA8A04"
+  description: "audit P2 — 백로그"
+- name: "audit:p3"
+  color: "65A30D"
+  description: "audit P3 — nice-to-have"
+
+# ===== 앱 구분 =====
+- name: "app:desktop"
+  color: "0EA5E9"
+  description: "강사 React 앱 (apps/desktop)"
+- name: "app:student"
+  color: "10B981"
+  description: "학생 React 앱 (apps/student)"
+- name: "app:workers"
+  color: "F59E0B"
+  description: "Cloudflare Workers 백엔드"
+
+# ===== 카테고리 (design/CATEGORIES.md와 동기화) =====
+- name: "category:student-auth-home"
+  color: "E0E7FF"
+  description: "학생: 인증·홈"
+- name: "category:student-learning"
+  color: "E0E7FF"
+  description: "학생: 학습 응시"
+- name: "category:student-assignments"
+  color: "E0E7FF"
+  description: "학생: 과제·제출"
+- name: "category:desktop-student-mgmt"
+  color: "DBEAFE"
+  description: "강사: 학생 관리"
+- name: "category:desktop-learning-content"
+  color: "DBEAFE"
+  description: "강사: 학습 콘텐츠"
+- name: "category:desktop-academy-ops"
+  color: "DBEAFE"
+  description: "강사: 학원 운영"
+- name: "category:desktop-content-distribution"
+  color: "DBEAFE"
+  description: "강사: 교재·배포"
+- name: "category:desktop-gamification"
+  color: "DBEAFE"
+  description: "강사: 게이미피케이션"
+- name: "category:desktop-medterm"
+  color: "DBEAFE"
+  description: "강사: 의학용어"
+
+# ===== epic =====
+- name: epic
+  color: "5B21B6"
+  description: "여러 자식 이슈를 묶는 부모 이슈"

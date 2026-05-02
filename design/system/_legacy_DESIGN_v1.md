@@ -1,6 +1,18 @@
-# WAWA Smart ERP - 통합 디자인 시스템
+# [LEGACY v1.0 — 2026-02-02] WAWA Smart ERP 통합 디자인 시스템
 
-> 모든 모듈에서 일관된 UI/UX를 위한 디자인 가이드라인
+> ⚠️ **DEPRECATED (2026-05-02)**. 이 문서는 더 이상 유효한 가이드라인이 아닙니다.
+>
+> 현재 시스템은 두 앱이 분리되어 운영됩니다:
+> - 강사·관리자 앱: [`design/system/DESKTOP.md`](./DESKTOP.md)
+> - 학생 앱: [`design/system/STUDENT.md`](./STUDENT.md) ([IMPECCABLE.md](../IMPECCABLE.md) 도크트린 기반)
+>
+> 본 문서는 변경 이력 추적용으로만 보존됩니다. 실제 토큰은 각 앱의 `index.css` / `tokens.css`를 참조.
+
+---
+
+# 통합 디자인 시스템 (v1.0 — Legacy)
+
+> 모든 모듈에서 일관된 UI/UX를 위한 디자인 가이드라인 (당시 기준)
 
 ---
 

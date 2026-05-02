@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WAWA 증명 학습 데모</title>
+<meta name="description" content="중학교 1학년 수학 증명 3-Phase 학습 시스템 인터랙티브 데모">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",sans-serif;margin:0;background:#f3f4f6;color:#111;line-height:1.6}
+  .hero{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:60px 24px 50px;text-align:center}
+  .hero h1{margin:0 0 8px;font-size:32px;letter-spacing:-0.5px}
+  .hero .tag{display:inline-block;background:rgba(255,255,255,.2);padding:4px 12px;border-radius:12px;font-size:13px;margin-bottom:16px}
+  .hero .sub{font-size:15px;opacity:.9;max-width:580px;margin:0 auto}
+  .wrap{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+  @media(max-width:640px){.cards{grid-template-columns:1fr}}
+  .card{background:#fff;border-radius:14px;padding:24px;text-decoration:none;color:inherit;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:all .15s;display:block;border:2px solid transparent}
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12);border-color:#1e40af}
+  .card.primary{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#3b82f6}
+  .card .emoji{font-size:34px;margin-bottom:8px}
+  .card .title{font-size:18px;font-weight:700;margin-bottom:4px}
+  .card .badge{display:inline-block;background:#fbbf24;color:#78350f;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:6px;vertical-align:middle}
+  .card .desc{color:#4b5563;font-size:13px;line-height:1.5}
+  .card .cta{color:#1e40af;font-size:13px;font-weight:600;margin-top:10px}
+  h2{font-size:20px;margin:28px 0 12px}
+  .feature-list{background:#fff;border-radius:12px;padding:20px 24px}
+  .feature-list ul{margin:0;padding-left:20px}
+  .feature-list li{margin:6px 0;font-size:14px;color:#374151}
+  .stack{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .stack span{background:#eef2ff;color:#3730a3;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+  footer{text-align:center;color:#6b7280;font-size:12px;padding:40px 24px}
+  footer a{color:#1e40af;text-decoration:none}
+  .note{background:#fff7ed;border-left:3px solid #f97316;padding:12px 16px;border-radius:6px;font-size:13px;color:#9a3412;margin-bottom:20px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="tag">중학교 1학년 수학 · 파일럿</div>
+  <h1>증명 학습 3-Phase 시스템</h1>
+  <div class="sub">교과서 정의부터 백지증명까지 — 순서 맞추기 → 빈칸 채우기 → 스스로 증명. 중1 수학 증명 5개 데모.</div>
+</div>
+
+<div class="wrap">
+
+  <div class="note">
+    🧪 <b>샘플 데모 버전</b> — 실제 배포 시에는 Cloudflare D1 + Workers + React 학생앱에 연동됩니다. 이 페이지는 UX/UI 검증용 인터랙티브 목업입니다.
+  </div>
+
+  <h2>📱 데모 시작하기</h2>
+  <div class="cards">
+
+    <a class="card primary" href="./interactive.html">
+      <div class="emoji">🎮</div>
+      <div class="title">인터랙티브 프로토타입<span class="badge">추천</span></div>
+      <div class="desc">실제로 카드를 드래그하고, 빈칸을 채우고, 백지증명을 작성해보세요. 3-Phase 전체 학습 플로우 + SRS 박스 승급까지 체험.</div>
+      <div class="cta">▶ 시작하기</div>
+    </a>
+
+    <a class="card" href="./figure.html">
+      <div class="emoji">📐</div>
+      <div class="title">도형 검증 결과</div>
+      <div class="desc">"삼각형 내각의 합" 도형 SVG + 기하 불변량 자동 검증 결과 6건 확인. (∠A+∠B+∠C=180° 수치 검증)</div>
+      <div class="cta">▶ 보기</div>
+    </a>
+
+    <a class="card" href="./phase1-static.html">
+      <div class="emoji">🔵</div>
+      <div class="title">Phase 1 — 순서 맞추기 (설계도)</div>
+      <div class="desc">모바일 학생 화면 정적 목업. GIVEN/THEOREM 박스, 도형, 드래그 카드 UX 설계 의도 설명 포함.</div>
+      <div class="cta">▶ 보기</div>
+    </a>
+
+    <a class="card" href="./submit-flow.html">
+      <div class="emoji">🔀</div>
+      <div class="title">제출 이후 플로우 (8단계)</div>
+      <div class="desc">정답/오답/부분정답, Phase 2/3 전환, 교사 검토, SRS 승급, 세션 복귀까지 전체 흐름.</div>
+      <div class="cta">▶ 보기</div>
+    </a>
+
+  </div>
+
+  <h2>🎯 핵심 컨셉</h2>
+  <div class="feature-list">
+    <ul>
+      <li><b>3-Phase 점진 학습</b> — 🔵 순서 맞추기 → 🟢 빈칸 채우기 → 🔴 백지 증명</li>
+      <li><b>GIVEN / THEOREM 명시</b> — 전제·정의·도구를 학생이 먼저 인지한 뒤 증명 시작</li>
+      <li><b>도형 자동 검증</b> — SVG 좌표로 기하 불변량(평행, 각도, 엇각 등) 프로그래매틱 검증. 잘못된 도형은 자동 거부</li>
+      <li><b>즉시 피드백</b> — Phase 1·2는 실시간 채점, Phase 3만 교사 검토</li>
+      <li><b>SRS 박스</b> — Leitner 방식 1→5 박스, 승급 시 복습 간격 확장 (1/3/7/14/30일)</li>
+      <li><b>색상 코딩 힌트</b> — 도형의 엇각 쌍을 같은 색으로 표시해 학생의 시각 추론 유도</li>
+    </ul>
+  </div>
+
+  <h2>🧱 기술 스택</h2>
+  <div class="feature-list">
+    <div style="font-size:13px;color:#4b5563">본 데모는 프론트 인터랙션만 포함. 실제 프로덕션 연동 시:</div>
+    <div class="stack">
+      <span>Cloudflare D1</span>
+      <span>Cloudflare Workers</span>
+      <span>React + Vite</span>
+      <span>SQLite (D1)</span>
+      <span>Typst (원본 증명)</span>
+      <span>SymPy (문제 검증)</span>
+      <span>Playwright E2E</span>
+    </div>
+  </div>
+
+  <h2>📚 데모 포함 증명</h2>
+  <div class="feature-list">
+    <ul>
+      <li><b>삼각형 내각의 합</b> (중1 평면도형) — 도형 포함, 3-Phase 완전체</li>
+      <li><b>맞꼭지각의 크기는 같다</b> (중1 평면도형) — 도형 없는 버전 예시</li>
+      <li>지수법칙 ① 곱셈 (중1 문자와식) <span style="color:#6b7280">— DB 시드됨</span></li>
+      <li>등식의 성질 이항 원리 (중1 방정식) <span style="color:#6b7280">— DB 시드됨</span></li>
+      <li>소인수분해의 유일성 (중1 수와연산) <span style="color:#6b7280">— DB 시드됨</span></li>
+    </ul>
+    <div style="font-size:12px;color:#6b7280;margin-top:8px">전체 중·고 약 310개 증명 컨텐츠에서 선별. 학년별 확장 예정.</div>
+  </div>
+
+</div>
+
+<footer>
+  WAWA Smart ERP — 증명 학습 파일럿 · <a href="https://github.com/sigongjoa/wawa_smart_erp">GitHub</a>
+</footer>
+
+</body>
+</html>

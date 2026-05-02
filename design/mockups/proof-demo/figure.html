@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang='ko'><head><meta charset='utf-8'><title>삼각형 내각의 합 — 도형 검증</title>
+<style>
+  body{font-family:-apple-system,sans-serif;padding:24px;background:#f9fafb;color:#111}
+  .wrap{max-width:760px;margin:0 auto;background:#fff;padding:32px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  h1{margin:0 0 4px;font-size:22px}
+  .meta{color:#6b7280;font-size:14px;margin-bottom:20px}
+  .figure{display:flex;justify-content:center;padding:20px;background:#fafafa;border-radius:8px;border:1px solid #e5e7eb}
+  .checks{margin-top:24px;font-size:14px}
+  .checks li{margin:4px 0}
+  .pass{color:#059669}
+  .fail{color:#dc2626}
+  .alt{margin-top:20px;padding:12px;background:#eff6ff;border-left:3px solid #3b82f6;font-size:13px;color:#1e3a8a}
+</style></head>
+<body><div class='wrap'>
+<h1>삼각형 내각의 합 ∠A+∠B+∠C=180°</h1>
+<div class='meta'>prf_m1_tri_angle_sum · 중1 평면도형 · review_status: <b>approved</b></div>
+<div class='figure'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 260" width="300" height="260">
+    <style>
+      .tri{fill:none;stroke:#1e40af;stroke-width:2.2}
+      .aux{stroke:#9ca3af;stroke-width:1.5;stroke-dasharray:5 3}
+      .arc{fill:none;stroke-width:1.6}
+      .vlabel{font:bold 14px sans-serif;fill:#111}
+      .alabel{font:italic 11px sans-serif}
+      .aux-label{font:11px sans-serif;fill:#6b7280}
+    </style>
+    <line id="line_l" class="aux" x1="20" y1="40" x2="280" y2="40"/>
+    <text class="aux-label" x="5" y="44">ℓ</text>
+    <polygon id="triangle_abc" class="tri" points="150,40 40,220 260,220"/>
+    <line id="line_ad" class="aux" x1="40" y1="40" x2="150" y2="40" stroke="#6b7280" stroke-dasharray="0"/>
+    <line id="line_ae" class="aux" x1="150" y1="40" x2="260" y2="40" stroke="#6b7280" stroke-dasharray="0"/>
+    <path id="arc_DAB" class="arc" stroke="#dc2626" d="M 120,40 A 30,30 0 0,0 135,56"/>
+    <text class="alabel" fill="#dc2626" x="100" y="58">∠DAB</text>
+    <path id="arc_BAC" class="arc" stroke="#059669" d="M 135,56 A 24,24 0 0,0 166,56"/>
+    <text class="alabel" fill="#059669" x="142" y="76">∠A</text>
+    <path id="arc_CAE" class="arc" stroke="#d97706" d="M 166,56 A 30,30 0 0,0 180,40"/>
+    <text class="alabel" fill="#d97706" x="175" y="58">∠CAE</text>
+    <path id="arc_B" class="arc" stroke="#dc2626" d="M 56,214 A 20,20 0 0,1 72,202"/>
+    <text class="alabel" fill="#dc2626" x="60" y="200">∠B</text>
+    <path id="arc_C" class="arc" stroke="#d97706" d="M 244,214 A 20,20 0 0,0 228,202"/>
+    <text class="alabel" fill="#d97706" x="222" y="200">∠C</text>
+    <circle cx="150" cy="40" r="3" fill="#111"/>
+    <circle cx="40" cy="220" r="3" fill="#111"/>
+    <circle cx="260" cy="220" r="3" fill="#111"/>
+    <circle cx="40" cy="40" r="2.5" fill="#6b7280"/>
+    <circle cx="260" cy="40" r="2.5" fill="#6b7280"/>
+    <text class="vlabel" x="145" y="30">A</text>
+    <text class="vlabel" x="26" y="236">B</text>
+    <text class="vlabel" x="265" y="236">C</text>
+    <text class="aux-label" x="28" y="34">D</text>
+    <text class="aux-label" x="265" y="34">E</text>
+  </svg></div>
+<div class='alt'><b>alt_text:</b> 삼각형 ABC와 꼭짓점 A를 지나고 BC에 평행한 보조선 ℓ. ℓ 위의 두 점 D(왼쪽), E(오른쪽). 엇각 ∠B=∠DAB, ∠C=∠EAC, 그리고 A에서의 평각 ∠DAB+∠BAC+∠CAE=180° 표시됨.</div>
+<h3>자동 검증 결과 (6/6 PASS)</h3>
+<ul class='checks'>
+<li class='pass'>✅ D,A,E 공선 (ℓ은 직선) — ∠DAE = 180.000°</li>
+<li class='pass'>✅ ℓ ∥ BC (보조선 평행) — slope(DE)=0.000, slope(BC)=0.000</li>
+<li class='pass'>✅ ∠A+∠B+∠C = 180° — 62.86+58.57+58.57 = 180.000</li>
+<li class='pass'>✅ 엇각: ∠B = ∠DAB — 58.570 = 58.570</li>
+<li class='pass'>✅ 엇각: ∠C = ∠EAC — 58.570 = 58.570</li>
+<li class='pass'>✅ A 평각: ∠DAB+∠BAC+∠CAE = 180° — 합=180.000</li>
+</ul>
+</div></body></html>

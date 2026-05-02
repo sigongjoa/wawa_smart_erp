@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>지구과학 가챠 퀴즈 · 목업 v2 (4지선다 + ㄱㄴㄷ)</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --bg2: #151b34;
+    --fg: #e8ecff;
+    --muted: #9aa4cf;
+    --accent: #7aa2ff;
+    --gold: #ffd66b;
+    --teal: #5eead4;
+    --good: #34d399;
+    --bad: #f87171;
+    --N: #94a3b8;
+    --R: #60a5fa;
+    --SR: #c084fc;
+    --SSR: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: radial-gradient(ellipse at top, #1a2250 0%, var(--bg) 60%); color: var(--fg); font-family: -apple-system, 'Pretendard', 'Noto Sans KR', sans-serif; min-height: 100vh; }
+  header {
+    padding: 20px 28px; border-bottom: 1px solid #ffffff14;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; }
+  header .meta { font-size: 11px; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px; }
+
+  /* HUD */
+  .hud { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .hud-cell {
+    flex: 1; min-width: 130px;
+    background: #ffffff08; border: 1px solid #ffffff10; border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .hud-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .hud-value { font-size: 20px; font-weight: 800; margin-top: 2px; }
+  .hud-value small { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+  /* Draw */
+  .draw {
+    display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-bottom: 28px;
+    background: linear-gradient(135deg, #1a2250, #0e1432);
+    border: 1px solid #ffffff12; border-radius: 16px; padding: 24px;
+  }
+  .draw h3 { margin: 0 0 6px; font-size: 18px; }
+  .draw p { color: var(--muted); font-size: 12px; margin: 0 0 14px; line-height: 1.6; }
+  .draw-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 18px; border: none; border-radius: 10px; font-weight: 700;
+    font-size: 13px; cursor: pointer; transition: transform .1s, opacity .2s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: linear-gradient(135deg, var(--gold), #ffaa4b); color: #2a1a00; }
+  .btn-accent  { background: linear-gradient(135deg, var(--accent), #5b89ea); color: #001026; }
+  .btn-ghost   { background: #2a3257; color: var(--fg); }
+
+  .orb-stage {
+    position: relative; min-height: 160px; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle, #2a3680 0%, transparent 60%);
+    border-radius: 12px;
+  }
+  .orb {
+    width: 100px; height: 100px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff, var(--gold) 40%, #ff8c42 80%);
+    box-shadow: 0 0 50px #ffd66baa, inset -14px -14px 28px #0004;
+    animation: orb-float 3s ease-in-out infinite;
+  }
+  @keyframes orb-float { 0%,100% { transform: translateY(-5px) } 50% { transform: translateY(5px) } }
+
+  /* Quiz card */
+  .quiz-wrap { display: none; margin-bottom: 28px; }
+  .quiz-wrap.open { display: block; animation: card-in .5s cubic-bezier(.2,1,.4,1) both; }
+  @keyframes card-in {
+    0% { opacity: 0; transform: translateY(16px) scale(.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .quiz {
+    background: linear-gradient(135deg, #1c2348, #0d1329);
+    border: 1px solid #ffffff18; border-radius: 18px;
+    padding: 26px; position: relative;
+  }
+  .quiz[data-rarity="N"]   { box-shadow: inset 0 0 0 1px var(--N); }
+  .quiz[data-rarity="R"]   { box-shadow: inset 0 0 0 2px var(--R),   0 0 30px #60a5fa33; }
+  .quiz[data-rarity="SR"]  { box-shadow: inset 0 0 0 2px var(--SR),  0 0 40px #c084fc44; }
+  .quiz[data-rarity="SSR"] { box-shadow: inset 0 0 0 2px var(--SSR), 0 0 50px #fbbf2455; }
+
+  .quiz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 6px; }
+  .quiz-tags { display: flex; gap: 6px; align-items: center; }
+  .badge {
+    padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 800;
+    letter-spacing: .1em; background: var(--N); color: #000;
+  }
+  .badge.type { background: #2a3257; color: var(--muted); letter-spacing: .06em; }
+  .quiz[data-rarity="R"]   .badge.rarity { background: var(--R); color: #001; }
+  .quiz[data-rarity="SR"]  .badge.rarity { background: var(--SR); color: #fff; }
+  .quiz[data-rarity="SSR"] .badge.rarity { background: var(--SSR); color: #2a1a00; }
+  .quiz-unit { font-size: 11px; color: var(--muted); }
+
+  .quiz-q {
+    font-size: 16px; font-weight: 500; line-height: 1.7;
+    margin: 6px 0 16px; letter-spacing: -.01em;
+  }
+  .quiz-q b { color: var(--teal); }
+
+  /* Exhibit image */
+  .exhibit {
+    margin: 0 0 16px; border-radius: 12px; overflow: hidden;
+    background: #fff; padding: 6px;
+    box-shadow: 0 8px 24px #0006;
+  }
+  .exhibit img {
+    display: block; width: 100%; max-height: 360px; object-fit: contain;
+    border-radius: 6px;
+  }
+  .exhibit-caption {
+    font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center;
+  }
+
+  /* <보기> box (Korean-style statements) */
+  .bogi {
+    border: 1.5px solid #ffffff25; border-radius: 10px;
+    padding: 14px 18px; margin: 14px 0;
+    background: #ffffff05;
+  }
+  .bogi-title {
+    display: inline-block; margin: -22px 0 8px 0; padding: 2px 10px;
+    background: var(--bg); border: 1px solid #ffffff25; border-radius: 999px;
+    font-size: 11px; color: var(--muted); letter-spacing: .12em;
+  }
+  .bogi-list { list-style: none; padding: 0; margin: 0; }
+  .bogi-list li {
+    padding: 6px 0; font-size: 14px; line-height: 1.6; color: #dbe2ff;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .bogi-list li .label {
+    flex-shrink: 0; width: 22px; font-weight: 700; color: var(--accent);
+  }
+
+  /* Choices */
+  .choices { display: grid; gap: 10px; }
+  .choices.type-bogi { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 640px) { .choices.type-bogi { grid-template-columns: 1fr; } }
+  .choice {
+    display: flex; gap: 12px; align-items: center;
+    padding: 13px 16px; border-radius: 12px;
+    background: #ffffff06; border: 1.5px solid #ffffff10;
+    cursor: pointer; transition: all .15s;
+    text-align: left; color: var(--fg); font-size: 14px; line-height: 1.5;
+    font-family: inherit;
+  }
+  .choice:hover:not(:disabled) { background: #ffffff0e; border-color: var(--accent); transform: translateX(2px); }
+  .choice:disabled { cursor: default; }
+  .choice .letter {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: #ffffff15; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+  }
+  .choice.correct   { background: #34d39922; border-color: var(--good); }
+  .choice.correct .letter { background: var(--good); color: #002a1a; }
+  .choice.incorrect { background: #f8717122; border-color: var(--bad); }
+  .choice.incorrect .letter { background: var(--bad); color: #fff; }
+  .choice.dim { opacity: .4; }
+
+  .quiz-result {
+    margin-top: 18px; padding: 14px 16px; border-radius: 10px;
+    background: #ffffff06; border-left: 3px solid var(--accent);
+    font-size: 13px; line-height: 1.7; color: #dbe2ff;
+    display: none;
+  }
+  .quiz-result.show { display: block; animation: card-in .3s both; }
+  .quiz-result.good  { border-left-color: var(--good); }
+  .quiz-result.bad   { border-left-color: var(--bad); }
+  .quiz-result b { color: var(--teal); }
+  .quiz-result .bogi-review {
+    margin-top: 10px; padding: 10px; background: #00000033; border-radius: 8px;
+    font-size: 12px; line-height: 1.8;
+  }
+  .quiz-result .bogi-review .ok { color: var(--good); }
+  .quiz-result .bogi-review .no { color: var(--bad); }
+  .quiz-result .reward {
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ffffff20;
+    display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap;
+  }
+  .quiz-result .reward b { color: var(--gold); font-size: 14px; }
+
+  .quiz-actions { margin-top: 16px; display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* Dex */
+  .dex { margin-top: 32px; }
+  .dex h2 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 0 0 14px; text-transform: uppercase; letter-spacing: .08em; }
+  .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .dex-cell {
+    aspect-ratio: 1; border-radius: 10px; padding: 8px;
+    background: #ffffff06; border: 1px solid #ffffff10;
+    display: flex; flex-direction: column; justify-content: space-between;
+    font-size: 11px; color: var(--muted); position: relative;
+  }
+  .dex-cell.got { background: #ffffff10; border-color: #ffffff30; color: var(--fg); }
+  .dex-cell.got .dex-term { color: var(--fg); font-weight: 700; font-size: 13px; }
+  .dex-cell .dex-badge {
+    position: absolute; top: 6px; right: 6px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--N);
+  }
+  .dex-cell[data-rarity="R"]   .dex-badge { background: var(--R); }
+  .dex-cell[data-rarity="SR"]  .dex-badge { background: var(--SR); }
+  .dex-cell[data-rarity="SSR"] .dex-badge { background: var(--SSR); box-shadow: 0 0 8px var(--SSR); }
+  .dex-cell .type-mark {
+    position: absolute; top: 6px; left: 6px;
+    font-size: 9px; padding: 1px 5px; border-radius: 4px;
+    background: #0006; color: var(--muted);
+  }
+  .dex-term { font-size: 12px; line-height: 1.3; margin-top: 16px; }
+  .dex-right { display: flex; justify-content: space-between; align-items: flex-end; font-size: 9px; }
+  .dex-right .mastery { display: flex; gap: 2px; }
+  .dex-right .mastery span { width: 5px; height: 5px; border-radius: 50%; background: #ffffff20; }
+  .dex-right .mastery span.on { background: var(--good); }
+
+  .foot {
+    margin-top: 36px; padding: 14px 18px;
+    background: #ffffff05; border: 1px dashed #ffffff20; border-radius: 10px;
+    font-size: 11px; color: var(--muted); line-height: 1.7;
+  }
+  .foot b { color: var(--fg); }
+  .foot code { background: #00000044; padding: 1px 5px; border-radius: 3px; font-size: 10.5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🌊 지구과학 가챠 퀴즈 · 목업 v2</h1>
+    <div class="meta">1권 p1–20 파싱 기반 · 4지선다 + 이미지 ㄱㄴㄷ 혼합</div>
+  </div>
+  <div class="meta">source: curriculum-2022 / internal-original</div>
+</header>
+
+<main>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-cell"><div class="hud-label">티켓</div><div class="hud-value" id="hud-ticket">10 <small>장</small></div></div>
+    <div class="hud-cell"><div class="hud-label">정답 / 오답</div><div class="hud-value" id="hud-co">0 <small>/ 0</small></div></div>
+    <div class="hud-cell"><div class="hud-label">정답률</div><div class="hud-value" id="hud-acc">— <small>%</small></div></div>
+    <div class="hud-cell"><div class="hud-label">연속</div><div class="hud-value" id="hud-streak">0 <small>🔥</small></div></div>
+    <div class="hud-cell"><div class="hud-label">코인</div><div class="hud-value" id="hud-coin">0 <small>🪙</small></div></div>
+    <div class="hud-cell"><div class="hud-label">도감</div><div class="hud-value" id="hud-dex">0 <small>/ —</small></div></div>
+  </div>
+
+  <!-- Draw -->
+  <div class="draw">
+    <div>
+      <h3>해수의 성질 · 문제 팩</h3>
+      <p>카드 1장마다 문제가 1문항 출제됩니다. 유형은 <b>4지선다</b>와 <b>이미지 + ㄱ/ㄴ/ㄷ 보기</b> 두 가지.<br>
+         연속 정답 시 SSR 확률이 버프됩니다.</p>
+      <div class="draw-btns">
+        <button class="btn btn-primary" id="btn-draw" onclick="drawQuiz('any')">🎲 무작위 1장 (−1)</button>
+        <button class="btn btn-accent" onclick="drawQuiz('bogi')">🖼️ 이미지형만</button>
+        <button class="btn btn-ghost" onclick="drawQuiz('mc4')">📝 4지선다만</button>
+        <button class="btn btn-ghost" onclick="resetRun()">↺ 초기화</button>
+      </div>
+    </div>
+    <div class="orb-stage"><div class="orb"></div></div>
+  </div>
+
+  <!-- Quiz -->
+  <div class="quiz-wrap" id="quiz-wrap">
+    <div class="quiz" id="quiz">
+      <div class="quiz-top">
+        <div class="quiz-tags">
+          <span class="badge rarity" id="q-rarity">NORMAL</span>
+          <span class="badge type" id="q-type">4지선다</span>
+        </div>
+        <span class="quiz-unit" id="q-unit">해수의 성질 · p.—</span>
+      </div>
+      <div id="q-exhibit"></div>
+      <div class="quiz-q" id="q-text"></div>
+      <div id="q-bogi"></div>
+      <div class="choices" id="q-choices"></div>
+      <div class="quiz-result" id="q-result"></div>
+      <div class="quiz-actions" id="q-actions" style="display:none;">
+        <button class="btn btn-ghost" onclick="closeQuiz()">닫기</button>
+        <button class="btn btn-primary" onclick="drawQuiz('any')">다음 뽑기 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dex -->
+  <div class="dex">
+    <h2>도감 · 수집한 문제 카드</h2>
+    <div class="dex-grid" id="dex-grid"></div>
+  </div>
+
+  <div class="foot">
+    <b>데이터 스키마 (v2)</b>
+    <br>· 공통: <code>{id, term, rarity, unit, page, type, explain}</code>
+    <br>· <code>type='mc4'</code> : <code>{q, options[4], answer}</code> — 일반 4지선다
+    <br>· <code>type='bogi'</code> : <code>{q, image, statements[], valid[], options[5 combos], answer}</code> — 이미지 + ㄱㄴㄷ 조합
+    <br>· 이미지는 PDF 페이지 렌더 (<code>fig/page-xxx.png</code>) · 내부 프로토타입 전용 · 배포 시 자체 일러스트로 교체 예정.
+  </div>
+
+</main>
+
+<script>
+// ---------- 문제 데이터 (mc4 + bogi 혼합) ----------
+const QUIZZES = [
+  // ========== 4지선다 (mc4) ==========
+  {
+    id:'q01', term:'염분', rarity:'R', unit:'해수의 성질', page:10, type:'mc4',
+    q:'해수에서 <b>염분</b>을 정의하는 기준으로 가장 알맞은 것은?',
+    options:[
+      '바닷물 1 L 속에 녹아 있는 산소의 부피',
+      '바닷물 1 kg 속에 녹아 있는 염류의 총 질량(g)',
+      '바닷물 1 m³당 존재하는 미생물의 수',
+      '바닷물 표면에서 증발한 수분량(mm)'
+    ],
+    answer:1,
+    explain:'염분은 <b>해수 1 kg 속에 녹아 있는 염류의 총량을 g 단위</b>로 나타낸 값(단위 psu). 전 세계 평균은 약 35 psu.'
+  },
+  {
+    id:'q02', term:'psu', rarity:'N', unit:'해수의 성질', page:10, type:'mc4',
+    q:'염분 단위 <b>psu</b>에 대한 설명으로 옳은 것은?',
+    options:[
+      '해수 1 kg에 녹은 염류 무게를 퍼센트로 표시한 것',
+      '해수의 pH를 나타내는 단위',
+      '전기 전도도로 측정한 실용염분단위',
+      '해수의 밀도를 나타내는 국제 단위'
+    ],
+    answer:2,
+    explain:'psu(Practical Salinity Unit)는 <b>해수의 전기 전도도</b>로 측정하는 실용염분단위. ‰(퍼밀)과 수치 차이는 사실상 없다.'
+  },
+  {
+    id:'q03', term:'염분비 일정의 법칙', rarity:'SSR', unit:'해수의 성질', page:10, type:'mc4',
+    q:'<b>염분비 일정의 법칙</b>의 핵심 내용으로 가장 알맞은 것은?',
+    options:[
+      '해역이 달라도 해수 속 각 염류가 차지하는 비율은 항상 일정하다',
+      '해수의 염분은 어느 해역에서나 정확히 동일하다',
+      '염류의 총량은 계절에 따라 규칙적으로 변한다',
+      '바닷물 깊이가 깊어질수록 염류 비율이 선형으로 증가한다'
+    ],
+    answer:0,
+    explain:'염분 <b>값</b>은 해역마다 다르지만, 각 <b>염류의 비율</b>은 어디서나 거의 일정. 오랜 혼합의 결과다.'
+  },
+  {
+    id:'q04', term:'용존산소량', rarity:'R', unit:'해수의 성질', page:12, type:'mc4',
+    q:'수심에 따른 <b>용존산소량</b> 분포로 옳은 설명은?',
+    options:[
+      '수심이 깊어질수록 단조롭게 증가한다',
+      '모든 수심에서 거의 동일하다',
+      '표층에서 가장 많고 약 1000 m까지 감소한 뒤 심층에서 소폭 증가',
+      '중층에서 최대이고 표층·심층에서 급감'
+    ],
+    answer:2,
+    explain:'표층은 기체교환·광합성으로 풍부, 중층은 호흡·분해로 감소, 심층은 극지 침강수와 용해도 증가로 다시 소폭 증가.'
+  },
+  {
+    id:'q05', term:'수온 약층', rarity:'SSR', unit:'해수의 성질', page:14, type:'mc4',
+    q:'<b>수온 약층</b>의 특징으로 옳은 것은?',
+    options:[
+      '수심이 깊어질수록 수온이 급격히 낮아지며 상하 혼합이 거의 없는 안정한 층',
+      '수심에 따라 수온이 거의 변하지 않는 층',
+      '표층 바람의 영향을 직접 받는 층',
+      '수심이 깊어질수록 수온이 상승하는 층'
+    ],
+    answer:0,
+    explain:'위 = 가볍고 따뜻, 아래 = 무겁고 차가움 → 밀도 역전이 없어 대류 억제 → <b>매우 안정</b>하고 수직 이동의 경계.'
+  },
+  {
+    id:'q06', term:'혼합층', rarity:'SR', unit:'해수의 성질', page:14, type:'mc4',
+    q:'<b>혼합층</b>에 대한 설명으로 옳은 것은?',
+    options:[
+      '심해에서 강한 해류로 형성',
+      '표층에서 바람에 의해 섞여 수온이 거의 일정한 층',
+      '수심에 따라 수온이 급격히 변하는 층',
+      '극지에만 나타나는 특수한 층'
+    ],
+    answer:1,
+    explain:'바람이 표층을 휘저어 수온이 균일해지는 층. 바람이 강할수록 두껍다.'
+  },
+  {
+    id:'q07', term:'해수의 밀도', rarity:'SR', unit:'해수의 성질', page:15, type:'mc4',
+    q:'해수의 <b>밀도</b>가 커지는 조건이 모두 옳은 것은?',
+    options:[
+      '수온↑ · 염분↑ · 수압↑',
+      '수온↓ · 염분↑ · 수압↑',
+      '수온↓ · 염분↓ · 수압↑',
+      '수온↑ · 염분↓ · 수압↓'
+    ],
+    answer:1,
+    explain:'해수는 <b>차고·짜고·눌릴수록</b> 무거워진다. 외해에서는 수온 변화 폭이 염분보다 커서 수온 영향이 우세.'
+  },
+
+  // ========== 이미지 + ㄱㄴㄷ (bogi) ==========
+  {
+    id:'b01', term:'위도별 증발량·강수량과 염분', rarity:'SR', unit:'해수의 성질', page:11, type:'bogi',
+    image:'fig/page-011.png',
+    caption:'[그림] 위도에 따른 증발량·강수량 분포와 표층 염분 분포 (원서 p.11)',
+    q:'그림은 위도에 따른 증발량·강수량과 표층 염분의 관계를 나타낸 것이다. 이에 대한 설명으로 옳은 것만을 <b>&lt;보기&gt;</b>에서 <b>있는 대로</b> 고른 것은?',
+    statements:[
+      '적도 해역은 강수량이 많고 증발량이 상대적으로 적어 표층 염분이 낮게 나타난다.',
+      '위도 30° 부근은 고압대로 증발량이 강수량보다 많아 표층 염분이 높다.',
+      '고위도(60°) 해역의 표층 염분은 저압대이지만 강수량이 적어 가장 높다.'
+    ],
+    valid:[true, true, false],
+    options:[
+      ['ㄱ'],
+      ['ㄴ'],
+      ['ㄱ','ㄴ'],
+      ['ㄴ','ㄷ'],
+      ['ㄱ','ㄴ','ㄷ'],
+    ],
+    answer:2,
+    explain:'ㄱ ○ 적도는 강수 > 증발 → 염분 낮음. ㄴ ○ 위도 30° 고압대는 증발 > 강수 → 염분 최대. <b>ㄷ ✗</b> 위도 60° 부근은 저압대이고 강수량이 많아 오히려 염분이 낮다.'
+  },
+  {
+    id:'b02', term:'계절에 따른 해수의 층상 구조', rarity:'SSR', unit:'해수의 성질', page:14, type:'bogi',
+    image:'fig/page-014.png',
+    caption:'[그림] 계절에 따른 혼합층·수온 약층·심해층의 수직 구조 (원서 p.14)',
+    q:'그림은 여름과 겨울 해수의 수직 수온 분포를 나타낸 것이다. 이에 대한 설명으로 옳은 것만을 <b>&lt;보기&gt;</b>에서 <b>있는 대로</b> 고른 것은?',
+    statements:[
+      '여름에는 표층 수온이 높고 바람이 약해 혼합층의 두께가 겨울보다 얇다.',
+      '수온 약층은 겨울보다 여름에 더 뚜렷하게 발달한다.',
+      '심해층은 계절에 따라 수온 변화가 거의 없다.'
+    ],
+    valid:[true, true, true],
+    options:[
+      ['ㄱ'],
+      ['ㄴ','ㄷ'],
+      ['ㄱ','ㄴ'],
+      ['ㄱ','ㄷ'],
+      ['ㄱ','ㄴ','ㄷ'],
+    ],
+    answer:4,
+    explain:'ㄱ ○ 여름 = 표층 수온↑·바람 약 → 혼합층 얇음. ㄴ ○ 여름 표층↑로 수온차가 커져 약층이 뚜렷. ㄷ ○ 심해층은 태양·바람 영향 거의 없음 → 연중 일정. <b>모두 옳다.</b>'
+  },
+  {
+    id:'b03', term:'수심별 용존기체 분포', rarity:'SR', unit:'해수의 성질', page:12, type:'bogi',
+    image:'fig/page-013.png',
+    caption:'[그림] 수심에 따른 용존산소량·용존 이산화 탄소량 분포 (원서 p.12~13)',
+    q:'그림은 수심에 따른 해수 속 용존 기체의 분포를 나타낸 것이다. 옳은 설명만을 <b>&lt;보기&gt;</b>에서 <b>있는 대로</b> 고른 것은?',
+    statements:[
+      '용존산소량은 표층에서 가장 많다.',
+      '용존 이산화 탄소량은 수심이 깊어질수록 감소한다.',
+      '용존산소량은 수심 약 1000 m 부근까지 감소한 뒤 다시 조금씩 증가한다.'
+    ],
+    valid:[true, false, true],
+    options:[
+      ['ㄱ'],
+      ['ㄱ','ㄴ'],
+      ['ㄱ','ㄷ'],
+      ['ㄴ','ㄷ'],
+      ['ㄱ','ㄴ','ㄷ'],
+    ],
+    answer:2,
+    explain:'ㄱ ○ 대기교환·광합성으로 표층 O₂ 최대. <b>ㄴ ✗</b> CO₂는 광합성 감소와 용해도 상승으로 <u>깊어질수록 증가</u>. ㄷ ○ O₂는 중층에서 감소 후 극지 침강수·용해도로 재상승.'
+  },
+  {
+    id:'b04', term:'해수의 표층 밀도 분포', rarity:'SR', unit:'해수의 성질', page:15, type:'bogi',
+    image:'fig/page-015.png',
+    caption:'[그림] 위도에 따른 해수의 표층 밀도 분포 (원서 p.15)',
+    q:'그림은 위도에 따른 표층 해수의 밀도 분포를 나타낸 것이다. 이에 대한 설명으로 옳은 것만을 <b>&lt;보기&gt;</b>에서 <b>있는 대로</b> 고른 것은?',
+    statements:[
+      '저위도로 갈수록 수온이 높아 표층 밀도는 대체로 작다.',
+      '고위도로 갈수록 수온이 낮아 표층 밀도는 대체로 크다.',
+      '외해에서는 밀도에 대한 염분의 영향이 수온보다 훨씬 크다.'
+    ],
+    valid:[true, true, false],
+    options:[
+      ['ㄱ'],
+      ['ㄱ','ㄴ'],
+      ['ㄴ','ㄷ'],
+      ['ㄱ','ㄷ'],
+      ['ㄱ','ㄴ','ㄷ'],
+    ],
+    answer:1,
+    explain:'ㄱ ○, ㄴ ○ — 수온이 밀도의 1차 결정 요소. <b>ㄷ ✗</b> 외해에서는 수온의 변화 폭이 염분보다 크므로 <u>수온의 영향이 더 크다</u>.'
+  },
+];
+
+const LETTERS = ['①','②','③','④','⑤'];
+const RARITY_LABEL = { N:'NORMAL', R:'RARE', SR:'SUPER RARE', SSR:'SSR' };
+const TYPE_LABEL = { mc4:'4지선다', bogi:'이미지 + ㄱㄴㄷ' };
+const RARITY_WEIGHT = { N:50, R:28, SR:18, SSR:4 };
+const COIN_BY_RARITY = { N:10, R:25, SR:60, SSR:150 };
+
+const state = {
+  ticket: 10, correct: 0, wrong: 0, coin: 0, streak: 0,
+  dex: {}, // id -> { got, mastery }
+  currentQ: null,
+};
+
+// ---------- HUD / Dex ----------
+function renderHUD() {
+  document.getElementById('hud-ticket').innerHTML = `${state.ticket} <small>장</small>`;
+  document.getElementById('hud-co').innerHTML = `${state.correct} <small>/ ${state.wrong}</small>`;
+  const total = state.correct + state.wrong;
+  document.getElementById('hud-acc').innerHTML = total === 0 ? '— <small>%</small>' : `${Math.round(state.correct * 100 / total)} <small>%</small>`;
+  document.getElementById('hud-streak').innerHTML = `${state.streak} <small>🔥</small>`;
+  document.getElementById('hud-coin').innerHTML = `${state.coin} <small>🪙</small>`;
+  const got = Object.values(state.dex).filter(d => d.got).length;
+  document.getElementById('hud-dex').innerHTML = `${got} <small>/ ${QUIZZES.length}</small>`;
+  document.getElementById('btn-draw').disabled = state.ticket <= 0;
+}
+
+function renderDex() {
+  const grid = document.getElementById('dex-grid');
+  grid.innerHTML = '';
+  QUIZZES.forEach(q => {
+    const d = state.dex[q.id] || { got: false, mastery: 0 };
+    const cell = document.createElement('div');
+    cell.className = 'dex-cell' + (d.got ? ' got' : '');
+    cell.dataset.rarity = q.rarity;
+    cell.innerHTML = `
+      <span class="type-mark">${q.type === 'bogi' ? '🖼️' : '📝'}</span>
+      <div class="dex-badge"></div>
+      <div class="dex-term">${d.got ? q.term : '???'}</div>
+      <div class="dex-right">
+        <span>p.${q.page}</span>
+        <span class="mastery">${[0,1,2].map(i => `<span class="${i < d.mastery ? 'on' : ''}"></span>`).join('')}</span>
+      </div>
+    `;
+    grid.appendChild(cell);
+  });
+}
+
+// ---------- Draw ----------
+function weightedPickRarity() {
+  const w = { ...RARITY_WEIGHT };
+  if (state.streak >= 3) w.SSR += 4;
+  const total = Object.values(w).reduce((a,b)=>a+b,0);
+  let r = Math.random() * total;
+  for (const [k,v] of Object.entries(w)) { r -= v; if (r <= 0) return k; }
+  return 'N';
+}
+
+function pickQuiz(typeFilter='any') {
+  const rarity = weightedPickRarity();
+  const byType = q => typeFilter === 'any' || q.type === typeFilter;
+  const pool1 = QUIZZES.filter(q => byType(q) && q.rarity === rarity && !state.dex[q.id]?.got);
+  if (pool1.length) return pool1[Math.floor(Math.random()*pool1.length)];
+  const pool2 = QUIZZES.filter(q => byType(q) && !state.dex[q.id]?.got);
+  if (pool2.length) return pool2[Math.floor(Math.random()*pool2.length)];
+  const pool3 = QUIZZES.filter(byType);
+  return pool3[Math.floor(Math.random()*pool3.length)];
+}
+
+function drawQuiz(typeFilter='any') {
+  if (state.ticket <= 0) return;
+  state.ticket -= 1;
+  const q = pickQuiz(typeFilter);
+  state.currentQ = q;
+  showQuiz(q);
+  renderHUD();
+}
+
+// ---------- Render Quiz ----------
+function showQuiz(q) {
+  const wrap = document.getElementById('quiz-wrap');
+  const quiz = document.getElementById('quiz');
+  quiz.dataset.rarity = q.rarity;
+  document.getElementById('q-rarity').textContent = RARITY_LABEL[q.rarity];
+  document.getElementById('q-type').textContent = TYPE_LABEL[q.type];
+  document.getElementById('q-unit').textContent = `${q.unit} · p.${q.page}`;
+  document.getElementById('q-text').innerHTML = q.q;
+
+  // Exhibit (image)
+  const ex = document.getElementById('q-exhibit');
+  ex.innerHTML = '';
+  if (q.type === 'bogi' && q.image) {
+    ex.innerHTML = `
+      <div class="exhibit">
+        <img src="${q.image}" alt="exhibit" />
+      </div>
+      <div class="exhibit-caption">${q.caption || ''}</div>
+    `;
+  }
+
+  // Bogi box
+  const bogi = document.getElementById('q-bogi');
+  bogi.innerHTML = '';
+  if (q.type === 'bogi') {
+    const labels = ['ㄱ','ㄴ','ㄷ'];
+    bogi.innerHTML = `
+      <div class="bogi">
+        <div class="bogi-title">&lt; 보 기 &gt;</div>
+        <ul class="bogi-list">
+          ${q.statements.map((s,i)=>`<li><span class="label">${labels[i]}.</span><span>${s}</span></li>`).join('')}
+        </ul>
+      </div>`;
+  }
+
+  // Choices
+  const cList = document.getElementById('q-choices');
+  cList.innerHTML = '';
+  cList.className = 'choices' + (q.type === 'bogi' ? ' type-bogi' : '');
+  if (q.type === 'mc4') {
+    const letters = ['A','B','C','D'];
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = `<span class="letter">${letters[i]}</span><span>${opt}</span>`;
+      btn.onclick = () => answer(i);
+      cList.appendChild(btn);
+    });
+  } else {
+    q.options.forEach((combo, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      const label = combo.length === 1 ? combo[0] : combo.join(', ');
+      btn.innerHTML = `<span class="letter">${LETTERS[i]}</span><span>${label}</span>`;
+      btn.onclick = () => answer(i);
+      cList.appendChild(btn);
+    });
+  }
+
+  const result = document.getElementById('q-result');
+  result.className = 'quiz-result';
+  result.innerHTML = '';
+  document.getElementById('q-actions').style.display = 'none';
+
+  wrap.classList.add('open');
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ---------- Answer ----------
+function answer(idx) {
+  const q = state.currentQ;
+  if (!q) return;
+  const correct = idx === q.answer;
+  const buttons = document.querySelectorAll('.choice');
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.answer) b.classList.add('correct');
+    else if (i === idx) b.classList.add('incorrect');
+    else b.classList.add('dim');
+  });
+
+  const result = document.getElementById('q-result');
+  result.classList.add('show', correct ? 'good' : 'bad');
+
+  const d = state.dex[q.id] || { got: false, mastery: 0 };
+  let rewardLine = '';
+  let reviewLine = '';
+
+  if (q.type === 'bogi') {
+    const labels = ['ㄱ','ㄴ','ㄷ'];
+    reviewLine = `<div class="bogi-review">` +
+      q.valid.map((v,i)=>`<span class="${v?'ok':'no'}">${labels[i]}. ${v?'○ 옳음':'✗ 틀림'}</span>`).join('<br>') +
+      `</div>`;
+  }
+
+  if (correct) {
+    state.correct += 1;
+    state.streak += 1;
+    const coin = COIN_BY_RARITY[q.rarity] + (state.streak >= 3 ? 10 : 0) + (q.type === 'bogi' ? 20 : 0);
+    state.coin += coin;
+    d.got = true;
+    d.mastery = Math.min(3, d.mastery + 1);
+    state.dex[q.id] = d;
+    rewardLine = `
+      <div class="reward">
+        <div>🎯 <b>+${coin}</b> 코인${q.type === 'bogi' ? ' (이미지형 +20)' : ''}</div>
+        <div>📘 <b>${q.term}</b> 등록 · 숙련도 ${d.mastery}/3</div>
+        <div>🔥 연속 <b>${state.streak}</b>회</div>
+      </div>`;
+    result.innerHTML = `<b>정답!</b> ${q.explain}${reviewLine}${rewardLine}`;
+  } else {
+    state.wrong += 1;
+    state.streak = 0;
+    state.dex[q.id] = d;
+    const ans = q.type === 'mc4' ? ['A','B','C','D'][q.answer] : LETTERS[q.answer];
+    result.innerHTML = `<b>오답.</b> 정답은 <b>${ans}</b>. ${q.explain}${reviewLine}
+      <div class="reward"><div>💔 미획득 · 연속 기록 초기화</div></div>`;
+  }
+
+  document.getElementById('q-actions').style.display = 'flex';
+  renderHUD();
+  renderDex();
+}
+
+function closeQuiz() {
+  document.getElementById('quiz-wrap').classList.remove('open');
+  state.currentQ = null;
+}
+
+function resetRun() {
+  Object.assign(state, { ticket: 10, correct: 0, wrong: 0, coin: 0, streak: 0, dex: {}, currentQ: null });
+  closeQuiz();
+  renderHUD();
+  renderDex();
+}
+
+// ---------- Init ----------
+document.getElementById('hud-dex').innerHTML = `0 <small>/ ${QUIZZES.length}</small>`;
+renderHUD();
+renderDex();
+</script>
+
+</body>
+</html>

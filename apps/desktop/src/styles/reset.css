@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════
+   Desktop Reset + Base
+   ═══════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+a { color: var(--primary); text-decoration: none; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 16px;
+}
+
+/* ── Touch Target Guard (WCAG 2.5.5) ──
+   인터랙티브 기본 44×44 보장. 컴팩트 컨트롤은 .btn-icon-sm으로 opt-out.
+   체크박스/라디오는 시각 박스가 작으므로 wrapper(label) 측에서 hit-area 확보. */
+button:not(.btn-icon-sm):not(.tab):not(.chip),
+[role="button"]:not(.btn-icon-sm),
+a.btn,
+a[role="button"] {
+  min-height: 44px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

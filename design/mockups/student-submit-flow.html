@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>제출 이후 플로우 — 삼각형 내각의 합</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",sans-serif;margin:0;background:#f3f4f6;color:#111;padding:20px 0}
+  .row{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;max-width:1400px;margin:0 auto}
+  .device{width:380px;background:#fff;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.1);overflow:hidden;position:relative}
+  .stage-label{position:absolute;top:-10px;left:12px;background:#111;color:#fff;font-size:11px;padding:4px 10px;border-radius:10px;z-index:5}
+  .topbar{background:#1e40af;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px}
+  .topbar h1{margin:0;font-size:14px;font-weight:600;flex:1}
+  .phase-badge{background:rgba(255,255,255,.2);padding:3px 8px;border-radius:10px;font-size:11px}
+  .progress{height:4px;background:#e5e7eb}
+  .progress>div{height:100%;background:#fbbf24;transition:width .3s}
+  .content{padding:14px 16px}
+  h2{margin:0 0 4px;font-size:15px}
+  .sub{color:#6b7280;font-size:12px;margin-bottom:10px}
+  .card{padding:10px 10px 10px 32px;background:#fff;border:1.5px solid #d1d5db;border-radius:8px;font-size:12px;line-height:1.5;position:relative;margin-bottom:6px}
+  .card::before{content:"☰";position:absolute;left:8px;top:10px;color:#9ca3af}
+  .card .num{position:absolute;right:8px;top:8px;width:20px;height:20px;background:#1e40af;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .card.correct{border-color:#16a34a;background:#f0fdf4}
+  .card.correct .num{background:#16a34a}
+  .card.wrong{border-color:#dc2626;background:#fef2f2}
+  .card.wrong .num{background:#dc2626}
+  .btn{padding:11px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px}
+  .btn-primary{background:#1e40af;color:#fff}
+  .btn-success{background:#16a34a;color:#fff}
+  .btn-secondary{background:#e5e7eb;color:#374151}
+  .btn-danger{background:#dc2626;color:#fff}
+  .result-hero{text-align:center;padding:24px 16px 10px}
+  .result-hero .icon{font-size:60px;margin-bottom:8px}
+  .result-hero h2{font-size:22px;margin:4px 0}
+  .result-hero .msg{color:#6b7280;font-size:13px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 16px;padding:12px;background:#f9fafb;border-radius:10px}
+  .stats>div{text-align:center}
+  .stats .label{font-size:10px;color:#6b7280;margin-bottom:2px}
+  .stats .value{font-size:16px;font-weight:700}
+  .box-gain{background:linear-gradient(135deg,#fef3c7,#fde68a);padding:12px 16px;margin:10px 16px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px}
+  .box-gain .box{font-size:28px}
+  .footer{padding:10px 16px;background:#fff;border-top:1px solid #e5e7eb;display:flex;gap:6px}
+  .footer .btn{margin:0}
+  .fill-text{line-height:1.9;font-size:13px;padding:14px;background:#fafafa;border-radius:8px;margin-bottom:10px}
+  .fill-text input{width:60px;padding:3px 6px;border:1.5px solid #1e40af;border-radius:4px;font-size:13px;text-align:center}
+  .fill-text input.correct{background:#d1fae5;border-color:#16a34a}
+  .fill-text input.wrong{background:#fee2e2;border-color:#dc2626}
+  .textarea-box{width:100%;min-height:140px;padding:10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:12px;resize:vertical;font-family:inherit}
+  .review-banner{background:#eff6ff;border:1px solid #bfdbfe;padding:10px 12px;margin:10px 16px;border-radius:8px;font-size:12px;color:#1e3a8a}
+  .teacher-note{background:#fff7ed;border-left:3px solid #f97316;padding:10px 12px;margin:8px 16px;border-radius:6px;font-size:12px}
+  .srs-box{background:#fff;border:2px solid #1e40af;border-radius:10px;padding:12px;margin:10px 16px;text-align:center}
+  .srs-box .boxes{display:flex;justify-content:space-between;margin-top:8px}
+  .srs-box .b{width:36px;height:36px;border-radius:6px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#9ca3af}
+  .srs-box .b.cur{background:#1e40af;color:#fff;transform:scale(1.2);box-shadow:0 2px 8px rgba(30,64,175,.4)}
+  .srs-box .b.next{background:#fbbf24;color:#fff;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+  .hint-box{padding:10px 12px;background:#fef3c7;border-left:3px solid #f59e0b;margin:8px 16px;border-radius:6px;font-size:12px;color:#92400e}
+  .small-caption{text-align:center;color:#6b7280;font-size:11px;padding:6px 0 12px}
+  .desc{max-width:1400px;margin:0 auto 20px;padding:0 20px;color:#374151;font-size:13px;line-height:1.6}
+  .desc h2{font-size:17px;color:#111;margin-top:20px}
+  .desc code{background:#f3f4f6;padding:1px 6px;border-radius:4px;font-size:12px}
+  .arrow{font-size:40px;color:#9ca3af;align-self:center;margin:0 -10px}
+</style>
+</head>
+<body>
+
+<div class="desc">
+  <h2>📌 제출 이후 — 8단계 플로우</h2>
+  학생이 Phase 1에서 "제출"을 눌렀을 때부터 다음 증명 카드 뽑을 때까지 전체 흐름입니다.
+</div>
+
+<!-- 1. 정답 결과 -->
+<div class="row">
+
+<div class="device">
+  <div class="stage-label">1. 정답일 때</div>
+  <div class="topbar"><h1>삼각형 내각의 합</h1><span class="phase-badge">채점 중</span></div>
+  <div class="result-hero" style="background:linear-gradient(180deg,#d1fae5,#fff)">
+    <div class="icon">🎉</div>
+    <h2 style="color:#16a34a">정답입니다!</h2>
+    <div class="msg">Phase 1 통과 · +10 XP</div>
+  </div>
+  <div class="stats">
+    <div><div class="label">정답 순서</div><div class="value" style="color:#16a34a">B→D→A→C</div></div>
+    <div><div class="label">시간</div><div class="value">42초</div></div>
+    <div><div class="label">재시도</div><div class="value">0회</div></div>
+  </div>
+  <div class="content">
+    <div class="card correct"><span class="num">1</span>꼭짓점 A를 지나고 BC에 평행한 직선 ℓ을 긋는다.</div>
+    <div class="card correct"><span class="num">2</span>ℓ∥BC이므로 엇각 ∠ABC=∠DAB, ∠ACB=∠EAC.</div>
+    <div class="card correct"><span class="num">3</span>∠DAB + ∠BAC + ∠CAE = 180° (평각).</div>
+    <div class="card correct"><span class="num">4</span>엇각 대입: ∠A+∠B+∠C=180°. ✅</div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-success">Phase 2로 →</button>
+  </div>
+</div>
+
+<div class="device">
+  <div class="stage-label">2. 오답일 때</div>
+  <div class="topbar"><h1>삼각형 내각의 합</h1><span class="phase-badge">채점 중</span></div>
+  <div class="result-hero" style="background:linear-gradient(180deg,#fee2e2,#fff)">
+    <div class="icon">🤔</div>
+    <h2 style="color:#dc2626">다시 생각해보자</h2>
+    <div class="msg">2번째 카드 위치가 달라요</div>
+  </div>
+  <div class="stats">
+    <div><div class="label">내 답</div><div class="value" style="color:#dc2626">B→A→D→C</div></div>
+    <div><div class="label">맞은 개수</div><div class="value">2/4</div></div>
+    <div><div class="label">재시도</div><div class="value">1회</div></div>
+  </div>
+  <div class="content">
+    <div class="card correct"><span class="num">1</span>꼭짓점 A를 지나고 BC에 평행한 직선 ℓ을 긋는다.</div>
+    <div class="card wrong"><span class="num">2</span>∠DAB + ∠BAC + ∠CAE = 180° (평각). ← 여기 아직 엇각을 안 썼어요</div>
+    <div class="card wrong"><span class="num">3</span>ℓ∥BC이므로 엇각 ∠ABC=∠DAB, ∠ACB=∠EAC.</div>
+    <div class="card correct"><span class="num">4</span>엇각 대입: ∠A+∠B+∠C=180°. ✅</div>
+  </div>
+  <div class="hint-box">💡 힌트: <b>엇각이 왜 생겼는지 먼저 말한 다음</b> 평각을 써야 해요. 도형의 빨강·주황 호를 다시 보세요.</div>
+  <div class="footer">
+    <button class="btn btn-secondary">정답 보기</button>
+    <button class="btn btn-primary">다시 시도</button>
+  </div>
+</div>
+
+<div class="device">
+  <div class="stage-label">3. Phase 2 시작</div>
+  <div class="topbar"><h1>삼각형 내각의 합</h1><span class="phase-badge">2/3</span></div>
+  <div class="progress"><div style="width:66%"></div></div>
+  <div class="content">
+    <h2>🟢 Phase 2 — 빈칸 채우기</h2>
+    <div class="sub">증명 흐름을 따라 빈칸을 채우세요</div>
+    <div class="fill-text">
+      ① 꼭짓점 A를 지나고 BC에 <input placeholder="?"> 한 직선 ℓ을 긋는다.<br>
+      ② ℓ∥BC이므로 <input placeholder="?">에 의해 ∠B=∠DAB, ∠C=∠EAC.<br>
+      ③ A에서 평각: ∠DAB + ∠BAC + ∠CAE = <input placeholder="?">°.<br>
+      ④ 따라서 ∠A + ∠B + ∠C = <input placeholder="?">°.
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-secondary">힌트</button>
+    <button class="btn btn-primary">제출</button>
+  </div>
+</div>
+
+</div>
+
+<!-- 2. Phase 2 결과 + Phase 3 -->
+<div class="row" style="margin-top:20px">
+
+<div class="device">
+  <div class="stage-label">4. Phase 2 부분정답</div>
+  <div class="topbar"><h1>삼각형 내각의 합</h1><span class="phase-badge">채점 중</span></div>
+  <div class="result-hero" style="background:linear-gradient(180deg,#fef3c7,#fff)">
+    <div class="icon">👍</div>
+    <h2 style="color:#d97706">거의 다 왔어요!</h2>
+    <div class="msg">3/4 정답 · 한 칸만 다시</div>
+  </div>
+  <div class="content">
+    <div class="fill-text">
+      ① …BC에 <input value="평행" class="correct" readonly>한 직선 ℓ…<br>
+      ② …<input value="동위각" class="wrong" readonly>에 의해 ∠B=∠DAB… <span style="color:#dc2626;font-size:11px">← 정답: 엇각</span><br>
+      ③ …= <input value="180" class="correct" readonly>°<br>
+      ④ …= <input value="180" class="correct" readonly>°
+    </div>
+    <div class="hint-box">💡 평행선과 엇갈려 만나는 각은 <b>엇각</b>이에요 (동위각은 같은 위치).</div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary">다시 제출</button>
+  </div>
+</div>
+
+<div class="device">
+  <div class="stage-label">5. Phase 3 백지증명</div>
+  <div class="topbar"><h1>삼각형 내각의 합</h1><span class="phase-badge">3/3</span></div>
+  <div class="progress"><div style="width:100%"></div></div>
+  <div class="content">
+    <h2>🔴 Phase 3 — 백지 증명</h2>
+    <div class="sub">도형 없이 스스로 증명을 완성하세요</div>
+    <div style="padding:10px;background:#f9fafb;border-radius:8px;font-size:12px;margin-bottom:8px">
+      <b>문제:</b> 보조선 ℓ을 이용하여 ∠A+∠B+∠C=180°임을 증명하시오.
+    </div>
+    <textarea class="textarea-box" placeholder="여기에 풀이를 써주세요..."></textarea>
+    <button class="btn btn-secondary" style="margin-top:6px">🔍 도형 힌트 보기 (1회)</button>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary">제출 (교사 검토)</button>
+  </div>
+</div>
+
+<div class="device">
+  <div class="stage-label">6. 교사 검토 대기</div>
+  <div class="topbar"><h1>삼각형 내각의 합</h1><span class="phase-badge">⏳ 검토</span></div>
+  <div class="result-hero" style="background:linear-gradient(180deg,#eff6ff,#fff)">
+    <div class="icon">📝</div>
+    <h2 style="color:#1e40af">제출 완료!</h2>
+    <div class="msg">선생님이 곧 확인할 거예요</div>
+  </div>
+  <div class="review-banner">
+    ✍️ Phase 3는 자동채점이 어려워서 <b>담당 선생님(서재용)</b>이 직접 보고 피드백 줄 예정입니다.
+  </div>
+  <div class="content">
+    <div style="font-size:12px;color:#6b7280">제출한 풀이:</div>
+    <div style="padding:10px;background:#fafafa;border-radius:6px;font-size:12px;line-height:1.6;margin-top:6px">
+      보조선 ℓ을 A를 지나 BC와 평행하게 긋는다. ℓ∥BC이므로 엇각에 의해 ∠B=∠DAB, ∠C=∠EAC. A에서의 평각은 180°이므로 ∠DAB+∠BAC+∠CAE=180°. 엇각 대입하면 ∠A+∠B+∠C=180°. ■
+    </div>
+    <div class="teacher-note">
+      🕐 평균 검토 시간: 약 2시간 이내
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary">홈으로 돌아가기</button>
+  </div>
+</div>
+
+</div>
+
+<!-- 3. 승인 후 + SRS 업데이트 + 다음 -->
+<div class="row" style="margin-top:20px">
+
+<div class="device">
+  <div class="stage-label">7. 교사 승인 알림</div>
+  <div class="topbar"><h1>알림</h1></div>
+  <div class="result-hero" style="background:linear-gradient(180deg,#d1fae5,#fff)">
+    <div class="icon">✨</div>
+    <h2 style="color:#16a34a">승인됐어요!</h2>
+    <div class="msg">서재용 선생님이 피드백을 남겼어요</div>
+  </div>
+  <div class="teacher-note" style="background:#f0fdf4;border-left-color:#16a34a">
+    <b>선생님 코멘트:</b><br>
+    "보조선을 긋는 이유까지 말하면 더 완벽할 거예요. 엇각 사용은 정확합니다 👍"
+  </div>
+  <div class="box-gain">
+    <div class="box">📦</div>
+    <div>
+      <div style="font-weight:700">박스 2 → 박스 3 승급!</div>
+      <div style="font-size:11px;color:#6b7280">다음 복습: 4일 후</div>
+    </div>
+  </div>
+  <div class="srs-box">
+    <div style="font-size:12px;color:#6b7280">SRS 박스</div>
+    <div class="boxes">
+      <div class="b">1</div>
+      <div class="b">2</div>
+      <div class="b next">3</div>
+      <div class="b">4</div>
+      <div class="b">5</div>
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary">확인</button>
+  </div>
+</div>
+
+<div class="device">
+  <div class="stage-label">8. 세션 홈 복귀</div>
+  <div class="topbar"><h1>오늘의 학습</h1><span class="phase-badge">이루다</span></div>
+  <div class="content">
+    <div style="background:#f0fdf4;padding:14px;border-radius:10px;margin-bottom:10px">
+      <div style="font-size:12px;color:#6b7280">오늘 진행</div>
+      <div style="display:flex;gap:10px;margin-top:6px;align-items:center">
+        <div><span style="font-size:22px;font-weight:700;color:#16a34a">3</span><span style="color:#6b7280"> / 5 증명</span></div>
+        <div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden"><div style="width:60%;height:100%;background:#16a34a"></div></div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin:10px 0 6px">다음 증명 추천</div>
+    <div class="card" style="padding-left:12px;cursor:pointer">
+      <div style="font-weight:700;margin-bottom:2px">맞꼭지각의 크기는 같다</div>
+      <div style="font-size:11px;color:#6b7280">중1 · ★☆☆☆☆ · 박스 1</div>
+    </div>
+    <div class="card" style="padding-left:12px;cursor:pointer">
+      <div style="font-weight:700;margin-bottom:2px">지수법칙 ① 곱셈</div>
+      <div style="font-size:11px;color:#6b7280">중1 · ★★☆☆☆ · 박스 1</div>
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary">다음 증명 시작 →</button>
+  </div>
+</div>
+
+<div class="device">
+  <div class="stage-label">(참고) 교사 검토 큐</div>
+  <div class="topbar" style="background:#6366f1"><h1>교사 화면 — 검토 큐 (3건)</h1></div>
+  <div class="content">
+    <div style="padding:12px;background:#fff7ed;border-radius:8px;margin-bottom:8px">
+      <div style="font-weight:700;font-size:13px">이루다 · 삼각형 내각의 합 Phase 3</div>
+      <div style="font-size:11px;color:#6b7280;margin:2px 0 8px">제출: 10분 전</div>
+      <div style="font-size:12px;line-height:1.5;background:#fff;padding:8px;border-radius:4px">
+        보조선 ℓ을 A를 지나 BC와 평행하게 긋는다...
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-success" style="flex:1;padding:8px;font-size:12px">✅ 승인</button>
+        <button class="btn btn-secondary" style="flex:1;padding:8px;font-size:12px">✏️ 코멘트</button>
+        <button class="btn btn-danger" style="flex:1;padding:8px;font-size:12px">❌ 반려</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#6b7280;text-align:center">+ 2건 더…</div>
+  </div>
+</div>
+
+</div>
+
+<div class="desc" style="margin-top:40px">
+  <h2>🔧 기술 플로우 (백엔드에서 일어나는 일)</h2>
+  <pre style="background:#1e293b;color:#e2e8f0;padding:16px;border-radius:10px;font-size:12px;line-height:1.6;overflow-x:auto"><code>[Phase 1 제출]
+  POST /api/proof/:id/phase-result
+    body: { phase_no: 1, submitted_json: ["B","D","A","C"] }
+  ↓
+  서버: proof_phases.model_answer ("B,D,A,C")와 비교
+    → 일치: verify_status='PASS', score=100
+    → 부분: 정확히 맞은 카드 개수 / 전체
+  ↓
+  INSERT INTO proof_phase_results
+  ↓
+  응답: { status: 'PASS', correct_count: 4, total: 4, next_phase: 2 }
+
+[Phase 2 제출]
+  POST /api/proof/:id/phase-result
+    body: { phase_no: 2, submitted_json: {"blank_1":"평행","blank_2":"동위각",...} }
+  ↓
+  서버: proof_phase_items.correct_answer와 각 블랭크 비교
+    → proof-verify.ts (TS 경량 verifier: 분수/수치 정규화 포함)
+  ↓
+  응답: { status: 'PARTIAL', correct: {"blank_1":true, "blank_2":false, ...}, hint: "..." }
+
+[Phase 3 제출]
+  POST /api/proof/:id/phase-result
+    body: { phase_no: 3, submitted_json: { text: "..." } }
+  ↓
+  verify_status = 'PENDING_REVIEW'  (자동채점 없음)
+  교사 대시보드 큐에 뜸
+  ↓
+  [교사가 승인]
+  PATCH /api/proof-review/:result_id
+    body: { status: 'PASS', comment: "..." }
+  ↓
+  서버: proof_results.box + 1 (최대 5)
+        last_review = now
+        next_review = now + interval(box)
+  ↓
+  푸시/앱내 알림 → 학생: "승인됐어요"
+
+[세션 완료]
+  gacha_sessions.proofs_done + 1
+  target 도달 시 completed_at 기록, 배지/XP 지급
+</code></pre>
+
+  <h2>🎯 핵심 UX 원칙</h2>
+  <ul>
+    <li><b>즉시 피드백</b>: Phase 1·2는 제출 즉시 결과 (대기 없음)</li>
+    <li><b>틀려도 괜찮게</b>: "다시 생각해보자" 톤 + 구체적으로 "2번째 카드가 달라요"로 힌트 (전부 다 틀렸다고 안 알려줌)</li>
+    <li><b>Phase 3 기대치 명확화</b>: "교사 검토 2시간 이내" 배너로 불안감 제거</li>
+    <li><b>SRS 시각화</b>: 박스 승급을 애니메이션으로 보여줘 동기부여</li>
+    <li><b>세션 복귀 → 다음 추천</b>: "다음 뭐 해야 하나" 고민 없이 한 번 더 클릭</li>
+  </ul>
+</div>
+
+</body>
+</html>

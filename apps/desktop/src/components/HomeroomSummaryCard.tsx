@@ -66,7 +66,7 @@ export default function HomeroomSummaryCard() {
 
       {data.this_month_pending.length > 0 && (
         <div style={{ marginTop: 12, fontSize: 13 }}>
-          <strong style={{ color: '#b45309' }}>미상담 학생:</strong>{' '}
+          <strong style={{ color: 'var(--warning-text)' }}>미상담 학생:</strong>{' '}
           {data.this_month_pending.slice(0, 6).map((s, i) => (
             <span key={s.id}>
               <Link to={`/student/${s.id}`}>{s.name}</Link>
@@ -115,7 +115,7 @@ function Stat({
       <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, marginTop: 2 }}>{value}</div>
       {sub && (
-        <div style={{ fontSize: 12, color: warn ? '#b45309' : 'var(--text-tertiary)' }}>{sub}</div>
+        <div style={{ fontSize: 12, color: warn ? 'var(--warning-text)' : 'var(--text-tertiary)' }}>{sub}</div>
       )}
     </div>
   );

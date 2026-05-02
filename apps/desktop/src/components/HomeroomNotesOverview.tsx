@@ -79,14 +79,14 @@ export default function HomeroomNotesOverview() {
       <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0 12px' }}>
         <span>총 {totals.students}명 · 메모 {totals.total}건</span>
         {totals.concern > 0 && (
-          <span style={{ color: '#dc2626', fontWeight: 600 }}>우려 {totals.concern}건</span>
+          <span style={{ color: 'var(--danger-text)', fontWeight: 600 }}>우려 {totals.concern}건</span>
         )}
       </div>
 
       {loading ? (
         <p className="no-data">불러오는 중...</p>
       ) : error ? (
-        <p className="no-data" style={{ color: '#dc2626' }}>{error}</p>
+        <p className="no-data" style={{ color: 'var(--danger-text)' }}>{error}</p>
       ) : !data || data.students.length === 0 ? (
         <p className="no-data">이번 달 교과 메모가 없습니다</p>
       ) : (
@@ -98,7 +98,7 @@ export default function HomeroomNotesOverview() {
                 {subjects.map((s) => (
                   <th key={s} style={cellHead}>{s}</th>
                 ))}
-                <th style={{ ...cellHead, color: '#dc2626' }}>우려</th>
+                <th style={{ ...cellHead, color: 'var(--danger-text)' }}>우려</th>
                 <th style={cellHead}>총</th>
               </tr>
             </thead>
@@ -125,14 +125,14 @@ export default function HomeroomNotesOverview() {
                         >
                           <span>{b.count}</span>
                           {b.sentiment_counts.concern > 0 && (
-                            <span style={{ color: '#dc2626', marginLeft: 4, fontWeight: 600 }}>
+                            <span style={{ color: 'var(--danger-text)', marginLeft: 4, fontWeight: 600 }}>
                               ⚠{b.sentiment_counts.concern}
                             </span>
                           )}
                         </td>
                       );
                     })}
-                    <td style={{ ...cell, color: s.concern_count > 0 ? '#dc2626' : undefined, fontWeight: 600 }}>
+                    <td style={{ ...cell, color: s.concern_count > 0 ? 'var(--danger-text)' : undefined, fontWeight: 600 }}>
                       {s.concern_count || ''}
                     </td>
                     <td style={{ ...cell, fontWeight: 600 }}>{s.total_notes}</td>

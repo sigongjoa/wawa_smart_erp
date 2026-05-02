@@ -209,7 +209,7 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
                   className="btn btn-secondary"
                   disabled={submitting}
                   onClick={() => respond('needs_resubmit')}
-                  style={{ color: '#dc2626', borderColor: '#fecaca' }}
+                  style={{ color: 'var(--danger-text)', borderColor: '#fecaca' }}
                 >
                   재제출 요청
                 </button>
@@ -283,10 +283,10 @@ function Timeline({ submissions, responses }: { submissions: any[]; responses: a
         const r = ev.data;
         const isResubmit = r.action === 'needs_resubmit';
         return (
-          <div key={idx} style={{ background: isResubmit ? '#fef2f2' : '#f0fdf4', padding: 10, borderRadius: 6, borderLeft: `3px solid ${isResubmit ? '#dc2626' : '#16a34a'}` }}>
+          <div key={idx} style={{ background: isResubmit ? '#fef2f2' : '#f0fdf4', padding: 10, borderRadius: 6, borderLeft: `3px solid ${isResubmit ? 'var(--danger-text)' : '#16a34a'}` }}>
             <div style={{ fontSize: 12, color: '#888' }}>
               {r.teacher_name || '선생님'} 회신 · {new Date(r.created_at).toLocaleString('ko-KR')}
-              {isResubmit && <span style={{ marginLeft: 6, color: '#dc2626', fontWeight: 600 }}>[재제출 요청]</span>}
+              {isResubmit && <span style={{ marginLeft: 6, color: 'var(--danger-text)', fontWeight: 600 }}>[재제출 요청]</span>}
             </div>
             {r.comment && <div style={{ fontSize: 13, marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.comment}</div>}
             {r.file_key && (

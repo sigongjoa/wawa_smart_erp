@@ -89,7 +89,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
         <Modal.Body>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {isSelf && (
-              <p style={{ fontSize: 12, color: '#b45309', background: '#fef3c7', padding: '8px 12px', borderRadius: 6, margin: 0 }}>
+              <p style={{ fontSize: 12, color: 'var(--warning-text)', background: '#fef3c7', padding: '8px 12px', borderRadius: 6, margin: 0 }}>
                 본인 계정입니다. 권한과 상태는 본인이 변경할 수 없습니다.
               </p>
             )}
@@ -170,7 +170,7 @@ export default function TeacherEditModal({ teacher, onClose, onChanged }: Props)
                 )}
               </div>
               {newPin && (
-                <p style={{ fontSize: 12, color: '#b45309', marginTop: 8, marginBottom: 0 }}>
+                <p style={{ fontSize: 12, color: 'var(--warning-text)', marginTop: 8, marginBottom: 0 }}>
                   이 창을 닫으면 PIN을 다시 볼 수 없습니다. 반드시 본인에게 전달하세요.
                 </p>
               )}

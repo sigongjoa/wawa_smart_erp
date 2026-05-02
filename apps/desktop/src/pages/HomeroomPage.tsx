@@ -266,7 +266,7 @@ export default function HomeroomPage() {
                               padding: '4px 8px',
                               textAlign: 'center',
                               borderBottom: '1px solid var(--border)',
-                              color: compliant ? 'var(--accent)' : '#b45309',
+                              color: compliant ? 'var(--accent)' : 'var(--warning-text)',
                               fontWeight: 600,
                             }}
                           >

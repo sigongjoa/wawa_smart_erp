@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>학생 화면 목업 — 삼각형 내각의 합</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",sans-serif;margin:0;background:#f3f4f6;color:#111}
+  .device{max-width:430px;margin:20px auto;background:#fff;min-height:90vh;border-radius:24px;box-shadow:0 8px 32px rgba(0,0,0,.12);overflow:hidden}
+  .topbar{background:#1e40af;color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px}
+  .topbar .back{background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer}
+  .topbar h1{margin:0;font-size:15px;font-weight:600;flex:1}
+  .topbar .phase{background:rgba(255,255,255,.2);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600}
+  .progress{height:4px;background:#e5e7eb}
+  .progress>div{height:100%;background:#fbbf24;width:33%;transition:width .3s}
+  .phase-title{padding:16px 18px 8px;display:flex;align-items:center;gap:8px}
+  .phase-title .emoji{font-size:22px}
+  .phase-title h2{margin:0;font-size:17px}
+  .phase-title .sub{color:#6b7280;font-size:13px;margin-top:2px}
+  .given{margin:0 18px;padding:12px 14px;background:#f0fdf4;border-left:3px solid #16a34a;border-radius:6px;font-size:13px;line-height:1.55}
+  .given .tag{display:inline-block;background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:6px}
+  .theorem{margin:10px 18px 14px;padding:12px 14px;background:#eff6ff;border-left:3px solid #2563eb;border-radius:6px;font-size:14px}
+  .theorem .tag{display:inline-block;background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:6px}
+  .figure-area{margin:0 18px 14px;background:#fafafa;border:1px solid #e5e7eb;border-radius:10px;padding:12px;text-align:center;position:relative}
+  .figure-area .zoom{position:absolute;right:8px;top:8px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer}
+  .instruction{margin:4px 18px 10px;padding:10px 12px;background:#fef3c7;border-radius:6px;font-size:13px;color:#92400e}
+  .cards{padding:0 18px 16px}
+  .card{margin-bottom:8px;padding:12px 12px 12px 38px;background:#fff;border:1.5px solid #d1d5db;border-radius:10px;font-size:13.5px;line-height:1.5;position:relative;cursor:grab;user-select:none;transition:all .15s}
+  .card:active{cursor:grabbing}
+  .card::before{content:"☰";position:absolute;left:10px;top:12px;color:#9ca3af;font-size:16px}
+  .card .num{position:absolute;right:10px;top:10px;width:24px;height:24px;background:#1e40af;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .card.placed{border-color:#16a34a;background:#f0fdf4}
+  .card:hover{border-color:#1e40af;box-shadow:0 2px 8px rgba(30,64,175,.15)}
+  .highlight-linked{background:#fef9c3;transition:all .3s}
+  .footer{position:sticky;bottom:0;padding:12px 18px;background:#fff;border-top:1px solid #e5e7eb;display:flex;gap:8px}
+  .btn{flex:1;padding:13px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn-primary{background:#1e40af;color:#fff}
+  .btn-secondary{background:#e5e7eb;color:#374151}
+  .phase-dots{display:flex;justify-content:center;gap:6px;padding:8px 0}
+  .phase-dots .dot{width:8px;height:8px;border-radius:50%;background:#d1d5db}
+  .phase-dots .dot.active{background:#1e40af;width:24px;border-radius:4px}
+  .caption{text-align:center;color:#6b7280;font-size:11px;margin:6px 0 0}
+  .desc-box{max-width:430px;margin:20px auto;padding:16px 20px;background:#fff;border-radius:10px;font-size:13px;line-height:1.7;color:#374151}
+  .desc-box h3{margin:0 0 8px;color:#111;font-size:15px}
+  .desc-box li{margin:4px 0}
+</style>
+</head>
+<body>
+
+<div class="desc-box">
+  <h3>📱 학생 화면 UX 목업 (Phase 1 — 순서 맞추기)</h3>
+  도형 직접 볼 수 있고, 카드를 드래그해서 증명 단계 순서를 맞추는 화면입니다. 모바일/태블릿 세로 기준 설계.
+</div>
+
+<div class="device">
+  <div class="topbar">
+    <button class="back">←</button>
+    <h1>삼각형 내각의 합</h1>
+    <span class="phase">1/3</span>
+  </div>
+  <div class="progress"><div></div></div>
+
+  <div class="phase-title">
+    <span class="emoji">🔵</span>
+    <div>
+      <h2>Phase 1 — 순서 맞추기</h2>
+      <div class="sub">카드를 드래그해서 증명 순서대로 배열하세요</div>
+    </div>
+  </div>
+
+  <div class="given">
+    <span class="tag">GIVEN</span>
+    두 직선이 <b>평행</b>하면 <b>엇각</b>이 같다 · 일직선 위 각의 합 = 180°
+  </div>
+
+  <div class="theorem">
+    <span class="tag">THEOREM</span>
+    삼각형 ABC에서 <b>∠A + ∠B + ∠C = 180°</b>
+  </div>
+
+  <div class="figure-area">
+    <button class="zoom">🔍 확대</button>
+    <svg viewBox="0 0 300 260" width="290" height="252">
+      <style>
+        .tri{fill:none;stroke:#1e40af;stroke-width:2.2}
+        .aux{stroke:#9ca3af;stroke-width:1.5;stroke-dasharray:5 3}
+        .arc{fill:none;stroke-width:1.8}
+        .vlabel{font:bold 14px sans-serif;fill:#111}
+        .alabel{font:italic 11px sans-serif;font-weight:600}
+        .aux-label{font:11px sans-serif;fill:#6b7280}
+      </style>
+      <line class="aux" x1="20" y1="40" x2="280" y2="40"/>
+      <text class="aux-label" x="4" y="44">ℓ</text>
+      <polygon class="tri" points="150,40 40,220 260,220"/>
+      <!-- ∠DAB 호 (빨강, A에서 D쪽) -->
+      <path class="arc" stroke="#dc2626" d="M 122,40 A 28,28 0 0,0 135.6,55.8"/>
+      <text class="alabel" fill="#dc2626" x="98" y="32">∠DAB</text>
+      <!-- ∠BAC 호 (초록) -->
+      <path class="arc" stroke="#059669" d="M 135.6,55.8 A 24,24 0 0,0 164.4,55.8"/>
+      <text class="alabel" fill="#059669" x="142" y="75">∠A</text>
+      <!-- ∠CAE 호 (주황, A에서 E쪽) -->
+      <path class="arc" stroke="#d97706" d="M 164.4,55.8 A 28,28 0 0,0 178,40"/>
+      <text class="alabel" fill="#d97706" x="170" y="32">∠CAE</text>
+      <!-- ∠B 내각 호 (빨강 — ∠DAB와 같은 색: 엇각 동일) -->
+      <!-- B=(40,220), 내각은 BA 방향과 BC 방향 사이 -->
+      <!-- BA 단위 20: (50.43, 202.93), BC 단위 20: (60, 220) -->
+      <path class="arc" stroke="#dc2626" d="M 60,220 A 20,20 0 0,0 50.43,202.93"/>
+      <text class="alabel" fill="#dc2626" x="62" y="210">∠B</text>
+      <!-- ∠C 내각 호 (주황 — ∠CAE와 같은 색) -->
+      <!-- C=(260,220), CA 단위 20: (249.57, 202.93), CB 단위 20: (240, 220) -->
+      <path class="arc" stroke="#d97706" d="M 249.57,202.93 A 20,20 0 0,0 240,220"/>
+      <text class="alabel" fill="#d97706" x="222" y="210">∠C</text>
+      <circle cx="150" cy="40" r="3" fill="#111"/>
+      <circle cx="40" cy="220" r="3" fill="#111"/>
+      <circle cx="260" cy="220" r="3" fill="#111"/>
+      <circle cx="40" cy="40" r="2.5" fill="#6b7280"/>
+      <circle cx="260" cy="40" r="2.5" fill="#6b7280"/>
+      <text class="vlabel" x="145" y="32">A</text>
+      <text class="vlabel" x="26" y="238">B</text>
+      <text class="vlabel" x="266" y="238">C</text>
+      <text class="aux-label" x="28" y="52">D</text>
+      <text class="aux-label" x="266" y="52">E</text>
+    </svg>
+    <div class="caption">같은 색 호 = 같은 각 (엇각)</div>
+  </div>
+
+  <div class="instruction">
+    💡 <b>힌트:</b> 카드를 누르고 있는 상태에서 위아래로 드래그하면 순서가 바뀌어요. 도형의 색깔 호를 단서로!
+  </div>
+
+  <div class="cards">
+    <div class="card" data-key="B">
+      <span class="num">1</span>
+      꼭짓점 A를 지나고 BC에 평행한 직선 ℓ을 긋는다.
+    </div>
+    <div class="card highlight-linked" data-key="D">
+      <span class="num">2</span>
+      ℓ∥BC이므로 <b style="color:#dc2626">엇각 ∠ABC=∠DAB</b>, <b style="color:#d97706">∠ACB=∠EAC</b>.
+    </div>
+    <div class="card" data-key="A">
+      <span class="num">3</span>
+      꼭짓점 A에서 ℓ 위의 세 각을 보면 <b>∠DAB + ∠BAC + ∠CAE = 180°</b> (평각).
+    </div>
+    <div class="card placed" data-key="C">
+      <span class="num">4</span>
+      엇각 대입: <b>∠ABC + ∠BAC + ∠BCA = 180°</b>. ✅ 증명 완료.
+    </div>
+  </div>
+
+  <div class="phase-dots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
+  <div class="footer">
+    <button class="btn btn-secondary">초기화</button>
+    <button class="btn btn-primary">제출 → Phase 2</button>
+  </div>
+</div>
+
+<div class="desc-box">
+  <h3>🎯 학생 상호작용 포인트</h3>
+  <ol>
+    <li><b>도형 먼저, 카드 나중</b> — 상단에 증명에 쓰는 그림이 고정되어 있어 수식만 읽을 때보다 이해가 빠름</li>
+    <li><b>색상 일치 힌트</b> — 도형에서 <span style="color:#dc2626;font-weight:700">빨강 호(∠B=∠DAB)</span>가 같은 색이면 카드 텍스트의 엇각 표현도 같은 색으로 연결 → 학생이 "왜 같은지" 시각적으로 추론 가능</li>
+    <li><b>드래그 & 드롭</b> — 번호가 원형 뱃지로 표시. 순서가 맞으면 초록 테두리 피드백 (예시: 카드 4번은 "placed" 상태로 미리 들어와 있음)</li>
+    <li><b>Phase 진행</b> — 상단 1/3 뱃지 + 하단 progress dot으로 3단계 학습(순서→빈칸→백지) 흐름 인지</li>
+    <li><b>힌트 박스</b> — 처음 접하는 학생에게 "색깔 단서" 안내 → 중1 수준 인지부하 감소</li>
+  </ol>
+
+  <h3 style="margin-top:16px">🔄 Phase 2/3에서는 이 화면이 어떻게 바뀌는가</h3>
+  <ul>
+    <li><b>Phase 2 (빈칸)</b>: 카드 대신 증명 문단이 통째로 나오고 <code>( ? )</code> 자리에 inline input. 같은 도형 유지.</li>
+    <li><b>Phase 3 (백지)</b>: 카드/빈칸 모두 제거, 프롬프트 + 풀이 텍스트영역만. 도형은 옵션으로 "힌트 보기" 클릭 시 노출.</li>
+  </ul>
+
+  <h3 style="margin-top:16px">📐 ∠B / ∠C 호 수정 내역</h3>
+  <ul>
+    <li>기존: B(40,220)에서 sweep flag 1 → 외부로 휨. C도 대칭으로 잘못</li>
+    <li>수정: BA 방향과 BC 방향 사이 <b>내각</b>을 감싸도록 좌표 재계산
+      <br>∠B: (60,220) → (50.43, 202.93), sweep 0
+      <br>∠C: (249.57, 202.93) → (240, 220), sweep 0</li>
+    <li>색상도 엇각끼리 동일: ∠B ↔ ∠DAB = 빨강 / ∠C ↔ ∠EAC = 주황</li>
+  </ul>
+</div>
+
+</body>
+</html>

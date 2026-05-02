@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>증명 학습 인터랙티브 목업</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,"Segoe UI",sans-serif;margin:0;background:#f3f4f6;color:#111;min-height:100vh}
+  .app{max-width:440px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 4px 20px rgba(0,0,0,.08);position:relative;overflow:hidden}
+  .topbar{background:#1e40af;color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+  .topbar .back{background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;font-weight:700}
+  .topbar h1{margin:0;font-size:15px;font-weight:600;flex:1}
+  .phase-badge{background:rgba(255,255,255,.25);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600}
+  .progress-bar{height:4px;background:#e5e7eb;position:relative}
+  .progress-bar>div{height:100%;background:#fbbf24;transition:width .4s}
+
+  /* 공통 */
+  .screen{display:none;padding:14px 18px 100px;animation:fadeIn .25s}
+  .screen.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h2{margin:0 0 4px;font-size:17px}
+  .sub{color:#6b7280;font-size:13px;margin-bottom:12px}
+  .btn{padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+  .btn-primary{background:#1e40af;color:#fff}
+  .btn-success{background:#16a34a;color:#fff}
+  .btn-secondary{background:#e5e7eb;color:#374151}
+  .btn-outline{background:#fff;color:#1e40af;border:1.5px solid #1e40af}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .footer-bar{position:fixed;bottom:0;left:0;right:0;max-width:440px;margin:0 auto;padding:12px 18px;background:#fff;border-top:1px solid #e5e7eb;display:flex;gap:8px;z-index:20}
+
+  /* 홈 */
+  .home-hero{padding:20px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;border-radius:14px;margin-bottom:14px}
+  .home-hero h3{margin:0;font-size:13px;opacity:.9;font-weight:500}
+  .home-hero .big{font-size:28px;font-weight:700;margin-top:4px}
+  .home-hero .small{font-size:12px;opacity:.85;margin-top:4px}
+  .proof-list-title{font-size:13px;font-weight:600;margin:12px 0 8px;color:#374151}
+  .proof-item{padding:14px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+  .proof-item:hover{border-color:#1e40af;box-shadow:0 2px 8px rgba(30,64,175,.12)}
+  .proof-item.done{background:#f0fdf4;border-color:#16a34a}
+  .proof-item .title{font-weight:700;font-size:14px;margin-bottom:4px}
+  .proof-item .meta{font-size:11px;color:#6b7280;display:flex;gap:10px}
+  .proof-item .meta .box-badge{background:#eff6ff;color:#1e40af;padding:1px 7px;border-radius:4px;font-weight:600}
+  .proof-item.done .box-badge{background:#d1fae5;color:#16a34a}
+
+  /* GIVEN/THEOREM */
+  .given{padding:10px 14px;background:#f0fdf4;border-left:3px solid #16a34a;border-radius:6px;font-size:13px;line-height:1.55;margin-bottom:8px}
+  .given .tag{display:inline-block;background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:6px}
+  .theorem{padding:10px 14px;background:#eff6ff;border-left:3px solid #2563eb;border-radius:6px;font-size:14px;margin-bottom:12px}
+  .theorem .tag{display:inline-block;background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:6px}
+
+  /* 도형 */
+  .figure-box{background:#fafafa;border:1px solid #e5e7eb;border-radius:10px;padding:10px;text-align:center;margin-bottom:12px;position:relative}
+  .figure-caption{text-align:center;color:#6b7280;font-size:11px;margin-top:4px}
+
+  /* Phase 1 카드 */
+  .hint-box{padding:10px 12px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:12px;color:#92400e;margin-bottom:10px}
+  .card{margin-bottom:8px;padding:14px 14px 14px 40px;background:#fff;border:1.5px solid #d1d5db;border-radius:10px;font-size:13.5px;line-height:1.5;position:relative;cursor:grab;user-select:none;transition:all .15s}
+  .card:active{cursor:grabbing}
+  .card.dragging{opacity:.4;transform:scale(.98)}
+  .card.drag-over{border-top:3px solid #1e40af;padding-top:11px}
+  .card::before{content:"☰";position:absolute;left:12px;top:14px;color:#9ca3af;font-size:16px}
+  .card .num{position:absolute;right:10px;top:10px;width:26px;height:26px;background:#1e40af;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .card.correct{border-color:#16a34a;background:#f0fdf4}
+  .card.correct .num{background:#16a34a}
+  .card.wrong{border-color:#dc2626;background:#fef2f2}
+  .card.wrong .num{background:#dc2626}
+
+  /* Phase 2 빈칸 */
+  .fill-box{padding:14px;background:#fafafa;border-radius:10px;line-height:2;font-size:13.5px;margin-bottom:10px}
+  .blank{display:inline-block;width:72px;padding:4px 8px;border:1.5px solid #1e40af;border-radius:6px;font-size:13px;text-align:center;font-family:inherit}
+  .blank.correct{background:#d1fae5;border-color:#16a34a}
+  .blank.wrong{background:#fee2e2;border-color:#dc2626}
+
+  /* Phase 3 textarea */
+  .prompt-box{padding:12px 14px;background:#f9fafb;border-radius:8px;font-size:13px;margin-bottom:10px;line-height:1.6}
+  .proof-ta{width:100%;min-height:180px;padding:12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:13px;font-family:inherit;resize:vertical}
+  .proof-ta:focus{outline:none;border-color:#1e40af}
+
+  /* 결과 히어로 */
+  .hero{padding:24px 18px 10px;text-align:center;border-radius:14px;margin-bottom:12px}
+  .hero.pass{background:linear-gradient(180deg,#d1fae5,#fff)}
+  .hero.partial{background:linear-gradient(180deg,#fef3c7,#fff)}
+  .hero.fail{background:linear-gradient(180deg,#fee2e2,#fff)}
+  .hero.pending{background:linear-gradient(180deg,#dbeafe,#fff)}
+  .hero .icon{font-size:52px;margin-bottom:4px}
+  .hero h2{font-size:22px;margin:4px 0}
+  .hero .msg{font-size:13px;color:#6b7280}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 12px;padding:12px;background:#f9fafb;border-radius:10px}
+  .stats>div{text-align:center}
+  .stats .label{font-size:10px;color:#6b7280;margin-bottom:2px}
+  .stats .value{font-size:15px;font-weight:700}
+
+  /* SRS */
+  .srs{background:#fff;border:2px solid #1e40af;border-radius:10px;padding:14px;margin-bottom:12px;text-align:center}
+  .srs .label{font-size:12px;color:#6b7280;margin-bottom:6px}
+  .srs .boxes{display:flex;justify-content:space-between;gap:4px}
+  .srs .b{flex:1;height:40px;border-radius:6px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-weight:700;color:#9ca3af;transition:all .4s}
+  .srs .b.reached{background:#c7d2fe;color:#1e40af}
+  .srs .b.cur{background:#1e40af;color:#fff;transform:scale(1.08);box-shadow:0 3px 10px rgba(30,64,175,.35)}
+  .box-gain{background:linear-gradient(135deg,#fef3c7,#fde68a);padding:12px 14px;margin-bottom:12px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px}
+  .box-gain .emoji{font-size:28px}
+
+  .teacher-note{background:#f0fdf4;border-left:3px solid #16a34a;padding:10px 12px;border-radius:6px;font-size:12px;margin-bottom:10px}
+  .review-banner{background:#eff6ff;border:1px solid #bfdbfe;padding:10px 12px;border-radius:8px;font-size:12px;color:#1e3a8a;margin-bottom:10px}
+
+  /* 토스트 */
+  .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);padding:10px 16px;background:#111;color:#fff;border-radius:20px;font-size:13px;z-index:100;animation:toastIn .3s}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+  /* phase dots */
+  .phase-dots{display:flex;justify-content:center;gap:6px;padding:10px 0 0}
+  .phase-dots .dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;transition:all .3s}
+  .phase-dots .dot.active{background:#1e40af;width:24px;border-radius:4px}
+  .phase-dots .dot.done{background:#16a34a}
+
+  /* Modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:20px;max-width:380px;width:100%}
+  .modal h3{margin:0 0 8px}
+  .modal p{font-size:13px;color:#374151;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- 상단바 -->
+  <div class="topbar">
+    <button class="back" id="backBtn" onclick="goHome()">←</button>
+    <h1 id="topTitle">증명 학습</h1>
+    <span class="phase-badge" id="phaseBadge">홈</span>
+  </div>
+  <div class="progress-bar"><div id="progressFill" style="width:0%"></div></div>
+
+  <!-- 홈 -->
+  <div id="screenHome" class="screen active">
+    <div class="home-hero">
+      <h3>이루다 학생</h3>
+      <div class="big" id="homeProgress">0 / 5 증명</div>
+      <div class="small">오늘의 목표 · 중1 평면도형</div>
+    </div>
+    <div class="proof-list-title">📚 배정된 증명</div>
+    <div id="proofList"></div>
+  </div>
+
+  <!-- Phase 1: 순서 맞추기 -->
+  <div id="screenPhase1" class="screen">
+    <h2>🔵 Phase 1 — 순서 맞추기</h2>
+    <div class="sub">카드를 드래그해서 증명 순서를 맞추세요</div>
+    <div class="given"><span class="tag">GIVEN</span><span id="given1"></span></div>
+    <div class="theorem"><span class="tag">THEOREM</span><span id="theorem1"></span></div>
+    <div class="figure-box" id="figureBox"></div>
+    <div class="figure-caption">같은 색 호 = 엇각(같은 각)</div>
+    <div class="hint-box">💡 색깔 호를 단서로 생각해보세요. 드래그(☰)로 카드 순서 바꿀 수 있어요.</div>
+    <div id="phase1Cards"></div>
+    <div class="phase-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+
+  <!-- Phase 1 결과 -->
+  <div id="screenPhase1Result" class="screen">
+    <div class="hero" id="p1Hero">
+      <div class="icon" id="p1Icon">🎉</div>
+      <h2 id="p1Title">정답입니다!</h2>
+      <div class="msg" id="p1Msg">Phase 1 통과</div>
+    </div>
+    <div class="stats">
+      <div><div class="label">맞은 카드</div><div class="value" id="p1Correct">4/4</div></div>
+      <div><div class="label">시간</div><div class="value" id="p1Time">0초</div></div>
+      <div><div class="label">시도</div><div class="value" id="p1Tries">1회</div></div>
+    </div>
+    <div id="p1Feedback"></div>
+  </div>
+
+  <!-- Phase 2: 빈칸 -->
+  <div id="screenPhase2" class="screen">
+    <h2>🟢 Phase 2 — 빈칸 채우기</h2>
+    <div class="sub">증명 흐름을 따라 빈칸을 채우세요</div>
+    <div class="figure-box" id="figureBox2"></div>
+    <div class="fill-box" id="fillBox"></div>
+    <div class="phase-dots"><div class="dot done"></div><div class="dot active"></div><div class="dot"></div></div>
+  </div>
+
+  <!-- Phase 2 결과 -->
+  <div id="screenPhase2Result" class="screen">
+    <div class="hero" id="p2Hero">
+      <div class="icon" id="p2Icon">👍</div>
+      <h2 id="p2Title">부분 정답</h2>
+      <div class="msg" id="p2Msg"></div>
+    </div>
+    <div class="fill-box" id="p2Review"></div>
+    <div class="hint-box" id="p2Hint"></div>
+  </div>
+
+  <!-- Phase 3: 백지증명 -->
+  <div id="screenPhase3" class="screen">
+    <h2>🔴 Phase 3 — 백지 증명</h2>
+    <div class="sub">스스로 증명을 완성해보세요</div>
+    <div class="prompt-box" id="phase3Prompt"></div>
+    <textarea class="proof-ta" id="proofText" placeholder="여기에 풀이를 써주세요..."></textarea>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="showHint()">🔍 도형 힌트 보기 (1회)</button>
+    <div id="phase3FigureHint" style="display:none;margin-top:10px"></div>
+    <div class="phase-dots"><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div></div>
+  </div>
+
+  <!-- Phase 3 검토 대기 -->
+  <div id="screenReview" class="screen">
+    <div class="hero pending"><div class="icon">📝</div><h2>제출 완료!</h2><div class="msg">선생님이 곧 확인할 거예요</div></div>
+    <div class="review-banner">✍️ Phase 3는 자동채점이 어려워서 <b>담당 선생님(서재용)</b>이 직접 피드백을 드려요. (목업: 3초 후 자동 승인)</div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:6px">제출한 풀이:</div>
+    <div style="padding:10px;background:#fafafa;border-radius:8px;font-size:12px;line-height:1.6" id="submittedText"></div>
+    <div style="text-align:center;padding:20px">
+      <div style="display:inline-block;width:40px;height:40px;border:3px solid #1e40af;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div>
+    </div>
+  </div>
+
+  <!-- 승인 완료 + SRS -->
+  <div id="screenApproved" class="screen">
+    <div class="hero pass"><div class="icon">✨</div><h2>승인됐어요!</h2><div class="msg">서재용 선생님 피드백</div></div>
+    <div class="teacher-note"><b>선생님 코멘트:</b><br>"보조선 긋는 이유까지 적으면 더 좋았어요. 엇각 사용 정확합니다 👍"</div>
+    <div class="box-gain">
+      <div class="emoji">📦</div>
+      <div>
+        <div style="font-weight:700">박스 <span id="boxBefore">1</span> → 박스 <span id="boxAfter">2</span> 승급!</div>
+        <div style="font-size:11px;color:#6b7280">다음 복습: <span id="nextReview">3일</span> 후</div>
+      </div>
+    </div>
+    <div class="srs">
+      <div class="label">SRS 박스 (간격 반복)</div>
+      <div class="boxes" id="srsBoxes"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 푸터 버튼 (동적) -->
+<div class="footer-bar" id="footer"></div>
+
+<!-- 토스트 -->
+<div id="toast" style="display:none" class="toast"></div>
+
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<script>
+// ── 데이터 ──
+const PROOFS = [
+  {
+    id: 'prf_m1_tri_angle_sum',
+    title: '삼각형 내각의 합',
+    difficulty: 2,
+    box: 1,
+    done: false,
+    given: '두 직선이 <b>평행</b>하면 <b>엇각</b>이 같다 · 일직선 위 각의 합 = 180°',
+    theorem: '삼각형 ABC에서 <b>∠A + ∠B + ∠C = 180°</b>',
+    figure: true,
+    p1_cards: [
+      { key: 'A', text: '꼭짓점 A에서 ℓ 위의 세 각: <b>∠DAB + ∠BAC + ∠CAE = 180°</b> (평각).', answer_pos: 3 },
+      { key: 'B', text: '꼭짓점 A를 지나고 BC에 <b>평행</b>한 직선 ℓ을 긋는다.', answer_pos: 1 },
+      { key: 'C', text: '엇각 대입: <b>∠A + ∠B + ∠C = 180°</b>. 증명 완료.', answer_pos: 4 },
+      { key: 'D', text: 'ℓ∥BC이므로 <b style="color:#dc2626">엇각 ∠B=∠DAB</b>, <b style="color:#d97706">∠C=∠EAC</b>.', answer_pos: 2 },
+    ],
+    p1_answer: ['B','D','A','C'],
+    p2_template: '① 꼭짓점 A를 지나고 BC에 {1}한 직선 ℓ을 긋는다.<br>② ℓ∥BC이므로 {2}에 의해 ∠B=∠DAB, ∠C=∠EAC.<br>③ A에서 평각: ∠DAB+∠BAC+∠CAE = {3}°.<br>④ 따라서 ∠A+∠B+∠C = {4}°.',
+    p2_answers: { '1':['평행'], '2':['엇각'], '3':['180'], '4':['180'] },
+    p3_prompt: '보조선 ℓ을 이용하여 <b>∠A+∠B+∠C=180°</b>임을 증명하시오. (평행선의 엇각 사용)',
+  },
+  {
+    id: 'prf_m1_vertical',
+    title: '맞꼭지각의 크기는 같다',
+    difficulty: 1,
+    box: 1,
+    done: false,
+    given: '일직선 위의 두 각의 합 = 180° (평각)',
+    theorem: '두 직선이 한 점에서 만나면 <b>맞꼭지각은 같다</b> (∠1=∠3)',
+    figure: false,
+    p1_cards: [
+      { key:'A', text:'∠2+∠3=180° (또 다른 평각).', answer_pos:2 },
+      { key:'B', text:'∠1+∠2=180° (일직선 위의 평각).', answer_pos:1 },
+      { key:'C', text:'두 식에서 ∠1 = 180°−∠2 = ∠3. ✅', answer_pos:3 },
+    ],
+    p1_answer: ['B','A','C'],
+    p2_template: '① ∠1+∠2 = {1}° (평각).<br>② ∠2+∠3 = {2}° (평각).<br>③ ∠1 = 180°−∠2 = {3}.',
+    p2_answers: { '1':['180'], '2':['180'], '3':['∠3','각3','3'] },
+    p3_prompt: '두 직선이 한 점에서 만날 때 생기는 맞꼭지각 <b>∠1=∠3</b>을 평각의 성질로 증명하시오.',
+  },
+];
+
+// ── SVG 도형 (삼각형 내각의 합) ──
+const FIGURE_SVG = `<svg viewBox="0 0 300 260" width="100%" style="max-width:280px">
+  <style>
+    .tri{fill:none;stroke:#1e40af;stroke-width:2.2}
+    .aux{stroke:#9ca3af;stroke-width:1.5;stroke-dasharray:5 3}
+    .arc{fill:none;stroke-width:1.8}
+    .vlabel{font:bold 14px sans-serif;fill:#111}
+    .alabel{font:italic 11px sans-serif;font-weight:600}
+    .aux-label{font:11px sans-serif;fill:#6b7280}
+  </style>
+  <line class="aux" x1="20" y1="40" x2="280" y2="40"/>
+  <text class="aux-label" x="4" y="44">ℓ</text>
+  <polygon class="tri" points="150,40 40,220 260,220"/>
+  <path class="arc" stroke="#dc2626" d="M 122,40 A 28,28 0 0,0 135.6,55.8"/>
+  <text class="alabel" fill="#dc2626" x="98" y="32">∠DAB</text>
+  <path class="arc" stroke="#059669" d="M 135.6,55.8 A 24,24 0 0,0 164.4,55.8"/>
+  <text class="alabel" fill="#059669" x="142" y="75">∠A</text>
+  <path class="arc" stroke="#d97706" d="M 164.4,55.8 A 28,28 0 0,0 178,40"/>
+  <text class="alabel" fill="#d97706" x="170" y="32">∠CAE</text>
+  <path class="arc" stroke="#dc2626" d="M 60,220 A 20,20 0 0,0 50.43,202.93"/>
+  <text class="alabel" fill="#dc2626" x="62" y="210">∠B</text>
+  <path class="arc" stroke="#d97706" d="M 249.57,202.93 A 20,20 0 0,0 240,220"/>
+  <text class="alabel" fill="#d97706" x="222" y="210">∠C</text>
+  <circle cx="150" cy="40" r="3" fill="#111"/>
+  <circle cx="40" cy="220" r="3" fill="#111"/>
+  <circle cx="260" cy="220" r="3" fill="#111"/>
+  <circle cx="40" cy="40" r="2.5" fill="#6b7280"/>
+  <circle cx="260" cy="40" r="2.5" fill="#6b7280"/>
+  <text class="vlabel" x="145" y="32">A</text>
+  <text class="vlabel" x="26" y="238">B</text>
+  <text class="vlabel" x="266" y="238">C</text>
+  <text class="aux-label" x="28" y="52">D</text>
+  <text class="aux-label" x="266" y="52">E</text>
+</svg>`;
+
+// ── 상태 ──
+let state = {
+  currentProofId: null,
+  currentPhase: 0,
+  phase1Order: [],
+  phase1Tries: 0,
+  phase1StartTime: null,
+  phase1Correct: 0,
+  phase2Answers: {},
+  phase3Text: '',
+};
+
+function proof() { return PROOFS.find(p => p.id === state.currentProofId); }
+
+// ── 화면 전환 ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function setTop(title, badge, progress) {
+  document.getElementById('topTitle').textContent = title;
+  document.getElementById('phaseBadge').textContent = badge;
+  document.getElementById('progressFill').style.width = progress + '%';
+}
+function setFooter(html) {
+  document.getElementById('footer').innerHTML = html;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
+
+// ── 홈 ──
+function goHome() {
+  state.currentProofId = null;
+  setTop('오늘의 학습', '홈', 0);
+  renderHome();
+  setFooter('');
+  showScreen('screenHome');
+}
+function renderHome() {
+  const doneCount = PROOFS.filter(p => p.done).length;
+  document.getElementById('homeProgress').textContent = `${doneCount} / ${PROOFS.length} 증명`;
+  const list = document.getElementById('proofList');
+  list.innerHTML = PROOFS.map(p => `
+    <div class="proof-item ${p.done?'done':''}" onclick="startProof('${p.id}')">
+      <div class="title">${p.title} ${p.done?'✓':''}</div>
+      <div class="meta">
+        <span>난이도 ${'★'.repeat(p.difficulty)}${'☆'.repeat(5-p.difficulty)}</span>
+        <span class="box-badge">박스 ${p.box}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── 증명 시작 (Phase 1) ──
+function startProof(id) {
+  state.currentProofId = id;
+  state.currentPhase = 1;
+  state.phase1Tries = 0;
+  state.phase1StartTime = Date.now();
+  const p = proof();
+  setTop(p.title, '1/3', 33);
+  document.getElementById('given1').innerHTML = p.given;
+  document.getElementById('theorem1').innerHTML = p.theorem;
+  document.getElementById('figureBox').innerHTML = p.figure ? FIGURE_SVG : '<div style="padding:30px;color:#9ca3af;font-size:13px">(이 증명은 도형이 없습니다)</div>';
+  // 카드를 셔플해서 배치
+  const shuffled = [...p.p1_cards].sort(() => Math.random() - 0.5);
+  state.phase1Order = shuffled.map(c => c.key);
+  renderPhase1Cards();
+  setFooter(`<button class="btn btn-primary" onclick="submitPhase1()">제출</button>`);
+  showScreen('screenPhase1');
+}
+
+function renderPhase1Cards() {
+  const p = proof();
+  const html = state.phase1Order.map((key, idx) => {
+    const card = p.p1_cards.find(c => c.key === key);
+    return `<div class="card" draggable="true" data-key="${key}" data-idx="${idx}"
+      ondragstart="dragStart(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)"
+      ondrop="dropCard(event)" ondragend="dragEnd(event)">
+      <span class="num">${idx+1}</span>${card.text}
+    </div>`;
+  }).join('');
+  document.getElementById('phase1Cards').innerHTML = html;
+}
+
+// ── 드래그 & 드롭 ──
+let dragKey = null;
+function dragStart(e) {
+  dragKey = e.target.dataset.key;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function dragOver(e) {
+  e.preventDefault();
+  const card = e.target.closest('.card');
+  if (card && card.dataset.key !== dragKey) card.classList.add('drag-over');
+}
+function dragLeave(e) {
+  const card = e.target.closest('.card');
+  if (card) card.classList.remove('drag-over');
+}
+function dropCard(e) {
+  e.preventDefault();
+  const target = e.target.closest('.card');
+  if (!target) return;
+  target.classList.remove('drag-over');
+  const fromIdx = state.phase1Order.indexOf(dragKey);
+  const toIdx = state.phase1Order.indexOf(target.dataset.key);
+  if (fromIdx === toIdx) return;
+  state.phase1Order.splice(fromIdx, 1);
+  state.phase1Order.splice(toIdx, 0, dragKey);
+  renderPhase1Cards();
+}
+function dragEnd(e) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('dragging','drag-over'));
+}
+
+// ── Phase 1 제출 ──
+function submitPhase1() {
+  state.phase1Tries++;
+  const p = proof();
+  const correct = p.p1_answer;
+  let correctCount = 0;
+  state.phase1Order.forEach((k, i) => { if (k === correct[i]) correctCount++; });
+  state.phase1Correct = correctCount;
+
+  const elapsed = Math.round((Date.now() - state.phase1StartTime) / 1000);
+  const hero = document.getElementById('p1Hero');
+  const icon = document.getElementById('p1Icon');
+  const title = document.getElementById('p1Title');
+  const msg = document.getElementById('p1Msg');
+
+  document.getElementById('p1Correct').textContent = `${correctCount}/${correct.length}`;
+  document.getElementById('p1Time').textContent = `${elapsed}초`;
+  document.getElementById('p1Tries').textContent = `${state.phase1Tries}회`;
+
+  const fb = document.getElementById('p1Feedback');
+  const feedbackCards = state.phase1Order.map((k,i) => {
+    const card = p.p1_cards.find(c => c.key === k);
+    const isRight = k === correct[i];
+    return `<div class="card ${isRight?'correct':'wrong'}" style="cursor:default">
+      <span class="num">${i+1}</span>${card.text}
+      ${!isRight ? `<div style="margin-top:6px;font-size:11px;color:#dc2626">→ 정답 위치: ${correct.indexOf(k)+1}번</div>` : ''}
+    </div>`;
+  }).join('');
+  fb.innerHTML = feedbackCards;
+
+  if (correctCount === correct.length) {
+    hero.className = 'hero pass';
+    icon.textContent = '🎉';
+    title.textContent = '정답입니다!';
+    title.style.color = '#16a34a';
+    msg.textContent = `Phase 1 통과 · +10 XP`;
+    setFooter(`<button class="btn btn-success" onclick="startPhase2()">Phase 2로 →</button>`);
+  } else {
+    hero.className = 'hero fail';
+    icon.textContent = '🤔';
+    title.textContent = '다시 생각해보자';
+    title.style.color = '#dc2626';
+    msg.textContent = `${correctCount}개 맞았어요 · 힌트를 보고 다시 시도`;
+    setFooter(`
+      <button class="btn btn-secondary" onclick="showAnswer()">정답 보기</button>
+      <button class="btn btn-primary" onclick="retryPhase1()">다시 시도</button>
+    `);
+  }
+  showScreen('screenPhase1Result');
+}
+function retryPhase1() {
+  state.phase1StartTime = Date.now();
+  showScreen('screenPhase1');
+  setFooter(`<button class="btn btn-primary" onclick="submitPhase1()">제출</button>`);
+}
+function showAnswer() {
+  const p = proof();
+  state.phase1Order = [...p.p1_answer];
+  renderPhase1Cards();
+  toast('정답 순서로 정렬됐어요');
+  showScreen('screenPhase1');
+  setFooter(`<button class="btn btn-primary" onclick="submitPhase1()">제출</button>`);
+}
+
+// ── Phase 2 ──
+function startPhase2() {
+  state.currentPhase = 2;
+  state.phase2Answers = {};
+  const p = proof();
+  setTop(p.title, '2/3', 66);
+  document.getElementById('figureBox2').innerHTML = p.figure ? FIGURE_SVG : '<div style="padding:20px;color:#9ca3af;font-size:12px">(도형 없음)</div>';
+
+  let tmpl = p.p2_template;
+  Object.keys(p.p2_answers).forEach(k => {
+    tmpl = tmpl.replace(`{${k}}`, `<input class="blank" data-key="${k}" oninput="updateP2(${k}, this.value)">`);
+  });
+  document.getElementById('fillBox').innerHTML = tmpl;
+  setFooter(`<button class="btn btn-primary" onclick="submitPhase2()">제출</button>`);
+  showScreen('screenPhase2');
+}
+function updateP2(k, v) { state.phase2Answers[k] = v.trim(); }
+
+function submitPhase2() {
+  const p = proof();
+  let correctCount = 0, total = 0;
+  const results = {};
+  Object.keys(p.p2_answers).forEach(k => {
+    total++;
+    const ans = (state.phase2Answers[k] || '').trim();
+    const acceptable = p.p2_answers[k];
+    const ok = acceptable.some(a => a === ans || a.replace(/\s/g,'') === ans.replace(/\s/g,''));
+    results[k] = { ok, given: ans, expected: acceptable[0] };
+    if (ok) correctCount++;
+  });
+
+  const hero = document.getElementById('p2Hero');
+  const icon = document.getElementById('p2Icon');
+  const title = document.getElementById('p2Title');
+  const msg = document.getElementById('p2Msg');
+
+  if (correctCount === total) {
+    hero.className = 'hero pass';
+    icon.textContent = '🎯';
+    title.textContent = '완벽해요!';
+    title.style.color = '#16a34a';
+    msg.textContent = `${total}/${total} 정답 · Phase 2 통과`;
+  } else {
+    hero.className = 'hero partial';
+    icon.textContent = '👍';
+    title.textContent = '거의 다 왔어요!';
+    title.style.color = '#d97706';
+    msg.textContent = `${correctCount}/${total} 정답 · 틀린 곳 확인해보세요`;
+  }
+
+  let tmpl = p.p2_template;
+  Object.keys(p.p2_answers).forEach(k => {
+    const r = results[k];
+    const cls = r.ok ? 'correct' : 'wrong';
+    const hint = !r.ok ? ` <span style="color:#dc2626;font-size:11px">(→ ${r.expected})</span>` : '';
+    tmpl = tmpl.replace(`{${k}}`, `<input class="blank ${cls}" value="${r.given||''}" readonly>${hint}`);
+  });
+  document.getElementById('p2Review').innerHTML = tmpl;
+
+  const hintEl = document.getElementById('p2Hint');
+  if (correctCount === total) {
+    hintEl.style.display = 'none';
+    setFooter(`<button class="btn btn-success" onclick="startPhase3()">Phase 3로 →</button>`);
+  } else {
+    hintEl.style.display = 'block';
+    hintEl.innerHTML = '💡 틀린 부분을 고쳐서 다시 제출해보세요. 힌트: 평행선에서 엇갈려 만나는 각은 <b>엇각</b>입니다.';
+    setFooter(`<button class="btn btn-primary" onclick="startPhase2()">다시 제출</button>`);
+  }
+  showScreen('screenPhase2Result');
+}
+
+// ── Phase 3 ──
+function startPhase3() {
+  state.currentPhase = 3;
+  const p = proof();
+  setTop(p.title, '3/3', 100);
+  document.getElementById('phase3Prompt').innerHTML = '<b>문제:</b> ' + p.p3_prompt;
+  document.getElementById('proofText').value = '';
+  document.getElementById('phase3FigureHint').style.display = 'none';
+  setFooter(`<button class="btn btn-primary" onclick="submitPhase3()">제출 (교사 검토)</button>`);
+  showScreen('screenPhase3');
+}
+function showHint() {
+  const p = proof();
+  const el = document.getElementById('phase3FigureHint');
+  el.style.display = 'block';
+  el.innerHTML = `<div class="figure-box">${p.figure ? FIGURE_SVG : '(도형 없음)'}</div>`;
+  toast('도형 힌트 사용');
+}
+function submitPhase3() {
+  const text = document.getElementById('proofText').value.trim();
+  if (text.length < 10) { toast('풀이를 조금 더 자세히 써주세요'); return; }
+  state.phase3Text = text;
+  document.getElementById('submittedText').textContent = text;
+  setTop(proof().title, '⏳ 검토', 100);
+  setFooter('');
+  showScreen('screenReview');
+  // 목업: 3초 후 자동 승인
+  setTimeout(approveProof, 3000);
+}
+
+// ── 승인 + SRS ──
+function approveProof() {
+  const p = proof();
+  const before = p.box;
+  const after = Math.min(5, before + 1);
+  p.box = after;
+  p.done = true;
+
+  document.getElementById('boxBefore').textContent = before;
+  document.getElementById('boxAfter').textContent = after;
+  const intervals = [1, 3, 7, 14, 30];
+  document.getElementById('nextReview').textContent = intervals[after-1] + '일';
+
+  const boxes = document.getElementById('srsBoxes');
+  boxes.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement('div');
+    b.className = 'b';
+    b.textContent = i;
+    if (i < after) b.classList.add('reached');
+    if (i === after) b.classList.add('cur');
+    boxes.appendChild(b);
+  }
+
+  setTop(proof().title, '완료', 100);
+  setFooter(`<button class="btn btn-primary" onclick="goHome()">홈으로 돌아가기</button>`);
+  showScreen('screenApproved');
+}
+
+// 초기 로드
+goHome();
+</script>
+</body>
+</html>

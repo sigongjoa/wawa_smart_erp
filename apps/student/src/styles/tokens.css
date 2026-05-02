@@ -108,6 +108,7 @@
   --accent: var(--type-water);
   --accent-surface: var(--type-water-surface);
   --primary-light: #4f5cb3;
+  --radius-full: 9999px;
   --shadow-sm: var(--shadow-pop);
   --shadow-md: var(--shadow-pop);
   --shadow-lg: var(--shadow-pop);
