@@ -196,7 +196,14 @@ export default function GachaStudentPage() {
 
       {/* PIN 초기화 모달 */}
       {resetPinId && (
-        <div className="gacha-modal-overlay" onClick={() => { setResetPinId(null); setGeneratedPin(null); setNewPin(''); }}>
+        <div
+          className="gacha-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="PIN 재설정"
+          onClick={() => { setResetPinId(null); setGeneratedPin(null); setNewPin(''); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setResetPinId(null); setGeneratedPin(null); setNewPin(''); } }}
+        >
           <div className="gacha-modal" onClick={e => e.stopPropagation()}>
             <h3>PIN 재설정</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 12px' }}>
