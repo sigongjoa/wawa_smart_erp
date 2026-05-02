@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--bg-canvas);
+  color: var(--ink);
   padding: 1rem;
   gap: 1rem;
 }
@@ -13,9 +13,9 @@
   text-align: center;
   margin-top: 4rem;
   font-size: 1rem;
-  color: #475569;
+  color: var(--ink-60);
 }
-.vexam-error { color: #b91c1c; }
+.vexam-error { color: var(--danger); }
 
 .vexam-header {
   display: flex;
@@ -28,18 +28,18 @@
   font-size: 0.875rem;
   font-weight: 600;
 }
-.vexam-progress { color: #1e40af; }
-.vexam-answered { color: #64748b; font-weight: 500; }
+.vexam-progress { color: var(--primary-hover); }
+.vexam-answered { color: var(--ink-40); font-weight: 500; }
 .vexam-timer {
   font-variant-numeric: tabular-nums;
-  background: #ecfdf5;
-  color: #065f46;
+  background: var(--success-surface);
+  color: var(--success);
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
 }
 .vexam-timer-urgent {
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--danger-surface);
+  color: var(--danger);
   animation: vexam-pulse 1s infinite;
 }
 @keyframes vexam-pulse {
@@ -71,7 +71,7 @@
   display: block;
   margin-top: 0.5rem;
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--ink-40);
 }
 
 .vexam-choices {
@@ -83,7 +83,7 @@
   align-items: center;
   gap: 0.75rem;
   background: white;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--ink-09);
   border-radius: 12px;
   padding: 0.9rem 1rem;
   font-size: 1rem;
@@ -92,26 +92,26 @@
   transition: all 0.15s;
 }
 .vexam-choice:hover {
-  border-color: #94a3b8;
+  border-color: var(--ink-40);
 }
 .vexam-choice-selected {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: var(--primary);
+  background: var(--primary-surface);
 }
 .vexam-choice-no {
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 50%;
-  background: #f1f5f9;
+  background: var(--ink-09);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: #475569;
+  color: var(--ink-60);
   flex-shrink: 0;
 }
 .vexam-choice-selected .vexam-choice-no {
-  background: #2563eb;
+  background: var(--primary);
   color: white;
 }
 .vexam-choice-text { flex: 1; }
@@ -129,17 +129,17 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  background: #1e293b;
+  background: var(--ink);
   color: white;
 }
 .vexam-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .vexam-btn-ghost {
   background: white;
-  color: #475569;
-  border: 1.5px solid #e2e8f0;
+  color: var(--ink-60);
+  border: 1.5px solid var(--ink-09);
 }
 .vexam-btn-primary {
-  background: #2563eb;
+  background: var(--primary);
 }
 
 /* Result page */
@@ -159,24 +159,24 @@
 .vresult-num {
   font-size: 3rem;
   font-weight: 800;
-  color: #1e40af;
+  color: var(--primary-hover);
   font-variant-numeric: tabular-nums;
 }
 .vresult-slash {
   font-size: 1.5rem;
-  color: #94a3b8;
+  color: var(--ink-40);
   font-weight: 600;
 }
 .vresult-pct {
   margin-top: 0.25rem;
   font-size: 1rem;
-  color: #475569;
+  color: var(--ink-60);
 }
 .vresult-msg {
   margin-top: 0.75rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ink);
 }
 
 .vresult-list {
@@ -189,20 +189,20 @@
   align-items: center;
   gap: 0.75rem;
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--ink-09);
   border-radius: 10px;
   padding: 0.75rem 0.9rem;
 }
-.vresult-correct { border-left: 4px solid #22c55e; }
-.vresult-wrong { border-left: 4px solid #ef4444; }
+.vresult-correct { border-left: 4px solid var(--success); }
+.vresult-wrong { border-left: 4px solid var(--danger); }
 .vresult-no {
   width: 1.6rem; height: 1.6rem;
   border-radius: 50%;
-  background: #f1f5f9;
+  background: var(--ink-09);
   display: inline-flex; align-items: center; justify-content: center;
   font-weight: 700;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--ink-40);
   flex-shrink: 0;
 }
 .vresult-body { flex: 1; min-width: 0; }
@@ -213,10 +213,10 @@
 }
 .vresult-answer {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--ink-40);
 }
 .vresult-mine {
-  color: #b91c1c;
+  color: var(--danger);
   text-decoration: line-through;
 }
 .vresult-mark {
@@ -224,8 +224,8 @@
   font-weight: 700;
   flex-shrink: 0;
 }
-.vresult-correct .vresult-mark { color: #22c55e; }
-.vresult-wrong .vresult-mark { color: #ef4444; }
+.vresult-correct .vresult-mark { color: var(--success); }
+.vresult-wrong .vresult-mark { color: var(--danger); }
 
 .vresult-actions {
   display: flex;

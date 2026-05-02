@@ -11,6 +11,7 @@ export default function ProofFillBlankPage() {
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [startTime] = useState(new Date().toISOString());
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function ProofFillBlankPage() {
       });
       setResult(res);
     } catch (err) {
-      alert((err as Error).message);
+      setError((err as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -60,6 +61,7 @@ export default function ProofFillBlankPage() {
 
   const handleRetry = () => {
     setResult(null);
+    setError(null);
     setLoading(true);
     api.getFillBlank(proofId!)
       .then(p => {
@@ -73,7 +75,7 @@ export default function ProofFillBlankPage() {
         }
         setAnswers(init);
       })
-      .catch((err) => alert('문제 재로드 실패: ' + (err?.message || '')))
+      .catch((err) => setError('문제 재로드 실패: ' + (err?.message || '')))
       .finally(() => setLoading(false));
   };
 
@@ -156,6 +158,17 @@ export default function ProofFillBlankPage() {
       )}
       {problem.proof.description_image && (
         <img src={getImageUrl(problem.proof.description_image)} alt="desc" className="proof-play-desc-img" />
+      )}
+
+      {error && (
+        <div role="alert" style={{
+          margin: '12px 0', padding: '10px 14px',
+          background: 'var(--danger-surface)', color: 'var(--danger)',
+          border: 'var(--border-hairline)', borderRadius: 'var(--r-sm)',
+          fontSize: 14,
+        }} onClick={() => setError(null)}>
+          {error}
+        </div>
       )}
 
       {!result ? (

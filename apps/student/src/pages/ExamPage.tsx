@@ -193,7 +193,7 @@ export default function ExamPage() {
     return (
       <div className="page-center">
         <div style={{ padding: 20, textAlign: 'center' }}>
-          <p style={{ color: '#c53030' }}>{error}</p>
+          <p style={{ color: 'var(--danger)' }}>{error}</p>
           <button className="btn-primary" onClick={() => navigate('/')}>홈으로</button>
         </div>
       </div>
@@ -209,12 +209,12 @@ export default function ExamPage() {
       <div className="page-center" style={{ padding: 20 }}>
         <div style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
           <h1 style={{ margin: '24px 0 8px' }}>{meta.title}</h1>
-          <p style={{ color: '#4a5568', marginBottom: 24 }}>
+          <p style={{ color: 'var(--ink-60)', marginBottom: 24 }}>
             ⏱ {meta.durationMinutes}분 · {meta.questionCount}문항
           </p>
           <div style={{
             background: '#f7fafc', borderRadius: 12, padding: 16, textAlign: 'left', marginBottom: 24,
-            fontSize: 14, color: '#4a5568', lineHeight: 1.7,
+            fontSize: 14, color: 'var(--ink-60)', lineHeight: 1.7,
           }}>
             • 답을 선택하면 자동 저장됩니다.<br />
             • 중간에 나가도 돌아와서 이어 풀 수 있어요.<br />
@@ -233,7 +233,7 @@ export default function ExamPage() {
           </button>
           <button
             onClick={() => navigate('/')}
-            style={{ marginTop: 10, padding: '10px 20px', background: 'transparent', border: 'none', color: '#4a5568' }}
+            style={{ marginTop: 10, padding: '10px 20px', background: 'transparent', border: 'none', color: 'var(--ink-60)' }}
           >
             ← 홈으로
           </button>
@@ -249,13 +249,13 @@ export default function ExamPage() {
     const answeredCount = (attempt.answers ?? []).filter(a => a.selectedChoice !== null).length;
     const lowTime = remaining < 60;
     return (
-      <div style={{ maxWidth: 520, margin: '0 auto', padding: 16, minHeight: '100vh', background: '#fff' }}>
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: 16, minHeight: '100vh', background: 'var(--bg-card)' }}>
         {/* 상단 진행/타이머 */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 12,
         }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#2d3a8c' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
             {idx + 1} / {total}
           </span>
           <span style={{
@@ -267,7 +267,7 @@ export default function ExamPage() {
             ⏱ {fmtMMSS(remaining)}
           </span>
         </div>
-        <div style={{ height: 4, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 20 }}>
+        <div style={{ height: 4, background: 'var(--ink-09)', borderRadius: 99, overflow: 'hidden', marginBottom: 20 }}>
           <div style={{
             height: '100%', background: '#2d3a8c', width: `${(idx / Math.max(1, total)) * 100}%`,
             transition: 'width .2s',
@@ -280,7 +280,7 @@ export default function ExamPage() {
           minHeight: 120, fontSize: 16, lineHeight: 1.7, color: '#1a202c',
           whiteSpace: 'pre-wrap',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 8, color: '#2d3a8c' }}>Q{currentQ.questionNo}.</div>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--primary)' }}>Q{currentQ.questionNo}.</div>
           {currentQ.prompt}
         </div>
 
@@ -326,8 +326,8 @@ export default function ExamPage() {
             disabled={idx === 0}
             style={{
               flex: 1, padding: '12px', borderRadius: 10,
-              border: '1px solid #cbd5e0', background: '#fff',
-              color: '#4a5568', fontWeight: 600,
+              border: '1px solid #cbd5e0', background: 'var(--bg-card)',
+              color: 'var(--ink-60)', fontWeight: 600,
               cursor: idx === 0 ? 'not-allowed' : 'pointer',
               opacity: idx === 0 ? 0.5 : 1,
             }}

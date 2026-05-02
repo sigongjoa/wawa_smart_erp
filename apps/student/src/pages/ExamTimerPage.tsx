@@ -169,7 +169,7 @@ export default function ExamTimerPage() {
     >
       <header style={{ textAlign: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 24, fontWeight: 600 }}>{studentName} 학생</div>
-        <div style={{ fontSize: 18, color: '#94a3b8', marginTop: 4 }}>{examTitle}</div>
+        <div style={{ fontSize: 18, color: 'var(--ink-40)', marginTop: 4 }}>{examTitle}</div>
       </header>
 
       <div
@@ -195,7 +195,7 @@ export default function ExamTimerPage() {
         >
           {formatMMSS(localRemaining)}
         </div>
-        <div style={{ fontSize: 20, color: '#cbd5e1' }}>남은 시간</div>
+        <div style={{ fontSize: 20, color: 'var(--ink-20)' }}>남은 시간</div>
       </div>
 
       {isPaused && (
@@ -289,7 +289,7 @@ export default function ExamTimerPage() {
         >
           <div
             style={{
-              background: '#fff',
+              background: 'var(--bg-card)',
               color: '#1f2937',
               padding: 28,
               borderRadius: 16,
@@ -301,7 +301,7 @@ export default function ExamTimerPage() {
             <div id="exam-submit-title" style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
               시험을 제출할까요?
             </div>
-            <div style={{ fontSize: 15, color: '#4b5563', marginBottom: 24 }}>
+            <div style={{ fontSize: 15, color: 'var(--ink-60)', marginBottom: 24 }}>
               제출하면 다시 풀 수 없어요.
             </div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>

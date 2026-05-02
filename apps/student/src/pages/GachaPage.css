@@ -228,16 +228,16 @@
 .gp-btn--grass {
   background: var(--type-grass);
   border-color: var(--type-grass);
-  color: #fff;
+  color: var(--text-on-primary);
 }
-.gp-btn--grass:not(:disabled):hover { background: #2e8820; border-color: #2e8820; }
+.gp-btn--grass:not(:disabled):hover { background: var(--type-grass); border-color: var(--type-grass); }
 
 .gp-btn--danger {
   background: var(--danger);
   border-color: var(--danger);
-  color: #fff;
+  color: var(--text-on-primary);
 }
-.gp-btn--danger:not(:disabled):hover { background: #c21f20; border-color: #c21f20; }
+.gp-btn--danger:not(:disabled):hover { background: var(--danger); border-color: var(--danger); }
 
 /* ─ Reveal (정답 공개) ───────────────────────────────── */
 .gp-reveal {
@@ -298,8 +298,8 @@
   border: 2px solid var(--ink);
 }
 
-.gp-fb--correct { background: var(--type-grass); color: #fff; border-color: var(--type-grass); }
-.gp-fb--wrong { background: var(--danger); color: #fff; border-color: var(--danger); }
+.gp-fb--correct { background: var(--type-grass); color: var(--text-on-primary); border-color: var(--type-grass); }
+.gp-fb--wrong { background: var(--danger); color: var(--text-on-primary); border-color: var(--danger); }
 
 .gp-fb-mark {
   font-family: var(--font-display);

@@ -109,6 +109,10 @@
   --accent-surface: var(--type-water-surface);
   --primary-light: #4f5cb3;
   --radius-full: 9999px;
+
+  /* ─ 도메인 색 (특정 학습 도메인 시그니처) ────────────── */
+  --medterm-signature: #8B0000;        /* 의학용어 시그니처 — 보건고 짙은 적색 */
+  --medterm-signature-hover: #6a0000;
   --shadow-sm: var(--shadow-pop);
   --shadow-md: var(--shadow-pop);
   --shadow-lg: var(--shadow-pop);
