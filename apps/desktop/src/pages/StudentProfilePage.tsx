@@ -131,7 +131,7 @@ export default function StudentProfilePage() {
   return (
     <div className="student-profile-page">
       {loadWarning && (
-        <div role="alert" style={{ padding: '8px 12px', margin: '0 0 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#991b1b', fontSize: 13 }}>
+        <div role="alert" style={{ padding: '8px 12px', margin: '0 0 12px', background: 'var(--danger-surface)', border: '1px solid var(--danger)', borderRadius: 6, color: 'var(--danger)', fontSize: 13 }}>
           {loadWarning}
         </div>
       )}

@@ -131,8 +131,8 @@ export default function HomeroomExamsPage() {
                       <span
                         className="badge"
                         style={{
-                          borderColor: d <= 3 ? 'var(--danger-text)' : d <= 7 ? '#d97706' : '#2563eb',
-                          color: d <= 3 ? 'var(--danger-text)' : d <= 7 ? '#d97706' : '#2563eb',
+                          borderColor: d <= 3 ? 'var(--danger-text)' : d <= 7 ? 'var(--warning)' : 'var(--info)',
+                          color: d <= 3 ? 'var(--danger-text)' : d <= 7 ? 'var(--warning)' : 'var(--info)',
                         }}
                       >
                         D-{d}

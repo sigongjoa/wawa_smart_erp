@@ -78,19 +78,19 @@ export default function HomeroomFollowUpsPage() {
         <>
           <Bucket
             title="기한 경과"
-            color="#dc2626"
+            color="var(--danger)"
             items={overdue}
             badge={(f) => `${-daysUntil(f.follow_up_due)}일 지남`}
           />
           <Bucket
             title="오늘"
-            color="#d97706"
+            color="var(--warning)"
             items={today}
             badge={() => '오늘'}
           />
           <Bucket
             title="예정 (7일 내)"
-            color="#2563eb"
+            color="var(--info)"
             items={upcoming}
             badge={(f) => `D-${daysUntil(f.follow_up_due)}`}
           />

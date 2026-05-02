@@ -15,10 +15,10 @@ const CATEGORY_LABEL: Record<string, string> = {
   ad_hoc: '수시',
 };
 const CATEGORY_COLOR: Record<string, string> = {
-  monthly: '#2563eb',
-  pre_exam: '#d97706',
-  post_exam: '#7c3aed',
-  ad_hoc: '#64748b',
+  monthly: 'var(--info)',
+  pre_exam: 'var(--warning)',
+  post_exam: 'var(--primary)',
+  ad_hoc: 'var(--text-tertiary)',
 };
 
 function monthShift(month: string, delta: number): string {
@@ -112,7 +112,7 @@ export default function HomeroomConsultationsPage() {
           {isCurrentMonth && pending.length > 0 && (
             <section
               className="dashboard-section"
-              style={{ padding: 12, marginBottom: 16, borderLeft: '4px solid #d97706' }}
+              style={{ padding: 12, marginBottom: 16, borderLeft: '4px solid var(--warning)' }}
             >
               <h3 style={{ margin: '0 0 8px' }}>
                 이번 달 미상담 ({pending.length} / {summary?.homeroom_count})

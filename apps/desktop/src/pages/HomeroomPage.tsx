@@ -14,10 +14,10 @@ const CATEGORY_DOT: Record<string, string> = {
   ad_hoc: '◇',
 };
 const CATEGORY_COLOR: Record<string, string> = {
-  monthly: '#2563eb',
-  pre_exam: '#d97706',
-  post_exam: '#7c3aed',
-  ad_hoc: '#64748b',
+  monthly: 'var(--info)',
+  pre_exam: 'var(--warning)',
+  post_exam: 'var(--primary)',
+  ad_hoc: 'var(--text-tertiary)',
 };
 const CATEGORY_LABEL: Record<string, string> = {
   monthly: '월 1회',
