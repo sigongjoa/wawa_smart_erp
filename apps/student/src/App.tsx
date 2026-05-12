@@ -23,6 +23,7 @@ const MedTermExamsListPage = lazy(() => import('./pages/MedTermExamsPage').then(
 const MedTermExamAttemptPage = lazy(() => import('./pages/MedTermExamsPage').then((m) => ({ default: m.MedTermExamAttemptPage })));
 const BaseballPage = lazy(() => import('./pages/BaseballPage'));
 const SignupRequestPage = lazy(() => import('./pages/SignupRequestPage'));
+const ChangePinPage = lazy(() => import('./pages/ChangePinPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/vocab/exam/:jobId/result" element={<ProtectedRoute><VocabExamResultPage /></ProtectedRoute>} />
           <Route path="/gacha" element={<ProtectedRoute><GachaPage /></ProtectedRoute>} />
           <Route path="/baseball" element={<ProtectedRoute><BaseballPage /></ProtectedRoute>} />
+          <Route path="/me/change-pin" element={<ProtectedRoute><ChangePinPage /></ProtectedRoute>} />
 
           {/* 탭바 있음 */}
           <Route

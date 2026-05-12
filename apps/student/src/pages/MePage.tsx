@@ -1,5 +1,5 @@
 import { useAuthStore } from '../store';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import VocabExamCard from '../components/VocabExamCard';
 
 export default function MePage() {
@@ -31,6 +31,14 @@ export default function MePage() {
         </section>
 
         <VocabExamCard />
+
+        <Link
+          to="/me/change-pin"
+          className="btn-secondary"
+          style={{ textAlign: 'center', textDecoration: 'none' }}
+        >
+          PIN 변경
+        </Link>
 
         <button type="button" className="btn-danger-outline" onClick={handleLogout}>
           로그아웃

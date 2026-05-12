@@ -166,7 +166,7 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
       const upgraded = await hashPinV2(pin);
       await executeUpdate(
         context.env.DB,
-        'UPDATE gacha_students SET pin_hash = ?, pin_salt = NULL WHERE id = ?',
+        "UPDATE gacha_students SET pin_hash = ?, pin_salt = '' WHERE id = ?",
         [upgraded, student.id]
       );
     } catch (e) {
@@ -196,6 +196,75 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
 }
 
 // ── 오늘의 세션 ──
+
+// SEC-PIN-CHANGE: 학생 본인 PIN 변경.
+// 현 PIN 검증 + 새 PIN 4자리 숫자 + rate limit (IP+studentId 분 5회).
+// 평문 PIN 절대 응답에 포함하지 않음.
+async function handleChangePin(request: Request, context: RequestContext, auth: PlayAuth): Promise<Response> {
+  try {
+    logger.info(`[change-pin] enter studentId=${auth?.studentId} academyId=${auth?.academyId}`);
+
+    // Rate limit — KV 단순 카운터
+    const ip = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+    const rlKey = `play:cp:m:${ip}:${auth.studentId}`;
+    const rlRaw = await context.env.KV.get(rlKey);
+    const cur = rlRaw ? parseInt(rlRaw, 10) : 0;
+    if (cur >= 5) {
+      return new Response(
+        JSON.stringify({ error: 'PIN 변경 시도가 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+      );
+    }
+
+    const body = await request.json().catch(() => ({})) as any;
+    const current_pin: string = body?.current_pin ?? '';
+    const new_pin: string = body?.new_pin ?? '';
+
+    if (!/^\d{4}$/.test(current_pin) || !/^\d{4}$/.test(new_pin)) {
+      return errorResponse('PIN은 4자리 숫자여야 합니다', 400);
+    }
+    if (current_pin === new_pin) {
+      return errorResponse('새 PIN은 기존 PIN과 달라야 합니다', 400);
+    }
+
+    // 시도 카운터 미리 증가 (실패하든 성공하든 brute force 방어)
+    try { await context.env.KV.put(rlKey, String(cur + 1), { expirationTtl: 60 }); } catch { /* ignore */ }
+
+    // 현 학생 hash 조회 (academy_id 격리)
+    const student = await executeFirst<{ pin_hash: string | null }>(
+      context.env.DB,
+      'SELECT pin_hash FROM gacha_students WHERE id = ? AND academy_id = ?',
+      [auth.studentId, auth.academyId],
+    );
+    if (!student?.pin_hash) {
+      logger.warn(`[change-pin] student or pin_hash not found: ${auth.studentId}`);
+      return errorResponse('학생 정보를 찾을 수 없습니다', 404);
+    }
+
+    // 현 PIN 검증
+    const ok = await verifyPinV2(current_pin, student.pin_hash);
+    if (!ok) {
+      return errorResponse('현재 PIN이 올바르지 않습니다', 401);
+    }
+
+    // 새 PIN 해시 + UPDATE
+    // pin_salt: NOT NULL 제약 — 새 pbkdf2$ hash 는 salt를 hash 안에 포함하므로 빈 문자열로 채움.
+    // (기존 INSERT 패턴과 동일 — gacha-student-handler.ts 가입 승인 코드 참조)
+    const newHash = await hashPinV2(new_pin);
+    await executeUpdate(
+      context.env.DB,
+      "UPDATE gacha_students SET pin_hash = ?, pin_salt = '', updated_at = ? WHERE id = ? AND academy_id = ?",
+      [newHash, new Date().toISOString(), auth.studentId, auth.academyId],
+    );
+
+    logger.logAudit('STUDENT_PIN_CHANGE', 'GachaStudent', auth.studentId, auth.studentId, {});
+    return successResponse({ ok: true });
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    logger.error(`[change-pin] failed: ${err.message}`, err);
+    return errorResponse(`PIN 변경 처리 실패: ${err.message}`, 500);
+  }
+}
 
 async function handleGetSession(context: RequestContext, auth: PlayAuth): Promise<Response> {
   const today = new Date().toISOString().split('T')[0];
@@ -684,6 +753,12 @@ export async function handleGachaPlay(
     const auth = await getPlayAuth(context);
     if (!requirePlayAuth(auth)) {
       return unauthorizedResponse();
+    }
+
+    // /api/play/auth/change-pin
+    if (pathname === '/api/play/auth/change-pin') {
+      if (method === 'POST') return await handleChangePin(request, context, auth);
+      return errorResponse('Method not allowed', 405);
     }
 
     // /api/play/session
