@@ -479,6 +479,129 @@ export async function gachaCardFeedbackRateLimit(
   return null;
 }
 
+// ──────────────────────────────────────────────────────────────────
+// 학생 자가 가입 요청 — 스팸/봇 방어 (SEC-SSR-H1)
+// IP+slug 분 5회, 일 20회. 학원당도 분 30회/시 200회로 dump 방어.
+// ──────────────────────────────────────────────────────────────────
+const SIGNUP_REQUEST_IP_PER_MIN = 5;
+const SIGNUP_REQUEST_IP_PER_DAY = 20;
+const SIGNUP_REQUEST_ACADEMY_PER_MIN = 30;
+const SIGNUP_REQUEST_ACADEMY_PER_HOUR = 200;
+
+export async function signupRequestRateLimit(
+  kv: KVLike,
+  request: Request,
+  slug: string,
+): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const safeSlug = slug.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const ipMinKey = `ssr:ipm:${ip}`;
+  const ipDayKey = `ssr:ipd:${ip}`;
+  const acadMinKey = `ssr:am:${safeSlug}`;
+  const acadHourKey = `ssr:ah:${safeSlug}`;
+
+  const [imRaw, idRaw, amRaw, ahRaw] = await Promise.all([
+    kv.get(ipMinKey), kv.get(ipDayKey), kv.get(acadMinKey), kv.get(acadHourKey),
+  ]);
+  const im = imRaw ? parseInt(imRaw) : 0;
+  const id = idRaw ? parseInt(idRaw) : 0;
+  const am = amRaw ? parseInt(amRaw) : 0;
+  const ah = ahRaw ? parseInt(ahRaw) : 0;
+
+  if (
+    im >= SIGNUP_REQUEST_IP_PER_MIN ||
+    id >= SIGNUP_REQUEST_IP_PER_DAY ||
+    am >= SIGNUP_REQUEST_ACADEMY_PER_MIN ||
+    ah >= SIGNUP_REQUEST_ACADEMY_PER_HOUR
+  ) {
+    return new Response(
+      JSON.stringify({ error: '가입 요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+
+  await Promise.all([
+    kv.put(ipMinKey, String(im + 1), { expirationTtl: 60 }),
+    kv.put(ipDayKey, String(id + 1), { expirationTtl: 86400 }),
+    kv.put(acadMinKey, String(am + 1), { expirationTtl: 60 }),
+    kv.put(acadHourKey, String(ah + 1), { expirationTtl: 3600 }),
+  ]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Word Baseball — wrong_count/review_count 인플레이션 방어 (SEC-BB-H1)
+// /words: 게임 시작 시 4티어 동시 호출. 학생당 분 15회, 일 150회 (≈게임 9-10번).
+// /finish: 게임당 1회. 학생당 분 3회, 일 30회.
+// /finish 멱등성: game_id 기준 5분 TTL — 클라 retry로 wrong_count 중복 누적 방지 (Ⅱ-5).
+// ──────────────────────────────────────────────────────────────────
+const BASEBALL_WORDS_PER_MIN = 15;
+const BASEBALL_WORDS_PER_DAY = 150;
+const BASEBALL_FINISH_PER_MIN = 3;
+const BASEBALL_FINISH_PER_DAY = 30;
+const BASEBALL_FINISH_IDEMPOTENT_TTL = 5 * 60; // 5분
+
+export async function baseballWordsRateLimit(
+  kv: KVLike,
+  studentId: string,
+): Promise<Response | null> {
+  const safe = studentId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const mKey = `bbw:m:${safe}`;
+  const dKey = `bbw:d:${safe}`;
+  const [mRaw, dRaw] = await Promise.all([kv.get(mKey), kv.get(dKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const d = dRaw ? parseInt(dRaw) : 0;
+  if (m >= BASEBALL_WORDS_PER_MIN || d >= BASEBALL_WORDS_PER_DAY) {
+    return new Response(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+  await Promise.all([
+    kv.put(mKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(dKey, String(d + 1), { expirationTtl: 86400 }),
+  ]);
+  return null;
+}
+
+export async function baseballFinishRateLimit(
+  kv: KVLike,
+  studentId: string,
+): Promise<Response | null> {
+  const safe = studentId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const mKey = `bbf:m:${safe}`;
+  const dKey = `bbf:d:${safe}`;
+  const [mRaw, dRaw] = await Promise.all([kv.get(mKey), kv.get(dKey)]);
+  const m = mRaw ? parseInt(mRaw) : 0;
+  const d = dRaw ? parseInt(dRaw) : 0;
+  if (m >= BASEBALL_FINISH_PER_MIN || d >= BASEBALL_FINISH_PER_DAY) {
+    return new Response(
+      JSON.stringify({ error: '게임 종료 요청이 너무 많습니다. 잠시 후 다시 시도하세요.', code: 'rate_limited' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
+    );
+  }
+  await Promise.all([
+    kv.put(mKey, String(m + 1), { expirationTtl: 60 }),
+    kv.put(dKey, String(d + 1), { expirationTtl: 86400 }),
+  ]);
+  return null;
+}
+
+/** game_id 기반 멱등성 가드 — 같은 게임 결과 중복 제출 시 duplicate=true 반환. */
+export async function baseballFinishIdempotency(
+  kv: KVLike,
+  studentId: string,
+  gameId: string,
+): Promise<{ duplicate: boolean }> {
+  const safeStudent = studentId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const safeGame = gameId.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+  const key = `bb:done:${safeStudent}:${safeGame}`;
+  const existing = await kv.get(key);
+  if (existing) return { duplicate: true };
+  await kv.put(key, '1', { expirationTtl: BASEBALL_FINISH_IDEMPOTENT_TTL });
+  return { duplicate: false };
+}
+
 export async function setRateLimitHeaders(
   response: Response,
   ip: string,

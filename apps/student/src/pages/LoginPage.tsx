@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, Academy } from '../api';
 import { useAuthStore } from '../store';
 import './LoginPage.css';
@@ -141,6 +141,20 @@ export default function LoginPage() {
           {loading ? 'LOADING' : 'START'}
           <span className="lg-submit-arrow" aria-hidden="true">→</span>
         </button>
+
+        <Link
+          to="/signup-request"
+          style={{
+            display: 'block',
+            textAlign: 'center',
+            marginTop: 12,
+            fontSize: 13,
+            color: 'var(--ink-60)',
+            textDecoration: 'none',
+          }}
+        >
+          처음이신가요? <strong style={{ color: 'var(--ink)' }}>가입 요청 →</strong>
+        </Link>
       </form>
 
       <footer className="lg-footer">

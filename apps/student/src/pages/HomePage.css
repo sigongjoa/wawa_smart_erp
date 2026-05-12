@@ -188,6 +188,8 @@
 .hp-tile--grass .hp-tile-dot    { background: var(--type-grass); }
 .hp-tile--electric .hp-tile-dot { background: var(--type-electric); }
 .hp-tile--ground .hp-tile-dot   { background: var(--type-ground); }
+.hp-tile--fire .hp-tile-dot     { background: #E25822; }
+.hp-tile--full                  { grid-column: 1 / -1; }
 
 .hp-tile-label {
   font-size: 15px;

@@ -118,6 +118,20 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
     [academy.id, name.trim(), 'active']
   );
   if (candidates.length === 0) {
+    // 자가 가입 요청이 대기/거절 중이면 안내 메시지로 분기 (SEC-SSR-M1)
+    const pendingReq = await executeFirst<{ status: string }>(
+      context.env.DB,
+      'SELECT status FROM student_signup_requests WHERE academy_id = ? AND name = ?',
+      [academy.id, name.trim()],
+    );
+    if (pendingReq) {
+      if (pendingReq.status === 'pending') {
+        return errorResponse('가입 요청 승인 대기 중입니다. 선생님 승인 후 로그인 가능합니다.', 403);
+      }
+      if (pendingReq.status === 'rejected') {
+        return errorResponse('가입 요청이 거절되었습니다. 선생님께 문의하세요.', 403);
+      }
+    }
     return errorResponse('학생을 찾을 수 없습니다', 404);
   }
 

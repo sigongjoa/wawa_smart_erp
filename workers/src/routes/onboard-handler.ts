@@ -14,7 +14,10 @@ import {
   onboardRegisterRateLimit,
   verifySlugRateLimit,
   academyInfoRateLimit,
+  signupRequestRateLimit,
 } from '@/middleware/rateLimit';
+import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
+import { generatePrefixedId } from '@/utils/id';
 import { z } from 'zod';
 
 // 공개 학원 목록 캐시 키 (PERF-LOGIN-M1)
@@ -46,6 +49,15 @@ const RegisterSchema = z.object({
 
 const VerifySlugSchema = z.object({
   slug: z.string().regex(SLUG_REGEX, '학원코드는 영문 소문자, 숫자, 하이픈만 가능 (3~30자)'),
+});
+
+// SEC-SSR-H2: 학생 자가 가입 요청 입력 스키마
+const StudentSignupRequestSchema = z.object({
+  academy_slug: z.string().regex(SLUG_REGEX),
+  name: z.string().min(1).max(50).regex(PERSON_NAME_REGEX, '이름에 사용할 수 없는 문자가 포함되어 있습니다'),
+  grade: z.string().max(20).optional(),
+  pin: z.string().regex(/^\d{4}$/, 'PIN은 4자리 숫자여야 합니다'),
+  memo: z.string().max(200).optional(),
 });
 
 // 예약어 slug (사용 불가)
@@ -224,6 +236,73 @@ export async function handleOnboard(
       } catch { /* ignore */ }
 
       return successResponse(payload);
+    }
+
+    // POST /api/onboard/student-signup-request — 학생 자가 가입 요청 (교사 승인 대기)
+    if (method === 'POST' && pathname === '/api/onboard/student-signup-request') {
+      const body = await request.json() as any;
+      const input = StudentSignupRequestSchema.parse(body);
+
+      // SEC-SSR-H1: 스팸/봇 방어 (IP+slug)
+      const blocked = await signupRequestRateLimit(context.env.KV, request, input.academy_slug);
+      if (blocked) return blocked;
+
+      // 학원 조회
+      const academy = await executeFirst<{ id: string }>(
+        context.env.DB,
+        'SELECT id FROM academies WHERE slug = ? AND is_active = 1',
+        [input.academy_slug],
+      );
+      if (!academy) {
+        return errorResponse('학원을 찾을 수 없습니다', 404);
+      }
+
+      const safeName = sanitizeText(input.name, 50);
+      if (!safeName) {
+        return errorResponse('입력 검증 오류: 이름', 400);
+      }
+      const safeGrade = sanitizeNullable(input.grade, 20);
+      const safeMemo = sanitizeNullable(input.memo, 200);
+
+      // 이미 등록된 학생(gacha_students)에 동명 존재 시 차단
+      const existingStudent = await executeFirst<{ id: string }>(
+        context.env.DB,
+        'SELECT id FROM gacha_students WHERE academy_id = ? AND name = ?',
+        [academy.id, safeName],
+      );
+      if (existingStudent) {
+        return errorResponse('이미 등록된 학생입니다. 로그인을 시도해보세요.', 409);
+      }
+
+      // signup_requests에서 pending/rejected 동명 존재 확인 (UNIQUE 제약과 동일 결과를 미리 알림)
+      const existingReq = await executeFirst<{ status: string }>(
+        context.env.DB,
+        'SELECT status FROM student_signup_requests WHERE academy_id = ? AND name = ?',
+        [academy.id, safeName],
+      );
+      if (existingReq) {
+        if (existingReq.status === 'pending') {
+          return errorResponse('이미 가입 요청 중입니다. 선생님 승인을 기다려 주세요.', 409);
+        }
+        return errorResponse('이전 가입 요청이 거절되었습니다. 선생님께 문의해주세요.', 409);
+      }
+
+      const id = generatePrefixedId('ssr');
+      const pinHash = await hashPin(input.pin);
+
+      await executeInsert(
+        context.env.DB,
+        `INSERT INTO student_signup_requests
+          (id, academy_id, name, grade, pin_hash, status, memo, submitted_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', ?, datetime('now'))`,
+        [id, academy.id, safeName, safeGrade, pinHash, safeMemo],
+      );
+
+      logger.info(`학생 가입 요청 접수: ${safeName} (academy=${input.academy_slug})`);
+      return successResponse(
+        { id, message: '가입 요청이 접수되었습니다. 선생님 승인 후 로그인 가능합니다.' },
+        201,
+      );
     }
 
     return errorResponse('Not found', 404);

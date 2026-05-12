@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, GachaStudent } from '../api';
+import { api, GachaStudent, StudentSignupRequest } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import DialogShell from '../components/DialogShell';
 import { useAuthStore } from '../store';
@@ -35,6 +35,10 @@ export default function GachaStudentPage() {
 
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
 
+  // 자가 가입 요청 (pending)
+  const [signupRequests, setSignupRequests] = useState<StudentSignupRequest[]>([]);
+  const [signupBusy, setSignupBusy] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -47,7 +51,45 @@ export default function GachaStudentPage() {
     }
   }, [isAdmin, scope]);
 
+  const loadSignupRequests = useCallback(async () => {
+    try {
+      const data = await api.getSignupRequests('pending');
+      setSignupRequests(Array.isArray(data) ? data : []);
+    } catch {
+      setSignupRequests([]);
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadSignupRequests(); }, [loadSignupRequests]);
+
+  const handleApproveSignup = async (req: StudentSignupRequest) => {
+    setSignupBusy(req.id);
+    try {
+      await api.approveSignupRequest(req.id);
+      toast.success(`${req.name} 가입 승인 완료`);
+      await Promise.all([loadSignupRequests(), load()]);
+    } catch (err) {
+      toast.error('승인 실패: ' + (err as Error).message);
+    } finally {
+      setSignupBusy(null);
+    }
+  };
+
+  const handleRejectSignup = async (req: StudentSignupRequest) => {
+    const reason = window.prompt(`${req.name} 가입 요청을 거절합니다.\n사유 (선택, 학생에게 표시되지 않음):`);
+    if (reason === null) return; // 취소
+    setSignupBusy(req.id);
+    try {
+      await api.rejectSignupRequest(req.id, reason || undefined);
+      toast.success(`${req.name} 가입 거절`);
+      await loadSignupRequests();
+    } catch (err) {
+      toast.error('거절 실패: ' + (err as Error).message);
+    } finally {
+      setSignupBusy(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     let list = students;
@@ -139,6 +181,63 @@ export default function GachaStudentPage() {
   return (
     <div className="gacha-page">
       {ConfirmDialog}
+
+      {/* 자가 가입 요청 (pending) — 있을 때만 노출 */}
+      {signupRequests.length > 0 && (
+        <div className="gacha-form-card" style={{ borderColor: '#FAC000', background: '#FFFBEB' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            가입 요청 대기
+            <span style={{
+              background: '#FAC000', color: '#0a1f14',
+              padding: '2px 8px', borderRadius: 12,
+              fontSize: 12, fontWeight: 800,
+            }}>{signupRequests.length}</span>
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {signupRequests.map((req) => (
+              <div key={req.id} style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 2fr auto',
+                gap: 12,
+                alignItems: 'center',
+                padding: '10px 12px',
+                background: '#fff',
+                border: '1px solid #eee',
+                borderRadius: 8,
+              }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{req.name}</div>
+                  <div style={{ fontSize: 12, color: '#666' }}>{req.grade ?? '학년 미지정'}</div>
+                </div>
+                <div style={{ fontSize: 12, color: '#666' }}>
+                  {new Date(req.submitted_at + (req.submitted_at.endsWith('Z') ? '' : 'Z')).toLocaleString('ko-KR', {
+                    month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                  })}
+                </div>
+                <div style={{ fontSize: 12, color: '#444', wordBreak: 'break-word' }}>
+                  {req.memo ?? <span style={{ color: '#aaa' }}>메모 없음</span>}
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    className="btn-primary"
+                    disabled={signupBusy === req.id}
+                    onClick={() => handleApproveSignup(req)}
+                  >
+                    {signupBusy === req.id ? '...' : '✓ 승인'}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    disabled={signupBusy === req.id}
+                    onClick={() => handleRejectSignup(req)}
+                  >
+                    ✗ 거절
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="gacha-page-header">
         <h1>학습 학생 관리</h1>

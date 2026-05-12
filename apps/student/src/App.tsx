@@ -21,6 +21,8 @@ const VocabExamResultPage = lazy(() => import('./pages/VocabExamResultPage'));
 const MedTermPage = lazy(() => import('./pages/MedTermPage'));
 const MedTermExamsListPage = lazy(() => import('./pages/MedTermExamsPage').then((m) => ({ default: m.MedTermExamsListPage })));
 const MedTermExamAttemptPage = lazy(() => import('./pages/MedTermExamsPage').then((m) => ({ default: m.MedTermExamAttemptPage })));
+const BaseballPage = lazy(() => import('./pages/BaseballPage'));
+const SignupRequestPage = lazy(() => import('./pages/SignupRequestPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -45,6 +47,7 @@ export default function App() {
         <Routes>
           {/* 풀스크린 (탭바 없음) */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup-request" element={<SignupRequestPage />} />
           <Route path="/exam/:assignmentId" element={<ProtectedRoute><ExamPage /></ProtectedRoute>} />
           <Route path="/exam-timer" element={<ProtectedRoute><ExamTimerPage /></ProtectedRoute>} />
           <Route path="/live/:id" element={<ProtectedRoute><LiveSessionPage /></ProtectedRoute>} />
@@ -53,6 +56,7 @@ export default function App() {
           <Route path="/vocab/exam/:jobId" element={<ProtectedRoute><VocabExamPage /></ProtectedRoute>} />
           <Route path="/vocab/exam/:jobId/result" element={<ProtectedRoute><VocabExamResultPage /></ProtectedRoute>} />
           <Route path="/gacha" element={<ProtectedRoute><GachaPage /></ProtectedRoute>} />
+          <Route path="/baseball" element={<ProtectedRoute><BaseballPage /></ProtectedRoute>} />
 
           {/* 탭바 있음 */}
           <Route

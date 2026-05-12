@@ -35,6 +35,7 @@ import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
 import { handleExamPaper } from '@/routes/exam-paper-handler';
 import { handleVocab } from '@/routes/vocab-handler';
 import { handleVocabPlay } from '@/routes/vocab-play-handler';
+import { handleBaseballPlay } from '@/routes/baseball-play-handler';
 import { handleVocabPolicy } from '@/routes/vocab-policy-handler';
 import { handleMedTerm } from '@/routes/medterm-handler';
 import { handleMedTermPlay } from '@/routes/medterm-play-handler';
@@ -128,6 +129,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학생 앱 (PIN 토큰 인증 — JWT 미들웨어 스킵)
       if (pathname.startsWith('/api/play/vocab/')) {
         return addCorsHeaders(await handleVocabPlay(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/play/baseball/')) {
+        return addCorsHeaders(await handleBaseballPlay(method, pathname, request, context), env, origin);
       }
       if (pathname.startsWith('/api/play/medterm/')) {
         return addCorsHeaders(await handleMedTermPlay(method, pathname, request, context), env, origin);

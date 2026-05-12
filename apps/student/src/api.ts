@@ -100,6 +100,17 @@ export interface SubmitResult {
   time_spent: number;
 }
 
+export interface BaseballWord {
+  id: string;
+  english: string;
+  korean: string;
+}
+export interface BaseballWordsResponse {
+  words: BaseballWord[];
+  source: 'weak' | 'my' | 'fallback' | 'empty';
+  message?: string;
+}
+
 export interface StudentProfile {
   student: { id: string; name: string; grade: string };
   sessions: Session[];
@@ -115,7 +126,28 @@ export interface Academy {
   logo: string | null;
 }
 
+// ── Student signup (자가 가입 요청) ──
+
+export interface SignupRequestInput {
+  academy_slug: string;
+  name: string;
+  grade?: string;
+  pin: string;
+  memo?: string;
+}
+
 export const api = {
+  submitSignupRequest: async (data: SignupRequestInput): Promise<{ id: string; message: string }> => {
+    const res = await fetch(`${API_BASE}/api/onboard/student-signup-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || res.statusText);
+    return json?.data ?? json;
+  },
+
   getAcademies: async (): Promise<Academy[]> => {
     const res = await fetch(`${API_BASE}/api/onboard/academies`);
     const json = await res.json();
@@ -157,6 +189,19 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // ── Baseball (단어 야구) ──
+
+  getBaseballWords: (inning: 1 | 2 | 3 | 4) =>
+    request<BaseballWordsResponse>(`/api/play/baseball/words?inning=${inning}`),
+  finishBaseball: (data: { gameId: string; missedIds: string[]; correctIds: string[] }) =>
+    request<{ updated: number; missed?: number; correct?: number; duplicate?: boolean }>(
+      '/api/play/baseball/finish',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
 
   // ── Vocab (영단어 학습) ──
 

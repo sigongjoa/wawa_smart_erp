@@ -202,6 +202,21 @@ export default function HomePage() {
             )}
           </div>
         </button>
+
+        <button
+          type="button"
+          className="hp-tile hp-tile--fire hp-tile--full"
+          onClick={() => navigate('/baseball')}
+          aria-label="단어 야구 게임"
+        >
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">⚾ 야구</span>
+          </div>
+          <div className="hp-tile-value">
+            <span className="hp-tile-value-sub">단어 시합 →</span>
+          </div>
+        </button>
       </section>
 
       {examMsg && (

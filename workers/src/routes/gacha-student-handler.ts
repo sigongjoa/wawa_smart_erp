@@ -304,6 +304,139 @@ async function handleResetPin(request: Request, context: RequestContext, student
   return resp;
 }
 
+// ── 학생 자가 가입 요청 (signup-requests) — 교사 검토 ──
+
+interface SignupRequestRow {
+  id: string;
+  academy_id: string;
+  name: string;
+  grade: string | null;
+  pin_hash: string;
+  status: string;
+  memo: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  reject_reason: string | null;
+}
+
+async function handleListSignupRequests(context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const url = new URL(context.request.url);
+  const status = url.searchParams.get('status') ?? 'pending';
+  if (!['pending', 'rejected', 'all'].includes(status)) {
+    return errorResponse('입력 검증 오류: status는 pending|rejected|all', 400);
+  }
+
+  const rows = status === 'all'
+    ? await executeQuery<SignupRequestRow>(
+        context.env.DB,
+        `SELECT id, academy_id, name, grade, status, memo, submitted_at, reviewed_at, reviewed_by, reject_reason
+         FROM student_signup_requests
+         WHERE academy_id = ?
+         ORDER BY submitted_at DESC
+         LIMIT 200`,
+        [academyId],
+      )
+    : await executeQuery<SignupRequestRow>(
+        context.env.DB,
+        `SELECT id, academy_id, name, grade, status, memo, submitted_at, reviewed_at, reviewed_by, reject_reason
+         FROM student_signup_requests
+         WHERE academy_id = ? AND status = ?
+         ORDER BY submitted_at DESC
+         LIMIT 200`,
+        [academyId, status],
+      );
+
+  return successResponse(rows);
+}
+
+async function handleApproveSignupRequest(context: RequestContext, requestId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const teacherId = getUserId(context);
+
+  // pending 요청만 승인 가능 (academy_id 격리)
+  const req = await executeFirst<SignupRequestRow>(
+    context.env.DB,
+    `SELECT * FROM student_signup_requests
+     WHERE id = ? AND academy_id = ? AND status = 'pending'`,
+    [requestId, academyId],
+  );
+  if (!req) {
+    return errorResponse('가입 요청을 찾을 수 없습니다 (이미 처리되었거나 거절됨)', 404);
+  }
+
+  // 동명 학생 중복 차단 (race 방어)
+  const existing = await executeFirst<{ id: string }>(
+    context.env.DB,
+    'SELECT id FROM gacha_students WHERE academy_id = ? AND name = ?',
+    [academyId, req.name],
+  );
+  if (existing) {
+    return errorResponse('이미 같은 이름의 학생이 등록되어 있습니다', 409);
+  }
+
+  const studentId = generatePrefixedId('gstu');
+  const now = new Date().toISOString();
+
+  // 원자 실행: gacha_students INSERT + students INSERT + signup_requests DELETE (Ⅱ-5)
+  // pin_salt 컬럼은 schema상 NOT NULL이지만 pbkdf2$ 새 형식은 hash 안에 salt 포함 → 빈 문자열로 채움.
+  await context.env.DB.batch([
+    context.env.DB.prepare(
+      `INSERT INTO gacha_students (id, academy_id, teacher_id, name, pin_hash, pin_salt, grade, status, created_at)
+       VALUES (?, ?, ?, ?, ?, '', ?, 'active', ?)`,
+    ).bind(studentId, academyId, teacherId, req.name, req.pin_hash, req.grade, now),
+    context.env.DB.prepare(
+      `INSERT INTO students (id, academy_id, name, grade, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?)`,
+    ).bind(studentId, academyId, req.name, req.grade, now, now),
+    context.env.DB.prepare(
+      'DELETE FROM student_signup_requests WHERE id = ? AND academy_id = ?',
+    ).bind(requestId, academyId),
+  ]);
+
+  logger.logAudit('STUDENT_SIGNUP_APPROVE', 'StudentSignupRequest', requestId, teacherId, { studentId, name: req.name });
+  return successResponse({ studentId, name: req.name });
+}
+
+async function handleRejectSignupRequest(request: Request, context: RequestContext, requestId: string): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+  const teacherId = getUserId(context);
+
+  const body = await request.json().catch(() => ({})) as any;
+  const reason = sanitizeNullable(body?.reason, 200);
+
+  // pending → rejected (academy_id 격리 + 멱등 가드)
+  // executeUpdate는 boolean만 반환하므로 changes 수 확인을 위해 raw prepare 사용.
+  const result = await context.env.DB
+    .prepare(
+      `UPDATE student_signup_requests
+       SET status = 'rejected',
+           reviewed_at = datetime('now'),
+           reviewed_by = ?,
+           reject_reason = ?
+       WHERE id = ? AND academy_id = ? AND status = 'pending'`,
+    )
+    .bind(teacherId, reason, requestId, academyId)
+    .run();
+
+  if (!result.meta || result.meta.changes === 0) {
+    return errorResponse('가입 요청을 찾을 수 없습니다 (이미 처리됨)', 404);
+  }
+
+  logger.logAudit('STUDENT_SIGNUP_REJECT', 'StudentSignupRequest', requestId, teacherId, { reason });
+  return successResponse({ requestId, status: 'rejected' });
+}
+
 // ── 메인 라우터 ──
 
 export async function handleGachaStudent(
@@ -313,6 +446,26 @@ export async function handleGachaStudent(
   context: RequestContext
 ): Promise<Response> {
   try {
+    // /api/gacha/students/signup-requests (목록)
+    if (pathname === '/api/gacha/students/signup-requests') {
+      if (method === 'GET') return await handleListSignupRequests(context);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/gacha/students/signup-requests/:id/approve
+    const approveMatch = pathname.match(/^\/api\/gacha\/students\/signup-requests\/([^/]+)\/approve$/);
+    if (approveMatch) {
+      if (method === 'POST') return await handleApproveSignupRequest(context, approveMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
+    // /api/gacha/students/signup-requests/:id/reject
+    const rejectMatch = pathname.match(/^\/api\/gacha\/students\/signup-requests\/([^/]+)\/reject$/);
+    if (rejectMatch) {
+      if (method === 'POST') return await handleRejectSignupRequest(request, context, rejectMatch[1]);
+      return errorResponse('Method not allowed', 405);
+    }
+
     // /api/gacha/students
     if (pathname === '/api/gacha/students') {
       if (method === 'GET') return await handleGetStudents(context, request);

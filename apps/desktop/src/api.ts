@@ -897,6 +897,11 @@ export const api = {
       `/api/timer/sessions/${sessionId}/check-out`,
       { method: 'POST', body: JSON.stringify({ note }) }
     ),
+  sessionExtend: (sessionId: string, minutes: number) =>
+    request<{ id: string; scheduledMinutes: number; addedMinutes: number; delta: number }>(
+      `/api/timer/sessions/${sessionId}/extend`,
+      { method: 'POST', body: JSON.stringify({ minutes }) }
+    ),
 
   // ── 결석/보강 관리 ──
 
@@ -1130,6 +1135,22 @@ export const api = {
     request<{ id: string; pinReset: boolean; pin: string }>(`/api/gacha/students/${id}/reset-pin`, {
       method: 'POST',
       body: JSON.stringify({ generate: true }),
+    }),
+
+  // ── 학생 자가 가입 요청 (signup-requests) ──
+
+  getSignupRequests: (status: 'pending' | 'rejected' | 'all' = 'pending') =>
+    request<StudentSignupRequest[]>(`/api/gacha/students/signup-requests?status=${status}`),
+
+  approveSignupRequest: (id: string) =>
+    request<{ studentId: string; name: string }>(`/api/gacha/students/signup-requests/${id}/approve`, {
+      method: 'POST',
+    }),
+
+  rejectSignupRequest: (id: string, reason?: string) =>
+    request<{ requestId: string; status: 'rejected' }>(`/api/gacha/students/signup-requests/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(reason ? { reason } : {}),
     }),
 
   // ── 가차 카드 관리 ──
@@ -2028,6 +2049,19 @@ export interface GachaStudent {
   proof_count?: number;
   session_count?: number;
   created_at: string;
+}
+
+export interface StudentSignupRequest {
+  id: string;
+  academy_id: string;
+  name: string;
+  grade: string | null;
+  status: 'pending' | 'rejected';
+  memo: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  reject_reason: string | null;
 }
 
 export interface GachaCard {
