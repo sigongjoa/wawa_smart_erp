@@ -757,3 +757,113 @@
   .bb-root .team-score { font-size: 26px; }
   .bb-root .half-banner { padding: 6px 12px; }
 }
+
+/* ===== v2: Runner 베이스 이동 애니메이션 ===== */
+.bb-root .runners-layer {
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 4;
+}
+.bb-root .runner {
+  position: absolute;
+  width: 16px; height: 16px;
+  background: #ffc800;
+  border: 2px solid #041209;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 0 #041209, 0 0 12px rgba(255, 200, 0, 0.6);
+  will-change: top, left, opacity, transform;
+}
+/* idle 상태에서의 베이스별 정착 좌표 */
+.bb-root .runner.idle.pos-0 { left: 50%; top: 92%; }
+.bb-root .runner.idle.pos-1 { left: 84%; top: 55%; }
+.bb-root .runner.idle.pos-2 { left: 50%; top: 16%; }
+.bb-root .runner.idle.pos-3 { left: 16%; top: 55%; }
+
+/* running: pos × targetPos 조합으로 9가지 이동 경로 */
+.bb-root .runner.running.pos-0.to-1 { animation: bb-run-0-1 0.7s linear forwards; }
+@keyframes bb-run-0-1 {
+  0%   { left: 50%; top: 92%; }
+  100% { left: 84%; top: 55%; }
+}
+.bb-root .runner.running.pos-0.to-2 { animation: bb-run-0-2 1.2s linear forwards; }
+@keyframes bb-run-0-2 {
+  0%   { left: 50%; top: 92%; }
+  50%  { left: 84%; top: 55%; }
+  100% { left: 50%; top: 16%; }
+}
+.bb-root .runner.running.pos-0.to-3 { animation: bb-run-0-3 1.5s linear forwards; }
+@keyframes bb-run-0-3 {
+  0%    { left: 50%; top: 92%; }
+  34%   { left: 84%; top: 55%; }
+  67%   { left: 50%; top: 16%; }
+  100%  { left: 16%; top: 55%; }
+}
+.bb-root .runner.running.pos-0.to-4 { animation: bb-run-0-4 2.0s linear forwards; }
+@keyframes bb-run-0-4 {
+  0%    { left: 50%; top: 92%; opacity: 1; }
+  25%   { left: 84%; top: 55%; opacity: 1; }
+  50%   { left: 50%; top: 16%; opacity: 1; }
+  75%   { left: 16%; top: 55%; opacity: 1; }
+  95%   { left: 50%; top: 92%; opacity: 1; }
+  100%  { left: 50%; top: 92%; opacity: 0; }
+}
+.bb-root .runner.running.pos-1.to-2 { animation: bb-run-1-2 0.7s linear forwards; }
+@keyframes bb-run-1-2 {
+  0%   { left: 84%; top: 55%; }
+  100% { left: 50%; top: 16%; }
+}
+.bb-root .runner.running.pos-1.to-3 { animation: bb-run-1-3 1.2s linear forwards; }
+@keyframes bb-run-1-3 {
+  0%   { left: 84%; top: 55%; }
+  50%  { left: 50%; top: 16%; }
+  100% { left: 16%; top: 55%; }
+}
+.bb-root .runner.running.pos-1.to-4 { animation: bb-run-1-4 1.5s linear forwards; }
+@keyframes bb-run-1-4 {
+  0%   { left: 84%; top: 55%; opacity: 1; }
+  33%  { left: 50%; top: 16%; opacity: 1; }
+  66%  { left: 16%; top: 55%; opacity: 1; }
+  95%  { left: 50%; top: 92%; opacity: 1; }
+  100% { left: 50%; top: 92%; opacity: 0; }
+}
+.bb-root .runner.running.pos-2.to-3 { animation: bb-run-2-3 0.7s linear forwards; }
+@keyframes bb-run-2-3 {
+  0%   { left: 50%; top: 16%; }
+  100% { left: 16%; top: 55%; }
+}
+.bb-root .runner.running.pos-2.to-4 { animation: bb-run-2-4 1.2s linear forwards; }
+@keyframes bb-run-2-4 {
+  0%   { left: 50%; top: 16%; opacity: 1; }
+  50%  { left: 16%; top: 55%; opacity: 1; }
+  95%  { left: 50%; top: 92%; opacity: 1; }
+  100% { left: 50%; top: 92%; opacity: 0; }
+}
+.bb-root .runner.running.pos-3.to-4 { animation: bb-run-3-4 0.7s linear forwards; }
+@keyframes bb-run-3-4 {
+  0%   { left: 16%; top: 55%; opacity: 1; }
+  95%  { left: 50%; top: 92%; opacity: 1; }
+  100% { left: 50%; top: 92%; opacity: 0; }
+}
+
+/* 홈인 시 fade-out */
+.bb-root .runner.scored {
+  left: 50%; top: 92%;
+  animation: bb-runner-scored 0.6s ease-out forwards;
+}
+@keyframes bb-runner-scored {
+  0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+  50%  { transform: translate(-50%, -140%) scale(1.6); opacity: 1; }
+  100% { transform: translate(-50%, -240%) scale(0.6); opacity: 0; }
+}
+
+/* 볼넷 콜아웃 색상 */
+.bb-root .callout.walk {
+  color: #1cb0f6;
+  text-shadow: 0 2px 0 #041209, 0 0 24px rgba(28, 176, 246, 0.7);
+}
+
+/* 접근성: motion 감소 선호 시 즉시 도착 */
+@media (prefers-reduced-motion: reduce) {
+  .bb-root .runner.running { animation-duration: 0.01s !important; }
+  .bb-root .runner.scored  { animation-duration: 0.01s !important; }
+}

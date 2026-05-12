@@ -65,6 +65,18 @@ interface Question {
 type WordsByTier = Record<Tier, BaseballWord[]>;
 type SourceByTier = Record<Tier, BaseballWordsResponse['source']>;
 
+// v2: 한 명의 주자를 표현. pos=0(타석/홈) ~ 3(3루), targetPos=4(홈인 득점)
+type RunnerPos = 0 | 1 | 2 | 3;
+type RunnerTarget = 0 | 1 | 2 | 3 | 4;
+interface Runner {
+  id: string;
+  pos: RunnerPos;
+  targetPos: RunnerTarget;
+  state: 'idle' | 'running' | 'scored';
+}
+const makeRunnerId = () =>
+  `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
 // ===== WebAudio synth =====
 function createAudio() {
   let ctx: AudioContext | null = null;
@@ -155,7 +167,8 @@ export default function BaseballPage() {
   const [strikes, setStrikes] = useState(0);
   const [myScore, setMyScore] = useState(0);
   const [oppScore, setOppScore] = useState(0);
-  const [bases, setBases] = useState<[boolean, boolean, boolean]>([false, false, false]);
+  // v2: 베이스를 boolean[]에서 Runner 객체 배열로 — 실제 베이스 간 이동 애니메이션을 위해.
+  const [runners, setRunners] = useState<Runner[]>([]);
   const [pitchesThisHalf, setPitchesThisHalf] = useState(0);
   const [streak, setStreak] = useState(0);
   const [stats, setStats] = useState<Stats>({
@@ -249,19 +262,87 @@ export default function BaseballPage() {
     window.setTimeout(() => setConfettiPieces([]), 1500);
   };
 
-  const advanceRunners = useCallback((basesGained: number): { runs: number; newBases: [boolean, boolean, boolean] } => {
+  // 안타 시 진루: 기존 주자 모두 +N 베이스, 신규 타자 1~4루로 이동 (모두 'running'으로 표시 → CSS keyframe 동작)
+  const advanceRunners = useCallback((basesGained: 1 | 2 | 3 | 4): { runs: number } => {
     let runs = 0;
-    const newBases: [boolean, boolean, boolean] = [false, false, false];
-    for (let i = 0; i < 3; i++) {
-      if (!bases[i]) continue;
-      const newPos = i + basesGained;
-      if (newPos >= 3) runs++;
-      else newBases[newPos] = true;
-    }
-    if (basesGained >= 4) runs++;
-    else newBases[basesGained - 1] = true;
-    return { runs, newBases };
-  }, [bases]);
+    setRunners((prev) => {
+      const advanced: Runner[] = prev.map((r) => {
+        if (r.state !== 'idle') return r;
+        const target = Math.min(4, r.pos + basesGained) as RunnerTarget;
+        if (target >= 4) runs++;
+        return { ...r, targetPos: target, state: 'running' };
+      });
+      const batter: Runner = {
+        id: makeRunnerId(),
+        pos: 0,
+        targetPos: basesGained,
+        state: 'running',
+      };
+      if (basesGained >= 4) runs++;
+      return [...advanced, batter];
+    });
+    return { runs };
+  }, []);
+
+  // 볼넷 force walk: 1루부터 차례로 밀어내기 (만루일 때만 득점).
+  // advanceRunners와 다른 점 — 비어있는 베이스에서 멈춤. 2·3루 주자가 그냥 같이 전진하지 않음.
+  const walkAdvance = useCallback((): { runs: number } => {
+    let runs = 0;
+    setRunners((prev) => {
+      const idle = prev.filter((r) => r.state === 'idle');
+      const has1 = idle.some((r) => r.pos === 1);
+      const has2 = idle.some((r) => r.pos === 2);
+      const has3 = idle.some((r) => r.pos === 3);
+      const moves = new Map<RunnerPos, RunnerTarget>();
+      if (has1) {
+        moves.set(1, 2);
+        if (has2) {
+          moves.set(2, 3);
+          if (has3) {
+            moves.set(3, 4);
+            runs++;
+          }
+        }
+      }
+      const updated: Runner[] = prev.map((r) => {
+        if (r.state !== 'idle') return r;
+        const t = moves.get(r.pos);
+        return t === undefined ? r : { ...r, targetPos: t, state: 'running' };
+      });
+      const batter: Runner = {
+        id: makeRunnerId(),
+        pos: 0,
+        targetPos: 1,
+        state: 'running',
+      };
+      return [...updated, batter];
+    });
+    return { runs };
+  }, []);
+
+  // 주자 애니메이션 끝났을 때 — running → idle (도착) 또는 scored (홈인 후 fade-out)
+  const onRunnerArrive = useCallback((id: string) => {
+    setRunners((prev) => prev.map((r) => {
+      if (r.id !== id || r.state !== 'running') return r;
+      if (r.targetPos === 4) {
+        return { ...r, state: 'scored' };
+      }
+      return { ...r, pos: r.targetPos as RunnerPos, state: 'idle' };
+    }));
+  }, []);
+
+  // scored 상태 주자는 0.6초 뒤 제거 (홈인 fade-out 애니메이션 시간)
+  useEffect(() => {
+    if (!runners.some((r) => r.state === 'scored')) return;
+    const t = window.setTimeout(() => {
+      setRunners((prev) => prev.filter((r) => r.state !== 'scored'));
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [runners]);
+
+  const hasRunnerAt = useCallback((p: 1 | 2 | 3): boolean => {
+    return runners.some((r) => r.state === 'idle' && r.pos === p);
+  }, [runners]);
 
   const pickQuestion = useCallback((): Omit<Question, 'startAt' | 'answered'> | null => {
     const pool = wordsByTier?.[tier] ?? [];
@@ -335,34 +416,33 @@ export default function BaseballPage() {
     setBallAnim('missed');
     setStreak(0);
 
+    // v2: 공격/수비 모두 타임아웃은 1볼 누적. 4볼이면 force walk 출루. 즉시 아웃 더 이상 없음.
+    const newBalls = balls + 1;
+    setBalls(newBalls);
     if (isOffense) {
-      showCallout('놓쳤다! 아웃', 'out');
-      audio.out();
-      vibe([100, 50, 100]);
       setBatterSwung('whiff');
-      setOuts((o) => o + 1);
-      setStats((s) => ({ ...s, totalOut: s.totalOut + 1 }));
-      logPlay({ wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked: null, elapsed: null, result: '아웃', correct: false });
-    } else {
-      const newBalls = balls + 1;
-      setBalls(newBalls);
-      showCallout('볼', 'ball');
-      audio.ballCall();
-      logPlay({ wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked: null, elapsed: null, result: '볼', correct: false });
-      if (newBalls >= 4) {
-        const { runs, newBases } = advanceRunners(1);
-        setOppScore((s) => s + runs);
-        setBases(newBases);
-        setBalls(0);
-        setStrikes(0);
-        setStats((s) => ({ ...s, totalWalk: s.totalWalk + 1 }));
-        audio.walk();
-        window.setTimeout(() => showCallout('볼넷!' + (runs > 0 ? ` +${runs}실점` : ''), 'out'), 500);
-      }
+      vibe(40);
     }
-    window.setTimeout(nextPitch, 1200);
+    audio.ballCall();
+    const wordLog = { wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked: null, elapsed: null };
+    if (newBalls >= 4) {
+      const { runs } = walkAdvance();
+      if (isOffense) setMyScore((s) => s + runs);
+      else setOppScore((s) => s + runs);
+      setBalls(0);
+      setStrikes(0);
+      setStats((s) => ({ ...s, totalWalk: s.totalWalk + 1 }));
+      audio.walk();
+      const sign = isOffense ? '+' : '-';
+      showCallout('볼넷!' + (runs > 0 ? ` ${sign}${runs}` : ''), 'walk');
+      logPlay({ ...wordLog, result: '볼넷' + (runs > 0 ? ` ${sign}${runs}` : ''), correct: false });
+    } else {
+      showCallout('볼', 'ball');
+      logPlay({ ...wordLog, result: `B${newBalls}`, correct: false });
+    }
+    window.setTimeout(nextPitch, newBalls >= 4 ? 1600 : 1200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, isOffense, balls, audio, showCallout, advanceRunners]);
+  }, [current, isOffense, balls, audio, showCallout, walkAdvance]);
 
   const handleAnswer = (picked: string) => {
     if (locked || !current || current.answered) return;
@@ -379,17 +459,31 @@ export default function BaseballPage() {
 
   const handleOffense = (picked: string, correct: boolean, elapsed: number) => {
     setStats((s) => ({ ...s, totalAnswered: s.totalAnswered + 1 }));
+    const wordLog = { wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked, elapsed };
+
+    // v2: 공격 오답 = 1 스트라이크 누적. 3개 모이면 그제서야 삼진 아웃.
     if (!correct) {
       setStreak(0);
       setBallAnim('missed');
-      showCallout('스윙 아웃!', 'out');
-      audio.out();
-      vibe([100, 50, 100]);
       setBatterSwung('whiff');
-      setOuts((o) => o + 1);
-      setStats((s) => ({ ...s, totalOut: s.totalOut + 1 }));
-      logPlay({ wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked, elapsed, result: '스윙아웃', correct: false });
-      window.setTimeout(nextPitch, 1200);
+      const newStrikes = strikes + 1;
+      setStrikes(newStrikes);
+      audio.strike();
+      vibe(30);
+      if (newStrikes >= 3) {
+        showCallout('삼진 아웃! 🔥', 'strike');
+        setOuts((o) => o + 1);
+        setStats((s) => ({ ...s, totalK: s.totalK + 1, totalOut: s.totalOut + 1 }));
+        setBalls(0);
+        setStrikes(0);
+        vibe([100, 50, 100]);
+        logPlay({ ...wordLog, result: '삼진', correct: false });
+        window.setTimeout(nextPitch, 1400);
+      } else {
+        showCallout(`STRIKE ${newStrikes}`, 'strike');
+        logPlay({ ...wordLog, result: `K${newStrikes}`, correct: false });
+        window.setTimeout(nextPitch, 1200);
+      }
       return;
     }
     setStreak((n) => n + 1);
@@ -400,15 +494,18 @@ export default function BaseballPage() {
     }));
     setBatterSwung('swung');
 
-    let basesGained: number, label: string, cls: string, isHR = false;
+    // v2: 1루타 추가 (느린 정답). 안타류 모두 타석 종료이므로 카운트 0-0 리셋.
+    let basesGained: 1 | 2 | 3 | 4, label: string, cls: string, isHR = false;
     if (elapsed < 1200)      { basesGained = 4; label = 'HOMERUN! ⚾'; cls = 'homerun'; isHR = true; }
-    else if (elapsed < 2000) { basesGained = 3; label = '3루타!';     cls = 'hit'; }
-    else                     { basesGained = 2; label = '2루타!';     cls = 'hit'; }
+    else if (elapsed < 1700) { basesGained = 3; label = '3루타!';     cls = 'hit'; }
+    else if (elapsed < 2300) { basesGained = 2; label = '2루타!';     cls = 'hit'; }
+    else                     { basesGained = 1; label = '1루타!';     cls = 'hit'; }
 
     setBallAnim(isHR ? 'hit-homerun' : 'hit');
-    const { runs, newBases } = advanceRunners(basesGained);
-    setBases(newBases);
+    const { runs } = advanceRunners(basesGained);
     setMyScore((s) => s + runs);
+    setBalls(0);
+    setStrikes(0);
 
     showCallout(label, cls);
     if (isHR) {
@@ -423,24 +520,28 @@ export default function BaseballPage() {
       vibe(30);
       if (runs > 0) showXP(`+${runs} 득점!`);
     }
-    logPlay({ wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked, elapsed, result: label.replace('!', '').trim() + (runs > 0 ? ` +${runs}` : ''), correct: true });
-    window.setTimeout(nextPitch, isHR ? 1600 : 1200);
+    logPlay({ ...wordLog, result: label.replace('!', '').trim() + (runs > 0 ? ` +${runs}` : ''), correct: true });
+    // 1루타~3루타: 다음 투구 1400ms (가까운 거리), 홈런: 2200ms (베이스 일주 끝나고)
+    const delay = isHR ? 2200 : basesGained >= 2 ? 1600 : 1400;
+    window.setTimeout(nextPitch, delay);
   };
 
   const handleDefense = (picked: string, correct: boolean, elapsed: number) => {
     setStats((s) => ({ ...s, totalAnswered: s.totalAnswered + 1 }));
+    const wordLog = { wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked, elapsed };
     if (!correct) {
+      // v2: 피안타 — CPU 타자 1~2루타 랜덤 (홈런까지는 아니어도 시각적으로 의미 있게 출루 보여줌)
       setStreak(0);
       setBallAnim('hit');
-      const { runs, newBases } = advanceRunners(1);
-      setBases(newBases);
+      const hitTier = (Math.random() < 0.7 ? 1 : 2) as 1 | 2;
+      const { runs } = advanceRunners(hitTier);
       setOppScore((s) => s + runs);
       setBalls(0); setStrikes(0);
-      showCallout('피안타!' + (runs > 0 ? ` -${runs}` : ''), 'run');
+      showCallout(`피안타!${hitTier === 2 ? ' 2루타' : ''}${runs > 0 ? ` -${runs}` : ''}`, 'run');
       audio.out();
       vibe([80, 40, 80]);
-      logPlay({ wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked, elapsed, result: '피안타' + (runs > 0 ? ` +${runs}` : ''), correct: false });
-      window.setTimeout(nextPitch, 1400);
+      logPlay({ ...wordLog, result: '피안타' + (runs > 0 ? ` -${runs}` : ''), correct: false });
+      window.setTimeout(nextPitch, hitTier === 2 ? 1600 : 1400);
       return;
     }
     setStreak((n) => n + 1);
@@ -454,33 +555,37 @@ export default function BaseballPage() {
     if (elapsed < 1500) {
       const newStrikes = strikes + 1;
       setStrikes(newStrikes);
-      showCallout('STRIKE!', 'strike');
       audio.strike();
       vibe(20);
-      logPlay({ wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked, elapsed, result: `K${newStrikes}`, correct: true });
       if (newStrikes >= 3) {
-        window.setTimeout(() => showCallout('삼진 아웃! 🔥', 'strike'), 500);
+        showCallout('삼진 아웃! 🔥', 'strike');
         setOuts((o) => o + 1);
         setStats((s) => ({ ...s, totalK: s.totalK + 1, totalOut: s.totalOut + 1 }));
         audio.homerun();
         vibe([40, 20, 80, 20, 120]);
         setBalls(0); setStrikes(0);
         showXP('+50 XP · 삼진!');
+        logPlay({ ...wordLog, result: '삼진', correct: true });
+      } else {
+        showCallout(`STRIKE ${newStrikes}`, 'strike');
+        logPlay({ ...wordLog, result: `K${newStrikes}`, correct: true });
       }
     } else {
       const newBalls = balls + 1;
       setBalls(newBalls);
-      showCallout('볼', 'ball');
       audio.ballCall();
-      logPlay({ wordId: current!.wordId, word: current!.eng, ko: current!.ko, picked, elapsed, result: `B${newBalls}`, correct: true });
       if (newBalls >= 4) {
-        const { runs, newBases } = advanceRunners(1);
-        setBases(newBases);
+        // 수비도 force walk 적용 — 만루 아닌 이상 다른 주자 그대로
+        const { runs } = walkAdvance();
         setOppScore((s) => s + runs);
         setBalls(0); setStrikes(0);
         setStats((s) => ({ ...s, totalWalk: s.totalWalk + 1 }));
         audio.walk();
-        window.setTimeout(() => showCallout('볼넷!' + (runs > 0 ? ` -${runs}` : ''), 'out'), 500);
+        showCallout('볼넷!' + (runs > 0 ? ` -${runs}` : ''), 'walk');
+        logPlay({ ...wordLog, result: '볼넷' + (runs > 0 ? ` -${runs}` : ''), correct: true });
+      } else {
+        showCallout('볼', 'ball');
+        logPlay({ ...wordLog, result: `B${newBalls}`, correct: true });
       }
     }
     window.setTimeout(nextPitch, 1200);
@@ -535,7 +640,7 @@ export default function BaseballPage() {
     setMyScore(0); setOppScore(0);
     setInning(1); setHalf('top');
     setOuts(0); setBalls(0); setStrikes(0);
-    setBases([false, false, false]);
+    setRunners([]);
     setGameLog([]);
     setPitchesThisHalf(0);
     setStreak(0);
@@ -557,7 +662,7 @@ export default function BaseballPage() {
     let nextInning = inning;
     if (half === 'bottom') nextInning = inning + 1;
     setOuts(0); setBalls(0); setStrikes(0);
-    setBases([false, false, false]);
+    setRunners([]);
     setPitchesThisHalf(0);
     setStreak(0);
     setCurrent(null);
@@ -719,26 +824,25 @@ export default function BaseballPage() {
               ))}
             </div>
           </div>
-          {!isOffense ? (
-            <div className="bs-stack">
-              <div className="line">
-                <span className="k">B</span>
-                <div className="pill ball">
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className={`dot ${i < balls ? 'on' : ''}`} />
-                  ))}
-                </div>
-              </div>
-              <div className="line">
-                <span className="k">S</span>
-                <div className="pill strike">
-                  {[0, 1].map((i) => (
-                    <span key={i} className={`dot ${i < strikes ? 'on' : ''}`} />
-                  ))}
-                </div>
+          {/* v2: 공격에서도 ball/strike 누적되니까 항상 표시 */}
+          <div className="bs-stack">
+            <div className="line">
+              <span className="k">B</span>
+              <div className="pill ball">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className={`dot ${i < balls ? 'on' : ''}`} />
+                ))}
               </div>
             </div>
-          ) : <div />}
+            <div className="line">
+              <span className="k">S</span>
+              <div className="pill strike">
+                {[0, 1].map((i) => (
+                  <span key={i} className={`dot ${i < strikes ? 'on' : ''}`} />
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="pitches-left">
             <span>⚾</span>
             <span>{pitchesLeft}</span>
@@ -766,9 +870,21 @@ export default function BaseballPage() {
           <div className="diamond" />
           <div className="mound" />
           <div className="base home" />
-          <div className={`base first ${bases[0] ? 'on' : ''}`} />
-          <div className={`base second ${bases[1] ? 'on' : ''}`} />
-          <div className={`base third ${bases[2] ? 'on' : ''}`} />
+          <div className={`base first ${hasRunnerAt(1) ? 'on' : ''}`} />
+          <div className={`base second ${hasRunnerAt(2) ? 'on' : ''}`} />
+          <div className={`base third ${hasRunnerAt(3) ? 'on' : ''}`} />
+
+          {/* v2: Runner 레이어 — pos×targetPos 클래스로 CSS keyframe이 이동 애니메이션 적용 */}
+          <div className="runners-layer">
+            {runners.map((r) => (
+              <div
+                key={r.id}
+                className={`runner ${r.state} pos-${r.pos} to-${r.targetPos}`}
+                onAnimationEnd={() => onRunnerArrive(r.id)}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
 
           <div className={`char batter-me ${batterSwung}`}>
             <svg viewBox="0 0 40 60">
@@ -899,9 +1015,10 @@ export default function BaseballPage() {
             <div className="rules-card off">
               <h3>⚾ 공격</h3>
               <b>1.2초</b> 홈런<br />
-              <b>2.0초</b> 3루타<br />
-              <b>2.8초</b> 2루타<br />
-              오답·놓침 = 아웃
+              <b>1.7초</b> 3루타<br />
+              <b>2.3초</b> 2루타<br />
+              <b>그 이상</b> 1루타<br />
+              오답=K · 놓침=B
             </div>
             <div className="rules-card def">
               <h3>🧢 수비</h3>
