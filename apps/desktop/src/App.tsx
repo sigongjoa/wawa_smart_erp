@@ -18,6 +18,7 @@ const StudentProfilePage = lazy(() => import('./pages/StudentProfilePage'));
 const LiveSessionPage = lazy(() => import('./pages/LiveSessionPage'));
 const MeetingPage = lazy(() => import('./pages/MeetingPage'));
 const GachaStudentPage = lazy(() => import('./pages/GachaStudentPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const GachaCardPage = lazy(() => import('./pages/GachaCardPage'));
 const ProofEditorPage = lazy(() => import('./pages/ProofEditorPage'));
 const GachaDashboardPage = lazy(() => import('./pages/GachaDashboardPage'));
@@ -99,6 +100,7 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/academy" element={<AcademyPage />} />
             <Route path="/gacha" element={<GachaStudentPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/gacha/cards" element={<GachaCardPage />} />
             <Route path="/gacha/proofs" element={<ProofEditorPage />} />
             <Route path="/gacha/dashboard" element={<GachaDashboardPage />} />

@@ -134,6 +134,7 @@ export interface SignupRequestInput {
   grade?: string;
   pin: string;
   memo?: string;
+  teacher_name?: string;
 }
 
 export const api = {
@@ -153,6 +154,19 @@ export const api = {
     const json = await res.json();
     return json?.data ?? [];
   },
+
+  getTeacherNames: async (slug: string): Promise<string[]> => {
+    const res = await fetch(`${API_BASE}/api/teachers/names?slug=${encodeURIComponent(slug)}`);
+    if (!res.ok) return [];
+    const json = await res.json().catch(() => null);
+    return json?.data?.teachers ?? [];
+  },
+
+  changePin: (current_pin: string, new_pin: string) =>
+    request<{ ok: true }>('/api/play/auth/change-pin', {
+      method: 'POST',
+      body: JSON.stringify({ current_pin, new_pin }),
+    }),
 
   login: (academy_slug: string, name: string, pin: string) =>
     request<{ token: string; student: { id: string; name: string; grade: string } }>('/api/play/login', {

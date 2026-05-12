@@ -19,6 +19,7 @@ import { hashPin } from '@/utils/crypto';
 
 // SEC-GSTU-M2: 텍스트 위생화 — utils/sanitize.ts로 통일 (라운드 24)
 import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
+import { markNotificationsReadByPayloadKey } from '@/services/notify';
 
 // ── 입력 검증 ──
 
@@ -284,9 +285,10 @@ async function handleResetPin(request: Request, context: RequestContext, student
   // SEC-PIN-KDF: 100k iter 형식 사용
   const pinHash = await hashPin(pin);
 
+  // pin_salt: NOT NULL 제약 — 새 pbkdf2$ hash는 salt를 hash에 포함, 빈 문자열로 채움.
   await executeUpdate(
     context.env.DB,
-    'UPDATE gacha_students SET pin_hash = ?, pin_salt = NULL, updated_at = ? WHERE id = ?',
+    "UPDATE gacha_students SET pin_hash = ?, pin_salt = '', updated_at = ? WHERE id = ?",
     [pinHash, new Date().toISOString(), studentId]
   );
 
@@ -318,6 +320,8 @@ interface SignupRequestRow {
   reviewed_at: string | null;
   reviewed_by: string | null;
   reject_reason: string | null;
+  requested_teacher_id: string | null;
+  requested_teacher_name: string | null;
 }
 
 async function handleListSignupRequests(context: RequestContext): Promise<Response> {
@@ -334,19 +338,25 @@ async function handleListSignupRequests(context: RequestContext): Promise<Respon
   const rows = status === 'all'
     ? await executeQuery<SignupRequestRow>(
         context.env.DB,
-        `SELECT id, academy_id, name, grade, status, memo, submitted_at, reviewed_at, reviewed_by, reject_reason
-         FROM student_signup_requests
-         WHERE academy_id = ?
-         ORDER BY submitted_at DESC
+        `SELECT r.id, r.academy_id, r.name, r.grade, r.status, r.memo,
+                r.submitted_at, r.reviewed_at, r.reviewed_by, r.reject_reason,
+                r.requested_teacher_id, u.name AS requested_teacher_name
+         FROM student_signup_requests r
+         LEFT JOIN users u ON u.id = r.requested_teacher_id
+         WHERE r.academy_id = ?
+         ORDER BY r.submitted_at DESC
          LIMIT 200`,
         [academyId],
       )
     : await executeQuery<SignupRequestRow>(
         context.env.DB,
-        `SELECT id, academy_id, name, grade, status, memo, submitted_at, reviewed_at, reviewed_by, reject_reason
-         FROM student_signup_requests
-         WHERE academy_id = ? AND status = ?
-         ORDER BY submitted_at DESC
+        `SELECT r.id, r.academy_id, r.name, r.grade, r.status, r.memo,
+                r.submitted_at, r.reviewed_at, r.reviewed_by, r.reject_reason,
+                r.requested_teacher_id, u.name AS requested_teacher_name
+         FROM student_signup_requests r
+         LEFT JOIN users u ON u.id = r.requested_teacher_id
+         WHERE r.academy_id = ? AND r.status = ?
+         ORDER BY r.submitted_at DESC
          LIMIT 200`,
         [academyId, status],
       );
@@ -385,13 +395,16 @@ async function handleApproveSignupRequest(context: RequestContext, requestId: st
   const studentId = generatePrefixedId('gstu');
   const now = new Date().toISOString();
 
+  // 학생이 지정한 선생님이 있고 여전히 active 면 그 선생님을 담당으로 배정, 없으면 승인자 본인.
+  const assignedTeacherId = req.requested_teacher_id ?? teacherId;
+
   // 원자 실행: gacha_students INSERT + students INSERT + signup_requests DELETE (Ⅱ-5)
   // pin_salt 컬럼은 schema상 NOT NULL이지만 pbkdf2$ 새 형식은 hash 안에 salt 포함 → 빈 문자열로 채움.
   await context.env.DB.batch([
     context.env.DB.prepare(
       `INSERT INTO gacha_students (id, academy_id, teacher_id, name, pin_hash, pin_salt, grade, status, created_at)
        VALUES (?, ?, ?, ?, ?, '', ?, 'active', ?)`,
-    ).bind(studentId, academyId, teacherId, req.name, req.pin_hash, req.grade, now),
+    ).bind(studentId, academyId, assignedTeacherId, req.name, req.pin_hash, req.grade, now),
     context.env.DB.prepare(
       `INSERT INTO students (id, academy_id, name, grade, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, 'active', ?, ?)`,
@@ -402,6 +415,19 @@ async function handleApproveSignupRequest(context: RequestContext, requestId: st
   ]);
 
   logger.logAudit('STUDENT_SIGNUP_APPROVE', 'StudentSignupRequest', requestId, teacherId, { studentId, name: req.name });
+
+  // 관련 알림 read 처리 (실패해도 본 처리 결과는 유지)
+  try {
+    await markNotificationsReadByPayloadKey(context.env.DB, context.env.KV, {
+      academy_id: academyId,
+      type: 'student_signup_request',
+      payload_key: 'request_id',
+      payload_value: requestId,
+    });
+  } catch (e) {
+    logger.warn(`알림 read 처리 실패 (approve ${requestId}): ${e instanceof Error ? e.message : String(e)}`);
+  }
+
   return successResponse({ studentId, name: req.name });
 }
 
@@ -434,6 +460,18 @@ async function handleRejectSignupRequest(request: Request, context: RequestConte
   }
 
   logger.logAudit('STUDENT_SIGNUP_REJECT', 'StudentSignupRequest', requestId, teacherId, { reason });
+
+  try {
+    await markNotificationsReadByPayloadKey(context.env.DB, context.env.KV, {
+      academy_id: academyId,
+      type: 'student_signup_request',
+      payload_key: 'request_id',
+      payload_value: requestId,
+    });
+  } catch (e) {
+    logger.warn(`알림 read 처리 실패 (reject ${requestId}): ${e instanceof Error ? e.message : String(e)}`);
+  }
+
   return successResponse({ requestId, status: 'rejected' });
 }
 

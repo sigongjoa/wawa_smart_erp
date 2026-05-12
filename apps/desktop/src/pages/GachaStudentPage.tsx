@@ -214,8 +214,13 @@ export default function GachaStudentPage() {
                     month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
                 </div>
-                <div style={{ fontSize: 12, color: '#444', wordBreak: 'break-word' }}>
-                  {req.memo ?? <span style={{ color: '#aaa' }}>메모 없음</span>}
+                <div style={{ fontSize: 12, color: '#444', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {req.requested_teacher_name ? (
+                    <span><strong style={{ color: '#0a1f14' }}>지정 선생님:</strong> {req.requested_teacher_name}</span>
+                  ) : (
+                    <span style={{ color: '#aaa' }}>지정 선생님 없음</span>
+                  )}
+                  {req.memo && <span style={{ color: '#888' }}>{req.memo}</span>}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button

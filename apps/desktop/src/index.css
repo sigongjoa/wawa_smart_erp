@@ -224,6 +224,29 @@
   min-height: 100dvh;
 }
 
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--border, #e3e6ea);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.app-topbar-spacer {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .app-topbar {
+    padding: 8px 12px;
+  }
+}
+
 .page-container {
   max-width: var(--content-max);
   margin: 0 auto;
@@ -1053,6 +1076,7 @@
 
 .rt-meta-divider { opacity: 0.4; }
 .rt-meta-paused { color: var(--warning); }
+.rt-meta-added { opacity: 0.7; font-size: 0.92em; margin-left: 2px; }
 
 /* Session action buttons */
 .rt-session-actions {
@@ -1086,6 +1110,18 @@
   color: var(--primary);
 }
 .rt-action-btn--done:hover { background: #dde1f2; }
+
+.rt-action-btn--extend {
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-2);
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-secondary, #4b5563);
+  border: 1px solid var(--border-primary, #e5e7eb);
+}
+.rt-action-btn--extend:hover {
+  background: var(--bg-tertiary, #e5e7eb);
+  color: var(--text-primary, #111827);
+}
 
 /* Pause overlay */
 .rt-pause-overlay {

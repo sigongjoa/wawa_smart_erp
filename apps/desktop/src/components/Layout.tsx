@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store';
+import NotificationBell from './NotificationBell';
 
 type NavLeaf = { to: string; label: string; iconClass?: string; exact?: boolean; external?: boolean };
 type NavGroup = { key: string; label: string; iconClass: string; paths: string[]; items: NavLeaf[] };
@@ -296,6 +297,10 @@ export default function Layout() {
       )}
 
       <main className="app-content">
+        <div className="app-topbar">
+          <div className="app-topbar-spacer" />
+          <NotificationBell />
+        </div>
         <Outlet />
       </main>
     </div>

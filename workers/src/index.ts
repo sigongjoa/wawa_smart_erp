@@ -29,6 +29,7 @@ import { handleAcademy } from '@/routes/academy-handler';
 import { handleMeeting } from '@/routes/meeting-handler';
 import { handleGachaStudent } from '@/routes/gacha-student-handler';
 import { handleGachaCard } from '@/routes/gacha-card-handler';
+import { handleNotifications } from '@/routes/notifications-handler';
 import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
@@ -256,6 +257,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 커리큘럼 (학원 단위 카탈로그)
       if (pathname.startsWith('/api/curricula')) {
         return addCorsHeaders(await handleCurriculum(method, pathname, request, context), env, origin);
+      }
+
+      // 알림 (JWT 인증)
+      if (pathname.startsWith('/api/notifications')) {
+        return addCorsHeaders(await handleNotifications(method, pathname, request, context), env, origin);
       }
 
       // 가차 학생/카드 관리 (JWT 인증)

@@ -1153,6 +1153,28 @@ export const api = {
       body: JSON.stringify(reason ? { reason } : {}),
     }),
 
+  // ── 알림 ──
+
+  getNotifications: (params?: { status?: 'unread' | 'read' | 'all'; limit?: number; cursor?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.cursor) qs.set('cursor', params.cursor);
+    const q = qs.toString();
+    return request<{ items: NotificationItem[]; next_cursor: string | null }>(
+      `/api/notifications${q ? '?' + q : ''}`,
+    );
+  },
+
+  getUnreadNotificationCount: () =>
+    request<{ count: number }>('/api/notifications/unread-count'),
+
+  markNotificationRead: (id: string) =>
+    request<{ id: string; is_read: boolean }>(`/api/notifications/${id}/read`, { method: 'POST' }),
+
+  markAllNotificationsRead: () =>
+    request<{ marked: number }>('/api/notifications/read-all', { method: 'POST' }),
+
   // ── 가차 카드 관리 ──
 
   getGachaCards: async (params?: { student_id?: string; topic?: string; grade?: string }) => {
@@ -2051,6 +2073,18 @@ export interface GachaStudent {
   created_at: string;
 }
 
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  payload: Record<string, unknown> | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
 export interface StudentSignupRequest {
   id: string;
   academy_id: string;
@@ -2062,6 +2096,8 @@ export interface StudentSignupRequest {
   reviewed_at: string | null;
   reviewed_by: string | null;
   reject_reason: string | null;
+  requested_teacher_id: string | null;
+  requested_teacher_name: string | null;
 }
 
 export interface GachaCard {

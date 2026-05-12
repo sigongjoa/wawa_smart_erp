@@ -5,6 +5,12 @@ import './LoginPage.css';
 
 type Phase = 'form' | 'submitted';
 
+const GRADE_OPTIONS = [
+  '초1', '초2', '초3', '초4', '초5', '초6',
+  '중1', '중2', '중3',
+  '고1', '고2', '고3',
+];
+
 export default function SignupRequestPage() {
   const navigate = useNavigate();
 
@@ -15,7 +21,8 @@ export default function SignupRequestPage() {
   const [grade, setGrade] = useState('');
   const [pin, setPin] = useState('');
   const [pinConfirm, setPinConfirm] = useState('');
-  const [memo, setMemo] = useState('');
+  const [teachers, setTeachers] = useState<string[]>([]);
+  const [teacherName, setTeacherName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<Phase>('form');
@@ -26,6 +33,16 @@ export default function SignupRequestPage() {
   useEffect(() => {
     api.getAcademies().then(setAcademies).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!selectedAcademy) {
+      setTeachers([]);
+      setTeacherName('');
+      return;
+    }
+    api.getTeacherNames(selectedAcademy.slug).then(setTeachers).catch(() => setTeachers([]));
+    setTeacherName('');
+  }, [selectedAcademy?.slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,9 +59,9 @@ export default function SignupRequestPage() {
       await api.submitSignupRequest({
         academy_slug: selectedAcademy.slug,
         name: name.trim(),
-        grade: grade.trim() || undefined,
+        grade: grade || undefined,
         pin,
-        memo: memo.trim() || undefined,
+        teacher_name: teacherName || undefined,
       });
       setPhase('submitted');
     } catch (err) {
@@ -131,15 +148,17 @@ export default function SignupRequestPage() {
             <span>학년 (선택)</span>
             <span className="lg-field-index">03</span>
           </span>
-          <input
-            type="text"
+          <select
             className="lg-name"
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
-            placeholder="예: 중2 / 고1"
-            autoComplete="off"
-            maxLength={20}
-          />
+            aria-label="학년"
+          >
+            <option value="">학년을 선택하세요</option>
+            {GRADE_OPTIONS.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
         </div>
 
         <div className="lg-field">
@@ -208,18 +227,27 @@ export default function SignupRequestPage() {
 
         <div className="lg-field">
           <span className="lg-field-label">
-            <span>메모 (선택) · 담당 선생님 이름 등</span>
+            <span>담당 선생님 (선택)</span>
             <span className="lg-field-index">06</span>
           </span>
-          <input
-            type="text"
+          <select
             className="lg-name"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="예: 김OO 선생님 추천"
-            autoComplete="off"
-            maxLength={200}
-          />
+            value={teacherName}
+            onChange={(e) => setTeacherName(e.target.value)}
+            disabled={!selectedAcademy || teachers.length === 0}
+            aria-label="담당 선생님"
+          >
+            <option value="">
+              {!selectedAcademy
+                ? '먼저 학원을 선택하세요'
+                : teachers.length === 0
+                ? '등록된 선생님이 없습니다'
+                : '담당 선생님을 선택하세요'}
+            </option>
+            {teachers.map((t) => (
+              <option key={t} value={t}>{t} 선생님</option>
+            ))}
+          </select>
         </div>
 
         {error && <div className="lg-error" role="alert">{error}</div>}

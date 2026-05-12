@@ -18,6 +18,7 @@ import {
 } from '@/middleware/rateLimit';
 import { sanitizeText, sanitizeNullable } from '@/utils/sanitize';
 import { generatePrefixedId } from '@/utils/id';
+import { createNotification } from '@/services/notify';
 import { z } from 'zod';
 
 // 공개 학원 목록 캐시 키 (PERF-LOGIN-M1)
@@ -52,12 +53,14 @@ const VerifySlugSchema = z.object({
 });
 
 // SEC-SSR-H2: 학생 자가 가입 요청 입력 스키마
+// memo: 자유 텍스트 (보강 정보). teacher_name: 학원 교사 목록에서 골라 보낸 이름 — 서버에서 user id로 매핑.
 const StudentSignupRequestSchema = z.object({
   academy_slug: z.string().regex(SLUG_REGEX),
   name: z.string().min(1).max(50).regex(PERSON_NAME_REGEX, '이름에 사용할 수 없는 문자가 포함되어 있습니다'),
   grade: z.string().max(20).optional(),
   pin: z.string().regex(/^\d{4}$/, 'PIN은 4자리 숫자여야 합니다'),
   memo: z.string().max(200).optional(),
+  teacher_name: z.string().max(50).optional(),
 });
 
 // 예약어 slug (사용 불가)
@@ -263,6 +266,22 @@ export async function handleOnboard(
       }
       const safeGrade = sanitizeNullable(input.grade, 20);
       const safeMemo = sanitizeNullable(input.memo, 200);
+      const safeTeacherName = sanitizeNullable(input.teacher_name, 50);
+
+      // 학생이 선택한 교사 이름 → user id 매핑 (학원 내 admin/instructor active만)
+      let requestedTeacherId: string | null = null;
+      if (safeTeacherName) {
+        const teacher = await executeFirst<{ id: string }>(
+          context.env.DB,
+          `SELECT id FROM users
+           WHERE academy_id = ? AND name = ?
+             AND role IN ('instructor', 'admin')
+             AND COALESCE(status, 'active') = 'active'
+           LIMIT 1`,
+          [academy.id, safeTeacherName],
+        );
+        requestedTeacherId = teacher?.id ?? null;
+      }
 
       // 이미 등록된 학생(gacha_students)에 동명 존재 시 차단
       const existingStudent = await executeFirst<{ id: string }>(
@@ -293,12 +312,34 @@ export async function handleOnboard(
       await executeInsert(
         context.env.DB,
         `INSERT INTO student_signup_requests
-          (id, academy_id, name, grade, pin_hash, status, memo, submitted_at)
-         VALUES (?, ?, ?, ?, ?, 'pending', ?, datetime('now'))`,
-        [id, academy.id, safeName, safeGrade, pinHash, safeMemo],
+          (id, academy_id, name, grade, pin_hash, status, memo, requested_teacher_id, submitted_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, datetime('now'))`,
+        [id, academy.id, safeName, safeGrade, pinHash, safeMemo, requestedTeacherId],
       );
 
       logger.info(`학생 가입 요청 접수: ${safeName} (academy=${input.academy_slug})`);
+
+      // 교사 알림 생성 — 학원 내 admin/instructor broadcast.
+      // INSERT 실패해도 가입 요청 자체는 성공 처리 (알림은 보조 채널).
+      try {
+        const bodyParts = [
+          safeTeacherName ? `지정 선생님: ${safeTeacherName}` : null,
+          safeGrade ? `학년: ${safeGrade}` : null,
+        ].filter(Boolean);
+        await createNotification(context.env.DB, context.env.KV, {
+          academy_id: academy.id,
+          recipient_role: 'all_teachers',
+          type: 'student_signup_request',
+          title: `${safeName} 학생이 가입 요청`,
+          body: bodyParts.length > 0 ? bodyParts.join(' · ') : null,
+          link: `/gacha?request=${id}`,
+          payload: { request_id: id, student_name: safeName },
+          expires_in_days: 30,
+        });
+      } catch (e) {
+        logger.warn(`알림 생성 실패 (가입 요청 ${id}): ${e instanceof Error ? e.message : String(e)}`);
+      }
+
       return successResponse(
         { id, message: '가입 요청이 접수되었습니다. 선생님 승인 후 로그인 가능합니다.' },
         201,
