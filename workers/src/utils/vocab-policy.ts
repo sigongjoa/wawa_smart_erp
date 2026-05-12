@@ -32,6 +32,10 @@ export interface VocabPolicy {
   enabled: number;
 }
 
+// 2026-05-13: 단어 시험 제한 완전 제거 (사용자 요청).
+// daily_limit/cooldown/word_cooldown/active_hours/time_limit 모두 0/null.
+// 0/null = 무제한. checkAvailability/cooldownClause 가 0 가드를 이미 가지고 있어 자동 통과.
+// enabled 만 1로 유지 — 시험 기능 자체는 켜진 상태.
 export const SYSTEM_DEFAULT_POLICY: VocabPolicy = {
   id: 'system-default',
   academy_id: '',
@@ -45,12 +49,12 @@ export const SYSTEM_DEFAULT_POLICY: VocabPolicy = {
   box_filter: '1,2,3,4',
   source: 'student_pool',
   textbook_id: null,
-  time_limit_sec: 600,
-  cooldown_min: 60,
-  daily_limit: 3,
+  time_limit_sec: 0,
+  cooldown_min: 0,
+  daily_limit: 0,
   active_from: null,
   active_to: null,
-  word_cooldown_min: 30,
+  word_cooldown_min: 0,
   ai_grading: 1,
   enabled: 1,
 };
