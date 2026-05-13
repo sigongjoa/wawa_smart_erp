@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
+import { Icon } from '../components/icons/Icon';
 
 interface Notice {
   id: string;
@@ -315,24 +316,38 @@ export default function BoardPage() {
                     const dday = getDday(a.due_date);
                     return (
                       <div key={a.id} className="board-action-row">
-                        <button className="board-check" onClick={() => handleToggleAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 완료 처리`}>☐</button>
+                        <button className="board-check" onClick={() => handleToggleAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 완료 처리`}>
+                          <Icon name="Square" size={18} />
+                        </button>
                         <div className="board-action-info">
                           <span className="board-action-title">{a.title}</span>
-                          {a.notice_title && <span className="board-action-notice">← {a.notice_title}</span>}
+                          {a.notice_title && (
+                            <span className="board-action-notice" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <Icon name="ArrowLeft" size={12} /> {a.notice_title}
+                            </span>
+                          )}
                         </div>
                         {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
                         {a.due_date && <span className="board-action-due">{a.due_date}</span>}
-                        <button className="board-edit-btn" onClick={() => openEditAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 수정`}>✎</button>
-                        <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 삭제`}>×</button>
+                        <button className="board-edit-btn" onClick={() => openEditAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 수정`}>
+                          <Icon name="Pencil" size={14} />
+                        </button>
+                        <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.title} (${a.due_date || '기한없음'}) 삭제`}>
+                          <Icon name="X" size={14} />
+                        </button>
                       </div>
                     );
                   })}
                   {completedActions.slice(0, 5).map((a) => (
                     <div key={a.id} className="board-action-row board-action-row--done">
-                      <button className="board-check board-check--done" onClick={() => handleToggleAction(a)} aria-label={`${a.title} (${a.completed_at ? formatDate(a.completed_at) : ''}) 미완료로 되돌리기`}>☑</button>
+                      <button className="board-check board-check--done" onClick={() => handleToggleAction(a)} aria-label={`${a.title} (${a.completed_at ? formatDate(a.completed_at) : ''}) 미완료로 되돌리기`}>
+                        <Icon name="CheckSquare" size={18} />
+                      </button>
                       <span className="board-action-title board-action-title--done">{a.title}</span>
                       {a.completed_at && <span className="board-action-due">{formatDate(a.completed_at)}</span>}
-                      <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.title} (완료: ${a.completed_at ? formatDate(a.completed_at) : ''}) 삭제`}>×</button>
+                      <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.title} (완료: ${a.completed_at ? formatDate(a.completed_at) : ''}) 삭제`}>
+                        <Icon name="X" size={14} />
+                      </button>
                     </div>
                   ))}
                 </div>
