@@ -4,6 +4,7 @@ import { api, LiveSessionState, LiveSessionRow, Stroke } from '../api';
 import SimpleCanvas, { strokesToPngDataUrl } from '../components/SimpleCanvas';
 import Modal from '../components/Modal';
 import { toast } from '../components/Toast';
+import { Icon } from '../components/icons/Icon';
 import { TIMING, SIZE_LIMITS } from '../constants/timing';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
 
@@ -183,22 +184,24 @@ export default function LiveSessionPage() {
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/student/${session.student_id}`)}>
-          ← 학생 프로필
+          <Icon name="ArrowLeft" /> 학생 프로필
         </button>
         <h2 style={{ margin: 0, fontSize: 18 }}>
           <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--danger-text)', marginRight: 8, verticalAlign: 'middle' }} aria-hidden="true" />
           라이브 — {displayName} <span style={{ color: 'var(--text-tertiary)' }}>· {session.subject}</span>
         </h2>
-        <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-          ⏱ {fmtElapsed(session.started_at)} <span style={{ visibility: 'hidden' }}>{tick}</span>
+        <span className="with-icon" style={{ fontSize: 14, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+          <Icon name="Timer" size={14} /> {fmtElapsed(session.started_at)} <span style={{ visibility: 'hidden' }}>{tick}</span>
         </span>
         <span
+          className="with-icon"
           style={{
             fontSize: 12,
             color: state.student.updated_at && Date.now() - state.student.updated_at < 6000 ? '#16a34a' : '#94a3b8',
           }}
         >
-          ● 학생 {state.student.updated_at ? `${Math.round((Date.now() - state.student.updated_at) / 1000)}초 전 활동` : '연결 대기'}
+          <Icon name="Circle" size={8} fill="currentColor" />
+          학생 {state.student.updated_at ? `${Math.round((Date.now() - state.student.updated_at) / 1000)}초 전 활동` : '연결 대기'}
         </span>
         <div style={{ flex: 1 }} />
         {!ended && (
@@ -244,8 +247,8 @@ export default function LiveSessionPage() {
                 disabled={ended}
               />
               {problemImageDataUrl && (
-                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-                  ✔ 이미지 전송됨
+                <span className="with-icon" style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                  <Icon name="Check" size={12} /> 이미지 전송됨
                 </span>
               )}
             </div>
@@ -259,7 +262,7 @@ export default function LiveSessionPage() {
           </section>
 
           <section className="dashboard-section" style={{ padding: 10, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>✏️ 내 풀이</h3>
+            <h3 className="with-icon" style={{ margin: '0 0 6px', fontSize: 14 }}><Icon name="Pencil" size={14} /> 내 풀이</h3>
             <textarea
               className="form-input"
               rows={2}

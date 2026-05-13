@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, GachaStudent, StudentSignupRequest } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import DialogShell from '../components/DialogShell';
+import { Icon } from '../components/icons/Icon';
 import { useAuthStore } from '../store';
 
 const GRADE_OPTIONS = ['중1', '중2', '중3', '고1', '고2', '고3'];
@@ -224,18 +225,18 @@ export default function GachaStudentPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
-                    className="btn-primary"
+                    className="btn-primary with-icon"
                     disabled={signupBusy === req.id}
                     onClick={() => handleApproveSignup(req)}
                   >
-                    {signupBusy === req.id ? '...' : '✓ 승인'}
+                    {signupBusy === req.id ? '...' : <><Icon name="Check" /> 승인</>}
                   </button>
                   <button
-                    className="btn-secondary"
+                    className="btn-secondary with-icon"
                     disabled={signupBusy === req.id}
                     onClick={() => handleRejectSignup(req)}
                   >
-                    ✗ 거절
+                    <Icon name="X" /> 거절
                   </button>
                 </div>
               </div>
@@ -336,11 +337,11 @@ export default function GachaStudentPage() {
                 />
                 <div className="gacha-form-actions" style={{ flexWrap: 'wrap', gap: 8 }}>
                   <button
-                    className="btn-secondary"
+                    className="btn-secondary with-icon"
                     onClick={handleGeneratePin}
                     disabled={pinBusy}
                     title="서버가 4자리 랜덤 PIN 생성"
-                  >🎲 자동 생성</button>
+                  ><Icon name="Dices" /> 자동 생성</button>
                   <button className="btn-secondary" onClick={() => setResetPinId(null)}>취소</button>
                   <button
                     className="btn-primary"
