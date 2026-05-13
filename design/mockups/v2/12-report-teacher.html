@@ -1132,7 +1132,23 @@
       margin: 0,  // padding 은 .pdf-paper CSS 안에 있음
       filename,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: 794 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 794,
+        // 핵심: 클론된 DOM 에서 offscreen 포지셔닝 리셋
+        // 안 그러면 clone 도 left: -10000px 적용되어 capture 영역이 빔
+        onclone: (clonedDoc) => {
+          const cloned = clonedDoc.querySelector('.pdf-paper');
+          if (cloned) {
+            cloned.style.position = 'static';
+            cloned.style.left = 'auto';
+            cloned.style.top = 'auto';
+          }
+        },
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
     };
