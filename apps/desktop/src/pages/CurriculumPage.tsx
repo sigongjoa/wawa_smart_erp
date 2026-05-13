@@ -9,6 +9,7 @@ import {
 } from '../api';
 import Modal from '../components/Modal';
 import { toast, useConfirm } from '../components/Toast';
+import { Icon } from '../components/icons/Icon';
 import './CurriculumPage.css';
 
 const COMMON_TERMS = ['2026-1', '2026-여름', '2026-2', '2026-겨울'];
@@ -324,14 +325,14 @@ export default function CurriculumPage() {
                                 disabled={idx === 0}
                                 onClick={() => handleMoveItem(it, -1)}
                                 aria-label={`${it.unit_name} 위로 이동`}
-                              >↑</button>
+                              ><Icon name="ArrowUp" size={14} /></button>
                               <button
                                 className="curr-item-reorder-btn"
                                 disabled={idx === arr.length - 1}
                                 onClick={() => handleMoveItem(it, 1)}
                                 aria-label={`${it.unit_name} 아래로 이동`}
                                 style={{ marginLeft: 4 }}
-                              >↓</button>
+                              ><Icon name="ArrowDown" size={14} /></button>
                             </td>
                             <td>
                               <select
