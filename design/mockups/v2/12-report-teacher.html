@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>12 · Report (강사) — 월말·정기고사 리포트</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  /* matches ReportPage.tsx — Split (left: 학생 table, right: rpt-paper preview) */
+
+  .report-tabs { display: inline-flex; padding: 3px; background: var(--bg-tertiary); border-radius: var(--radius-full); border: 1px solid var(--border-primary); }
+  .report-tab { padding: 7px 16px; font-size: var(--fs-13); font-weight: 700; color: var(--text-secondary); border-radius: var(--radius-full); cursor: pointer; transition: all var(--duration-fast); }
+  .report-tab.is-active { background: var(--bg-secondary); color: var(--primary); box-shadow: var(--shadow-xs); }
+
+  .month-badge { padding: 6px 14px; border-radius: var(--radius-sm); background: var(--primary); color: var(--text-inverse); font-weight: 800; font-size: var(--fs-13); letter-spacing: -0.01em; }
+
+  .progress-block { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+  .progress-block__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+  .progress-block__label { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+  .progress-block__value { font-size: var(--fs-15); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .progress-block__bar { height: 6px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; }
+  .progress-block__fill { height: 100%; background: var(--primary); border-radius: inherit; transition: width var(--duration-normal); }
+
+  .report-split { display: grid; grid-template-columns: 360px 1fr; gap: var(--sp-5); align-items: start; }
+
+  /* ── Left: student send-table ── */
+  .send-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--fs-14); }
+  .send-table thead th {
+    padding: var(--sp-3) var(--sp-4);
+    font-size: var(--fs-12); font-weight: 800;
+    text-align: left; color: var(--text-tertiary);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    position: sticky; top: 0;
+  }
+  .send-th-num { width: 36px; }
+  .send-th-status { width: 88px; text-align: right; }
+  .send-th-score { width: 80px; }
+  .send-row { cursor: pointer; transition: background var(--duration-fast); }
+  .send-row td { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); vertical-align: middle; }
+  .send-row:hover td { background: var(--bg-tertiary); }
+  .send-row.is-active td { background: var(--primary-surface); }
+  .send-row.is-active .send-cell-name { color: var(--primary); font-weight: 800; }
+  .send-cell-num { color: var(--text-tertiary); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .send-cell-name { font-weight: 700; }
+  .send-cell-status { text-align: right; }
+
+  .score-pill {
+    display: inline-block; padding: 2px 9px;
+    font-size: var(--fs-12); font-weight: 800;
+    border-radius: var(--radius-full);
+    font-variant-numeric: tabular-nums;
+  }
+  .score-pill--done    { background: var(--success-surface); color: var(--success); }
+  .score-pill--partial { background: var(--warning-surface); color: var(--warning); }
+  .score-pill--empty   { background: var(--bg-tertiary); color: var(--text-tertiary); }
+
+  .send-badge { display: inline-block; padding: 2px 9px; font-size: var(--fs-11); font-weight: 800; border-radius: var(--radius-full); letter-spacing: 0; }
+  .send-badge--sent    { background: var(--primary-surface); color: var(--primary); }
+  .send-badge--pending { background: var(--bg-tertiary); color: var(--text-tertiary); }
+
+  /* ── Right: actions + report-paper ── */
+  .report-actions { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); align-items: center; }
+  .report-sent-time { margin-left: auto; font-size: var(--fs-12); color: var(--text-tertiary); font-weight: 700; }
+
+  .report-paper {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .rpt-header {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: var(--sp-4);
+    padding: var(--sp-5) var(--sp-6);
+    border-bottom: 2px solid var(--primary);
+    background: linear-gradient(180deg, var(--primary-surface) 0%, var(--bg-secondary) 100%);
+  }
+  .rpt-header-left { display: flex; align-items: center; gap: var(--sp-3); }
+  .rpt-logo {
+    width: 44px; height: 44px;
+    background: var(--primary); color: var(--text-inverse);
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-weight: 900; font-size: var(--fs-22);
+  }
+  .rpt-academy { font-size: var(--fs-19); font-weight: 800; letter-spacing: -0.01em; }
+  .rpt-header-right { text-align: right; }
+  .rpt-month { font-size: var(--fs-36); font-weight: 900; color: var(--primary); letter-spacing: -0.02em; line-height: 1; }
+  .rpt-year { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.06em; margin-top: 2px; }
+
+  .rpt-title-bar { background: var(--primary); color: var(--text-inverse); padding: var(--sp-3) var(--sp-6); }
+  .rpt-title { font-size: var(--fs-17); font-weight: 800; letter-spacing: -0.01em; }
+
+  .rpt-student-row { display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-4) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
+  .rpt-student-label { font-size: var(--fs-12); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; }
+  .rpt-student-name { font-size: var(--fs-22); font-weight: 800; letter-spacing: -0.02em; }
+
+  /* Subject score bar chart */
+  .rpt-chart { padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
+  .rpt-chart__h { font-size: var(--fs-13); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 var(--sp-4); }
+  .rpt-bars { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .rpt-bar-row { display: grid; grid-template-columns: 72px 1fr 64px 50px; gap: var(--sp-3); align-items: center; font-size: var(--fs-13); }
+  .rpt-bar-row__subj { font-weight: 700; }
+  .rpt-bar-row__bar { height: 12px; background: var(--bg-tertiary); border-radius: var(--radius-full); position: relative; overflow: hidden; }
+  .rpt-bar-row__fill { height: 100%; border-radius: inherit; background: var(--primary); }
+  .rpt-bar-row__fill--high { background: var(--success); }
+  .rpt-bar-row__fill--mid  { background: var(--info); }
+  .rpt-bar-row__fill--low  { background: var(--warning); }
+  .rpt-bar-row__score { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .rpt-bar-row__delta { font-size: var(--fs-12); font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .rpt-bar-row__delta--up   { color: var(--success); }
+  .rpt-bar-row__delta--down { color: var(--danger); }
+  .rpt-bar-row__delta--flat { color: var(--text-tertiary); }
+
+  /* Subject comment cards */
+  .subj-list { display: flex; flex-direction: column; }
+  .subj-card { padding: var(--sp-4) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
+  .subj-card__head { display: grid; grid-template-columns: 1fr auto auto; gap: var(--sp-3); align-items: center; margin-bottom: var(--sp-3); }
+  .subj-card__name { font-size: var(--fs-15); font-weight: 800; }
+  .subj-card__score-wrap { display: flex; align-items: center; gap: 4px; }
+  .subj-card__score-input { width: 64px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; font-size: var(--fs-14); }
+  .subj-card__score-unit { font-size: var(--fs-12); color: var(--text-tertiary); font-weight: 700; }
+  .subj-card__save { font-size: var(--fs-12); font-weight: 800; padding: 3px 8px; border-radius: var(--radius-full); }
+  .subj-card__save--saving { background: var(--info-surface); color: var(--info); }
+  .subj-card__save--saved  { background: var(--success-surface); color: var(--success); }
+  .subj-card__save--error  { background: var(--danger-surface); color: var(--danger); }
+  .subj-card__textarea-wrap { position: relative; }
+  .subj-card__textarea {
+    width: 100%; min-height: 72px; padding: 10px 12px;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    font: inherit; font-size: var(--fs-14); line-height: 1.55;
+    background: var(--bg-secondary);
+    resize: vertical;
+  }
+  .subj-card__textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-surface); }
+  .subj-card__ai {
+    position: absolute; right: 8px; bottom: 8px;
+    padding: 4px 10px; font-size: var(--fs-11); font-weight: 700;
+    background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-full);
+    color: var(--primary); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .subj-card__ai:hover { background: var(--primary-surface); border-color: var(--primary); }
+  .subj-card__ai .lucide { width: 12px; height: 12px; }
+
+  /* Total comment */
+  .rpt-total {
+    padding: var(--sp-5) var(--sp-6);
+    background: var(--bg-primary);
+    border-top: 2px solid var(--primary);
+  }
+  .rpt-total__h {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: var(--fs-13); font-weight: 800;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-bottom: var(--sp-3);
+  }
+
+  /* Empty preview */
+  .report-empty {
+    padding: var(--sp-16) var(--sp-6);
+    text-align: center; color: var(--text-tertiary);
+  }
+  .report-empty__icon {
+    font-size: 56px;
+    color: var(--border-strong);
+    margin-bottom: var(--sp-3);
+    line-height: 1;
+  }
+  .report-empty__msg { font-size: var(--fs-15); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>담임 대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="11-attendance.html"><i data-lucide="calendar-x"></i>출결·보강</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>학습 현황</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">리포트</div>
+      <div class="app-nav__item is-active"><i data-lucide="file-text"></i>월말·정기 리포트</div>
+      <a class="app-nav__item" href="06-report.html"><i data-lucide="send"></i>학부모 리포트</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">리포트 · 강사용 입력</div>
+        <div class="cluster" style="--gap: var(--sp-3); align-items: center;">
+          <h1 class="page-head__title" id="page-title">월말평가 리포트</h1>
+          <div class="report-tabs" role="tablist" aria-label="리포트 유형">
+            <button class="report-tab is-active" data-type="monthly" role="tab">월말평가</button>
+            <button class="report-tab" data-type="midterm" role="tab">중간고사</button>
+            <button class="report-tab" data-type="final" role="tab">기말고사</button>
+          </div>
+          <div class="month-badge" id="period-label">2026년 5월</div>
+        </div>
+        <div class="page-head__sub">학생별 성적 입력 → AI 코멘트 → JPG 다운로드 / 카카오톡 발송</div>
+      </div>
+      <div class="page-head__actions">
+        <div class="progress-block">
+          <div class="progress-block__row">
+            <span class="progress-block__label">전송 현황</span>
+            <span class="progress-block__value" id="sent-count">3 / 7</span>
+          </div>
+          <div class="progress-block__bar"><div class="progress-block__fill" id="sent-fill" style="width: 43%;"></div></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="report-split">
+
+      <!-- ════ LEFT: 학생 전송 현황 ════ -->
+      <div class="panel" style="overflow: hidden;">
+        <table class="send-table">
+          <thead>
+            <tr>
+              <th class="send-th-num">#</th>
+              <th>이름</th>
+              <th class="send-th-score">성적</th>
+              <th class="send-th-status">전송</th>
+            </tr>
+          </thead>
+          <tbody id="student-list">
+            <!-- populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ════ RIGHT: 리포트 미리보기 + 액션 ════ -->
+      <div>
+        <div class="report-actions" id="report-actions" hidden>
+          <button class="btn btn--primary" id="download-jpg"><i data-lucide="download"></i>JPG 다운로드</button>
+          <button class="btn btn--accent" id="share-kakao"><i data-lucide="share-2"></i>카카오톡 공유</button>
+          <span class="report-sent-time" id="sent-time" hidden>2026.05.13 전송됨</span>
+        </div>
+
+        <div class="report-paper" id="report-paper">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // ── Mock state ──
+  const REPORT_TYPE_LABEL = { monthly: '월말평가', midterm: '중간고사', final: '기말고사' };
+  const PERIOD = { monthly: '2026년 5월', midterm: '2026년 1학기 중간', final: '2026년 1학기 기말' };
+
+  const STUDENTS = [
+    { id: 's1', name: '강민수', grade: '고2', sent: true,  sentAt: '2026.05.11', scores: [
+      { subject: '독해', score: 92, prev: 87, comment: '독해 정답률 94%, 거의 만점에 근접. 1등급 안정권 진입.' },
+      { subject: '어휘', score: 88, prev: 84, comment: '어휘 꾸준한 상승세. EBS 수특 단어 노출 효과.' },
+      { subject: '듣기', score: 90, prev: 92, comment: '듣기는 안정적. 큰 변동 없음.' },
+      { subject: '어법', score: 68, prev: 75, comment: '어법은 약점. 6월에 별도 보강 예정.' },
+      { subject: '서술형', score: 82, prev: 78, comment: '서술형 답안 구조 개선 — 키워드 명시화 잘 함.' },
+    ], total: '5월 평균 87.4점. 어법 영역만 추가 보강하면 1등급 안정. 6월에 어법 드릴 D4 진행 예정.' },
+    { id: 's2', name: '이영희', grade: '중3', sent: true,  sentAt: '2026.05.10', scores: [
+      { subject: '독해', score: 80, prev: 76, comment: '서서히 안정세.' },
+      { subject: '어휘', score: 76, prev: 70, comment: 'EBS 수특 W2 시험 76점.' },
+      { subject: '듣기', score: 85, prev: 82, comment: '' },
+      { subject: '어법', score: 0,  prev: null, comment: '' },
+      { subject: '서술형', score: 0, prev: null, comment: '' },
+    ], total: '' },
+    { id: 's3', name: '박지민', grade: '고1', sent: false, scores: [
+      { subject: '독해', score: 72, prev: 78, comment: '' },
+      { subject: '어휘', score: 68, prev: 72, comment: '' },
+      { subject: '듣기', score: 75, prev: 0, comment: '' },
+      { subject: '어법', score: 0,  prev: null, comment: '' },
+      { subject: '서술형', score: 0, prev: null, comment: '' },
+    ], total: '' },
+    { id: 's4', name: '최수지', grade: '고3', sent: false, scores: [
+      { subject: '독해', score: 0, prev: 64, comment: '' },
+      { subject: '어휘', score: 0, prev: 58, comment: '' },
+      { subject: '듣기', score: 0, prev: null, comment: '' },
+      { subject: '어법', score: 0, prev: null, comment: '' },
+      { subject: '서술형', score: 0, prev: null, comment: '' },
+    ], total: '' },
+    { id: 's5', name: '정하늘', grade: '고2', sent: true,  sentAt: '2026.05.12', scores: [
+      { subject: '독해', score: 88, prev: 85, comment: '꾸준한 상승.' },
+      { subject: '어휘', score: 84, prev: 80, comment: '' },
+      { subject: '듣기', score: 90, prev: 88, comment: '' },
+      { subject: '어법', score: 78, prev: 80, comment: '' },
+      { subject: '서술형', score: 86, prev: 82, comment: '' },
+    ], total: '전반적으로 안정 상승세. 모든 영역 80점대 진입.' },
+    { id: 's6', name: '김재훈', grade: '고2', sent: false, scores: [
+      { subject: '독해', score: 64, prev: 70, comment: '' },
+      { subject: '어휘', score: 58, prev: 64, comment: '' },
+      { subject: '듣기', score: 72, prev: 75, comment: '' },
+      { subject: '어법', score: 0, prev: 65, comment: '' },
+      { subject: '서술형', score: 0, prev: null, comment: '' },
+    ], total: '' },
+    { id: 's7', name: '윤서연', grade: '중2', sent: false, scores: [
+      { subject: '독해', score: 0, prev: null, comment: '' },
+      { subject: '어휘', score: 0, prev: null, comment: '' },
+      { subject: '듣기', score: 0, prev: null, comment: '' },
+      { subject: '어법', score: 0, prev: null, comment: '' },
+      { subject: '서술형', score: 0, prev: null, comment: '' },
+    ], total: '' },
+  ];
+
+  let reportType = 'monthly';
+  let selectedId = null;
+
+  const fillEl = document.getElementById('sent-fill');
+  const cntEl = document.getElementById('sent-count');
+  const titleEl = document.getElementById('page-title');
+  const periodEl = document.getElementById('period-label');
+  const listEl = document.getElementById('student-list');
+  const paperEl = document.getElementById('report-paper');
+  const actionsEl = document.getElementById('report-actions');
+  const sentTimeEl = document.getElementById('sent-time');
+
+  function renderStudentList() {
+    const sent = STUDENTS.filter(s => s.sent).length;
+    cntEl.textContent = `${sent} / ${STUDENTS.length}`;
+    fillEl.style.width = `${(sent / STUDENTS.length) * 100}%`;
+    listEl.innerHTML = STUDENTS.map((s, i) => {
+      const filled = s.scores.filter(sc => sc.score > 0).length;
+      const total = s.scores.length;
+      const cls = filled === total ? 'score-pill--done' : (filled > 0 ? 'score-pill--partial' : 'score-pill--empty');
+      const scoreCell = filled > 0
+        ? `<span class="score-pill ${cls}">${filled}/${total}</span>`
+        : `<span class="score-pill score-pill--empty">—</span>`;
+      const statusCell = s.sent
+        ? `<span class="send-badge send-badge--sent">전송됨</span>`
+        : `<span class="send-badge send-badge--pending">미전송</span>`;
+      return `
+        <tr class="send-row ${selectedId === s.id ? 'is-active' : ''}" data-id="${s.id}" tabindex="0" role="button">
+          <td class="send-cell-num">${i + 1}</td>
+          <td class="send-cell-name">${s.name} <span class="text-mute" style="font-size: var(--fs-11); font-weight: 600;">${s.grade}</span></td>
+          <td class="send-cell-score">${scoreCell}</td>
+          <td class="send-cell-status">${statusCell}</td>
+        </tr>
+      `;
+    }).join('');
+    listEl.querySelectorAll('.send-row').forEach((row) => {
+      row.addEventListener('click', () => selectStudent(row.dataset.id));
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectStudent(row.dataset.id); }
+      });
+    });
+  }
+
+  function selectStudent(id) {
+    selectedId = id;
+    renderStudentList();
+    renderPaper();
+  }
+
+  function fillClass(score) {
+    if (score >= 85) return 'rpt-bar-row__fill--high';
+    if (score >= 70) return 'rpt-bar-row__fill--mid';
+    return 'rpt-bar-row__fill--low';
+  }
+
+  function deltaSpan(score, prev) {
+    if (score === 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">—</span>`;
+    if (prev == null || prev === 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">신규</span>`;
+    const d = score - prev;
+    if (d > 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--up">▲ ${d}</span>`;
+    if (d < 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--down">▼ ${Math.abs(d)}</span>`;
+    return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">─</span>`;
+  }
+
+  function renderPaper() {
+    const s = STUDENTS.find(x => x.id === selectedId);
+    if (!s) {
+      actionsEl.hidden = true;
+      paperEl.innerHTML = `<div class="report-empty"><div class="report-empty__icon">←</div><div class="report-empty__msg">왼쪽에서 학생을 선택하세요</div></div>`;
+      return;
+    }
+    actionsEl.hidden = false;
+    if (s.sent) {
+      sentTimeEl.hidden = false;
+      sentTimeEl.textContent = `${s.sentAt} 전송됨`;
+    } else {
+      sentTimeEl.hidden = true;
+    }
+
+    const monthHead = reportType === 'monthly'
+      ? `<div class="rpt-month">5월</div><div class="rpt-year">2026</div>`
+      : `<div class="rpt-month">1학기</div><div class="rpt-year">2026 · ${reportType === 'midterm' ? '중간' : '기말'}</div>`;
+
+    const bars = s.scores.map(sc => `
+      <div class="rpt-bar-row">
+        <span class="rpt-bar-row__subj">${sc.subject}</span>
+        <div class="rpt-bar-row__bar"><div class="rpt-bar-row__fill ${sc.score > 0 ? fillClass(sc.score) : ''}" style="width: ${sc.score}%;"></div></div>
+        <span class="rpt-bar-row__score">${sc.score > 0 ? sc.score : '—'}</span>
+        ${deltaSpan(sc.score, sc.prev)}
+      </div>
+    `).join('');
+
+    const subjects = s.scores.map((sc, idx) => `
+      <div class="subj-card">
+        <div class="subj-card__head">
+          <span class="subj-card__name">${sc.subject}</span>
+          <span class="subj-card__score-wrap">
+            <input class="input subj-card__score-input" data-sid="${s.id}" data-sidx="${idx}" data-field="score" type="number" min="0" max="100" value="${sc.score || ''}" placeholder="—" />
+            <span class="subj-card__score-unit">점</span>
+          </span>
+          <span class="subj-card__save" data-save="${s.id}-${idx}" hidden></span>
+        </div>
+        <div class="subj-card__textarea-wrap">
+          <textarea class="subj-card__textarea" data-sid="${s.id}" data-sidx="${idx}" data-field="comment" placeholder="${sc.subject} 영역 코멘트">${sc.comment}</textarea>
+          <button class="subj-card__ai" data-ai-subject="${s.id}-${idx}"><i data-lucide="sparkles"></i>AI 코멘트 생성</button>
+        </div>
+      </div>
+    `).join('');
+
+    paperEl.innerHTML = `
+      <div class="rpt-header">
+        <div class="rpt-header-left">
+          <div class="rpt-logo">W</div>
+          <div><div class="rpt-academy">WAWA 수학+ 영어</div></div>
+        </div>
+        <div class="rpt-header-right">${monthHead}</div>
+      </div>
+      <div class="rpt-title-bar"><span class="rpt-title">${REPORT_TYPE_LABEL[reportType]} 리포트</span></div>
+      <div class="rpt-student-row">
+        <span class="rpt-student-label">학생</span>
+        <span class="rpt-student-name">${s.name}</span>
+        <span class="grade grade--${gradeClass(s.grade)}" style="margin-left: 8px;">${s.grade}</span>
+      </div>
+      <div class="rpt-chart">
+        <h3 class="rpt-chart__h">영역별 점수 · 전월 대비</h3>
+        <div class="rpt-bars">${bars}</div>
+      </div>
+      <div class="subj-list">${subjects}</div>
+      <div class="rpt-total">
+        <div class="rpt-total__h">
+          <span>총평</span>
+          <button class="subj-card__ai" data-ai-total="${s.id}" style="position: static;"><i data-lucide="sparkles"></i>AI 총평 생성</button>
+        </div>
+        <textarea class="subj-card__textarea" data-sid="${s.id}" data-field="total" style="min-height: 100px;" placeholder="이번 달 종합 평가">${s.total}</textarea>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+    wireInputs();
+  }
+
+  function gradeClass(g) {
+    const map = { 중1:'m1', 중2:'m2', 중3:'m3', 고1:'h1', 고2:'h2', 고3:'h3' };
+    return map[g] || 'etc';
+  }
+
+  function wireInputs() {
+    paperEl.querySelectorAll('input[data-field="score"], textarea[data-field], textarea[data-field="total"]').forEach((el) => {
+      el.addEventListener('input', () => showSaving(el));
+      el.addEventListener('blur', () => saveField(el));
+    });
+    paperEl.querySelectorAll('[data-ai-subject]').forEach((btn) => {
+      btn.addEventListener('click', () => generateAI(btn, 'subject'));
+    });
+    paperEl.querySelectorAll('[data-ai-total]').forEach((btn) => {
+      btn.addEventListener('click', () => generateAI(btn, 'total'));
+    });
+  }
+
+  function showSaving(el) {
+    const key = `${el.dataset.sid}-${el.dataset.sidx || 'total'}`;
+    const flag = document.querySelector(`[data-save="${key}"]`);
+    if (!flag) return;
+    flag.hidden = false;
+    flag.className = 'subj-card__save subj-card__save--saving';
+    flag.textContent = '…';
+  }
+
+  function saveField(el) {
+    const s = STUDENTS.find(x => x.id === el.dataset.sid);
+    if (!s) return;
+    const idx = Number(el.dataset.sidx);
+    if (el.dataset.field === 'score' && !isNaN(idx)) {
+      s.scores[idx].score = Number(el.value) || 0;
+    } else if (el.dataset.field === 'comment' && !isNaN(idx)) {
+      s.scores[idx].comment = el.value;
+    } else if (el.dataset.field === 'total') {
+      s.total = el.value;
+    }
+    const key = `${el.dataset.sid}-${el.dataset.sidx || 'total'}`;
+    const flag = document.querySelector(`[data-save="${key}"]`);
+    if (flag) {
+      flag.hidden = false;
+      flag.className = 'subj-card__save subj-card__save--saved';
+      flag.textContent = '✓ 저장됨';
+      setTimeout(() => { flag.hidden = true; }, 1600);
+    }
+    renderStudentList();
+  }
+
+  function generateAI(btn, kind) {
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader"></i>생성 중…`;
+    if (window.lucide) lucide.createIcons();
+    setTimeout(() => {
+      const s = STUDENTS.find(x => x.id === selectedId);
+      if (kind === 'subject') {
+        const [, idx] = btn.dataset.aiSubject.split('-');
+        const sc = s.scores[Number(idx)];
+        const generated = sc.score >= 85
+          ? `${sc.subject} 영역에서 높은 안정성을 보입니다. ${sc.prev ? `전월 ${sc.prev}점 대비 ${sc.score - sc.prev}점 상승` : '전월 대비 성장 중'}.`
+          : sc.score >= 70
+          ? `${sc.subject} 영역은 안정세입니다. 추가 보강이 필요한 세부 단원을 함께 확인하겠습니다.`
+          : sc.score > 0
+          ? `${sc.subject} 영역은 약점입니다. 다음 달 별도 보강을 진행하여 기초 안정화 예정입니다.`
+          : `${sc.subject} 영역은 아직 응시 전입니다.`;
+        const ta = paperEl.querySelector(`textarea[data-sid="${s.id}"][data-sidx="${idx}"][data-field="comment"]`);
+        if (ta) { ta.value = generated; sc.comment = generated; }
+        AppToast.show(`${sc.subject} AI 코멘트 생성됨`, 'success');
+      } else {
+        const avg = s.scores.filter(x => x.score > 0).reduce((a, b) => a + b.score, 0) / Math.max(1, s.scores.filter(x => x.score > 0).length);
+        const text = `${REPORT_TYPE_LABEL[reportType]} 평균 ${avg.toFixed(1)}점. 영역별 균형이 ${avg >= 80 ? '안정적' : '개선 필요한'} 상태입니다. 자세한 학습 계획은 다음 상담에서 공유 드립니다.`;
+        const ta = paperEl.querySelector(`textarea[data-field="total"]`);
+        if (ta) { ta.value = text; s.total = text; }
+        AppToast.show('AI 총평 생성됨', 'success');
+      }
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="sparkles"></i>AI ${kind === 'subject' ? '코멘트' : '총평'} 생성`;
+      if (window.lucide) lucide.createIcons();
+    }, 700);
+  }
+
+  // ── Report type tab switching ──
+  document.querySelectorAll('.report-tab').forEach((tab) => {
+    tab.dataset.wired = '1';
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      reportType = tab.dataset.type;
+      titleEl.textContent = `${REPORT_TYPE_LABEL[reportType]} 리포트`;
+      periodEl.textContent = PERIOD[reportType];
+      AppToast.show(`${REPORT_TYPE_LABEL[reportType]} 모드`);
+      if (selectedId) renderPaper();
+    });
+  });
+
+  // ── Action buttons ──
+  document.getElementById('download-jpg').addEventListener('click', () => {
+    const btn = document.getElementById('download-jpg');
+    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader"></i>생성 중…`; lucide.createIcons();
+    setTimeout(() => {
+      btn.disabled = false; btn.innerHTML = `<i data-lucide="download"></i>JPG 다운로드`; lucide.createIcons();
+      AppToast.show('리포트 JPG 다운로드 완료', 'success');
+    }, 900);
+  });
+  document.getElementById('share-kakao').addEventListener('click', () => {
+    const s = STUDENTS.find(x => x.id === selectedId);
+    if (!s) return;
+    const btn = document.getElementById('share-kakao');
+    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader"></i>업로드 중…`; lucide.createIcons();
+    setTimeout(() => {
+      s.sent = true;
+      s.sentAt = new Date().toISOString().slice(0,10).replace(/-/g, '.');
+      renderStudentList();
+      renderPaper();
+      btn.innerHTML = `<i data-lucide="check"></i>복사 완료!`; lucide.createIcons();
+      AppToast.show(`${s.name} 학부모 공유 링크 복사됨`, 'success');
+      setTimeout(() => {
+        btn.disabled = false; btn.innerHTML = `<i data-lucide="share-2"></i>카카오톡 공유`; lucide.createIcons();
+      }, 1600);
+    }, 900);
+  });
+
+  renderStudentList();
+  renderPaper();
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
