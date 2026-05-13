@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>11 · 출결·보강 관리 — AbsencePage</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  /* matches AbsencePage: 결석 → 보강 일정 추적
+     status: pending(미보강) / scheduled(보강예정) / completed(보강완료)
+     scope: mine / all (admin only)
+     filter: '' / pending / scheduled / completed */
+
+  .scope-toggle {
+    display: inline-flex;
+    padding: 3px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-primary);
+  }
+  .scope-toggle__btn {
+    padding: 5px 14px;
+    font-size: var(--fs-13);
+    font-weight: 700;
+    color: var(--text-secondary);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-std);
+  }
+  .scope-toggle__btn.is-active {
+    background: var(--bg-secondary);
+    color: var(--primary);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .filter-row {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--border-secondary);
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    padding: 6px 13px;
+    font-size: var(--fs-13);
+    font-weight: 700;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: border-color var(--duration-fast) var(--ease-std);
+  }
+  .filter-chip:hover { border-color: var(--border-strong); }
+  .filter-chip.is-active { background: var(--primary-surface); color: var(--primary); border-color: var(--primary); }
+  .filter-chip__count {
+    font-size: var(--fs-11); font-weight: 800;
+    padding: 1px 7px;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .filter-chip.is-active .filter-chip__count { background: var(--primary); color: var(--text-inverse); }
+
+  /* Status pill — matches makeup-status--{pending|scheduled|completed} */
+  .ms { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--radius-full); font-size: var(--fs-12); font-weight: 800; }
+  .ms .lucide { width: 12px; height: 12px; }
+  .ms--pending { background: var(--warning-surface); color: var(--warning); }
+  .ms--scheduled { background: var(--info-surface); color: var(--info); }
+  .ms--completed { background: var(--success-surface); color: var(--success); }
+
+  /* Inline date input for scheduling makeup */
+  .date-input {
+    padding: 6px 10px;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    font-family: inherit;
+    font-size: var(--fs-13);
+    color: var(--text-primary);
+    width: 138px;
+  }
+  .date-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-surface); }
+
+  .action-cell { display: inline-flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+  .action-cell .btn { padding: 5px 10px; font-size: var(--fs-12); }
+  .action-cell .btn-icon { width: 28px; height: 28px; }
+  .action-cell .btn-icon .lucide { width: 14px; height: 14px; }
+
+  .scheduled-meta {
+    display: flex; flex-direction: column;
+    font-size: var(--fs-13);
+    line-height: 1.3;
+  }
+  .scheduled-meta__date { font-weight: 700; }
+  .scheduled-meta__time { font-size: var(--fs-11); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+  .empty {
+    padding: var(--sp-12) var(--sp-6);
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--fs-14);
+  }
+  .empty .lucide { width: 36px; height: 36px; color: var(--border-strong); margin-bottom: var(--sp-3); }
+
+  /* Modal mockup hints */
+  .modal-hint {
+    margin-top: var(--sp-5);
+    padding: var(--sp-4) var(--sp-5);
+    background: var(--bg-tertiary);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+  .modal-hint__title {
+    font-weight: 800; color: var(--text-primary);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .modal-hint p { margin: 0; }
+  .modal-hint p + p { margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>담임 대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <div class="app-nav__item is-active"><i data-lucide="calendar-x"></i>출결·보강<span class="app-nav__count">8</span></div>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>시험 타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>학습 현황</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">운영 · 보강 관리</div>
+        <div class="page-head__title-row">
+          <h1 class="page-head__title">보강 관리</h1>
+          <!-- Scope toggle (admin only) -->
+          <div class="scope-toggle" role="group" aria-label="조회 범위">
+            <button class="scope-toggle__btn is-active">내 학생</button>
+            <button class="scope-toggle__btn">모두 보기</button>
+          </div>
+        </div>
+        <div class="page-head__sub">결석 → 보강 일정 추적 · 미보강 5건 · 보강예정 3건</div>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--secondary"><i data-lucide="download"></i>월간 export</button>
+        <button class="btn btn--primary"><i data-lucide="plus"></i>결석 추가</button>
+      </div>
+    </header>
+
+    <!-- KPI strip -->
+    <div class="summary-bar">
+      <div class="summary-bar__cell"><span class="summary-bar__label">이번 달 결석</span><span class="summary-bar__value">12<span class="summary-bar__value-sub">건</span></span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">미보강</span><span class="summary-bar__value summary-bar__value--alert">5</span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">보강 예정</span><span class="summary-bar__value" style="color: var(--info);">3</span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">보강 완료</span><span class="summary-bar__value" style="color: var(--success);">4</span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">7일 내 미배정</span><span class="summary-bar__value summary-bar__value--alert">2</span></div>
+    </div>
+
+    <div class="panel">
+
+      <!-- Status filter chips (matches AbsencePage filter buttons) -->
+      <div class="filter-row">
+        <button class="filter-chip is-active">전체</button>
+        <button class="filter-chip">미보강<span class="filter-chip__count">5</span></button>
+        <button class="filter-chip">보강예정<span class="filter-chip__count">3</span></button>
+        <button class="filter-chip">완료<span class="filter-chip__count">4</span></button>
+        <div style="flex: 1;"></div>
+        <div class="input-group" style="width: 220px;">
+          <i data-lucide="search"></i>
+          <input placeholder="학생·수업 검색" />
+        </div>
+        <select class="select" style="width: 160px;"><option>이번 달 (2026-05)</option><option>지난 달 (2026-04)</option><option>전체 기간</option></select>
+      </div>
+
+      <!-- Table — columns match AbsencePage real -->
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>학생</th>
+            <th style="width: 100px;" class="tabular">결석일</th>
+            <th>수업</th>
+            <th>사유</th>
+            <th style="width: 168px;">보강일</th>
+            <th style="width: 110px;">상태</th>
+            <th style="width: 240px;">액션</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- pending (미보강) — inline date input + 지정 button -->
+          <tr>
+            <td>
+              <div class="cluster"><div class="avatar" style="background: var(--warning-surface); color: var(--warning);">최수</div>
+                <div class="cell-stack"><span class="cell-stack__primary">최수지</span><span class="cell-stack__meta"><span class="grade grade--h3">고3</span> · 대치고</span></div>
+              </div>
+            </td>
+            <td class="tabular">2026-05-07</td>
+            <td>고3 영어 · 화/목 19:00</td>
+            <td>학교 행사 (공결)</td>
+            <td><input class="date-input" type="date" value="" placeholder="YYYY-MM-DD" /></td>
+            <td><span class="ms ms--pending"><i data-lucide="alert-circle"></i>미보강</span></td>
+            <td>
+              <div class="action-cell">
+                <button class="btn btn--primary btn--sm" disabled style="opacity: 0.5;">지정</button>
+                <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+                <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+                <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- pending with date selected (button enabled) -->
+          <tr>
+            <td>
+              <div class="cluster"><div class="avatar" style="background: var(--warning-surface); color: var(--warning);">김민</div>
+                <div class="cell-stack"><span class="cell-stack__primary">김민호</span><span class="cell-stack__meta"><span class="grade grade--m3">중3</span> · 서초중</span></div>
+              </div>
+            </td>
+            <td class="tabular">2026-05-09</td>
+            <td>중3 영어 · 월/수 16:00</td>
+            <td>발열 (질병결)</td>
+            <td><input class="date-input" type="date" value="2026-05-15" /></td>
+            <td><span class="ms ms--pending"><i data-lucide="alert-circle"></i>미보강</span></td>
+            <td>
+              <div class="action-cell">
+                <button class="btn btn--primary btn--sm">지정</button>
+                <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+                <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+                <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- scheduled (보강예정) — shows date+time, 완료 button -->
+          <tr>
+            <td>
+              <div class="cluster"><div class="avatar">박지</div>
+                <div class="cell-stack"><span class="cell-stack__primary">박지민</span><span class="cell-stack__meta"><span class="grade grade--h1">고1</span> · 양재고</span></div>
+              </div>
+            </td>
+            <td class="tabular">2026-05-04</td>
+            <td>고1 영어 · 화/목 17:00</td>
+            <td>가족 일정</td>
+            <td>
+              <div class="scheduled-meta">
+                <span class="scheduled-meta__date">2026-05-14</span>
+                <span class="scheduled-meta__time">19:00–20:30</span>
+              </div>
+            </td>
+            <td><span class="ms ms--scheduled"><i data-lucide="calendar-clock"></i>보강예정</span></td>
+            <td>
+              <div class="action-cell">
+                <button class="btn btn--accent btn--sm"><i data-lucide="check"></i>완료</button>
+                <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+                <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+                <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- scheduled with multiple sessions -->
+          <tr>
+            <td>
+              <div class="cluster"><div class="avatar">정하</div>
+                <div class="cell-stack"><span class="cell-stack__primary">정하늘</span><span class="cell-stack__meta"><span class="grade grade--h2">고2</span> · 강남고</span></div>
+              </div>
+            </td>
+            <td class="tabular">2026-05-05</td>
+            <td>고2 영어 · 월/수 19:00</td>
+            <td>독감 격리</td>
+            <td>
+              <div class="scheduled-meta">
+                <span class="scheduled-meta__date">2026-05-16 · 18</span>
+                <span class="scheduled-meta__time">2회차 진행 중</span>
+              </div>
+            </td>
+            <td><span class="ms ms--scheduled"><i data-lucide="calendar-clock"></i>보강예정</span></td>
+            <td>
+              <div class="action-cell">
+                <button class="btn btn--accent btn--sm"><i data-lucide="check"></i>완료</button>
+                <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+                <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+                <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- completed (보강완료) — shows completed date -->
+          <tr style="opacity: 0.75;">
+            <td>
+              <div class="cluster"><div class="avatar">강민</div>
+                <div class="cell-stack"><span class="cell-stack__primary">강민수</span><span class="cell-stack__meta"><span class="grade grade--h2">고2</span> · 강남고</span></div>
+              </div>
+            </td>
+            <td class="tabular">2026-04-23</td>
+            <td>고2 영어 · 월/수 19:00</td>
+            <td>학교 시험</td>
+            <td>
+              <div class="scheduled-meta">
+                <span class="scheduled-meta__date">2026-04-30</span>
+                <span class="scheduled-meta__time">완료 04-30</span>
+              </div>
+            </td>
+            <td><span class="ms ms--completed"><i data-lucide="check-circle-2"></i>보강완료</span></td>
+            <td>
+              <div class="action-cell">
+                <span class="text-mute" style="font-size: var(--fs-12);">완료됨</span>
+                <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+                <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+                <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+              </div>
+            </td>
+          </tr>
+
+          <tr style="opacity: 0.75;">
+            <td>
+              <div class="cluster"><div class="avatar">윤서</div>
+                <div class="cell-stack"><span class="cell-stack__primary">윤서연</span><span class="cell-stack__meta"><span class="grade grade--m2">중2</span> · 서초중</span></div>
+              </div>
+            </td>
+            <td class="tabular">2026-04-19</td>
+            <td>중2 영어 · 월/수 16:00</td>
+            <td>가족 여행</td>
+            <td>
+              <div class="scheduled-meta">
+                <span class="scheduled-meta__date">2026-04-26</span>
+                <span class="scheduled-meta__time">완료 04-26</span>
+              </div>
+            </td>
+            <td><span class="ms ms--completed"><i data-lucide="check-circle-2"></i>보강완료</span></td>
+            <td>
+              <div class="action-cell">
+                <span class="text-mute" style="font-size: var(--fs-12);">완료됨</span>
+                <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+                <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+                <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- pending with old date — needs attention -->
+          <tr style="background: var(--danger-surface);">
+            <td>
+              <div class="cluster"><div class="avatar" style="background: var(--danger-surface); color: var(--danger);">한지</div>
+                <div class="cell-stack"><span class="cell-stack__primary">한지원</span><span class="cell-stack__meta"><span class="grade grade--h1">고1</span> · 대치고</span></div>
+              </div>
+            </td>
+            <td class="tabular">2026-04-30</td>
+            <td>고1 영어 · 화/목 19:00</td>
+            <td>(미입력)</td>
+            <td><input class="date-input" type="date" value="" /></td>
+            <td><span class="ms ms--pending"><i data-lucide="alert-circle"></i>미보강 · 13일 경과</span></td>
+            <td>
+              <div class="action-cell">
+                <button class="btn btn--primary btn--sm" disabled style="opacity: 0.5;">지정</button>
+                <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+                <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+                <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+              </div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <div class="cluster" style="padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-secondary); justify-content: space-between;">
+        <span class="text-mute" style="font-size: var(--fs-13);">전체 12건 · 1–7 표시</span>
+        <div class="cluster" style="--gap: 4px;">
+          <button class="btn-icon"><i data-lucide="chevron-left"></i></button>
+          <button class="btn btn--secondary btn--sm tabular">1</button>
+          <button class="btn btn--ghost btn--sm tabular">2</button>
+          <button class="btn-icon"><i data-lucide="chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal pattern hints -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4);">
+
+      <div class="modal-hint">
+        <div class="modal-hint__title"><i data-lucide="plus-circle"></i>결석 추가 모달</div>
+        <p>「결석 추가」 클릭 시 모달이 표시됩니다 — <strong>학생</strong> · <strong>수업</strong> · <strong>결석일</strong> · <strong>사유</strong> 입력.</p>
+        <p>저장하면 자동으로 <code style="font-family: ui-monospace, monospace; font-size: 11px;">status = pending</code> 으로 목록에 추가됨.</p>
+      </div>
+
+      <div class="modal-hint">
+        <div class="modal-hint__title"><i data-lucide="list-ordered"></i>회차 모달 (MakeupSessionsModal)</div>
+        <p>한 결석에 여러 보강 회차가 있을 수 있습니다. 「회차」 버튼 → 회차별 일정·상태 관리 모달.</p>
+        <p>각 회차: <strong>날짜·시작·종료 시간</strong> + 진행 메모.</p>
+      </div>
+
+      <div class="modal-hint">
+        <div class="modal-hint__title"><i data-lucide="pencil"></i>수정 모달</div>
+        <p>결석일 · 사유 · 수업 · 보강일 · 시작/종료 시간 · 노트 · 상태를 한 번에 편집.</p>
+      </div>
+
+      <div class="modal-hint">
+        <div class="modal-hint__title"><i data-lucide="alert-triangle"></i>useConfirm() 다이얼로그</div>
+        <p>삭제 시 native confirm() 대신 <code style="font-family: ui-monospace, monospace; font-size: 11px;">useConfirm()</code> 으로 디자인 시스템 다이얼로그 표시.</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

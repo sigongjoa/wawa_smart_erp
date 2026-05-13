@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WAWA ERP — Mockup v2 Index</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  body { background: var(--bg-canvas); }
+  .index-wrap { max-width: 1120px; margin: 0 auto; padding: var(--sp-12) var(--sp-8) var(--sp-16); }
+  .hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--sp-10); align-items: end; margin-bottom: var(--sp-12); }
+  .hero__crumb { font-size: var(--fs-12); font-weight: 800; color: var(--primary); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: var(--sp-3); }
+  .hero__title { font-size: var(--fs-72); font-weight: 900; letter-spacing: -0.04em; line-height: 0.92; margin: 0 0 var(--sp-4); }
+  .hero__title em { font-style: normal; color: var(--primary); }
+  .hero__lede { font-size: var(--fs-17); color: var(--text-secondary); max-width: 56ch; line-height: 1.55; }
+  .hero__stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+  .hero__stat { padding: var(--sp-4) var(--sp-5); background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); }
+  .hero__stat-v { font-size: var(--fs-28); font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .hero__stat-l { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .section-title-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--sp-5); border-top: 1px solid var(--border-primary); padding-top: var(--sp-6); }
+  .section-title-row h2 { font-size: var(--fs-22); font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+  .section-title-row p { color: var(--text-tertiary); margin: 0; font-size: var(--fs-13); }
+
+  .mockup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-4); margin-bottom: var(--sp-10); }
+  .mockup-card {
+    display: flex; flex-direction: column; gap: var(--sp-3);
+    padding: var(--sp-5);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: border-color var(--duration-fast) var(--ease-std), transform var(--duration-fast) var(--ease-std), box-shadow var(--duration-fast) var(--ease-std);
+  }
+  .mockup-card:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .mockup-card__num { font-size: var(--fs-11); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.1em; }
+  .mockup-card__title { font-size: var(--fs-17); font-weight: 800; letter-spacing: -0.01em; color: var(--text-primary); }
+  .mockup-card__desc { font-size: var(--fs-13); color: var(--text-secondary); line-height: 1.5; flex: 1; }
+  .mockup-card__pages { display: flex; flex-wrap: wrap; gap: 4px; padding-top: var(--sp-3); border-top: 1px dashed var(--border-secondary); }
+
+  .doctrine { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-4); margin-bottom: var(--sp-10); }
+  .doctrine-item { padding: var(--sp-4) var(--sp-5); border-left: 3px solid var(--primary); background: var(--bg-secondary); border-radius: var(--radius-sm); }
+  .doctrine-item h3 { margin: 0 0 4px; font-size: var(--fs-14); font-weight: 800; }
+  .doctrine-item p { margin: 0; font-size: var(--fs-13); color: var(--text-secondary); line-height: 1.5; }
+  .doctrine-item--anti { border-left-color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div class="index-wrap">
+
+  <header class="hero">
+    <div>
+      <div class="hero__crumb">WAWA Smart ERP · Mockup v2 · 2026-05-13</div>
+      <h1 class="hero__title">한 톤으로<br/>다 묶었습니다.</h1>
+      <p class="hero__lede">강사·관리자용 desktop ERP 40개 페이지를 archetype 9 + 특이 3으로 정리.
+        deep indigo · warm mint · Pretendard · lucide. 이모지 아이콘 0, 친절 카피 0.</p>
+    </div>
+    <div class="hero__stats">
+      <div class="hero__stat">
+        <div class="hero__stat-v">12</div>
+        <div class="hero__stat-l">Mockups</div>
+      </div>
+      <div class="hero__stat">
+        <div class="hero__stat-v">40</div>
+        <div class="hero__stat-l">Pages covered</div>
+      </div>
+      <div class="hero__stat">
+        <div class="hero__stat-v">2</div>
+        <div class="hero__stat-l">Brand colors</div>
+      </div>
+      <div class="hero__stat">
+        <div class="hero__stat-v">0</div>
+        <div class="hero__stat-l">Emoji icons</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-title-row">
+    <h2>Archetypes</h2>
+    <p>각 archetype에 매핑되는 실제 페이지 표시</p>
+  </div>
+
+  <div class="mockup-grid">
+    <a class="mockup-card" href="00-design-system.html">
+      <div class="mockup-card__num">00 · FOUNDATION</div>
+      <div class="mockup-card__title">Design System</div>
+      <div class="mockup-card__desc">토큰·컴포넌트 카탈로그. 모든 archetype이 여기서 출발.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">tokens</span>
+        <span class="pill pill--neutral">components</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="01-list-sidebar.html">
+      <div class="mockup-card__num">01 · ARCHETYPE</div>
+      <div class="mockup-card__title">List + Sidebar</div>
+      <div class="mockup-card__desc">테이블 메인 + 좌측 이슈 패널. 운영자가 매일 보는 화면.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">ExamManagement</span>
+        <span class="pill pill--neutral">StudentList</span>
+        <span class="pill pill--neutral">+ 4</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="11-attendance.html">
+      <div class="mockup-card__num">11 · ARCHETYPE</div>
+      <div class="mockup-card__title">출결·보강</div>
+      <div class="mockup-card__desc">결석 기록 → 보강 일정 추적. inline date input + 회차 모달.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">AbsencePage</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="02-dashboard.html">
+      <div class="mockup-card__num">02 · ARCHETYPE</div>
+      <div class="mockup-card__title">Dashboard</div>
+      <div class="mockup-card__desc">담임 종합 대시보드. KPI · 최근 활동 · 알림.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">Homeroom</span>
+        <span class="pill pill--neutral">Settings</span>
+        <span class="pill pill--neutral">+ 2</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="03-detail-profile.html">
+      <div class="mockup-card__num">03 · ARCHETYPE</div>
+      <div class="mockup-card__title">Detail / Profile</div>
+      <div class="mockup-card__desc">학생 프로필. 좌측 메타 + 우측 탭드 컨텐츠.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">StudentProfile</span>
+        <span class="pill pill--neutral">GachaCard</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="04-form-editor.html">
+      <div class="mockup-card__num">04 · ARCHETYPE</div>
+      <div class="mockup-card__title">Form / Editor</div>
+      <div class="mockup-card__desc">시험 문제 편집기. 좌 목록 + 우 에디터.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">ExamQuestionEditor</span>
+        <span class="pill pill--neutral">Register</span>
+        <span class="pill pill--neutral">ChangePin</span>
+        <span class="pill pill--neutral">+ 2</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="05-timer-live.html">
+      <div class="mockup-card__num">05 · ARCHETYPE</div>
+      <div class="mockup-card__title">Timer / Live</div>
+      <div class="mockup-card__desc">대형 타이머 · 학생 attendance 패널.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">Timer</span>
+        <span class="pill pill--neutral">ExamTimer</span>
+        <span class="pill pill--neutral">LiveSession</span>
+        <span class="pill pill--neutral">Meeting</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="06-report.html">
+      <div class="mockup-card__num">06 · ARCHETYPE</div>
+      <div class="mockup-card__title">Report</div>
+      <div class="mockup-card__desc">학부모 리포트. KPI · 과목 차트 · 코멘트.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">ParentReport</span>
+        <span class="pill pill--neutral">ExamResult</span>
+        <span class="pill pill--neutral">Report</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="07-auth.html">
+      <div class="mockup-card__num">07 · ARCHETYPE</div>
+      <div class="mockup-card__title">Auth</div>
+      <div class="mockup-card__desc">로그인 / 회원가입. 좌 brand + 우 form.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">Login</span>
+        <span class="pill pill--neutral">Register</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="08-gacha-dashboard.html">
+      <div class="mockup-card__num">08 · SPECIAL</div>
+      <div class="mockup-card__title">Gacha Dashboard</div>
+      <div class="mockup-card__desc">게이미피케이션 운영자 대시보드. 컬렉션 · 획득 이벤트.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">GachaDashboard</span>
+        <span class="pill pill--neutral">GachaCard</span>
+        <span class="pill pill--neutral">GachaStudent</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="09-vocab-admin.html">
+      <div class="mockup-card__num">09 · SPECIAL</div>
+      <div class="mockup-card__title">Vocab Admin</div>
+      <div class="mockup-card__desc">단어/오답/등급/정책 탭 + DataGrid.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">VocabAdmin</span>
+        <span class="pill pill--neutral">MedTermAdmin</span>
+      </div>
+    </a>
+
+    <a class="mockup-card" href="10-proof-editor.html">
+      <div class="mockup-card__num">10 · SPECIAL</div>
+      <div class="mockup-card__title">Proof Editor</div>
+      <div class="mockup-card__desc">수학 증명 LaTeX 에디터. 좌 입력 + 우 preview.</div>
+      <div class="mockup-card__pages">
+        <span class="pill pill--neutral">ProofEditor</span>
+        <span class="pill pill--neutral">CurriculumPage</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="section-title-row">
+    <h2>Doctrine</h2>
+    <p>이 톤이 만들어진 5가지 규칙</p>
+  </div>
+
+  <div class="doctrine">
+    <div class="doctrine-item">
+      <h3>Indigo + Mint, 단 두 색</h3>
+      <p>Primary는 deep indigo 단일. 보조는 warm mint. 그라데이션 텍스트 없음.</p>
+    </div>
+    <div class="doctrine-item">
+      <h3>Lucide ONLY</h3>
+      <p>이모지를 아이콘으로 쓰지 않음. OS별 렌더 차이 + 운영 도구 톤 깸.</p>
+    </div>
+    <div class="doctrine-item">
+      <h3>카드 남용 금지</h3>
+      <p>섹션은 보더/배경 톤으로 구분. 카드 안에 카드 중첩 금지.</p>
+    </div>
+    <div class="doctrine-item">
+      <h3>타이포 hierarchy 강하게</h3>
+      <p>22pt · 17pt · 15pt · 13pt · 11pt 5단계. weight로 추가 hierarchy.</p>
+    </div>
+    <div class="doctrine-item doctrine-item--anti">
+      <h3>안티 패턴</h3>
+      <p>글래스모피즘 · 보라-파랑 그라데 · 친절 카피 · 무한 글로우 · 이모지 ✨</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

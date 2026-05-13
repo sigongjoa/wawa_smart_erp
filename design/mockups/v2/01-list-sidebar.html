@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>01 · List + Sidebar — 정기고사 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .work-grid { display: grid; grid-template-columns: 300px 1fr; gap: var(--sp-5); align-items: start; }
+  .filters-row { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); }
+  .filters-row .chip { padding: 5px 11px; font-size: var(--fs-13); font-weight: 600; border: 1px solid var(--border-primary); border-radius: var(--radius-full); cursor: pointer; }
+  .filters-row .chip.is-on { background: var(--primary-surface); color: var(--primary); border-color: var(--primary); }
+  .month-picker {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary); background: var(--bg-secondary);
+    font-weight: 700; font-size: var(--fs-14); cursor: pointer;
+  }
+  .month-picker:hover { border-color: var(--border-strong); }
+  .month-picker .lucide { width: 14px; height: 14px; color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+      <div class="app-nav__item is-active"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></div>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="11-attendance.html"><i data-lucide="calendar-x"></i>출결·보강</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+      <a class="app-nav__item" href="#"><i data-lucide="megaphone"></i>알림<span class="app-nav__count">3</span></a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>가챠</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">운영 · 정기고사</div>
+        <div class="page-head__title-row">
+          <h1 class="page-head__title">정기고사 관리</h1>
+          <button class="month-picker">
+            2026년 5월
+            <i data-lucide="chevron-down"></i>
+          </button>
+        </div>
+        <div class="page-head__sub">5월 정기고사 24명 배정. 결시 1명 · 재시험 미배정 상태입니다.</div>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--secondary"><i data-lucide="filter"></i>내 학생만</button>
+        <button class="btn btn--secondary"><i data-lucide="download"></i>내보내기</button>
+        <button class="btn btn--primary"><i data-lucide="plus"></i>영어 문제 입력</button>
+      </div>
+    </header>
+
+    <!-- KPI strip -->
+    <div class="summary-bar">
+      <div class="summary-bar__cell"><span class="summary-bar__label">배정</span><span class="summary-bar__value">18<span class="summary-bar__value-sub">/ 24</span></span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">제작</span><span class="summary-bar__value">15<span class="summary-bar__value-sub">/ 18</span></span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">프린트</span><span class="summary-bar__value">12<span class="summary-bar__value-sub">/ 18</span></span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">검토 완료</span><span class="summary-bar__value">8<span class="summary-bar__value-sub">/ 18</span></span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">결시·재시험</span><span class="summary-bar__value summary-bar__value--alert">3</span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">리포트 발송</span><span class="summary-bar__value">12<span class="summary-bar__value-sub">/ 24</span></span></div>
+    </div>
+
+    <!-- two-col work area -->
+    <div class="work-grid">
+
+      <!-- Side panel: issues -->
+      <aside class="stack" style="--gap: var(--sp-5);">
+        <div>
+          <div class="section-label" style="margin-bottom: var(--sp-2);">조치 필요</div>
+          <div class="stack" style="--gap: var(--sp-2);">
+            <div class="issue-card issue-card--danger">
+              <div class="issue-card__title">최수지<span class="grade grade--h3">고3</span></div>
+              <div class="issue-card__meta">05.07 결시 · 재시험 미배정</div>
+            </div>
+            <div class="issue-card issue-card--warning">
+              <div class="issue-card__title">박지민<span class="grade grade--h1">고1</span></div>
+              <div class="issue-card__meta">재시험 예정 · 05.09 14:00</div>
+            </div>
+            <div class="issue-card issue-card--warning">
+              <div class="issue-card__title">김재훈<span class="grade grade--h2">고2</span></div>
+              <div class="issue-card__meta">검토 누락 · 4일 경과</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label" style="margin-bottom: var(--sp-2);">리포트 현황</div>
+          <div class="panel">
+            <div class="panel__body" style="padding: var(--sp-4);">
+              <div class="cluster" style="--gap: var(--sp-3); margin-bottom: var(--sp-3);">
+                <div class="cell-stack">
+                  <span class="cell-stack__meta">5월 중간 리포트</span>
+                  <span style="font-size: var(--fs-22); font-weight: 800; font-variant-numeric: tabular-nums;">12 <span class="text-mute" style="font-weight: 600; font-size: var(--fs-15);">/ 24</span></span>
+                </div>
+              </div>
+              <div style="height: 6px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden;">
+                <div style="width: 50%; height: 100%; background: var(--primary);"></div>
+              </div>
+              <div class="cluster" style="margin-top: var(--sp-3); justify-content: space-between;">
+                <span class="text-mute" style="font-size: var(--fs-12);">발송 완료 · 12건</span>
+                <button class="btn btn--ghost btn--sm">발송하기<i data-lucide="arrow-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label" style="margin-bottom: var(--sp-2);">학교별 분포</div>
+          <div class="stack" style="--gap: 6px;">
+            <div class="cluster" style="justify-content: space-between;"><span style="font-size: var(--fs-13); font-weight: 700;">강남고</span><span class="text-mute tabular" style="font-size: var(--fs-12);">8</span></div>
+            <div class="cluster" style="justify-content: space-between;"><span style="font-size: var(--fs-13); font-weight: 700;">대치고</span><span class="text-mute tabular" style="font-size: var(--fs-12);">5</span></div>
+            <div class="cluster" style="justify-content: space-between;"><span style="font-size: var(--fs-13); font-weight: 700;">양재고</span><span class="text-mute tabular" style="font-size: var(--fs-12);">4</span></div>
+            <div class="cluster" style="justify-content: space-between;"><span style="font-size: var(--fs-13); font-weight: 700;">서초중</span><span class="text-mute tabular" style="font-size: var(--fs-12);">3</span></div>
+            <div class="cluster" style="justify-content: space-between;"><span style="font-size: var(--fs-13); font-weight: 700;">개별 / 기타</span><span class="text-mute tabular" style="font-size: var(--fs-12);">4</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main table -->
+      <div class="panel">
+        <div class="filters-row">
+          <div class="chip is-on">전체 24</div>
+          <div class="chip">완료 8</div>
+          <div class="chip">진행중 13</div>
+          <div class="chip">결시 1</div>
+          <div class="chip">재시험 2</div>
+          <div style="flex: 1;"></div>
+          <div class="input-group" style="width: 240px;">
+            <i data-lucide="search"></i>
+            <input placeholder="이름·학교 검색" />
+          </div>
+          <button class="btn-icon"><i data-lucide="settings-2"></i></button>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 36px;"><input type="checkbox" /></th>
+              <th>학생</th>
+              <th style="width: 132px;">진행 단계</th>
+              <th style="width: 86px;">자료</th>
+              <th style="width: 96px;">상태</th>
+              <th style="width: 72px;" class="tabular">시험일</th>
+              <th style="width: 70px; text-align: right;" class="tabular">점수</th>
+              <th style="width: 56px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox" checked /></td>
+              <td>
+                <div class="cluster"><div class="avatar">강민</div>
+                  <div class="cell-stack">
+                    <span class="cell-stack__primary">강민수</span>
+                    <span class="cell-stack__meta">강남고 · <span class="grade grade--h2">고2</span></span>
+                  </div>
+                </div>
+              </td>
+              <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div></div></td>
+              <td><span class="pill pill--primary"><i data-lucide="link"></i>Drive</span></td>
+              <td><span class="pill pill--success"><i data-lucide="check"></i>완료</span></td>
+              <td class="tabular">05.07</td>
+              <td class="tabular cell-num" style="text-align: right;">92</td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" checked /></td>
+              <td>
+                <div class="cluster"><div class="avatar">이영</div>
+                  <div class="cell-stack">
+                    <span class="cell-stack__primary">이영희</span>
+                    <span class="cell-stack__meta">서초중 · <span class="grade grade--m3">중3</span></span>
+                  </div>
+                </div>
+              </td>
+              <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-current"></div><div class="progress-steps__bar"></div></div></td>
+              <td><span class="text-mute">—</span></td>
+              <td><span class="pill pill--info"><i data-lucide="calendar"></i>예정</span></td>
+              <td class="tabular">05.12</td>
+              <td class="tabular text-mute" style="text-align: right;">—</td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" checked /></td>
+              <td>
+                <div class="cluster"><div class="avatar">박지</div>
+                  <div class="cell-stack">
+                    <span class="cell-stack__primary">박지민</span>
+                    <span class="cell-stack__meta">양재고 · <span class="grade grade--h1">고1</span></span>
+                  </div>
+                </div>
+              </td>
+              <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-current"></div><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div></div></td>
+              <td><span class="pill pill--primary"><i data-lucide="link"></i>Drive</span></td>
+              <td><span class="pill pill--warning"><i data-lucide="rotate-cw"></i>재시험</span></td>
+              <td class="tabular">05.09</td>
+              <td class="tabular text-mute" style="text-align: right;">—</td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr class="is-selected">
+              <td><input type="checkbox" checked /></td>
+              <td>
+                <div class="cluster"><div class="avatar" style="background: var(--danger-surface); color: var(--danger);">최수</div>
+                  <div class="cell-stack">
+                    <span class="cell-stack__primary">최수지</span>
+                    <span class="cell-stack__meta">대치고 · <span class="grade grade--h3">고3</span></span>
+                  </div>
+                </div>
+              </td>
+              <td><div class="progress-steps"><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div></div></td>
+              <td><span class="text-mute">—</span></td>
+              <td><span class="pill pill--danger"><i data-lucide="x"></i>결시</span></td>
+              <td class="tabular text-mute">—</td>
+              <td class="tabular text-mute" style="text-align: right;">—</td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>
+                <div class="cluster"><div class="avatar">정하</div>
+                  <div class="cell-stack">
+                    <span class="cell-stack__primary">정하늘</span>
+                    <span class="cell-stack__meta">강남고 · <span class="grade grade--h2">고2</span></span>
+                  </div>
+                </div>
+              </td>
+              <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar"></div></div></td>
+              <td><span class="pill pill--primary"><i data-lucide="link"></i>Drive</span></td>
+              <td><span class="pill pill--info"><i data-lucide="calendar"></i>예정</span></td>
+              <td class="tabular">05.14</td>
+              <td class="tabular text-mute" style="text-align: right;">—</td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>
+                <div class="cluster"><div class="avatar">김재</div>
+                  <div class="cell-stack">
+                    <span class="cell-stack__primary">김재훈</span>
+                    <span class="cell-stack__meta">대치고 · <span class="grade grade--h2">고2</span></span>
+                  </div>
+                </div>
+              </td>
+              <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div></div></td>
+              <td><span class="pill pill--primary"><i data-lucide="link"></i>Drive</span></td>
+              <td><span class="pill pill--warning"><i data-lucide="clock"></i>검토 누락</span></td>
+              <td class="tabular">05.06</td>
+              <td class="tabular text-mute" style="text-align: right;">—</td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>
+                <div class="cluster"><div class="avatar">윤서</div>
+                  <div class="cell-stack">
+                    <span class="cell-stack__primary">윤서연</span>
+                    <span class="cell-stack__meta">서초중 · <span class="grade grade--m2">중2</span></span>
+                  </div>
+                </div>
+              </td>
+              <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div></div></td>
+              <td><span class="pill pill--primary"><i data-lucide="link"></i>Drive</span></td>
+              <td><span class="pill pill--success"><i data-lucide="check"></i>완료</span></td>
+              <td class="tabular">05.08</td>
+              <td class="tabular cell-num" style="text-align: right;">88</td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="cluster" style="padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-secondary); justify-content: space-between;">
+          <span class="text-mute" style="font-size: var(--fs-13);">총 24명 · 1–7 표시</span>
+          <div class="cluster" style="--gap: 4px;">
+            <button class="btn-icon"><i data-lucide="chevron-left"></i></button>
+            <button class="btn btn--secondary btn--sm tabular">1</button>
+            <button class="btn btn--ghost btn--sm tabular">2</button>
+            <button class="btn btn--ghost btn--sm tabular">3</button>
+            <button class="btn btn--ghost btn--sm tabular">4</button>
+            <button class="btn-icon"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

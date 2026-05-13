@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>10 · Proof Editor — 수학 증명 에디터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .proof-shell { display: grid; grid-template-columns: 1fr 1fr; gap: 0; align-items: stretch; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); overflow: hidden; min-height: 720px; }
+
+  .proof-pane { display: flex; flex-direction: column; min-width: 0; }
+  .proof-pane + .proof-pane { border-left: 1px solid var(--border-primary); }
+
+  .proof-toolbar {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--border-secondary);
+    background: var(--bg-primary);
+  }
+  .proof-toolbar .pill { font-family: ui-monospace, "SF Mono", monospace; }
+  .proof-toolbar .divider-v { width: 1px; height: 18px; background: var(--border-primary); margin: 0 var(--sp-1); }
+
+  .editor-pane {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+  .editor-pane__lines { display: grid; grid-template-columns: 48px 1fr; }
+  .editor-pane__num { padding: 2px var(--sp-3); font-size: 12px; color: var(--text-tertiary); text-align: right; user-select: none; border-right: 1px solid var(--border-secondary); }
+  .editor-pane__line { padding: 2px var(--sp-5); white-space: pre-wrap; word-break: break-word; }
+  .editor-pane__line.is-active { background: var(--primary-surface); }
+
+  .tok-kw { color: var(--primary); font-weight: 700; }
+  .tok-cmd { color: var(--info); }
+  .tok-sym { color: var(--accent-hover); }
+  .tok-num { color: var(--warning); }
+  .tok-comment { color: var(--text-tertiary); font-style: italic; }
+
+  .preview-pane {
+    padding: var(--sp-8) var(--sp-10);
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    font-family: "Pretendard Variable", "Pretendard", "Times New Roman", serif;
+    font-size: 15px;
+    line-height: 1.85;
+    color: var(--text-primary);
+  }
+  .preview-pane h2 { font-size: var(--fs-22); font-weight: 800; margin: 0 0 var(--sp-4); letter-spacing: -0.02em; }
+  .preview-pane .theorem { padding: var(--sp-3) var(--sp-4); background: var(--primary-surface); border-left: 3px solid var(--primary); border-radius: var(--radius-sm); margin: var(--sp-4) 0; font-style: italic; }
+  .preview-pane .step { display: grid; grid-template-columns: 32px 1fr; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+  .preview-pane .step__num { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text-tertiary); padding-top: 2px; font-size: var(--fs-13); }
+  .preview-pane .step__body { font-family: "Cambria Math", "Times New Roman", serif; font-size: 16px; }
+  .preview-pane .step__just { font-size: var(--fs-12); color: var(--text-tertiary); margin-top: 4px; font-family: "Pretendard Variable", "Pretendard", sans-serif; }
+  .preview-pane .qed { display: inline-block; padding: 2px 8px; background: var(--text-primary); color: var(--text-inverse); font-weight: 800; border-radius: var(--radius-xs); font-size: var(--fs-12); margin-top: var(--sp-4); letter-spacing: 0.08em; font-family: "Pretendard Variable", sans-serif; }
+
+  .insert-bar { display: flex; flex-wrap: wrap; gap: 4px; padding: var(--sp-2) var(--sp-3); border-top: 1px solid var(--border-secondary); background: var(--bg-primary); }
+  .insert-chip {
+    padding: 4px 9px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: var(--fs-12);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+  }
+  .insert-chip:hover { background: var(--primary-surface); border-color: var(--primary); color: var(--primary); }
+
+  .grade-panel { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-4); }
+  .grade-tile { padding: var(--sp-4); border: 1px solid var(--border-primary); border-radius: var(--radius-md); }
+  .grade-tile__l { font-size: var(--fs-11); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; }
+  .grade-tile__v { font-size: var(--fs-28); font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+  .check-list { display: flex; flex-direction: column; }
+  .check-row { display: grid; grid-template-columns: 22px 1fr auto; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); align-items: center; font-size: var(--fs-13); }
+  .check-row:last-child { border-bottom: none; }
+  .check-row .lucide { width: 16px; height: 16px; }
+  .check-row.is-ok { color: var(--text-primary); }
+  .check-row.is-ok .lucide { color: var(--success); }
+  .check-row.is-warn .lucide { color: var(--warning); }
+  .check-row.is-bad .lucide { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <div class="app-nav__item is-active"><i data-lucide="function-square"></i>증명</div>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>가챠</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">컨텐츠 · 증명 라이브러리</div>
+        <h1 class="page-head__title">증명 에디터</h1>
+        <div class="page-head__sub">내 증명 24개 · 공유 증명 156개</div>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--ghost"><i data-lucide="copy"></i>복제</button>
+        <button class="btn btn--secondary"><i data-lucide="user-plus"></i>학생 배정</button>
+        <button class="btn btn--primary"><i data-lucide="plus"></i>새 증명</button>
+      </div>
+    </header>
+
+    <!-- Mine / Shared tabs + filter -->
+    <div class="tabs" style="margin-bottom: 0;">
+      <div class="tabs__item is-active"><i data-lucide="folder"></i>내 증명<span class="tabs__count">24</span></div>
+      <div class="tabs__item"><i data-lucide="globe"></i>공유 증명<span class="tabs__count">156</span></div>
+      <div style="flex: 1;"></div>
+      <div class="cluster" style="--gap: var(--sp-2); padding-bottom: 8px;">
+        <select class="select" style="width: 110px;"><option>전체 학년</option><option>중1</option><option>중2</option><option>중3</option><option>고1</option><option selected>고2</option><option>고3</option></select>
+        <select class="select" style="width: 130px;"><option>전체 난이도</option><option>★☆☆☆☆</option><option>★★☆☆☆</option><option>★★★☆☆</option><option selected>★★★★☆</option><option>★★★★★</option></select>
+        <div class="input-group" style="width: 200px;">
+          <i data-lucide="search"></i>
+          <input placeholder="제목·챕터 검색" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected proof title (mockup hint: open from list above) -->
+    <div class="cluster" style="--gap: var(--sp-3); padding: 0 var(--sp-1);">
+      <span class="text-mute" style="font-size: var(--fs-12);">현재 편집:</span>
+      <h2 style="margin: 0; font-size: var(--fs-19); font-weight: 800; letter-spacing: -0.01em;">코시-슈바르츠 부등식 증명</h2>
+      <span class="grade grade--h2">고2</span>
+      <span class="hard-row__stars" style="color: var(--warning); letter-spacing: 1px;">★★★★☆</span>
+      <span class="pill pill--neutral">수학 II · 부등식</span>
+      <div style="flex: 1;"></div>
+      <span class="pill pill--success"><i data-lucide="check"></i>구조 검증 통과</span>
+    </div>
+
+    <!-- Two-pane shell -->
+    <div class="proof-shell">
+
+      <!-- Editor pane -->
+      <div class="proof-pane">
+        <div class="proof-toolbar">
+          <span class="pill pill--neutral"><i data-lucide="file-code-2"></i>cauchy-schwarz.tex</span>
+          <span class="text-mute" style="font-size: var(--fs-12);">14줄 · LaTeX</span>
+          <div style="flex: 1;"></div>
+          <button class="btn-icon" title="실행"><i data-lucide="play"></i></button>
+          <button class="btn-icon" title="포맷"><i data-lucide="wand-2"></i></button>
+          <button class="btn-icon" title="검색"><i data-lucide="search"></i></button>
+        </div>
+
+        <div class="editor-pane">
+          <div class="editor-pane__lines">
+            <div class="editor-pane__num">1</div><div class="editor-pane__line"><span class="tok-cmd">\theorem</span>{<span class="tok-kw">Cauchy-Schwarz</span>}</div>
+            <div class="editor-pane__num">2</div><div class="editor-pane__line"><span class="tok-comment">% 두 실수열에 대해 부등식이 성립함을 보임</span></div>
+            <div class="editor-pane__num">3</div><div class="editor-pane__line">  <span class="tok-cmd">\for</span> <span class="tok-sym">a, b ∈ ℝⁿ</span>:</div>
+            <div class="editor-pane__num">4</div><div class="editor-pane__line">    <span class="tok-sym">(Σ aᵢ bᵢ)²</span> ≤ <span class="tok-sym">(Σ aᵢ²)(Σ bᵢ²)</span></div>
+            <div class="editor-pane__num">5</div><div class="editor-pane__line"></div>
+            <div class="editor-pane__num">6</div><div class="editor-pane__line"><span class="tok-cmd">\proof</span></div>
+            <div class="editor-pane__num">7</div><div class="editor-pane__line">  <span class="tok-cmd">\step</span>{1, <span class="tok-kw">정의</span>}: <span class="tok-cmd">\let</span> <span class="tok-sym">f(t) = Σ(aᵢ t + bᵢ)²</span></div>
+            <div class="editor-pane__num">8</div><div class="editor-pane__line">  <span class="tok-cmd">\step</span>{2, <span class="tok-kw">전개</span>}: <span class="tok-sym">f(t) = (Σaᵢ²) t² + 2(Σaᵢbᵢ) t + Σbᵢ²</span></div>
+            <div class="editor-pane__num">9</div><div class="editor-pane__line is-active">  <span class="tok-cmd">\step</span>{3, <span class="tok-kw">관찰</span>}: <span class="tok-sym">f(t) ≥ 0 ∀ t ∈ ℝ</span> <span class="tok-comment">% 제곱합이므로</span></div>
+            <div class="editor-pane__num">10</div><div class="editor-pane__line">  <span class="tok-cmd">\step</span>{4, <span class="tok-kw">판별식</span>}: <span class="tok-sym">D = 4(Σaᵢbᵢ)² − 4(Σaᵢ²)(Σbᵢ²) ≤ 0</span></div>
+            <div class="editor-pane__num">11</div><div class="editor-pane__line">  <span class="tok-cmd">\step</span>{5, <span class="tok-kw">정리</span>}: <span class="tok-sym">(Σaᵢbᵢ)² ≤ (Σaᵢ²)(Σbᵢ²)</span></div>
+            <div class="editor-pane__num">12</div><div class="editor-pane__line"></div>
+            <div class="editor-pane__num">13</div><div class="editor-pane__line"><span class="tok-cmd">\qed</span></div>
+            <div class="editor-pane__num">14</div><div class="editor-pane__line"></div>
+          </div>
+        </div>
+
+        <div class="insert-bar">
+          <span class="insert-chip">\step</span>
+          <span class="insert-chip">\let</span>
+          <span class="insert-chip">\for</span>
+          <span class="insert-chip">\therefore</span>
+          <span class="insert-chip">∀</span>
+          <span class="insert-chip">∃</span>
+          <span class="insert-chip">Σ</span>
+          <span class="insert-chip">∫</span>
+          <span class="insert-chip">≤</span>
+          <span class="insert-chip">≥</span>
+          <span class="insert-chip">≠</span>
+          <span class="insert-chip">→</span>
+          <span class="insert-chip">⇒</span>
+          <span class="insert-chip">⇔</span>
+        </div>
+      </div>
+
+      <!-- Preview pane -->
+      <div class="proof-pane">
+        <div class="proof-toolbar">
+          <span class="pill pill--primary"><i data-lucide="eye"></i>Preview</span>
+          <span class="text-mute" style="font-size: var(--fs-12);">실시간 렌더</span>
+          <div style="flex: 1;"></div>
+          <span class="text-mute" style="font-size: var(--fs-12);">100%</span>
+          <button class="btn-icon" title="줌"><i data-lucide="zoom-in"></i></button>
+        </div>
+
+        <div class="preview-pane">
+          <h2>정리 (Cauchy-Schwarz 부등식)</h2>
+          <div class="theorem">
+            임의의 실수 a₁, a₂, …, aₙ과 b₁, b₂, …, bₙ에 대하여
+            <strong>(Σ aᵢbᵢ)² ≤ (Σ aᵢ²)(Σ bᵢ²)</strong> 가 성립한다.
+          </div>
+
+          <p style="margin-top: var(--sp-5); font-weight: 700; color: var(--text-primary); font-family: 'Pretendard Variable', sans-serif;">증명.</p>
+
+          <div class="step">
+            <span class="step__num">①</span>
+            <div>
+              <div class="step__body">함수 f(t) = Σ(aᵢ t + bᵢ)² 를 정의한다.</div>
+              <div class="step__just">증명을 위한 보조 함수 도입</div>
+            </div>
+          </div>
+
+          <div class="step">
+            <span class="step__num">②</span>
+            <div>
+              <div class="step__body">전개하면 f(t) = (Σaᵢ²)t² + 2(Σaᵢbᵢ)t + Σbᵢ² 의 t에 대한 이차식이 된다.</div>
+              <div class="step__just">분배법칙으로 전개</div>
+            </div>
+          </div>
+
+          <div class="step">
+            <span class="step__num">③</span>
+            <div>
+              <div class="step__body">f(t)는 제곱항의 합이므로 모든 실수 t에 대해 f(t) ≥ 0 이다.</div>
+              <div class="step__just">실수의 제곱은 음이 아님</div>
+            </div>
+          </div>
+
+          <div class="step">
+            <span class="step__num">④</span>
+            <div>
+              <div class="step__body">이차식이 항상 음이 아니려면 판별식이 0 이하여야 한다. 즉
+                <br/>D = 4(Σaᵢbᵢ)² − 4(Σaᵢ²)(Σbᵢ²) ≤ 0
+              </div>
+              <div class="step__just">이차함수의 판별식 조건</div>
+            </div>
+          </div>
+
+          <div class="step">
+            <span class="step__num">⑤</span>
+            <div>
+              <div class="step__body">양변을 4로 나누고 정리하면 (Σaᵢbᵢ)² ≤ (Σaᵢ²)(Σbᵢ²) 이다.</div>
+              <div class="step__just">결론</div>
+            </div>
+          </div>
+
+          <span class="qed">Q.E.D.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: validation -->
+    <div class="grade-panel">
+      <div class="grade-tile">
+        <div class="grade-tile__l">자동 검증</div>
+        <div class="cluster" style="--gap: var(--sp-2); margin-top: 4px;">
+          <span class="grade-tile__v" style="color: var(--success);">PASS</span>
+          <i data-lucide="check-circle-2" style="color: var(--success); width: 28px; height: 28px;"></i>
+        </div>
+        <div class="text-mute" style="font-size: var(--fs-12); margin-top: 4px;">구조 · 기호 · 단계 흐름 모두 정합</div>
+      </div>
+      <div class="grade-tile">
+        <div class="grade-tile__l">예상 점수</div>
+        <div class="grade-tile__v">9.0<span style="font-size: var(--fs-15); color: var(--text-tertiary); font-weight: 700;"> / 10</span></div>
+        <div class="text-mute" style="font-size: var(--fs-12); margin-top: 4px;">서술 명확도 가중치 적용</div>
+      </div>
+      <div class="grade-tile">
+        <div class="grade-tile__l">반평균</div>
+        <div class="grade-tile__v">6.4</div>
+        <div class="text-mute" style="font-size: var(--fs-12); margin-top: 4px;">고2 14명 평균</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">검증 항목 <span class="panel__title-meta">· 5개</span></h2>
+        <button class="btn btn--ghost btn--sm"><i data-lucide="settings-2"></i>규칙 편집</button>
+      </div>
+      <div class="check-list">
+        <div class="check-row is-ok"><i data-lucide="check-circle-2"></i><span>보조 함수 도입 명시</span><span class="text-mute">+ 1.0</span></div>
+        <div class="check-row is-ok"><i data-lucide="check-circle-2"></i><span>판별식 조건 사용 정당화</span><span class="text-mute">+ 2.0</span></div>
+        <div class="check-row is-ok"><i data-lucide="check-circle-2"></i><span>각 단계의 논리 연결 명확</span><span class="text-mute">+ 2.0</span></div>
+        <div class="check-row is-warn"><i data-lucide="alert-triangle"></i><span>등호 성립 조건 (aᵢ : bᵢ 비례) 언급 누락</span><span style="color: var(--warning); font-weight: 700;">− 1.0</span></div>
+        <div class="check-row is-ok"><i data-lucide="check-circle-2"></i><span>최종 정리 명시</span><span class="text-mute">+ 1.0</span></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>06 · Report — 학부모 월간 리포트</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .report-paper {
+    max-width: 980px;
+    margin: 0 auto;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .report-cover {
+    padding: var(--sp-12) var(--sp-12) var(--sp-8);
+    border-bottom: 1px solid var(--border-primary);
+    background: linear-gradient(180deg, var(--primary-surface) 0%, var(--bg-secondary) 100%);
+  }
+  .report-cover__crumb { font-size: var(--fs-12); font-weight: 800; color: var(--primary); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: var(--sp-3); }
+  .report-cover__title { font-size: var(--fs-48); font-weight: 900; letter-spacing: -0.03em; margin: 0 0 var(--sp-4); line-height: 1; }
+  .report-cover__meta { display: flex; flex-wrap: wrap; gap: var(--sp-5); font-size: var(--fs-14); color: var(--text-secondary); }
+  .report-cover__meta b { color: var(--text-primary); font-weight: 800; }
+
+  .report-section { padding: var(--sp-8) var(--sp-12); border-bottom: 1px solid var(--border-secondary); }
+  .report-section:last-child { border-bottom: none; }
+  .report-section__h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--sp-5); }
+  .report-section__h h2 { font-size: var(--fs-22); font-weight: 800; margin: 0; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: var(--sp-2); }
+  .report-section__h h2 .lucide { width: 18px; height: 18px; color: var(--primary); transform: translateY(2px); }
+  .report-section__h p { font-size: var(--fs-13); color: var(--text-tertiary); margin: 0; }
+
+  /* Attendance — main + by_subject breakdown */
+  .att-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: var(--sp-6); }
+  .att-main { padding: var(--sp-5) var(--sp-6); border: 1px solid var(--border-primary); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--sp-3); }
+  .att-rate { display: flex; align-items: baseline; gap: var(--sp-3); }
+  .att-rate__v { font-size: 56px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .att-rate__unit { font-size: var(--fs-19); color: var(--text-tertiary); font-weight: 700; }
+  .att-rate__sub { font-size: var(--fs-13); color: var(--text-secondary); margin-left: auto; text-align: right; }
+
+  .att-breakdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2); padding-top: var(--sp-3); border-top: 1px dashed var(--border-secondary); }
+  .att-cell { display: flex; flex-direction: column; gap: 2px; }
+  .att-cell__v { font-size: var(--fs-22); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .att-cell__l { font-size: var(--fs-11); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+  .att-cell__v--late { color: var(--warning); }
+  .att-cell__v--absent { color: var(--danger); }
+
+  .att-subject-list { display: flex; flex-direction: column; }
+  .att-subject { display: grid; grid-template-columns: 60px 1fr 90px; gap: var(--sp-3); padding: var(--sp-3) 0; border-bottom: 1px dashed var(--border-secondary); align-items: center; font-size: var(--fs-13); }
+  .att-subject:last-child { border-bottom: none; }
+  .att-subject__name { font-weight: 700; }
+  .att-subject__bar { height: 8px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; }
+  .att-subject__fill { height: 100%; background: var(--primary); border-radius: inherit; }
+  .att-subject__meta { font-size: var(--fs-12); color: var(--text-tertiary); text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Exam list */
+  .exam-row { display: grid; grid-template-columns: 1fr 200px 80px 80px; gap: var(--sp-3); padding: var(--sp-4) 0; border-bottom: 1px dashed var(--border-secondary); align-items: center; }
+  .exam-row:last-child { border-bottom: none; }
+  .exam-row__title { font-weight: 700; font-size: var(--fs-14); }
+  .exam-row__meta { font-size: var(--fs-12); color: var(--text-tertiary); margin-top: 2px; }
+  .exam-row__status { display: flex; justify-content: flex-end; }
+  .exam-row__score { font-size: var(--fs-22); font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .exam-row__score.is-missing { color: var(--text-tertiary); font-size: var(--fs-15); font-weight: 700; }
+
+  /* Progress (textbooks) */
+  .prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+  .prog-card { padding: var(--sp-4) var(--sp-5); border: 1px solid var(--border-primary); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--sp-3); }
+  .prog-card__title { font-size: var(--fs-15); font-weight: 800; margin: 0; }
+  .prog-card__row { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--fs-13); }
+  .prog-card__row b { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .prog-card__bar { height: 8px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; display: flex; gap: 0; }
+  .prog-card__bar > div { height: 100%; }
+  .prog-card__bar .done { background: var(--success); }
+  .prog-card__bar .wip { background: var(--warning); }
+  .prog-card__und { display: flex; gap: 2px; }
+  .prog-card__und-seg { flex: 1; height: 6px; border-radius: 2px; background: var(--bg-tertiary); }
+  .prog-card__und-seg.is-on { background: var(--primary); }
+  .prog-card__recent { font-size: var(--fs-12); color: var(--text-tertiary); padding-top: var(--sp-2); border-top: 1px dashed var(--border-secondary); }
+
+  /* Materials */
+  .mat-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border-secondary); margin-bottom: var(--sp-4); }
+  .mat-tabs__item { padding: 10px var(--sp-4); font-size: var(--fs-14); font-weight: 700; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; }
+  .mat-tabs__item.is-active { color: var(--primary); border-bottom-color: var(--primary); }
+  .mat-tabs__count { font-size: var(--fs-11); padding: 2px 6px; background: var(--bg-tertiary); border-radius: var(--radius-full); margin-left: 4px; color: var(--text-secondary); }
+
+  /* Notes */
+  .note-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+  .note-card { padding: var(--sp-4) var(--sp-5); border: 1px solid var(--border-primary); border-left-width: 3px; border-radius: var(--radius-sm); background: var(--bg-secondary); }
+  .note-card--positive { border-left-color: var(--success); }
+  .note-card--concern { border-left-color: var(--danger); }
+  .note-card--neutral { border-left-color: var(--text-tertiary); }
+  .note-card__head { display: flex; justify-content: space-between; align-items: center; font-size: var(--fs-12); color: var(--text-tertiary); margin-bottom: var(--sp-2); }
+  .note-card__head .pill { font-size: var(--fs-11); padding: 1px 7px; }
+  .note-card__body { font-size: var(--fs-14); line-height: 1.6; color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>담임 대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>학습 현황</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">리포트</div>
+      <div class="app-nav__item is-active"><i data-lucide="file-text"></i>학부모 리포트</div>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">리포트 · 학부모 발송</div>
+        <div class="page-head__title-row">
+          <h1 class="page-head__title">강민수 · 2026년 5월 리포트</h1>
+          <select class="select" style="width: 140px;"><option>2026년 5월</option><option>2026년 4월</option><option>2026년 3월</option></select>
+        </div>
+        <div class="page-head__sub">강남고 2-3 · 담임 강민지 · 학부모 강미선 (010-2345-6789)</div>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--ghost"><i data-lucide="eye"></i>학부모 뷰</button>
+        <button class="btn btn--secondary"><i data-lucide="printer"></i>PDF</button>
+        <button class="btn btn--primary"><i data-lucide="send"></i>학부모 발송</button>
+      </div>
+    </header>
+
+    <article class="report-paper">
+
+      <!-- Cover -->
+      <header class="report-cover">
+        <div class="report-cover__crumb">WAWA Academy · 2026년 5월 학습 리포트</div>
+        <h1 class="report-cover__title">강민수 학생,<br/>5월에도 잘 했어요.</h1>
+        <div class="report-cover__meta">
+          <span><b>강남고</b> 2학년 3반</span>
+          <span>담임 <b>강민지</b></span>
+          <span>기간 <b>2026.05.01 – 05.31</b></span>
+          <span>발행 <b>2026.05.13</b></span>
+        </div>
+      </header>
+
+      <!-- 1. ATTENDANCE -->
+      <section class="report-section">
+        <div class="report-section__h">
+          <h2><i data-lucide="calendar-check"></i>출석</h2>
+          <p>예정 24일 중 결석 1 · 지각 1</p>
+        </div>
+
+        <div class="att-grid">
+          <div class="att-main">
+            <div class="att-rate">
+              <div>
+                <span class="att-rate__v">92<span class="att-rate__unit">%</span></span>
+              </div>
+              <div class="att-rate__sub">
+                순수 학습 시간<br/>
+                <strong style="color: var(--text-primary); font-size: var(--fs-19);">38시간 20분</strong>
+              </div>
+            </div>
+            <div class="att-breakdown">
+              <div class="att-cell"><span class="att-cell__v">24</span><span class="att-cell__l">예정</span></div>
+              <div class="att-cell"><span class="att-cell__v" style="color: var(--success);">22</span><span class="att-cell__l">출석</span></div>
+              <div class="att-cell"><span class="att-cell__v att-cell__v--late">1</span><span class="att-cell__l">지각</span></div>
+              <div class="att-cell"><span class="att-cell__v att-cell__v--absent">1</span><span class="att-cell__l">결석</span></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-mute" style="font-size: var(--fs-12); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--sp-3);">과목별 시간</div>
+            <div class="att-subject-list">
+              <div class="att-subject"><span class="att-subject__name">영어</span><div class="att-subject__bar"><div class="att-subject__fill" style="width: 78%;"></div></div><span class="att-subject__meta">18h 40m · 12회</span></div>
+              <div class="att-subject"><span class="att-subject__name">수학</span><div class="att-subject__bar"><div class="att-subject__fill" style="width: 52%;"></div></div><span class="att-subject__meta">12h 30m · 8회</span></div>
+              <div class="att-subject"><span class="att-subject__name">국어</span><div class="att-subject__bar"><div class="att-subject__fill" style="width: 24%;"></div></div><span class="att-subject__meta">5h 50m · 4회</span></div>
+              <div class="att-subject"><span class="att-subject__name">자습</span><div class="att-subject__bar"><div class="att-subject__fill" style="width: 12%;"></div></div><span class="att-subject__meta">1h 20m · 2회</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. EXAMS -->
+      <section class="report-section">
+        <div class="report-section__h">
+          <h2><i data-lucide="clipboard-check"></i>시험</h2>
+          <p>응시 4건 / 미응시 1건</p>
+        </div>
+        <div>
+          <div class="exam-row">
+            <div>
+              <div class="exam-row__title">5월 정기고사</div>
+              <div class="exam-row__meta">Mock #5 · 영어 · 25문항 40분</div>
+            </div>
+            <div class="exam-row__status"><span class="pill pill--success"><i data-lucide="check"></i>풀이 검토까지 완료</span></div>
+            <div class="exam-row__score">92<span style="font-size: var(--fs-13); color: var(--text-tertiary);">점</span></div>
+            <div class="text-mute tabular" style="text-align: right; font-size: var(--fs-12);">05.07</div>
+          </div>
+          <div class="exam-row">
+            <div>
+              <div class="exam-row__title">5월 단어 시험 W2</div>
+              <div class="exam-row__meta">EBS 수특 · 80문</div>
+            </div>
+            <div class="exam-row__status"><span class="pill pill--success"><i data-lucide="check"></i>풀이 검토까지 완료</span></div>
+            <div class="exam-row__score">76<span style="font-size: var(--fs-13); color: var(--text-tertiary);">점</span></div>
+            <div class="text-mute tabular" style="text-align: right; font-size: var(--fs-12);">05.04</div>
+          </div>
+          <div class="exam-row">
+            <div>
+              <div class="exam-row__title">독해 진단</div>
+              <div class="exam-row__meta">학원 자체 · 5문항</div>
+            </div>
+            <div class="exam-row__status"><span class="pill pill--primary"><i data-lucide="check"></i>시험지 인쇄 완료</span></div>
+            <div class="exam-row__score">94<span style="font-size: var(--fs-13); color: var(--text-tertiary);">점</span></div>
+            <div class="text-mute tabular" style="text-align: right; font-size: var(--fs-12);">05.10</div>
+          </div>
+          <div class="exam-row">
+            <div>
+              <div class="exam-row__title">어법 드릴 D3</div>
+              <div class="exam-row__meta">학원 자체 · 12문항</div>
+            </div>
+            <div class="exam-row__status"><span class="pill pill--success"><i data-lucide="check"></i>풀이 검토까지 완료</span></div>
+            <div class="exam-row__score" style="color: var(--warning);">68<span style="font-size: var(--fs-13); color: var(--text-tertiary);">점</span></div>
+            <div class="text-mute tabular" style="text-align: right; font-size: var(--fs-12);">05.11</div>
+          </div>
+          <div class="exam-row">
+            <div>
+              <div class="exam-row__title">6월 모의 #6 (다음 달 예고)</div>
+              <div class="exam-row__meta">학원 자체 · 25문항 40분 예정</div>
+            </div>
+            <div class="exam-row__status"><span class="pill pill--neutral"><i data-lucide="clock"></i>자료 준비 중</span></div>
+            <div class="exam-row__score is-missing">—</div>
+            <div class="text-mute tabular" style="text-align: right; font-size: var(--fs-12);">06.04</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. PROGRESS (textbooks/units) -->
+      <section class="report-section">
+        <div class="report-section__h">
+          <h2><i data-lucide="book-open-check"></i>진도</h2>
+          <p>교재별 단원 진행</p>
+        </div>
+        <div class="prog-grid">
+
+          <div class="prog-card">
+            <div class="cluster" style="justify-content: space-between; align-items: center;">
+              <h3 class="prog-card__title">EBS 수능특강 영어</h3>
+              <span class="pill pill--primary">진행 중</span>
+            </div>
+            <div class="prog-card__row"><span>단원</span><b>9 / 16</b></div>
+            <div class="prog-card__bar">
+              <div class="done" style="width: 56%;"></div>
+              <div class="wip" style="width: 12%;"></div>
+            </div>
+            <div class="prog-card__row">
+              <span class="text-mute" style="font-size: var(--fs-12);">완료 9 · 진행 2 · 미시작 5</span>
+            </div>
+            <div class="prog-card__row" style="align-items: center;">
+              <span class="text-mute" style="font-size: var(--fs-12);">평균 이해도</span>
+              <div class="prog-card__und" style="width: 120px;">
+                <div class="prog-card__und-seg is-on"></div>
+                <div class="prog-card__und-seg is-on"></div>
+                <div class="prog-card__und-seg is-on"></div>
+                <div class="prog-card__und-seg is-on"></div>
+                <div class="prog-card__und-seg"></div>
+              </div>
+            </div>
+            <div class="prog-card__recent">최근 학습 <strong>Ch.9 추론과 함의</strong> · 05.11</div>
+          </div>
+
+          <div class="prog-card">
+            <div class="cluster" style="justify-content: space-between; align-items: center;">
+              <h3 class="prog-card__title">능률 워크북 어법</h3>
+              <span class="pill pill--warning">취약</span>
+            </div>
+            <div class="prog-card__row"><span>단원</span><b>4 / 12</b></div>
+            <div class="prog-card__bar">
+              <div class="done" style="width: 33%;"></div>
+              <div class="wip" style="width: 16%;"></div>
+            </div>
+            <div class="prog-card__row">
+              <span class="text-mute" style="font-size: var(--fs-12);">완료 4 · 진행 2 · 미시작 6</span>
+            </div>
+            <div class="prog-card__row" style="align-items: center;">
+              <span class="text-mute" style="font-size: var(--fs-12);">평균 이해도</span>
+              <div class="prog-card__und" style="width: 120px;">
+                <div class="prog-card__und-seg is-on"></div>
+                <div class="prog-card__und-seg is-on"></div>
+                <div class="prog-card__und-seg"></div>
+                <div class="prog-card__und-seg"></div>
+                <div class="prog-card__und-seg"></div>
+              </div>
+            </div>
+            <div class="prog-card__recent">최근 학습 <strong>Ch.4 분사구문</strong> · 05.09</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 4. MATERIALS — assignments + print -->
+      <section class="report-section">
+        <div class="report-section__h">
+          <h2><i data-lucide="folder-open"></i>학습 자료</h2>
+          <p>이번 달 배정 + 발행 자료</p>
+        </div>
+
+        <div class="mat-tabs">
+          <div class="mat-tabs__item is-active">과제<span class="mat-tabs__count">7</span></div>
+          <div class="mat-tabs__item">출력 자료<span class="mat-tabs__count">3</span></div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>제목</th>
+              <th style="width: 88px;">종류</th>
+              <th style="width: 144px;">상태</th>
+              <th style="width: 80px;" class="tabular">기한</th>
+              <th style="width: 80px;" class="tabular">제출</th>
+              <th style="width: 80px;" class="tabular">첨삭</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-stack"><span class="cell-stack__primary">5월 정기고사 (Mock #5)</span><span class="cell-stack__meta">25문 · 40분</span></div></td>
+              <td><span class="pill pill--neutral">시험지</span></td>
+              <td><span class="pill pill--success"><i data-lucide="check"></i>첨삭 완료</span></td>
+              <td class="tabular">5/7</td>
+              <td class="tabular">5/7</td>
+              <td class="tabular">5/8</td>
+            </tr>
+            <tr>
+              <td><div class="cell-stack"><span class="cell-stack__primary">EBS 수특 Ch.9 추론</span><span class="cell-stack__meta">5문항</span></div></td>
+              <td><span class="pill pill--neutral">과제</span></td>
+              <td><span class="pill pill--success"><i data-lucide="check"></i>첨삭 완료</span></td>
+              <td class="tabular">5/11</td>
+              <td class="tabular">5/10</td>
+              <td class="tabular">5/11</td>
+            </tr>
+            <tr>
+              <td><div class="cell-stack"><span class="cell-stack__primary">어법 드릴 D3</span><span class="cell-stack__meta">12문항</span></div></td>
+              <td><span class="pill pill--primary">수행평가</span></td>
+              <td><span class="pill pill--warning"><i data-lucide="alert-circle"></i>재제출 요청</span></td>
+              <td class="tabular">5/13</td>
+              <td class="tabular">5/11</td>
+              <td class="tabular text-mute">—</td>
+            </tr>
+            <tr>
+              <td><div class="cell-stack"><span class="cell-stack__primary">독해 진단 (5문)</span><span class="cell-stack__meta">학원 자체</span></div></td>
+              <td><span class="pill pill--neutral">시험지</span></td>
+              <td><span class="pill pill--primary"><i data-lucide="upload"></i>제출 완료</span></td>
+              <td class="tabular">5/10</td>
+              <td class="tabular">5/10</td>
+              <td class="tabular text-mute">—</td>
+            </tr>
+            <tr>
+              <td><div class="cell-stack"><span class="cell-stack__primary">6월 모의 #6 안내</span><span class="cell-stack__meta">자료 + 일정</span></div></td>
+              <td><span class="pill pill--neutral">과제</span></td>
+              <td><span class="pill pill--neutral">배정됨</span></td>
+              <td class="tabular">6/4</td>
+              <td class="tabular text-mute">—</td>
+              <td class="tabular text-mute">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 5. NOTES (homeroom + subject notes) -->
+      <section class="report-section">
+        <div class="report-section__h">
+          <h2><i data-lucide="message-square-text"></i>종합 메모</h2>
+          <p>담임 + 교과 메모 5건</p>
+        </div>
+        <div class="note-grid">
+
+          <div class="note-card note-card--positive">
+            <div class="note-card__head">
+              <span><strong>영어</strong> · 학습 태도</span>
+              <span class="pill" style="background: var(--success-surface); color: var(--success);">긍정</span>
+            </div>
+            <div class="note-card__body">
+              학기 중반 안정세. 5월 정기 92점, 독해는 거의 만점에 근접. 1등급 진입이 충분히 가능한 상태입니다.
+            </div>
+            <div class="text-mute" style="font-size: var(--fs-11); margin-top: var(--sp-2);">2026.05.07 · 강민지</div>
+          </div>
+
+          <div class="note-card note-card--concern">
+            <div class="note-card__head">
+              <span><strong>영어</strong> · 영역별 취약점</span>
+              <span class="pill" style="background: var(--danger-surface); color: var(--danger);">우려</span>
+            </div>
+            <div class="note-card__body">
+              어법 드릴 D3에서 68점, 평균을 밑돌았습니다. 6월에는 어법 파트만 따로 20분 추가 진행 예정.
+            </div>
+            <div class="text-mute" style="font-size: var(--fs-11); margin-top: var(--sp-2);">2026.05.11 · 강민지</div>
+          </div>
+
+          <div class="note-card note-card--positive">
+            <div class="note-card__head">
+              <span><strong>수학</strong> · 학습 태도</span>
+              <span class="pill" style="background: var(--success-surface); color: var(--success);">긍정</span>
+            </div>
+            <div class="note-card__body">
+              학원 외 자기주도 학습 시간이 점진적으로 늘고 있음. 학부모님 협조 효과.
+            </div>
+            <div class="text-mute" style="font-size: var(--fs-11); margin-top: var(--sp-2);">2026.05.05 · 박수아</div>
+          </div>
+
+          <div class="note-card note-card--neutral">
+            <div class="note-card__head">
+              <span><strong>출결</strong> · 지각</span>
+              <span class="pill" style="background: var(--bg-tertiary); color: var(--text-secondary);">중립</span>
+            </div>
+            <div class="note-card__body">
+              5/9 11:05 도착 (5분 지각). 일회성으로 판단 — 추후 관찰.
+            </div>
+            <div class="text-mute" style="font-size: var(--fs-11); margin-top: var(--sp-2);">2026.05.09 · 강민지</div>
+          </div>
+
+        </div>
+      </section>
+
+    </article>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

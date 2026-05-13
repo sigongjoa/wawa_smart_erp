@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>04 · Form/Editor — 시험 문제 편집</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .editor-shell { display: grid; grid-template-columns: 320px 1fr; gap: 0; align-items: stretch; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); overflow: hidden; min-height: 760px; }
+  .editor-list { border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; min-width: 0; }
+  .editor-list__head { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); }
+  .editor-list__search { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); }
+  .editor-list__items { flex: 1; overflow-y: auto; padding: var(--sp-2); }
+  .q-item { display: grid; grid-template-columns: 32px 1fr auto; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--radius-sm); cursor: pointer; align-items: start; }
+  .q-item:hover { background: var(--bg-tertiary); }
+  .q-item.is-active { background: var(--primary-surface); }
+  .q-item__num { font-size: var(--fs-12); font-weight: 800; color: var(--text-tertiary); padding-top: 2px; font-variant-numeric: tabular-nums; }
+  .q-item.is-active .q-item__num { color: var(--primary); }
+  .q-item__title { font-size: var(--fs-13); font-weight: 700; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .q-item__meta { font-size: var(--fs-11); color: var(--text-tertiary); margin-top: 2px; }
+  .q-item__dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
+  .q-item__dot.is-done { background: var(--success); }
+  .q-item__dot.is-todo { background: var(--warning); }
+  .q-item__dot.is-empty { background: var(--border-strong); }
+
+  .editor-main { display: flex; flex-direction: column; min-width: 0; }
+  .editor-toolbar { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--border-secondary); }
+  .editor-toolbar .divider-v { width: 1px; height: 22px; background: var(--border-primary); margin: 0 var(--sp-2); }
+  .editor-body { padding: var(--sp-6) var(--sp-8); flex: 1; overflow-y: auto; }
+
+  .editor-block { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-6); }
+  .editor-block__label { font-size: var(--fs-11); font-weight: 800; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; }
+  .editor-block__hint { font-size: var(--fs-12); color: var(--text-tertiary); }
+
+  .passage-input {
+    padding: var(--sp-4) var(--sp-5);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    font-size: var(--fs-15);
+    line-height: 1.75;
+    color: var(--text-primary);
+    min-height: 180px;
+    font-family: "Pretendard Variable", "Pretendard", "Times New Roman", serif;
+  }
+  .passage-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-surface); }
+
+  .choices { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .choice {
+    display: grid; grid-template-columns: 32px 1fr 32px; gap: var(--sp-3); align-items: center;
+    padding: 10px var(--sp-4);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    transition: border-color var(--duration-fast) var(--ease-std), background var(--duration-fast) var(--ease-std);
+  }
+  .choice:hover { border-color: var(--border-strong); }
+  .choice.is-correct { border-color: var(--success); background: var(--success-surface); }
+  .choice__num { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--bg-tertiary); font-weight: 800; font-size: var(--fs-13); color: var(--text-secondary); }
+  .choice.is-correct .choice__num { background: var(--success); color: var(--text-inverse); }
+  .choice__text { font-size: var(--fs-14); border: none; background: transparent; outline: none; padding: 4px 0; width: 100%; font: inherit; }
+  .choice__del { width: 24px; height: 24px; display: grid; place-items: center; color: var(--text-tertiary); border-radius: 4px; cursor: pointer; }
+  .choice__del:hover { background: var(--bg-tertiary); color: var(--danger); }
+  .choice__del .lucide { width: 14px; height: 14px; }
+
+  .editor-footer { display: flex; justify-content: space-between; align-items: center; padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--border-secondary); background: var(--bg-secondary); }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <div class="app-nav__item is-active"><i data-lucide="pencil-line"></i>문제 편집</div>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>가챠</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">컨텐츠 · 시험지 편집 · paper #5872</div>
+        <div class="page-head__title-row">
+          <a class="btn btn--ghost btn--sm" href="01-list-sidebar.html"><i data-lucide="arrow-left"></i>돌아가기</a>
+          <h1 class="page-head__title">5월 정기고사 Mock #5</h1>
+        </div>
+        <div class="page-head__sub">고2 · 25문항 · 5지 선다 · 마지막 저장 13:42</div>
+      </div>
+      <div class="page-head__actions">
+        <span class="pill pill--neutral"><i data-lucide="clock"></i>자동 저장 ON</span>
+        <button class="btn btn--ghost"><i data-lucide="eye"></i>미리보기</button>
+        <button class="btn btn--secondary"><i data-lucide="printer"></i>프린트</button>
+        <button class="btn btn--primary"><i data-lucide="upload"></i>발행</button>
+      </div>
+    </header>
+
+    <!-- Paper metadata bar (subject + durationMinutes) -->
+    <div class="panel">
+      <div class="panel__body" style="padding: var(--sp-3) var(--sp-5); display: flex; align-items: center; gap: var(--sp-5); flex-wrap: wrap;">
+        <div class="cluster" style="--gap: var(--sp-2);">
+          <span class="section-label">과목</span>
+          <select class="select" style="width: 130px;"><option selected>영어</option><option>수학</option><option>국어</option></select>
+        </div>
+        <div class="cluster" style="--gap: var(--sp-2);">
+          <span class="section-label">시험 시간</span>
+          <input class="input" type="number" value="50" style="width: 80px; text-align: center;" />
+          <span class="text-mute" style="font-size: var(--fs-13);">분</span>
+        </div>
+        <div style="flex: 1;"></div>
+        <!-- Status message bar (msg: 'ok' | 'err') -->
+        <div class="cluster" style="--gap: var(--sp-2); padding: 6px 12px; background: var(--success-surface); border-radius: var(--radius-sm); color: var(--success); font-size: var(--fs-13); font-weight: 700;">
+          <i data-lucide="check-circle-2"></i>18문항 저장됨 · 13:42:21
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary row (readyCount = prompt + all 5 choices filled) -->
+    <div class="summary-bar">
+      <div class="summary-bar__cell"><span class="summary-bar__label">총 문항</span><span class="summary-bar__value">25</span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">작성 완료</span><span class="summary-bar__value">18<span class="summary-bar__value-sub">/ 25</span></span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">정답 미입력</span><span class="summary-bar__value summary-bar__value--alert">3</span></div>
+      <div class="summary-bar__cell"><span class="summary-bar__label">총 배점</span><span class="summary-bar__value">100<span class="summary-bar__value-sub">점</span></span></div>
+    </div>
+
+    <!-- Editor shell -->
+    <div class="editor-shell">
+
+      <!-- Left: questions list -->
+      <div class="editor-list">
+        <div class="editor-list__head">
+          <h3 style="margin: 0; font-size: var(--fs-15); font-weight: 800;">문항 목록</h3>
+          <button class="btn btn--primary btn--sm"><i data-lucide="plus"></i>새 문항</button>
+        </div>
+        <div class="editor-list__search">
+          <div class="input-group">
+            <i data-lucide="search"></i>
+            <input placeholder="문항 검색 / 점프" />
+            <span class="kbd">⌘K</span>
+          </div>
+        </div>
+        <div class="editor-list__items">
+          <div class="q-item"><span class="q-item__num">01</span><div><div class="q-item__title">밑줄 친 부분과 같은 의미로 쓰인 것을…</div><div class="q-item__meta">어휘 · 4점</div></div><span class="q-item__dot is-done"></span></div>
+          <div class="q-item"><span class="q-item__num">02</span><div><div class="q-item__title">다음 글의 주제로 가장 적절한 것은?</div><div class="q-item__meta">주제 · 3점</div></div><span class="q-item__dot is-done"></span></div>
+          <div class="q-item"><span class="q-item__num">03</span><div><div class="q-item__title">다음 글의 빈칸에 들어갈 말로 가장…</div><div class="q-item__meta">빈칸 · 4점</div></div><span class="q-item__dot is-done"></span></div>
+          <div class="q-item is-active"><span class="q-item__num">04</span><div><div class="q-item__title">다음 글의 흐름에 맞도록 (A), (B), (C)를…</div><div class="q-item__meta">순서 · 5점 · 편집중</div></div><span class="q-item__dot is-todo"></span></div>
+          <div class="q-item"><span class="q-item__num">05</span><div><div class="q-item__title">다음 글의 밑줄 친 부분 중, 어법상 틀린…</div><div class="q-item__meta">어법 · 4점</div></div><span class="q-item__dot is-done"></span></div>
+          <div class="q-item"><span class="q-item__num">06</span><div><div class="q-item__title">다음 도표의 내용과 일치하지 않는 것은?</div><div class="q-item__meta">도표 · 3점</div></div><span class="q-item__dot is-done"></span></div>
+          <div class="q-item"><span class="q-item__num">07</span><div><div class="q-item__title">밑줄 친 it이 가리키는 대상으로 가장…</div><div class="q-item__meta">지칭 · 3점</div></div><span class="q-item__dot is-empty"></span></div>
+          <div class="q-item"><span class="q-item__num">08</span><div><div class="q-item__title">다음 글의 제목으로 가장 적절한 것은?</div><div class="q-item__meta">제목 · 3점</div></div><span class="q-item__dot is-empty"></span></div>
+          <div class="q-item"><span class="q-item__num">09</span><div><div class="q-item__title">윗글의 주장으로 가장 적절한 것은?</div><div class="q-item__meta">주장 · 4점</div></div><span class="q-item__dot is-empty"></span></div>
+        </div>
+      </div>
+
+      <!-- Right: editor -->
+      <div class="editor-main">
+
+        <div class="editor-toolbar">
+          <span class="pill pill--primary tabular">Q4 / 25</span>
+          <div class="divider-v"></div>
+          <button class="btn-icon" title="이전"><i data-lucide="chevron-left"></i></button>
+          <button class="btn-icon" title="다음"><i data-lucide="chevron-right"></i></button>
+          <div class="divider-v"></div>
+          <div class="cluster" style="--gap: 4px;">
+            <span class="text-mute" style="font-size: var(--fs-11); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">분류</span>
+            <select class="select" style="width: 130px;"><option selected>순서 (글)</option><option>빈칸</option><option>어법</option><option>주제</option><option>제목</option><option>(미지정)</option></select>
+          </div>
+          <div class="cluster" style="--gap: 4px;">
+            <span class="text-mute" style="font-size: var(--fs-11); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">배점</span>
+            <input class="input" type="number" value="5" style="width: 60px; text-align: center; padding: 6px;" />
+            <span class="text-mute" style="font-size: var(--fs-12);">점</span>
+          </div>
+          <div style="flex: 1;"></div>
+          <button class="btn-icon" title="복제"><i data-lucide="copy"></i></button>
+          <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+        </div>
+
+        <div class="editor-body">
+
+          <div class="editor-block">
+            <div class="editor-block__label">발문</div>
+            <input class="input" value="다음 글의 흐름에 맞도록 (A), (B), (C)를 순서대로 배열한 것은?" />
+          </div>
+
+          <div class="editor-block">
+            <div class="editor-block__label">지문</div>
+            <div class="editor-block__hint">선택 후 (A) / (B) / (C) 태그를 적용하면 자동 배치됩니다. <span class="kbd">⌘B</span></div>
+            <div class="passage-input" contenteditable="true">When we encounter a piece of music for the first time, our brain processes its structure as a kind of prediction game. (A) These expectations are not arbitrary — they emerge from a lifetime of listening, from infancy onward, to the patterns of one's culture. (B) The composer plays with these predictions, sometimes confirming them and sometimes subverting them, creating the experience we call emotion in music. (C) This game-like quality is why music feels both familiar and surprising at the same time, even on repeated listening.</div>
+          </div>
+
+          <div class="editor-block">
+            <div class="editor-block__label">보기 (5지 선다)</div>
+            <div class="choices">
+              <div class="choice"><div class="choice__num">①</div><input class="choice__text" value="(A) - (B) - (C)" /><div class="choice__del"><i data-lucide="x"></i></div></div>
+              <div class="choice"><div class="choice__num">②</div><input class="choice__text" value="(A) - (C) - (B)" /><div class="choice__del"><i data-lucide="x"></i></div></div>
+              <div class="choice is-correct"><div class="choice__num">③</div><input class="choice__text" value="(B) - (A) - (C)" /><div class="choice__del"><i data-lucide="x"></i></div></div>
+              <div class="choice"><div class="choice__num">④</div><input class="choice__text" value="(B) - (C) - (A)" /><div class="choice__del"><i data-lucide="x"></i></div></div>
+              <div class="choice"><div class="choice__num">⑤</div><input class="choice__text" value="(C) - (A) - (B)" /><div class="choice__del"><i data-lucide="x"></i></div></div>
+            </div>
+          </div>
+
+          <div class="editor-block">
+            <div class="editor-block__label">해설 (선택)</div>
+            <textarea class="textarea" rows="3" placeholder="문항 해설. 학생용 리포트 PDF에 포함됩니다.">(B)에서 'these expectations'가 가리키는 대상이 앞서 등장해야 하므로 (A)가 (B)보다 먼저 와야 한다. (C)는 결론이므로 마지막.</textarea>
+          </div>
+
+          <div class="editor-block">
+            <div class="editor-block__label">태그</div>
+            <div class="cluster">
+              <span class="pill pill--accent">EBS 수특</span>
+              <span class="pill pill--neutral">대명사 추론</span>
+              <span class="pill pill--neutral">고난도</span>
+              <button class="btn btn--ghost btn--sm"><i data-lucide="plus"></i>추가</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="editor-footer">
+          <span class="text-mute" style="font-size: var(--fs-13);">자동 저장됨 · 13:42</span>
+          <div class="cluster">
+            <button class="btn btn--ghost">초안 저장</button>
+            <button class="btn btn--secondary"><i data-lucide="check"></i>완료 표시</button>
+            <button class="btn btn--primary">다음 문항<i data-lucide="arrow-right"></i></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

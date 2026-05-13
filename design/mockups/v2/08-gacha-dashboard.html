@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>08 · 학습 현황 — 카드·증명 운영 대시보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  /* matches real GachaDashboardPage: getGachaStats() returns { summary, studentProgress, hardProofs } */
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-4); }
+  .kpi-tile { padding: var(--sp-5); }
+  .kpi-tile__l { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+  .kpi-tile__v { font-size: var(--fs-36); font-weight: 800; letter-spacing: -0.025em; line-height: 1; font-variant-numeric: tabular-nums; margin-top: var(--sp-3); }
+  .kpi-tile__sub { font-size: var(--fs-12); color: var(--text-tertiary); margin-top: var(--sp-2); }
+  .kpi-tile.is-highlight { background: var(--primary); color: var(--text-inverse); border-color: var(--primary); }
+  .kpi-tile.is-highlight .kpi-tile__l { color: rgba(255,255,255,0.75); }
+  .kpi-tile.is-highlight .kpi-tile__sub { color: rgba(255,255,255,0.7); }
+
+  /* Student progress row */
+  .data-table .recency--stale { color: var(--warning); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+  .data-table .recency--stale .lucide { width: 12px; height: 12px; }
+  .data-table .recency--today { color: var(--success); font-weight: 700; }
+  .data-table .recency--never { color: var(--text-tertiary); }
+
+  .score--good { color: var(--success); font-weight: 800; }
+  .score--low { color: var(--warning); font-weight: 800; }
+  .score--none { color: var(--text-tertiary); }
+
+  .proof-progress { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .proof-progress__bar { width: 40px; height: 6px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; }
+  .proof-progress__fill { height: 100%; background: var(--primary); border-radius: inherit; }
+
+  .card-count { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .card-count .lucide { width: 14px; height: 14px; color: var(--accent-hover); }
+
+  /* Hard proofs section */
+  .hard-list { display: flex; flex-direction: column; }
+  .hard-row { display: grid; grid-template-columns: 28px 1fr auto; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); align-items: center; }
+  .hard-row:last-child { border-bottom: none; }
+  .hard-row__rank { font-size: var(--fs-19); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text-tertiary); text-align: center; }
+  .hard-row__rank.is-top { color: var(--danger); }
+  .hard-row__title { font-size: var(--fs-14); font-weight: 700; }
+  .hard-row__meta { font-size: var(--fs-12); color: var(--text-tertiary); margin-top: 2px; display: flex; align-items: center; gap: 8px; }
+  .hard-row__stars { color: var(--warning); letter-spacing: 1px; font-size: var(--fs-12); }
+  .hard-row__avg { font-size: var(--fs-15); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* Empty state */
+  .empty {
+    padding: var(--sp-12) var(--sp-6);
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--fs-14);
+  }
+  .empty .lucide { width: 32px; height: 32px; color: var(--border-strong); margin-bottom: var(--sp-2); }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>담임 대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <div class="app-nav__item is-active"><i data-lucide="layers"></i>학습 현황</div>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">컨텐츠 · 학습 현황</div>
+        <h1 class="page-head__title">학습 현황</h1>
+        <div class="page-head__sub">증명 학습 진도 + 카드 수집 통합 모니터</div>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--ghost"><i data-lucide="refresh-cw"></i>새로고침</button>
+        <a class="btn btn--secondary" href="#"><i data-lucide="layers"></i>카드 관리</a>
+        <a class="btn btn--secondary" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명 편집</a>
+      </div>
+    </header>
+
+    <!-- 4-KPI matches real summary -->
+    <div class="kpi-grid">
+      <div class="panel kpi-tile">
+        <div class="kpi-tile__l">학생</div>
+        <div class="kpi-tile__v">24</div>
+        <div class="kpi-tile__sub">활성 학습자 (지난 14일)</div>
+      </div>
+      <div class="panel kpi-tile">
+        <div class="kpi-tile__l">카드</div>
+        <div class="kpi-tile__v">48</div>
+        <div class="kpi-tile__sub">총 발급된 카드 종류</div>
+      </div>
+      <div class="panel kpi-tile">
+        <div class="kpi-tile__l">증명</div>
+        <div class="kpi-tile__v">36</div>
+        <div class="kpi-tile__sub">시즌 5 등록된 증명</div>
+      </div>
+      <div class="panel kpi-tile is-highlight">
+        <div class="kpi-tile__l">오늘 활동</div>
+        <div class="kpi-tile__v">12<span style="font-size: var(--fs-19); opacity: 0.7; font-weight: 700;">명</span></div>
+        <div class="kpi-tile__sub">증명 제출 또는 카드 획득</div>
+      </div>
+    </div>
+
+    <!-- Student progress table (matches real columns) -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">학생별 진도 <span class="panel__title-meta">· 24명</span></h2>
+        <div class="cluster" style="--gap: var(--sp-2);">
+          <select class="select" style="width: 120px;"><option>전체 학년</option><option>중2</option><option>중3</option><option>고1</option><option>고2</option><option>고3</option></select>
+          <select class="select" style="width: 140px;"><option>최근 활동 순</option><option>카드 수</option><option>증명 진행률</option><option>평균 점수</option></select>
+          <button class="btn-icon"><i data-lucide="download"></i></button>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>이름</th>
+            <th style="width: 70px;">학년</th>
+            <th style="width: 90px;" class="tabular">카드</th>
+            <th style="width: 140px;">증명 (완료/배정)</th>
+            <th style="width: 110px;" class="tabular">평균 점수</th>
+            <th style="width: 110px;">최근 활동</th>
+            <th style="width: 60px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="cluster"><div class="avatar">강민</div><div class="cell-stack"><span class="cell-stack__primary">강민수</span></div></div></td>
+            <td><span class="grade grade--h2">고2</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>34장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 92%;"></div></div>23 / 25</span></td>
+            <td class="tabular"><span class="score--good">87점</span></td>
+            <td><span class="recency--today">오늘</span></td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+          <tr>
+            <td><div class="cluster"><div class="avatar">윤서</div><div class="cell-stack"><span class="cell-stack__primary">윤서연</span></div></div></td>
+            <td><span class="grade grade--m2">중2</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>29장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 80%;"></div></div>20 / 25</span></td>
+            <td class="tabular"><span class="score--good">82점</span></td>
+            <td><span class="recency--today">오늘</span></td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+          <tr>
+            <td><div class="cluster"><div class="avatar">정하</div><div class="cell-stack"><span class="cell-stack__primary">정하늘</span></div></div></td>
+            <td><span class="grade grade--h2">고2</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>27장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 72%;"></div></div>18 / 25</span></td>
+            <td class="tabular"><span class="score--good">79점</span></td>
+            <td>어제</td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+          <tr>
+            <td><div class="cluster"><div class="avatar">이영</div><div class="cell-stack"><span class="cell-stack__primary">이영희</span></div></div></td>
+            <td><span class="grade grade--m3">중3</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>25장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 64%;"></div></div>16 / 25</span></td>
+            <td class="tabular"><span class="score--good">76점</span></td>
+            <td>2일 전</td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+          <tr>
+            <td><div class="cluster"><div class="avatar">한지</div><div class="cell-stack"><span class="cell-stack__primary">한지원</span></div></div></td>
+            <td><span class="grade grade--h1">고1</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>22장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 56%;"></div></div>14 / 25</span></td>
+            <td class="tabular"><span class="score--low">68점</span></td>
+            <td>3일 전</td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+          <tr style="background: var(--warning-surface);">
+            <td><div class="cluster"><div class="avatar" style="background: var(--warning-surface); color: var(--warning);">박지</div><div class="cell-stack"><span class="cell-stack__primary">박지민</span></div></div></td>
+            <td><span class="grade grade--h1">고1</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>18장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 40%;"></div></div>10 / 25</span></td>
+            <td class="tabular"><span class="score--low">62점</span></td>
+            <td><span class="recency--stale"><i data-lucide="alert-triangle"></i>5일 전</span></td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+          <tr style="background: var(--warning-surface);">
+            <td><div class="cluster"><div class="avatar" style="background: var(--warning-surface); color: var(--warning);">김재</div><div class="cell-stack"><span class="cell-stack__primary">김재훈</span></div></div></td>
+            <td><span class="grade grade--h2">고2</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>15장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 32%;"></div></div>8 / 25</span></td>
+            <td class="tabular"><span class="score--low">58점</span></td>
+            <td><span class="recency--stale"><i data-lucide="alert-triangle"></i>7일 전</span></td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+          <tr style="background: var(--warning-surface);">
+            <td><div class="cluster"><div class="avatar" style="background: var(--danger-surface); color: var(--danger);">최수</div><div class="cell-stack"><span class="cell-stack__primary">최수지</span></div></div></td>
+            <td><span class="grade grade--h3">고3</span></td>
+            <td><span class="card-count"><i data-lucide="layers"></i>9장</span></td>
+            <td><span class="proof-progress"><div class="proof-progress__bar"><div class="proof-progress__fill" style="width: 16%;"></div></div>4 / 25</span></td>
+            <td class="tabular"><span class="score--none">—</span></td>
+            <td><span class="recency--stale"><i data-lucide="alert-triangle"></i>12일 전</span></td>
+            <td><button class="btn-icon"><i data-lucide="external-link"></i></button></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="cluster" style="padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-secondary); justify-content: space-between;">
+        <span class="text-mute" style="font-size: var(--fs-13);">전체 24명 · 1–8 표시 · ⚠ = 4일 이상 미활동 3명</span>
+        <div class="cluster" style="--gap: 4px;">
+          <button class="btn-icon"><i data-lucide="chevron-left"></i></button>
+          <button class="btn btn--secondary btn--sm tabular">1</button>
+          <button class="btn btn--ghost btn--sm tabular">2</button>
+          <button class="btn btn--ghost btn--sm tabular">3</button>
+          <button class="btn-icon"><i data-lucide="chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hard proofs TOP N -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">많이 틀리는 증명 <span class="panel__title-meta">· TOP 5</span></h2>
+        <button class="btn btn--ghost btn--sm">정렬<i data-lucide="chevrons-up-down"></i></button>
+      </div>
+      <div class="hard-list">
+        <div class="hard-row">
+          <div class="hard-row__rank is-top">1</div>
+          <div>
+            <div class="hard-row__title">합성함수의 미분 (chain rule) 증명</div>
+            <div class="hard-row__meta">
+              <span class="grade grade--h2">고2</span>
+              <span class="hard-row__stars">★★★★☆</span>
+              <span>14명 시도</span>
+            </div>
+          </div>
+          <span class="hard-row__avg score--low">평균 42점</span>
+        </div>
+        <div class="hard-row">
+          <div class="hard-row__rank is-top">2</div>
+          <div>
+            <div class="hard-row__title">∫ 부분적분으로 ∫ x·eˣ dx 유도</div>
+            <div class="hard-row__meta">
+              <span class="grade grade--h3">고3</span>
+              <span class="hard-row__stars">★★★★★</span>
+              <span>9명 시도</span>
+            </div>
+          </div>
+          <span class="hard-row__avg score--low">평균 45점</span>
+        </div>
+        <div class="hard-row">
+          <div class="hard-row__rank is-top">3</div>
+          <div>
+            <div class="hard-row__title">Cauchy-Schwarz 부등식 증명</div>
+            <div class="hard-row__meta">
+              <span class="grade grade--h2">고2</span>
+              <span class="hard-row__stars">★★★★☆</span>
+              <span>11명 시도</span>
+            </div>
+          </div>
+          <span class="hard-row__avg score--low">평균 51점</span>
+        </div>
+        <div class="hard-row">
+          <div class="hard-row__rank">4</div>
+          <div>
+            <div class="hard-row__title">삼각함수 덧셈정리 증명</div>
+            <div class="hard-row__meta">
+              <span class="grade grade--h1">고1</span>
+              <span class="hard-row__stars">★★★☆☆</span>
+              <span>16명 시도</span>
+            </div>
+          </div>
+          <span class="hard-row__avg score--low">평균 58점</span>
+        </div>
+        <div class="hard-row">
+          <div class="hard-row__rank">5</div>
+          <div>
+            <div class="hard-row__title">로그함수의 그래프 평행이동 증명</div>
+            <div class="hard-row__meta">
+              <span class="grade grade--h1">고1</span>
+              <span class="hard-row__stars">★★★☆☆</span>
+              <span>18명 시도</span>
+            </div>
+          </div>
+          <span class="hard-row__avg score--low">평균 62점</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

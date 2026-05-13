@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>00 · Design System — WAWA ERP</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .ds-row { display: grid; gap: var(--sp-3); grid-template-columns: 200px 1fr; align-items: start; padding: var(--sp-5) 0; border-bottom: 1px solid var(--border-secondary); }
+  .ds-row:last-child { border-bottom: none; }
+  .ds-row__label h3 { margin: 0 0 4px; font-size: var(--fs-14); font-weight: 800; }
+  .ds-row__label p { margin: 0; font-size: var(--fs-12); color: var(--text-tertiary); line-height: 1.5; }
+  .ds-row__demo { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-3); }
+  .swatch {
+    display: flex; flex-direction: column; overflow: hidden;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-secondary);
+    background: var(--bg-secondary);
+  }
+  .swatch__color { height: 64px; }
+  .swatch__meta { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .swatch__name { font-size: var(--fs-13); font-weight: 700; }
+  .swatch__hex { font-size: var(--fs-11); font-family: ui-monospace, "SF Mono", monospace; color: var(--text-tertiary); }
+
+  .type-stack { display: flex; flex-direction: column; gap: var(--sp-3); align-items: flex-start; }
+  .type-stack .row { display: flex; align-items: baseline; gap: var(--sp-4); }
+  .type-stack .row .specimen { line-height: 1.1; letter-spacing: -0.02em; }
+  .type-stack .row .meta { font-size: var(--fs-11); color: var(--text-tertiary); font-family: ui-monospace, "SF Mono", monospace; min-width: 90px; }
+
+  .sp-line { display: flex; align-items: center; gap: var(--sp-3); }
+  .sp-block { background: var(--primary-surface); border: 1px solid var(--primary); border-radius: 4px; }
+  .sp-block.s1 { width: 4px; height: 32px; }
+  .sp-block.s2 { width: 8px; height: 32px; }
+  .sp-block.s4 { width: 16px; height: 32px; }
+  .sp-block.s6 { width: 24px; height: 32px; }
+  .sp-block.s8 { width: 32px; height: 32px; }
+  .sp-block.s12 { width: 48px; height: 32px; }
+  .sp-block.s16 { width: 64px; height: 32px; }
+  .sp-line .label { font-size: var(--fs-12); font-family: ui-monospace, monospace; color: var(--text-tertiary); min-width: 60px; }
+
+  .radii { display: flex; gap: var(--sp-3); }
+  .radii .r { width: 64px; height: 64px; background: var(--primary-surface); border: 1px solid var(--primary); display: grid; place-items: end; padding: 4px; font-size: var(--fs-11); color: var(--primary); font-weight: 800; font-family: ui-monospace, monospace; }
+
+  .section-h { font-size: var(--fs-22); font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+  .section-sub { font-size: var(--fs-13); color: var(--text-tertiary); margin: 4px 0 var(--sp-3); }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ============ Sidebar nav ============ -->
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+
+    <div class="app-nav__group">
+      <div class="app-nav__label">설계</div>
+      <div class="app-nav__item is-active"><i data-lucide="palette"></i>Design System</div>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <a class="app-nav__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어</a>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>가챠</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="06-report.html"><i data-lucide="file-text"></i>리포트</a>
+      <a class="app-nav__item" href="07-auth.html"><i data-lucide="log-in"></i>로그인</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <!-- ============ Main ============ -->
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">설계 · Design System</div>
+        <h1 class="page-head__title">디자인 시스템</h1>
+        <div class="page-head__sub">WAWA ERP desktop · 토큰과 컴포넌트 카탈로그. 모든 페이지가 여기서 시작.</div>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--ghost"><i data-lucide="github"></i>GitHub</button>
+        <button class="btn btn--secondary"><i data-lucide="download"></i>토큰 export</button>
+        <button class="btn btn--primary"><i data-lucide="play"></i>Storybook</button>
+      </div>
+    </header>
+
+    <!-- ===== Foundations ===== -->
+    <section class="panel">
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">FOUNDATIONS</h2>
+          <div class="page-head__sub" style="margin-top: 0;">색 · 타이포 · 간격 · 모서리</div>
+        </div>
+        <span class="pill pill--primary"><i data-lucide="layers"></i>5 토큰 그룹</span>
+      </div>
+      <div class="panel__body">
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Primary / Accent</h3>
+            <p>전체 페이지의 톤. CTA·강조·active 상태.</p>
+          </div>
+          <div class="ds-row__demo">
+            <div class="swatch-grid" style="width: 100%;">
+              <div class="swatch"><div class="swatch__color" style="background: var(--primary);"></div><div class="swatch__meta"><span class="swatch__name">primary</span><span class="swatch__hex">#2d3a8c</span></div></div>
+              <div class="swatch"><div class="swatch__color" style="background: var(--primary-hover);"></div><div class="swatch__meta"><span class="swatch__name">primary-hover</span><span class="swatch__hex">#252f73</span></div></div>
+              <div class="swatch"><div class="swatch__color" style="background: var(--primary-surface);"></div><div class="swatch__meta"><span class="swatch__name">primary-surface</span><span class="swatch__hex">#eef0f8</span></div></div>
+              <div class="swatch"><div class="swatch__color" style="background: var(--accent);"></div><div class="swatch__meta"><span class="swatch__name">accent</span><span class="swatch__hex">#00c4a3</span></div></div>
+              <div class="swatch"><div class="swatch__color" style="background: var(--accent-surface);"></div><div class="swatch__meta"><span class="swatch__name">accent-surface</span><span class="swatch__hex">#e8faf6</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Status</h3>
+            <p>success · warning · danger · info. 각각 surface + solid 쌍.</p>
+          </div>
+          <div class="ds-row__demo">
+            <div class="swatch-grid" style="width: 100%;">
+              <div class="swatch"><div class="swatch__color" style="background: var(--success);"></div><div class="swatch__meta"><span class="swatch__name">success</span><span class="swatch__hex">#18a464</span></div></div>
+              <div class="swatch"><div class="swatch__color" style="background: var(--warning);"></div><div class="swatch__meta"><span class="swatch__name">warning</span><span class="swatch__hex">#c87f04</span></div></div>
+              <div class="swatch"><div class="swatch__color" style="background: var(--danger);"></div><div class="swatch__meta"><span class="swatch__name">danger</span><span class="swatch__hex">#d63d3d</span></div></div>
+              <div class="swatch"><div class="swatch__color" style="background: var(--info);"></div><div class="swatch__meta"><span class="swatch__name">info</span><span class="swatch__hex">#2563eb</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Grade chips</h3>
+            <p>중1~고3 학년 식별. type-color 시스템.</p>
+          </div>
+          <div class="ds-row__demo">
+            <span class="grade grade--m1">중1</span>
+            <span class="grade grade--m2">중2</span>
+            <span class="grade grade--m3">중3</span>
+            <span class="grade grade--h1">고1</span>
+            <span class="grade grade--h2">고2</span>
+            <span class="grade grade--h3">고3</span>
+            <span class="grade grade--etc">기타</span>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Typography</h3>
+            <p>Pretendard Variable. 5단계 + tabular.</p>
+          </div>
+          <div class="ds-row__demo">
+            <div class="type-stack">
+              <div class="row"><span class="meta">28/800</span><span class="specimen" style="font-size: var(--fs-28); font-weight: 800;">정기고사 관리</span></div>
+              <div class="row"><span class="meta">22/800</span><span class="specimen" style="font-size: var(--fs-22); font-weight: 800;">담임 대시보드</span></div>
+              <div class="row"><span class="meta">17/800</span><span class="specimen" style="font-size: var(--fs-17); font-weight: 800;">학생 정보</span></div>
+              <div class="row"><span class="meta">15/500</span><span class="specimen" style="font-size: var(--fs-15);">기본 본문 텍스트. 운영자가 매일 읽음.</span></div>
+              <div class="row"><span class="meta">13/600</span><span class="specimen" style="font-size: var(--fs-13); font-weight: 600; color: var(--text-secondary);">보조 / 라벨 / 메타</span></div>
+              <div class="row"><span class="meta">11/700·UP</span><span class="specimen" style="font-size: var(--fs-11); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.08em; text-transform: uppercase;">SECTION LABEL</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Spacing</h3>
+            <p>4px base. sp-1 (4) → sp-16 (64).</p>
+          </div>
+          <div class="ds-row__demo">
+            <div class="sp-line"><span class="label">sp-1 · 4</span><div class="sp-block s1"></div></div>
+            <div class="sp-line"><span class="label">sp-2 · 8</span><div class="sp-block s2"></div></div>
+            <div class="sp-line"><span class="label">sp-4 · 16</span><div class="sp-block s4"></div></div>
+            <div class="sp-line"><span class="label">sp-6 · 24</span><div class="sp-block s6"></div></div>
+            <div class="sp-line"><span class="label">sp-8 · 32</span><div class="sp-block s8"></div></div>
+            <div class="sp-line"><span class="label">sp-12 · 48</span><div class="sp-block s12"></div></div>
+            <div class="sp-line"><span class="label">sp-16 · 64</span><div class="sp-block s16"></div></div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Radii</h3>
+            <p>6 / 8 / 12 / 16 / 20 / full.</p>
+          </div>
+          <div class="ds-row__demo">
+            <div class="radii">
+              <div class="r" style="border-radius: var(--radius-xs)">xs</div>
+              <div class="r" style="border-radius: var(--radius-sm)">sm</div>
+              <div class="r" style="border-radius: var(--radius-md)">md</div>
+              <div class="r" style="border-radius: var(--radius-lg)">lg</div>
+              <div class="r" style="border-radius: var(--radius-xl)">xl</div>
+              <div class="r" style="border-radius: var(--radius-full)">∞</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== Components ===== -->
+    <section class="panel">
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">COMPONENTS</h2>
+          <div class="page-head__sub" style="margin-top: 0;">버튼 · 인풋 · 배지 · 상태 · 진행 · 테이블</div>
+        </div>
+        <span class="pill pill--primary"><i data-lucide="box"></i>14 컴포넌트</span>
+      </div>
+      <div class="panel__body">
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Buttons</h3>
+            <p>primary / secondary / ghost / accent / danger</p>
+          </div>
+          <div class="ds-row__demo">
+            <button class="btn btn--primary"><i data-lucide="plus"></i>새 시험</button>
+            <button class="btn btn--secondary"><i data-lucide="filter"></i>필터</button>
+            <button class="btn btn--ghost">취소</button>
+            <button class="btn btn--accent"><i data-lucide="check"></i>채점 완료</button>
+            <button class="btn btn--danger"><i data-lucide="trash-2"></i>삭제</button>
+            <button class="btn-icon"><i data-lucide="more-horizontal"></i></button>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Inputs</h3>
+            <p>focus 시 primary 3px ring.</p>
+          </div>
+          <div class="ds-row__demo">
+            <div style="width: 240px;">
+              <div class="field">
+                <label class="field__label">학생 이름</label>
+                <input class="input" placeholder="예: 강민수" />
+              </div>
+            </div>
+            <div style="width: 240px;">
+              <div class="field">
+                <label class="field__label">학교 검색</label>
+                <div class="input-group">
+                  <i data-lucide="search"></i>
+                  <input placeholder="대치고, 강남고…" />
+                </div>
+              </div>
+            </div>
+            <div style="width: 200px;">
+              <div class="field">
+                <label class="field__label">학년</label>
+                <select class="select">
+                  <option>전체</option><option>중1</option><option>중2</option><option>중3</option><option>고1</option><option>고2</option><option>고3</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Status pills</h3>
+            <p>아이콘 + 텍스트 조합 (lucide).</p>
+          </div>
+          <div class="ds-row__demo">
+            <span class="pill pill--success"><i data-lucide="check"></i>완료</span>
+            <span class="pill pill--warning"><i data-lucide="clock"></i>대기</span>
+            <span class="pill pill--danger"><i data-lucide="x"></i>결시</span>
+            <span class="pill pill--info"><i data-lucide="info"></i>예정</span>
+            <span class="pill pill--neutral">초안</span>
+            <span class="pill pill--primary"><i data-lucide="link"></i>Drive</span>
+            <span class="pill pill--accent"><i data-lucide="sparkles"></i>신규</span>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Avatars</h3>
+            <p>3 사이즈. 이니셜 기본.</p>
+          </div>
+          <div class="ds-row__demo">
+            <div class="avatar">강</div>
+            <div class="avatar avatar--lg">박지</div>
+            <div class="avatar avatar--xl">최수</div>
+            <div class="avatar" style="background: var(--accent-surface); color: var(--accent-hover);">민</div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Progress</h3>
+            <p>4단계 진행. 도트형 vs 라벨형.</p>
+          </div>
+          <div class="ds-row__demo" style="flex-direction: column; align-items: flex-start; gap: var(--sp-3);">
+            <div class="progress-steps">
+              <div class="progress-steps__bar is-done"></div>
+              <div class="progress-steps__bar is-done"></div>
+              <div class="progress-steps__bar is-current"></div>
+              <div class="progress-steps__bar"></div>
+            </div>
+            <div class="progress-pills" style="width: 320px;">
+              <div class="progress-pills__item is-done">제작</div>
+              <div class="progress-pills__item is-done">프린트</div>
+              <div class="progress-pills__item">검토</div>
+              <div class="progress-pills__item">완료</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Tabs</h3>
+            <p>border-bottom · primary 강조.</p>
+          </div>
+          <div class="ds-row__demo" style="width: 100%; flex-direction: column; align-items: stretch;">
+            <div class="tabs">
+              <div class="tabs__item is-active">개요<span class="tabs__count">12</span></div>
+              <div class="tabs__item">시험<span class="tabs__count">8</span></div>
+              <div class="tabs__item">숙제<span class="tabs__count">3</span></div>
+              <div class="tabs__item">메모</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Issue card</h3>
+            <p>좌측 borderColor가 의미 운반.</p>
+          </div>
+          <div class="ds-row__demo" style="width: 100%;">
+            <div style="display: grid; gap: var(--sp-2); width: 100%; grid-template-columns: 1fr 1fr;">
+              <div class="issue-card issue-card--danger">
+                <div class="issue-card__title">최수지<span class="grade grade--h3">고3</span></div>
+                <div class="issue-card__meta">05.07 결시 → 재시험 미배정</div>
+              </div>
+              <div class="issue-card issue-card--warning">
+                <div class="issue-card__title">박지민<span class="grade grade--h1">고1</span></div>
+                <div class="issue-card__meta">재시험 예정 · 05.09 14:00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Summary bar</h3>
+            <p>KPI strip — 한 줄 요약.</p>
+          </div>
+          <div class="ds-row__demo" style="width: 100%;">
+            <div class="summary-bar" style="width: 100%;">
+              <div class="summary-bar__cell"><span class="summary-bar__label">배정</span><span class="summary-bar__value">18<span class="summary-bar__value-sub">/ 24</span></span></div>
+              <div class="summary-bar__cell"><span class="summary-bar__label">제작</span><span class="summary-bar__value">15<span class="summary-bar__value-sub">/ 18</span></span></div>
+              <div class="summary-bar__cell"><span class="summary-bar__label">프린트</span><span class="summary-bar__value">12<span class="summary-bar__value-sub">/ 18</span></span></div>
+              <div class="summary-bar__cell"><span class="summary-bar__label">검토</span><span class="summary-bar__value">8<span class="summary-bar__value-sub">/ 18</span></span></div>
+              <div class="summary-bar__cell"><span class="summary-bar__label">결시·재시험</span><span class="summary-bar__value summary-bar__value--alert">3</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-row">
+          <div class="ds-row__label">
+            <h3>Table row</h3>
+            <p>cell-stack · pill · progress 조합.</p>
+          </div>
+          <div class="ds-row__demo" style="width: 100%;">
+            <div class="panel" style="width: 100%;">
+              <table class="data-table">
+                <thead><tr><th style="width: 30px;"></th><th>이름</th><th>진행</th><th>상태</th><th>날짜</th><th class="tabular" style="text-align: right;">점수</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><input type="checkbox" checked /></td>
+                    <td>
+                      <div class="cluster">
+                        <div class="avatar">강민</div>
+                        <div class="cell-stack">
+                          <span class="cell-stack__primary">강민수</span>
+                          <span class="cell-stack__meta">강남고 · <span class="grade grade--h2">고2</span></span>
+                        </div>
+                      </div>
+                    </td>
+                    <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div></div></td>
+                    <td><span class="pill pill--success"><i data-lucide="check"></i>완료</span></td>
+                    <td class="tabular">05.07</td>
+                    <td class="tabular cell-num" style="text-align: right;">92</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" checked /></td>
+                    <td>
+                      <div class="cluster">
+                        <div class="avatar">이영</div>
+                        <div class="cell-stack">
+                          <span class="cell-stack__primary">이영희</span>
+                          <span class="cell-stack__meta">서초중 · <span class="grade grade--m3">중3</span></span>
+                        </div>
+                      </div>
+                    </td>
+                    <td><div class="progress-steps"><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-done"></div><div class="progress-steps__bar is-current"></div><div class="progress-steps__bar"></div></div></td>
+                    <td><span class="pill pill--info"><i data-lucide="calendar"></i>예정</span></td>
+                    <td class="tabular">05.12</td>
+                    <td class="tabular text-mute" style="text-align: right;">—</td>
+                  </tr>
+                  <tr class="is-selected">
+                    <td><input type="checkbox" checked /></td>
+                    <td>
+                      <div class="cluster">
+                        <div class="avatar" style="background: var(--danger-surface); color: var(--danger);">최수</div>
+                        <div class="cell-stack">
+                          <span class="cell-stack__primary">최수지</span>
+                          <span class="cell-stack__meta">대치고 · <span class="grade grade--h3">고3</span></span>
+                        </div>
+                      </div>
+                    </td>
+                    <td><div class="progress-steps"><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div><div class="progress-steps__bar"></div></div></td>
+                    <td><span class="pill pill--danger"><i data-lucide="x"></i>결시</span></td>
+                    <td class="tabular text-mute">—</td>
+                    <td class="tabular text-mute" style="text-align: right;">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

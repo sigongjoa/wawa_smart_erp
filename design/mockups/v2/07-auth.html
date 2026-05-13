@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>07 · Auth — 로그인</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  body { background: var(--bg-canvas); }
+  .auth-shell { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100vh; }
+
+  .auth-left {
+    background: var(--primary);
+    color: var(--text-inverse);
+    padding: var(--sp-12) clamp(var(--sp-8), 6vw, 80px);
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-left::after {
+    content: ''; position: absolute; right: -120px; bottom: -160px;
+    width: 480px; height: 480px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+  }
+  .auth-left::before {
+    content: ''; position: absolute; right: -40px; bottom: -80px;
+    width: 320px; height: 320px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+  }
+  .auth-brand { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-19); font-weight: 900; letter-spacing: -0.02em; }
+  .auth-brand-mark { width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--text-inverse); color: var(--primary); display: grid; place-items: center; font-weight: 900; font-size: var(--fs-17); }
+
+  .auth-hero { position: relative; z-index: 1; }
+  .auth-hero__crumb { font-size: var(--fs-12); font-weight: 800; color: rgba(255,255,255,0.7); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: var(--sp-4); }
+  .auth-hero__title { font-size: clamp(36px, 5vw, 56px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; margin: 0 0 var(--sp-4); }
+  .auth-hero__lede { font-size: var(--fs-17); color: rgba(255,255,255,0.78); line-height: 1.55; max-width: 38ch; }
+
+  .auth-stats { display: flex; gap: var(--sp-8); position: relative; z-index: 1; }
+  .auth-stat__l { font-size: var(--fs-12); font-weight: 700; color: rgba(255,255,255,0.65); letter-spacing: 0.04em; text-transform: uppercase; }
+  .auth-stat__v { font-size: var(--fs-28); font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+  .auth-right {
+    padding: var(--sp-12) clamp(var(--sp-8), 4vw, 64px);
+    display: flex; flex-direction: column; justify-content: center;
+    background: var(--bg-secondary);
+  }
+  .auth-form { max-width: 420px; width: 100%; margin: 0 auto; }
+  .auth-form__h { font-size: var(--fs-28); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 var(--sp-2); }
+  .auth-form__sub { font-size: var(--fs-14); color: var(--text-secondary); margin: 0 0 var(--sp-8); }
+  .auth-form .field + .field { margin-top: var(--sp-4); }
+  .auth-form__row { display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-13); margin-top: var(--sp-3); }
+  .auth-form__row label { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); cursor: pointer; }
+  .auth-form__row a { color: var(--primary); font-weight: 700; }
+
+  .auth-or { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-6) 0; color: var(--text-tertiary); font-size: var(--fs-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .auth-or::before, .auth-or::after { content: ''; flex: 1; height: 1px; background: var(--border-primary); }
+
+  .auth-sso { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+  .auth-sso .btn { justify-content: center; padding: 12px 14px; }
+
+  .auth-foot { margin-top: var(--sp-8); font-size: var(--fs-13); color: var(--text-tertiary); text-align: center; }
+  .auth-foot a { color: var(--primary); font-weight: 700; }
+
+  @media (max-width: 880px) {
+    .auth-shell { grid-template-columns: 1fr; }
+    .auth-left { padding: var(--sp-8) var(--sp-6); }
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-shell">
+
+  <!-- Left brand area -->
+  <div class="auth-left">
+
+    <div class="cluster" style="justify-content: space-between;">
+      <div class="auth-brand"><div class="auth-brand-mark">W</div>WAWA ERP</div>
+      <a class="cluster" href="index.html" style="--gap: 6px; color: rgba(255,255,255,0.7); font-size: var(--fs-13); font-weight: 700;"><i data-lucide="grid-2x2" style="width: 14px; height: 14px;"></i>Mockup index</a>
+    </div>
+
+    <div>
+      <div class="auth-hero">
+        <div class="auth-hero__crumb">WAWA Smart ERP · Desktop</div>
+        <h1 class="auth-hero__title">학원 운영,<br/>제대로 한 곳에서.</h1>
+        <p class="auth-hero__lede">정기고사 · 출결 · 단어 시험 · 리포트까지. 강사 한 명이 24명을 깔끔하게 운영합니다.</p>
+      </div>
+    </div>
+
+    <div class="auth-stats">
+      <div>
+        <div class="auth-stat__l">학생</div>
+        <div class="auth-stat__v">324</div>
+      </div>
+      <div>
+        <div class="auth-stat__l">강사</div>
+        <div class="auth-stat__v">18</div>
+      </div>
+      <div>
+        <div class="auth-stat__l">이번달 리포트</div>
+        <div class="auth-stat__v">214</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right form -->
+  <div class="auth-right">
+    <div class="auth-form">
+
+      <h1 class="auth-form__h">로그인</h1>
+      <p class="auth-form__sub">학원 선택 후 이름과 PIN을 입력하세요.</p>
+
+      <div class="field">
+        <label class="field__label">학원</label>
+        <div class="input-group">
+          <i data-lucide="school"></i>
+          <select style="border: none; padding: 10px 0; flex: 1; background: transparent; outline: none; font: inherit; color: var(--text-primary);">
+            <option value="">학원을 선택하세요</option>
+            <option value="mathplus" selected>WAWA 수학+ 영어 (mathplus)</option>
+            <option value="english-onsi">와와 영어 온시 (english-onsi)</option>
+            <option value="hagwon-test">테스트 학원 (hagwon-test)</option>
+          </select>
+        </div>
+        <span class="field__hint">subdomain (mathplus.wawa.app) 접속 시 자동 선택됨</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label">이름</label>
+        <div class="input-group">
+          <i data-lucide="user"></i>
+          <input type="text" placeholder="강민지" value="강민지" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field__label">PIN</label>
+        <div class="input-group">
+          <i data-lucide="key-round"></i>
+          <input type="password" placeholder="6자리 숫자" value="••••••" inputmode="numeric" maxlength="6" />
+          <button class="btn-icon" style="border: none; width: 28px; height: 28px;"><i data-lucide="eye"></i></button>
+        </div>
+      </div>
+
+      <div class="auth-form__row">
+        <span class="text-mute" style="font-size: var(--fs-12);">최근 학원이 자동 선택됩니다 · 공용 단말에서는 해제 권장</span>
+        <a href="#" style="font-size: var(--fs-12);">최근 학원 지우기</a>
+      </div>
+
+      <div style="margin-top: var(--sp-6);">
+        <button class="btn btn--primary btn--lg" style="width: 100%; justify-content: center;">로그인<i data-lucide="arrow-right"></i></button>
+      </div>
+
+      <div class="auth-or">또는</div>
+
+      <div class="auth-sso">
+        <a class="btn btn--secondary" href="#" style="justify-content: center;"><i data-lucide="user-round-search"></i>학생 회원가입</a>
+        <a class="btn btn--secondary" href="#" style="justify-content: center;"><i data-lucide="qr-code"></i>QR 로그인</a>
+      </div>
+
+      <div class="auth-foot">
+        PIN을 잊으셨나요? <a href="#">담임 강사에게 재설정 요청</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>09 · Vocab Admin — 단어 운영</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .vocab-grid { display: grid; grid-template-columns: 1fr 380px; gap: var(--sp-5); align-items: start; }
+
+  .toolbar { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); }
+  .toolbar .divider-v { width: 1px; height: 22px; background: var(--border-primary); margin: 0 var(--sp-1); }
+
+  .data-table .word { font-family: ui-serif, "Georgia", serif; font-style: italic; font-size: var(--fs-15); font-weight: 700; }
+  .data-table .meaning { color: var(--text-secondary); font-size: var(--fs-13); }
+
+  .level-bar { display: inline-flex; gap: 2px; align-items: center; }
+  .level-bar__seg { width: 6px; height: 14px; border-radius: 2px; background: var(--border-primary); }
+  .level-bar__seg.is-on { background: var(--primary); }
+
+  .detail-tabs { display: flex; gap: 2px; padding: 0 var(--sp-4); border-bottom: 1px solid var(--border-secondary); }
+  .detail-tabs__item { padding: 10px var(--sp-3); font-size: var(--fs-13); font-weight: 700; color: var(--text-secondary); border-bottom: 2px solid transparent; cursor: pointer; }
+  .detail-tabs__item.is-active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  .word-hero {
+    padding: var(--sp-6);
+    border-bottom: 1px solid var(--border-secondary);
+    background: var(--bg-primary);
+  }
+  .word-hero__main { font-family: ui-serif, "Georgia", serif; font-style: italic; font-size: 40px; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1; }
+  .word-hero__pos { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); margin-top: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .word-hero__ipa { font-size: var(--fs-14); color: var(--text-secondary); margin-top: var(--sp-3); font-family: ui-monospace, "SF Mono", monospace; }
+
+  .definition { padding: var(--sp-4) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
+  .definition__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .definition__num { font-size: var(--fs-11); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.06em; }
+  .definition__ko { font-size: var(--fs-14); font-weight: 700; line-height: 1.55; }
+  .definition__ex { font-size: var(--fs-13); color: var(--text-secondary); margin-top: 6px; line-height: 1.6; }
+  .definition__ex em { font-weight: 700; color: var(--primary); font-style: italic; font-family: ui-serif, "Georgia", serif; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <div class="app-nav__item is-active"><i data-lucide="book-marked"></i>단어</div>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>가챠</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">컨텐츠 · 단어 운영</div>
+        <h1 class="page-head__title">단어 시험 관리</h1>
+        <div class="page-head__sub">EBS 수특 5월 · 1,248단어 · 등급 5단계 · 학생 24명 응시 가능</div>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--ghost"><i data-lucide="upload"></i>CSV 가져오기</button>
+        <button class="btn btn--secondary"><i data-lucide="play"></i>모의 시험</button>
+        <button class="btn btn--primary"><i data-lucide="plus"></i>새 단어</button>
+      </div>
+    </header>
+
+    <!-- Tabs (matches VocabAdminPage: 4 tabs) -->
+    <div class="tabs">
+      <div class="tabs__item is-active"><i data-lucide="book-marked"></i>단어<span class="tabs__count">1,248</span></div>
+      <div class="tabs__item"><i data-lucide="alert-circle"></i>오답<span class="tabs__count">312</span></div>
+      <div class="tabs__item"><i data-lucide="bar-chart-2"></i>등급<span class="tabs__count">5</span></div>
+      <div class="tabs__item"><i data-lucide="settings-2"></i>정책</div>
+    </div>
+
+    <!-- MetricTabs (matches VocabWordsTab: all/pending/approved with counts) -->
+    <div class="cluster" style="--gap: var(--sp-2); margin-bottom: var(--sp-2);">
+      <button class="chip is-on" style="padding: 5px 11px; font-size: var(--fs-13); font-weight: 600; border: 1px solid var(--primary); border-radius: var(--radius-full); background: var(--primary-surface); color: var(--primary); cursor: pointer;">전체 1,248</button>
+      <button class="chip" style="padding: 5px 11px; font-size: var(--fs-13); font-weight: 600; border: 1px solid var(--border-primary); border-radius: var(--radius-full); cursor: pointer;">대기 24</button>
+      <button class="chip" style="padding: 5px 11px; font-size: var(--fs-13); font-weight: 600; border: 1px solid var(--border-primary); border-radius: var(--radius-full); cursor: pointer;">승인 1,224</button>
+    </div>
+
+    <div class="vocab-grid">
+
+      <!-- Main table -->
+      <div class="panel">
+        <div class="toolbar">
+          <div class="input-group" style="flex: 1; max-width: 280px;">
+            <i data-lucide="search"></i>
+            <input placeholder="단어 / 뜻 검색 (250ms 디바운스)" />
+          </div>
+          <div class="divider-v"></div>
+          <select class="select" style="width: 140px;"><option>전체 학생</option><option>강민수 (24장)</option><option>이영희 (18장)</option><option>박지민</option></select>
+          <select class="select" style="width: 120px;"><option>전체 등급</option><option>Lv. 1 (기본)</option><option>Lv. 2</option><option>Lv. 3</option><option>Lv. 4</option><option>Lv. 5 (고난도)</option></select>
+          <select class="select" style="width: 130px;"><option>전체 소스</option><option>EBS 수특</option><option>학원 자체</option><option>능률 워크북</option></select>
+          <div style="flex: 1;"></div>
+          <span class="text-mute" style="font-size: var(--fs-13);">3 선택</span>
+          <button class="btn btn--ghost btn--sm"><i data-lucide="archive"></i>아카이브</button>
+          <button class="btn btn--ghost btn--sm"><i data-lucide="trash-2"></i>삭제</button>
+          <button class="btn-icon"><i data-lucide="more-horizontal"></i></button>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 36px;"><input type="checkbox" /></th>
+              <th>단어</th>
+              <th>뜻</th>
+              <th>등급</th>
+              <th style="width: 100px;">소스</th>
+              <th style="width: 100px;">오답률</th>
+              <th style="width: 60px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="is-selected">
+              <td><input type="checkbox" checked /></td>
+              <td><span class="word">prevail</span> <span class="text-mute" style="font-size: var(--fs-12);">v.</span></td>
+              <td><div class="meaning">우세하다, 만연하다</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg"></span></div></td>
+              <td><span class="pill pill--primary">EBS 수특</span></td>
+              <td class="tabular cell-num">38<span class="text-mute" style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" checked /></td>
+              <td><span class="word">scrutinize</span> <span class="text-mute" style="font-size: var(--fs-12);">v.</span></td>
+              <td><div class="meaning">면밀히 조사하다</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span></div></td>
+              <td><span class="pill pill--primary">EBS 수특</span></td>
+              <td class="tabular cell-num">52<span class="text-mute" style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" checked /></td>
+              <td><span class="word">ambiguous</span> <span class="text-mute" style="font-size: var(--fs-12);">adj.</span></td>
+              <td><div class="meaning">모호한, 애매한</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg"></span><span class="level-bar__seg"></span></div></td>
+              <td><span class="pill pill--accent">학원 자체</span></td>
+              <td class="tabular cell-num">22<span class="text-mute" style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td><span class="word">undermine</span> <span class="text-mute" style="font-size: var(--fs-12);">v.</span></td>
+              <td><div class="meaning">약화시키다, 손상시키다</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg"></span></div></td>
+              <td><span class="pill pill--primary">EBS 수특</span></td>
+              <td class="tabular cell-num">41<span class="text-mute" style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td><span class="word">deliberate</span> <span class="text-mute" style="font-size: var(--fs-12);">adj. v.</span></td>
+              <td><div class="meaning">신중한; 숙고하다</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg"></span><span class="level-bar__seg"></span></div></td>
+              <td><span class="pill pill--neutral">능률 워크북</span></td>
+              <td class="tabular cell-num">18<span class="text-mute" style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td><span class="word">ephemeral</span> <span class="text-mute" style="font-size: var(--fs-12);">adj.</span></td>
+              <td><div class="meaning">순식간의, 단명하는</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span></div></td>
+              <td><span class="pill pill--primary">EBS 수특</span></td>
+              <td class="tabular cell-num" style="color: var(--danger);">68<span style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td><span class="word">benign</span> <span class="text-mute" style="font-size: var(--fs-12);">adj.</span></td>
+              <td><div class="meaning">온화한, 양성의</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg"></span><span class="level-bar__seg"></span></div></td>
+              <td><span class="pill pill--accent">학원 자체</span></td>
+              <td class="tabular cell-num">24<span class="text-mute" style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td><span class="word">advocate</span> <span class="text-mute" style="font-size: var(--fs-12);">v. n.</span></td>
+              <td><div class="meaning">옹호하다; 지지자</div></td>
+              <td><div class="level-bar"><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg is-on"></span><span class="level-bar__seg"></span><span class="level-bar__seg"></span></div></td>
+              <td><span class="pill pill--primary">EBS 수특</span></td>
+              <td class="tabular cell-num">26<span class="text-mute" style="font-weight: 600;">%</span></td>
+              <td><button class="btn-icon"><i data-lucide="more-horizontal"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="cluster" style="padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-secondary); justify-content: space-between;">
+          <span class="text-mute" style="font-size: var(--fs-13);">1,248 단어 · 1–8 표시</span>
+          <div class="cluster" style="--gap: 4px;">
+            <button class="btn-icon"><i data-lucide="chevron-left"></i></button>
+            <button class="btn btn--secondary btn--sm tabular">1</button>
+            <button class="btn btn--ghost btn--sm tabular">2</button>
+            <button class="btn btn--ghost btn--sm tabular">…</button>
+            <button class="btn btn--ghost btn--sm tabular">156</button>
+            <button class="btn-icon"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: detail panel -->
+      <aside class="panel">
+        <div class="detail-tabs">
+          <div class="detail-tabs__item is-active">상세</div>
+          <div class="detail-tabs__item">예문 (3)</div>
+          <div class="detail-tabs__item">통계</div>
+        </div>
+
+        <div class="word-hero">
+          <h2 class="word-hero__main">prevail</h2>
+          <div class="word-hero__pos">verb · pre-vail</div>
+          <div class="word-hero__ipa">/prɪˈveɪl/</div>
+          <div class="cluster" style="margin-top: var(--sp-3);">
+            <span class="pill pill--primary">EBS 수특</span>
+            <span class="pill pill--neutral">Lv. 4</span>
+            <span class="pill pill--warning">오답률 38%</span>
+          </div>
+        </div>
+
+        <div class="definition">
+          <div class="definition__head"><span class="definition__num">01</span><span class="pill pill--neutral">자동사</span></div>
+          <div class="definition__ko">(다른 것보다) 우세하다, 이기다</div>
+          <div class="definition__ex">"Common sense will eventually <em>prevail</em>."<br/>결국 상식이 이길 것이다.</div>
+        </div>
+        <div class="definition">
+          <div class="definition__head"><span class="definition__num">02</span><span class="pill pill--neutral">자동사</span></div>
+          <div class="definition__ko">(특정 시기·장소에서) 만연하다, 널리 퍼져 있다</div>
+          <div class="definition__ex">"The trend <em>prevails</em> in modern teen culture."<br/>이런 경향은 현대 십대 문화에 널리 퍼져 있다.</div>
+        </div>
+        <div class="definition">
+          <div class="definition__head"><span class="definition__num">03</span><span class="pill pill--neutral">자동사</span></div>
+          <div class="definition__ko">[prevail on/upon] 설득하다</div>
+          <div class="definition__ex">"She <em>prevailed</em> on him to stay."<br/>그녀는 그를 설득해 머무르게 했다.</div>
+        </div>
+
+        <div style="padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--border-secondary); display: flex; gap: var(--sp-2);">
+          <button class="btn btn--secondary" style="flex: 1;"><i data-lucide="pencil"></i>편집</button>
+          <button class="btn btn--ghost"><i data-lucide="volume-2"></i></button>
+          <button class="btn btn--ghost"><i data-lucide="trash-2"></i></button>
+        </div>
+      </aside>
+
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
