@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ExamQuestionDto } from '../api';
+import { Icon } from '../components/icons/Icon';
 import { errorMessage } from '../utils/errors';
 
 function blank(n: number): ExamQuestionDto {
@@ -116,8 +117,8 @@ export default function ExamQuestionEditorPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <button
           onClick={() => navigate(backTo)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
-        >← 돌아가기</button>
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+        ><Icon name="ArrowLeft" /> 돌아가기</button>
       </div>
       <h1 style={{ fontSize: 22, margin: '4px 0 20px', color: 'var(--text-primary)' }}>
         문제 입력 {paperTitleQ && <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>— {paperTitleQ}</span>}
@@ -241,8 +242,8 @@ export default function ExamQuestionEditorPage() {
                   </div>
                 );
               })}
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                ← 번호 버튼을 눌러 정답 설정 (현재: {q.correctChoice})
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Icon name="ArrowLeft" size={12} /> 번호 버튼을 눌러 정답 설정 (현재: {q.correctChoice})
               </div>
             </div>
           </div>

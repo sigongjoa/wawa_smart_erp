@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, ExamAttempt, ExamAttemptPendingAssignment } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
+import { Icon } from '../components/icons/Icon';
 
 const PAUSE_REASONS = ['화장실', '몸이 안 좋음', '교사 호출', '기타'] as const;
 const POLL_INTERVAL_MS = 5000;
@@ -121,21 +122,21 @@ const AttemptCard = memo(function AttemptCard({
         )}
         {effectiveStatus === 'running' && (
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => onPause(attempt)}>
-              ⏸ 정지
+            <button type="button" className="btn btn-secondary" onClick={() => onPause(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="Pause" /> 정지
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)}>
-              ✓ 제출
+            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="Check" /> 제출
             </button>
           </>
         )}
         {effectiveStatus === 'paused' && (
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => onResume(attempt)}>
-              ▶ 재개
+            <button type="button" className="btn btn-secondary" onClick={() => onResume(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="Play" /> 재개
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)}>
-              ✓ 제출
+            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="Check" /> 제출
             </button>
           </>
         )}

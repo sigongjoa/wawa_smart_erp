@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import HomeroomNotesOverview from '../components/HomeroomNotesOverview';
+import { Icon } from '../components/icons/Icon';
 
 type Calendar = Awaited<ReturnType<typeof api.getHomeroomCalendar>>;
 type CalendarConsultation = Calendar['consultations'][number];
@@ -101,8 +102,12 @@ export default function HomeroomPage() {
           </Link>
         </nav>
         <div style={{ flex: 1 }} />
-        <button className="btn btn-ghost btn-sm" onClick={() => setMonth(monthShift(month, -1))}>
-          ◀
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => setMonth(monthShift(month, -1))}
+          aria-label="이전 달"
+        >
+          <Icon name="ChevronLeft" />
         </button>
         <input
           type="month"
@@ -112,8 +117,12 @@ export default function HomeroomPage() {
           aria-label="조회 월 선택"
           style={{ width: 160 }}
         />
-        <button className="btn btn-ghost btn-sm" onClick={() => setMonth(monthShift(month, 1))}>
-          ▶
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => setMonth(monthShift(month, 1))}
+          aria-label="다음 달"
+        >
+          <Icon name="ChevronRight" />
         </button>
       </div>
 

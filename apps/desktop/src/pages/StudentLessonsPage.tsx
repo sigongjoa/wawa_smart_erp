@@ -15,6 +15,7 @@ import {
 import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
 import FilePreviewModal from '../components/FilePreviewModal';
+import { Icon } from '../components/icons/Icon';
 import './StudentLessonsPage.css';
 import './CurriculumPage.css';
 
@@ -659,7 +660,11 @@ function LessonListItem({
         <span className="lessons-chip">{KIND_LABEL[item.kind]}</span>
         <span className={`lessons-chip ${statusChipClass}`}>{STATUS_LABEL[item.status]}</span>
         {item.visible_to_parent && <span className="lessons-chip lessons-chip--parent">학부모공개</span>}
-        {item.files.length > 0 && <span className="lessons-chip">📎 {item.files.length}</span>}
+        {item.files.length > 0 && (
+          <span className="lessons-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="Paperclip" size={12} /> {item.files.length}
+          </span>
+        )}
         {isArchived && <span className="lessons-chip lessons-chip--archived">보관됨</span>}
       </div>
       <div className="lessons-list-title">{titleText}</div>
@@ -941,7 +946,10 @@ function DetailPanel({ item, onPatch, onUpload, onDeleteFile, onRenameFile, onPr
           disabled={!item.visible_to_parent}
           onClick={onShare}
         >
-          {shareCopied ? '✓ 복사됨' : '🔗 학부모 링크 복사'}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {shareCopied ? <Icon name="Check" /> : <Icon name="Link" />}
+            {shareCopied ? '복사됨' : '학부모 링크 복사'}
+          </span>
         </button>
       </section>
     </div>
@@ -1204,19 +1212,19 @@ function FileRow({ file, onDelete, onRename, onPreview }: FileRowProps) {
             onClick={onPreview}
             aria-label={`${file.file_name} 미리보기`}
             title="미리보기"
-          >👁</button>
+          ><Icon name="Eye" size={14} /></button>
           <a
             href={api.lessonItemFileDownloadUrl(file.id)}
             target="_blank"
             rel="noreferrer noopener"
             className="btn btn-sm btn-ghost"
             aria-label={`${file.file_name} 다운로드`}
-          >⬇</a>
+          ><Icon name="Download" size={14} /></a>
           <button
             className="btn btn-sm btn-ghost"
             onClick={onDelete}
             aria-label={`${file.file_name} 삭제`}
-          >✕</button>
+          ><Icon name="X" size={14} /></button>
         </>
       )}
     </li>
