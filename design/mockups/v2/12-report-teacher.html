@@ -1140,19 +1140,41 @@
     try {
       const worker = html2pdf().set(opt).from(pdfDom);
       const blob = await worker.outputPdf('blob');
-      const url = URL.createObjectURL(blob);
+
+      // file:// 환경에서는 blob URL 이 iframe 에 차단됨 → data URI fallback
+      const isFile = window.location.protocol === 'file:';
+      let previewUrl, linkUrl;
+      if (isFile) {
+        previewUrl = await new Promise((resolve) => {
+          const fr = new FileReader();
+          fr.onloadend = () => resolve(fr.result);
+          fr.readAsDataURL(blob);
+        });
+        linkUrl = previewUrl;
+      } else {
+        const blobUrl = URL.createObjectURL(blob);
+        previewUrl = blobUrl;
+        linkUrl = blobUrl;
+      }
+
+      const fileNotice = isFile ? `
+        <div style="padding: 10px 16px; background: var(--warning-surface); color: var(--warning); border-bottom: 1px solid var(--border-secondary); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+          <span>로컬 파일(<code style="font-family: ui-monospace, monospace;">file://</code>) 환경 — data URI 모드로 표시 중. 정상 호스팅 시 더 빠릅니다.</span>
+        </div>` : '';
 
       AppModal.open({
         title: `${s.name} · ${TYPE_LABEL[reportType]} 리포트 — PDF 미리보기`,
         body: `
           <div style="margin: 0 -24px -20px; padding: 0;">
-            <iframe src="${url}" style="width: 100%; height: 600px; border: 0; border-top: 1px solid var(--border-secondary);" title="PDF 미리보기"></iframe>
+            ${fileNotice}
+            <iframe src="${previewUrl}" style="width: 100%; height: 600px; border: 0; border-top: 1px solid var(--border-secondary);" title="PDF 미리보기"></iframe>
           </div>
         `,
         footer: `
           <button class="btn btn--ghost" onclick="AppModal.close()">닫기</button>
-          <a class="btn btn--secondary" href="${url}" target="_blank" rel="noopener"><i data-lucide="external-link"></i>새 탭</a>
-          <a class="btn btn--primary" href="${url}" download="${filename}"><i data-lucide="download"></i>다운로드</a>
+          <a class="btn btn--secondary" href="${linkUrl}" target="_blank" rel="noopener"><i data-lucide="external-link"></i>새 탭</a>
+          <a class="btn btn--primary" href="${linkUrl}" download="${filename}"><i data-lucide="download"></i>다운로드</a>
         `,
       });
       AppToast.show(`PDF 생성됨 — ${filename}`, 'success');
