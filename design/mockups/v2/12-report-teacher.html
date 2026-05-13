@@ -3,109 +3,226 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>12 · Report (강사) — 월말·정기고사 리포트</title>
+<title>12 · 리포트 발송 (강사) — 정기고사·월말평가</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
 <link rel="stylesheet" href="_shared.css">
 <style>
-  /* matches ReportPage.tsx — Split (left: 학생 table, right: rpt-paper preview) */
+  /* matches ReportPage.tsx — split (left: 학생 table, right: rpt-paper) */
+  /* 정기고사(중간/기말) 가 메인 기능 — 시각적 anchor 최상위 */
 
-  .report-tabs { display: inline-flex; padding: 3px; background: var(--bg-tertiary); border-radius: var(--radius-full); border: 1px solid var(--border-primary); }
-  .report-tab { padding: 7px 16px; font-size: var(--fs-13); font-weight: 700; color: var(--text-secondary); border-radius: var(--radius-full); cursor: pointer; transition: all var(--duration-fast); }
-  .report-tab.is-active { background: var(--bg-secondary); color: var(--primary); box-shadow: var(--shadow-xs); }
+  /* ───── Alert band (페이지 진입 첫 anchor) ───── */
+  .send-alert {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: var(--sp-4);
+    align-items: center;
+    padding: var(--sp-4) var(--sp-5);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+    color: var(--text-inverse);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+  .send-alert__icon {
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,0.2);
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .send-alert__icon .lucide { width: 22px; height: 22px; }
+  .send-alert__body { display: flex; flex-direction: column; gap: 2px; }
+  .send-alert__title { font-size: var(--fs-17); font-weight: 800; letter-spacing: -0.01em; }
+  .send-alert__sub { font-size: var(--fs-13); color: rgba(255,255,255,0.82); }
+  .send-alert__cta {
+    background: var(--text-inverse);
+    color: var(--primary);
+    padding: 12px 22px;
+    font-size: var(--fs-15);
+    font-weight: 800;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+  }
+  .send-alert__cta:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .send-alert__cta .lucide { width: 18px; height: 18px; }
+  .send-alert--complete {
+    background: var(--success-surface);
+    color: var(--success);
+    box-shadow: none;
+  }
+  .send-alert--complete .send-alert__icon { background: var(--success); color: var(--text-inverse); }
+  .send-alert--complete .send-alert__sub { color: var(--success); opacity: 0.78; }
+  .send-alert--complete .send-alert__cta { background: var(--success); color: var(--text-inverse); }
 
-  .month-badge { padding: 6px 14px; border-radius: var(--radius-sm); background: var(--primary); color: var(--text-inverse); font-weight: 800; font-size: var(--fs-13); letter-spacing: -0.01em; }
+  /* ───── Tab group (정기고사 메인) ───── */
+  .report-tabs {
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+  }
+  .report-tab-group {
+    display: inline-flex; padding: 3px;
+    background: var(--bg-tertiary); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-full);
+  }
+  .report-tab {
+    padding: 7px 18px;
+    font-size: var(--fs-13); font-weight: 700;
+    color: var(--text-secondary);
+    border-radius: var(--radius-full);
+    cursor: pointer; border: none; background: transparent;
+    transition: all var(--duration-fast);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .report-tab:hover { color: var(--text-primary); }
+  .report-tab.is-active { background: var(--bg-secondary); color: var(--primary); box-shadow: var(--shadow-xs); font-weight: 800; }
+  .report-tab--main.is-active { background: var(--primary); color: var(--text-inverse); }
+  .report-tab__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); display: inline-block; }
 
-  .progress-block { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
-  .progress-block__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
-  .progress-block__label { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
-  .progress-block__value { font-size: var(--fs-15); font-weight: 800; font-variant-numeric: tabular-nums; }
-  .progress-block__bar { height: 6px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; }
-  .progress-block__fill { height: 100%; background: var(--primary); border-radius: inherit; transition: width var(--duration-normal); }
+  /* Sub toggle inside 정기고사 */
+  .report-subtoggle {
+    display: inline-flex; gap: 0; align-items: center;
+    margin-left: var(--sp-2);
+    padding: 2px; background: var(--bg-tertiary);
+    border-radius: var(--radius-sm); border: 1px solid var(--border-primary);
+  }
+  .report-subtoggle button {
+    padding: 5px 12px; font-size: var(--fs-12); font-weight: 700;
+    color: var(--text-secondary); background: transparent;
+    border: none; border-radius: 4px; cursor: pointer;
+  }
+  .report-subtoggle button.is-active { background: var(--bg-secondary); color: var(--text-primary); box-shadow: var(--shadow-xs); }
 
-  .report-split { display: grid; grid-template-columns: 360px 1fr; gap: var(--sp-5); align-items: start; }
+  /* ───── KPI Strip — 페이지 핵심 progress ───── */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .kpi-cell { padding: var(--sp-5) var(--sp-5); border-right: 1px solid var(--border-secondary); display: flex; flex-direction: column; gap: 4px; }
+  .kpi-cell:last-child { border-right: none; }
+  .kpi-cell--alert { background: var(--danger-surface); }
+  .kpi-cell--alert .kpi-cell__value { color: var(--danger); }
+  .kpi-cell__label { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+  .kpi-cell__value {
+    font-size: var(--fs-36); font-weight: 800; line-height: 1;
+    letter-spacing: -0.025em; font-variant-numeric: tabular-nums;
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .kpi-cell__sub { font-size: var(--fs-15); color: var(--text-tertiary); font-weight: 700; }
+  .kpi-cell__bar { height: 4px; background: var(--bg-tertiary); border-radius: 999px; margin-top: var(--sp-2); overflow: hidden; }
+  .kpi-cell__fill { height: 100%; background: var(--primary); border-radius: inherit; transition: width var(--duration-normal); }
 
-  /* ── Left: student send-table ── */
+  /* ───── Split ───── */
+  .report-split {
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) 1fr;
+    gap: var(--sp-5);
+    align-items: start;
+  }
+
+  /* Mobile dropdown selector (>1024px hidden, <=1024px visible) */
+  .mobile-student-selector { display: none; }
+
+  /* ───── send-table ───── */
+  .send-toolbar {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--border-secondary);
+  }
+  .send-toolbar input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+  .send-toolbar__count { font-size: var(--fs-12); color: var(--text-tertiary); font-weight: 700; }
+
   .send-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--fs-14); }
   .send-table thead th {
-    padding: var(--sp-3) var(--sp-4);
-    font-size: var(--fs-12); font-weight: 800;
+    padding: 8px var(--sp-4);
+    font-size: var(--fs-11); font-weight: 800;
     text-align: left; color: var(--text-tertiary);
     letter-spacing: 0.04em; text-transform: uppercase;
-    border-bottom: 1px solid var(--border-primary);
-    background: var(--bg-secondary);
-    position: sticky; top: 0;
+    border-bottom: 1px solid var(--border-secondary);
+    background: var(--bg-primary);
   }
-  .send-th-num { width: 36px; }
-  .send-th-status { width: 88px; text-align: right; }
-  .send-th-score { width: 80px; }
+  .send-th-cb { width: 32px; }
+  .send-th-num { width: 28px; }
+  .send-th-status { width: 80px; text-align: right; }
+  .send-th-score { width: 70px; }
+
   .send-row { cursor: pointer; transition: background var(--duration-fast); }
-  .send-row td { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); vertical-align: middle; }
+  .send-row td { padding: 10px var(--sp-4); border-bottom: 1px solid var(--border-secondary); vertical-align: middle; }
   .send-row:hover td { background: var(--bg-tertiary); }
   .send-row.is-active td { background: var(--primary-surface); }
   .send-row.is-active .send-cell-name { color: var(--primary); font-weight: 800; }
+  .send-cell-cb { padding-left: var(--sp-4) !important; padding-right: 0 !important; }
   .send-cell-num { color: var(--text-tertiary); font-weight: 700; font-variant-numeric: tabular-nums; }
   .send-cell-name { font-weight: 700; }
   .send-cell-status { text-align: right; }
 
-  .score-pill {
-    display: inline-block; padding: 2px 9px;
-    font-size: var(--fs-12); font-weight: 800;
-    border-radius: var(--radius-full);
-    font-variant-numeric: tabular-nums;
-  }
+  .score-pill { display: inline-block; padding: 2px 9px; font-size: var(--fs-12); font-weight: 800; border-radius: var(--radius-full); font-variant-numeric: tabular-nums; }
   .score-pill--done    { background: var(--success-surface); color: var(--success); }
   .score-pill--partial { background: var(--warning-surface); color: var(--warning); }
   .score-pill--empty   { background: var(--bg-tertiary); color: var(--text-tertiary); }
 
-  .send-badge { display: inline-block; padding: 2px 9px; font-size: var(--fs-11); font-weight: 800; border-radius: var(--radius-full); letter-spacing: 0; }
-  .send-badge--sent    { background: var(--primary-surface); color: var(--primary); }
-  .send-badge--pending { background: var(--bg-tertiary); color: var(--text-tertiary); }
+  .send-badge { display: inline-block; padding: 2px 9px; font-size: var(--fs-11); font-weight: 800; border-radius: var(--radius-full); }
+  .send-badge--sent    { background: var(--success-surface); color: var(--success); }
+  .send-badge--pending { background: var(--bg-tertiary); color: var(--text-secondary); }
 
-  /* ── Right: actions + report-paper ── */
-  .report-actions { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); align-items: center; }
-  .report-sent-time { margin-left: auto; font-size: var(--fs-12); color: var(--text-tertiary); font-weight: 700; }
+  /* Bulk send footer */
+  .bulk-bar {
+    padding: var(--sp-3) var(--sp-4);
+    border-top: 1px solid var(--border-secondary);
+    background: var(--primary-surface);
+    display: flex; align-items: center; gap: var(--sp-2);
+    transition: max-height var(--duration-normal), opacity var(--duration-normal);
+    overflow: hidden;
+  }
+  .bulk-bar[hidden] { display: none; }
+  .bulk-bar__count { font-size: var(--fs-13); font-weight: 800; color: var(--primary); flex: 1; }
 
+  /* ───── Right pane ───── */
+  .preview-actions {
+    display: flex; gap: var(--sp-2); align-items: center;
+    margin-bottom: var(--sp-4);
+  }
+  .preview-actions .btn--primary { padding: 12px 22px; font-size: var(--fs-15); }
+  .preview-actions .btn--primary .lucide { width: 18px; height: 18px; }
+  .preview-actions__meta { margin-left: auto; font-size: var(--fs-12); color: var(--text-tertiary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+  .preview-actions__meta .lucide { width: 12px; height: 12px; }
+
+  /* ───── Report paper ───── */
   .report-paper {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
     overflow: hidden;
   }
-
   .rpt-header {
-    display: grid; grid-template-columns: 1fr auto;
-    gap: var(--sp-4);
+    display: grid; grid-template-columns: 1fr auto; gap: var(--sp-4);
     padding: var(--sp-5) var(--sp-6);
     border-bottom: 2px solid var(--primary);
     background: linear-gradient(180deg, var(--primary-surface) 0%, var(--bg-secondary) 100%);
   }
   .rpt-header-left { display: flex; align-items: center; gap: var(--sp-3); }
-  .rpt-logo {
-    width: 44px; height: 44px;
-    background: var(--primary); color: var(--text-inverse);
-    border-radius: var(--radius-sm);
-    display: grid; place-items: center;
-    font-weight: 900; font-size: var(--fs-22);
-  }
+  .rpt-logo { width: 44px; height: 44px; background: var(--primary); color: var(--text-inverse); border-radius: var(--radius-sm); display: grid; place-items: center; font-weight: 900; font-size: var(--fs-22); }
   .rpt-academy { font-size: var(--fs-19); font-weight: 800; letter-spacing: -0.01em; }
   .rpt-header-right { text-align: right; }
   .rpt-month { font-size: var(--fs-36); font-weight: 900; color: var(--primary); letter-spacing: -0.02em; line-height: 1; }
   .rpt-year { font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.06em; margin-top: 2px; }
-
   .rpt-title-bar { background: var(--primary); color: var(--text-inverse); padding: var(--sp-3) var(--sp-6); }
   .rpt-title { font-size: var(--fs-17); font-weight: 800; letter-spacing: -0.01em; }
-
   .rpt-student-row { display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-4) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
   .rpt-student-label { font-size: var(--fs-12); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; }
   .rpt-student-name { font-size: var(--fs-22); font-weight: 800; letter-spacing: -0.02em; }
 
-  /* Subject score bar chart */
   .rpt-chart { padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
   .rpt-chart__h { font-size: var(--fs-13); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 var(--sp-4); }
   .rpt-bars { display: flex; flex-direction: column; gap: var(--sp-3); }
   .rpt-bar-row { display: grid; grid-template-columns: 72px 1fr 64px 50px; gap: var(--sp-3); align-items: center; font-size: var(--fs-13); }
   .rpt-bar-row__subj { font-weight: 700; }
-  .rpt-bar-row__bar { height: 12px; background: var(--bg-tertiary); border-radius: var(--radius-full); position: relative; overflow: hidden; }
+  .rpt-bar-row__bar { height: 12px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; }
   .rpt-bar-row__fill { height: 100%; border-radius: inherit; background: var(--primary); }
   .rpt-bar-row__fill--high { background: var(--success); }
   .rpt-bar-row__fill--mid  { background: var(--info); }
@@ -116,7 +233,6 @@
   .rpt-bar-row__delta--down { color: var(--danger); }
   .rpt-bar-row__delta--flat { color: var(--text-tertiary); }
 
-  /* Subject comment cards */
   .subj-list { display: flex; flex-direction: column; }
   .subj-card { padding: var(--sp-4) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
   .subj-card__head { display: grid; grid-template-columns: 1fr auto auto; gap: var(--sp-3); align-items: center; margin-bottom: var(--sp-3); }
@@ -127,53 +243,39 @@
   .subj-card__save { font-size: var(--fs-12); font-weight: 800; padding: 3px 8px; border-radius: var(--radius-full); }
   .subj-card__save--saving { background: var(--info-surface); color: var(--info); }
   .subj-card__save--saved  { background: var(--success-surface); color: var(--success); }
-  .subj-card__save--error  { background: var(--danger-surface); color: var(--danger); }
   .subj-card__textarea-wrap { position: relative; }
-  .subj-card__textarea {
-    width: 100%; min-height: 72px; padding: 10px 12px;
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-sm);
-    font: inherit; font-size: var(--fs-14); line-height: 1.55;
-    background: var(--bg-secondary);
-    resize: vertical;
-  }
+  .subj-card__textarea { width: 100%; min-height: 72px; padding: 10px 12px; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); font: inherit; font-size: var(--fs-14); line-height: 1.55; background: var(--bg-secondary); resize: vertical; }
   .subj-card__textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-surface); }
-  .subj-card__ai {
-    position: absolute; right: 8px; bottom: 8px;
-    padding: 4px 10px; font-size: var(--fs-11); font-weight: 700;
-    background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-full);
-    color: var(--primary); cursor: pointer;
-    display: inline-flex; align-items: center; gap: 4px;
-  }
+  .subj-card__ai { position: absolute; right: 8px; bottom: 8px; padding: 4px 10px; font-size: var(--fs-11); font-weight: 700; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-full); color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
   .subj-card__ai:hover { background: var(--primary-surface); border-color: var(--primary); }
   .subj-card__ai .lucide { width: 12px; height: 12px; }
 
-  /* Total comment */
-  .rpt-total {
-    padding: var(--sp-5) var(--sp-6);
-    background: var(--bg-primary);
-    border-top: 2px solid var(--primary);
-  }
-  .rpt-total__h {
-    display: flex; align-items: baseline; justify-content: space-between;
-    font-size: var(--fs-13); font-weight: 800;
-    color: var(--text-tertiary);
-    letter-spacing: 0.04em; text-transform: uppercase;
-    margin-bottom: var(--sp-3);
-  }
+  .rpt-total { padding: var(--sp-5) var(--sp-6); background: var(--bg-primary); border-top: 2px solid var(--primary); }
+  .rpt-total__h { display: flex; align-items: baseline; justify-content: space-between; font-size: var(--fs-13); font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: var(--sp-3); }
 
-  /* Empty preview */
-  .report-empty {
-    padding: var(--sp-16) var(--sp-6);
-    text-align: center; color: var(--text-tertiary);
-  }
-  .report-empty__icon {
-    font-size: 56px;
-    color: var(--border-strong);
-    margin-bottom: var(--sp-3);
-    line-height: 1;
-  }
+  .report-empty { padding: var(--sp-16) var(--sp-6); text-align: center; color: var(--text-tertiary); }
+  .report-empty__icon { font-size: 56px; color: var(--border-strong); margin-bottom: var(--sp-3); line-height: 1; }
   .report-empty__msg { font-size: var(--fs-15); font-weight: 600; }
+
+  /* ───── Responsive ───── */
+  @media (max-width: 1024px) {
+    .report-split { grid-template-columns: 1fr; }
+    .send-alert { grid-template-columns: 1fr; text-align: center; }
+    .send-alert__icon { margin: 0 auto; }
+    .send-alert__cta { justify-self: center; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .kpi-cell:nth-child(2) { border-right: none; }
+    .kpi-cell:nth-child(1), .kpi-cell:nth-child(2) { border-bottom: 1px solid var(--border-secondary); }
+    .mobile-student-selector { display: block; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-secondary); background: var(--bg-primary); }
+    .send-toolbar, .send-table, .bulk-bar { display: none; }
+  }
+  @media (max-width: 640px) {
+    .kpi-strip { grid-template-columns: 1fr 1fr; }
+    .rpt-header { grid-template-columns: 1fr; }
+    .rpt-header-right { text-align: left; }
+    .rpt-bar-row { grid-template-columns: 60px 1fr 48px 40px; }
+    .preview-actions { flex-wrap: wrap; }
+  }
 </style>
 </head>
 <body>
@@ -199,8 +301,8 @@
     </div>
     <div class="app-nav__group">
       <div class="app-nav__label">리포트</div>
-      <div class="app-nav__item is-active"><i data-lucide="file-text"></i>월말·정기 리포트</div>
-      <a class="app-nav__item" href="06-report.html"><i data-lucide="send"></i>학부모 리포트</a>
+      <div class="app-nav__item is-active"><i data-lucide="send"></i>리포트 발송<span class="app-nav__count" id="nav-pending">4</span></div>
+      <a class="app-nav__item" href="06-report.html"><i data-lucide="file-text"></i>학부모 리포트 (preview)</a>
     </div>
     <div class="app-nav__group" style="margin-top: auto;">
       <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
@@ -212,59 +314,114 @@
 
     <header class="page-head">
       <div>
-        <div class="page-head__crumb">리포트 · 강사용 입력</div>
-        <div class="cluster" style="--gap: var(--sp-3); align-items: center;">
-          <h1 class="page-head__title" id="page-title">월말평가 리포트</h1>
-          <div class="report-tabs" role="tablist" aria-label="리포트 유형">
-            <button class="report-tab is-active" data-type="monthly" role="tab">월말평가</button>
-            <button class="report-tab" data-type="midterm" role="tab">중간고사</button>
-            <button class="report-tab" data-type="final" role="tab">기말고사</button>
-          </div>
-          <div class="month-badge" id="period-label">2026년 5월</div>
-        </div>
-        <div class="page-head__sub">학생별 성적 입력 → AI 코멘트 → JPG 다운로드 / 카카오톡 발송</div>
+        <div class="page-head__crumb">리포트 · 강사 입력 · 학부모 발송</div>
+        <h1 class="page-head__title">리포트 발송</h1>
+        <div class="page-head__sub" id="period-sub">2026년 1학기 중간고사 · 7명 중 4명 미발송</div>
       </div>
       <div class="page-head__actions">
-        <div class="progress-block">
-          <div class="progress-block__row">
-            <span class="progress-block__label">전송 현황</span>
-            <span class="progress-block__value" id="sent-count">3 / 7</span>
+        <div class="report-tabs" role="tablist" aria-label="리포트 유형">
+          <div class="report-tab-group">
+            <button class="report-tab report-tab--main is-active" data-group="exam" role="tab">
+              <span class="report-tab__dot" aria-hidden="true"></span>
+              정기고사
+            </button>
+            <button class="report-tab" data-group="monthly" role="tab">월말평가</button>
           </div>
-          <div class="progress-block__bar"><div class="progress-block__fill" id="sent-fill" style="width: 43%;"></div></div>
+          <div class="report-subtoggle" id="exam-sub" role="tablist" aria-label="정기고사 유형">
+            <button class="is-active" data-type="midterm">중간</button>
+            <button data-type="final">기말</button>
+          </div>
         </div>
       </div>
     </header>
 
+    <!-- ════ 1. ALERT BAND (메인 anchor) ════ -->
+    <div class="send-alert" id="send-alert" role="region" aria-live="polite">
+      <div class="send-alert__icon"><i data-lucide="send"></i></div>
+      <div class="send-alert__body">
+        <div class="send-alert__title" id="alert-title">정기고사 리포트 — 4명 발송 대기</div>
+        <div class="send-alert__sub" id="alert-sub">2026년 1학기 중간고사 · 학부모에게 카카오톡으로 일괄 발송 가능</div>
+      </div>
+      <button class="send-alert__cta" id="bulk-send-hero"><i data-lucide="send"></i>4명 일괄 발송</button>
+    </div>
+
+    <!-- ════ 2. KPI STRIP ════ -->
+    <div class="kpi-strip">
+      <div class="kpi-cell kpi-cell--alert">
+        <span class="kpi-cell__label">발송 대기</span>
+        <span class="kpi-cell__value" id="kpi-pending">4<span class="kpi-cell__sub">명</span></span>
+        <div class="kpi-cell__bar"><div class="kpi-cell__fill" id="kpi-pending-fill" style="width: 57%; background: var(--danger);"></div></div>
+      </div>
+      <div class="kpi-cell">
+        <span class="kpi-cell__label">전송 완료</span>
+        <span class="kpi-cell__value" id="kpi-sent">3<span class="kpi-cell__sub">/ 7</span></span>
+        <div class="kpi-cell__bar"><div class="kpi-cell__fill" id="kpi-sent-fill" style="width: 43%;"></div></div>
+      </div>
+      <div class="kpi-cell">
+        <span class="kpi-cell__label">점수 미입력</span>
+        <span class="kpi-cell__value" style="color: var(--warning);">12<span class="kpi-cell__sub">/ 35</span></span>
+        <div class="kpi-cell__bar"><div class="kpi-cell__fill" style="width: 34%; background: var(--warning);"></div></div>
+      </div>
+      <div class="kpi-cell">
+        <span class="kpi-cell__label">이번 시즌 평균</span>
+        <span class="kpi-cell__value" style="color: var(--primary);">87.4</span>
+        <div class="kpi-cell__bar"><div class="kpi-cell__fill" style="width: 87%;"></div></div>
+      </div>
+    </div>
+
+    <!-- ════ 3. SPLIT (table + preview) ════ -->
     <div class="report-split">
 
-      <!-- ════ LEFT: 학생 전송 현황 ════ -->
+      <!-- LEFT: send-table -->
       <div class="panel" style="overflow: hidden;">
+        <div class="mobile-student-selector">
+          <label class="field__label" for="mobile-student">학생 선택</label>
+          <select id="mobile-student" class="select">
+            <option value="">학생을 선택하세요</option>
+          </select>
+        </div>
+
+        <div class="send-toolbar">
+          <input type="checkbox" id="select-all" aria-label="전체 선택" />
+          <label for="select-all" class="send-toolbar__count" id="selection-label">전체 선택</label>
+          <div style="flex: 1;"></div>
+          <span class="text-mute" style="font-size: var(--fs-12);">7명</span>
+        </div>
+
         <table class="send-table">
           <thead>
             <tr>
+              <th class="send-th-cb"></th>
               <th class="send-th-num">#</th>
               <th>이름</th>
               <th class="send-th-score">성적</th>
               <th class="send-th-status">전송</th>
             </tr>
           </thead>
-          <tbody id="student-list">
-            <!-- populated by JS -->
-          </tbody>
+          <tbody id="student-list"></tbody>
         </table>
+
+        <div class="bulk-bar" id="bulk-bar" hidden>
+          <span class="bulk-bar__count" id="bulk-count">0명 선택</span>
+          <button class="btn btn--ghost btn--sm" id="bulk-clear">선택 해제</button>
+          <button class="btn btn--primary" id="bulk-send"><i data-lucide="send"></i>일괄 발송</button>
+        </div>
       </div>
 
-      <!-- ════ RIGHT: 리포트 미리보기 + 액션 ════ -->
+      <!-- RIGHT: preview + actions -->
       <div>
-        <div class="report-actions" id="report-actions" hidden>
-          <button class="btn btn--primary" id="download-jpg"><i data-lucide="download"></i>JPG 다운로드</button>
-          <button class="btn btn--accent" id="share-kakao"><i data-lucide="share-2"></i>카카오톡 공유</button>
-          <span class="report-sent-time" id="sent-time" hidden>2026.05.13 전송됨</span>
+        <div class="preview-actions" id="preview-actions" hidden>
+          <button class="btn btn--primary btn--lg" id="send-one">
+            <i data-lucide="send"></i>리포트 발송
+          </button>
+          <button class="btn btn--secondary" id="download-jpg"><i data-lucide="download"></i>미리보기 PDF</button>
+          <span class="preview-actions__meta" id="sent-meta" hidden>
+            <i data-lucide="check-circle-2" style="color: var(--success);"></i>
+            <span id="sent-time">2026.05.13 전송됨</span>
+          </span>
         </div>
 
-        <div class="report-paper" id="report-paper">
-          <!-- populated by JS -->
-        </div>
+        <div class="report-paper" id="report-paper"></div>
       </div>
 
     </div>
@@ -275,54 +432,59 @@
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script src="_app.js"></script>
 <script>
-  // ── Mock state ──
-  const REPORT_TYPE_LABEL = { monthly: '월말평가', midterm: '중간고사', final: '기말고사' };
-  const PERIOD = { monthly: '2026년 5월', midterm: '2026년 1학기 중간', final: '2026년 1학기 기말' };
+  // ───── Mock state ─────
+  const TYPE_LABEL = { midterm: '중간고사', final: '기말고사', monthly: '월말평가' };
+  const TYPE_PERIOD = { midterm: '2026년 1학기 중간고사', final: '2026년 1학기 기말고사', monthly: '2026년 5월 월말평가' };
+  const TYPE_HEADER = {
+    midterm: { mo: '1학기', yr: '2026 · 중간' },
+    final:   { mo: '1학기', yr: '2026 · 기말' },
+    monthly: { mo: '5월', yr: '2026' },
+  };
 
   const STUDENTS = [
-    { id: 's1', name: '강민수', grade: '고2', sent: true,  sentAt: '2026.05.11', scores: [
+    { id: 's1', name: '강민수', grade: '고2', sent: true,  sentAt: '2026.05.11', selected: false, scores: [
       { subject: '독해', score: 92, prev: 87, comment: '독해 정답률 94%, 거의 만점에 근접. 1등급 안정권 진입.' },
       { subject: '어휘', score: 88, prev: 84, comment: '어휘 꾸준한 상승세. EBS 수특 단어 노출 효과.' },
-      { subject: '듣기', score: 90, prev: 92, comment: '듣기는 안정적. 큰 변동 없음.' },
+      { subject: '듣기', score: 90, prev: 92, comment: '듣기는 안정적.' },
       { subject: '어법', score: 68, prev: 75, comment: '어법은 약점. 6월에 별도 보강 예정.' },
-      { subject: '서술형', score: 82, prev: 78, comment: '서술형 답안 구조 개선 — 키워드 명시화 잘 함.' },
-    ], total: '5월 평균 87.4점. 어법 영역만 추가 보강하면 1등급 안정. 6월에 어법 드릴 D4 진행 예정.' },
-    { id: 's2', name: '이영희', grade: '중3', sent: true,  sentAt: '2026.05.10', scores: [
+      { subject: '서술형', score: 82, prev: 78, comment: '서술형 답안 구조 개선됨.' },
+    ], total: '평균 87.4점. 어법만 추가 보강하면 1등급 안정.' },
+    { id: 's2', name: '이영희', grade: '중3', sent: true, sentAt: '2026.05.10', selected: false, scores: [
       { subject: '독해', score: 80, prev: 76, comment: '서서히 안정세.' },
-      { subject: '어휘', score: 76, prev: 70, comment: 'EBS 수특 W2 시험 76점.' },
+      { subject: '어휘', score: 76, prev: 70, comment: 'EBS 수특 W2 76점.' },
       { subject: '듣기', score: 85, prev: 82, comment: '' },
       { subject: '어법', score: 0,  prev: null, comment: '' },
       { subject: '서술형', score: 0, prev: null, comment: '' },
     ], total: '' },
-    { id: 's3', name: '박지민', grade: '고1', sent: false, scores: [
+    { id: 's3', name: '박지민', grade: '고1', sent: false, selected: false, scores: [
       { subject: '독해', score: 72, prev: 78, comment: '' },
       { subject: '어휘', score: 68, prev: 72, comment: '' },
       { subject: '듣기', score: 75, prev: 0, comment: '' },
       { subject: '어법', score: 0,  prev: null, comment: '' },
       { subject: '서술형', score: 0, prev: null, comment: '' },
     ], total: '' },
-    { id: 's4', name: '최수지', grade: '고3', sent: false, scores: [
+    { id: 's4', name: '최수지', grade: '고3', sent: false, selected: false, scores: [
       { subject: '독해', score: 0, prev: 64, comment: '' },
       { subject: '어휘', score: 0, prev: 58, comment: '' },
       { subject: '듣기', score: 0, prev: null, comment: '' },
       { subject: '어법', score: 0, prev: null, comment: '' },
       { subject: '서술형', score: 0, prev: null, comment: '' },
     ], total: '' },
-    { id: 's5', name: '정하늘', grade: '고2', sent: true,  sentAt: '2026.05.12', scores: [
+    { id: 's5', name: '정하늘', grade: '고2', sent: true,  sentAt: '2026.05.12', selected: false, scores: [
       { subject: '독해', score: 88, prev: 85, comment: '꾸준한 상승.' },
       { subject: '어휘', score: 84, prev: 80, comment: '' },
       { subject: '듣기', score: 90, prev: 88, comment: '' },
       { subject: '어법', score: 78, prev: 80, comment: '' },
       { subject: '서술형', score: 86, prev: 82, comment: '' },
     ], total: '전반적으로 안정 상승세. 모든 영역 80점대 진입.' },
-    { id: 's6', name: '김재훈', grade: '고2', sent: false, scores: [
+    { id: 's6', name: '김재훈', grade: '고2', sent: false, selected: false, scores: [
       { subject: '독해', score: 64, prev: 70, comment: '' },
       { subject: '어휘', score: 58, prev: 64, comment: '' },
       { subject: '듣기', score: 72, prev: 75, comment: '' },
       { subject: '어법', score: 0, prev: 65, comment: '' },
       { subject: '서술형', score: 0, prev: null, comment: '' },
     ], total: '' },
-    { id: 's7', name: '윤서연', grade: '중2', sent: false, scores: [
+    { id: 's7', name: '윤서연', grade: '중2', sent: false, selected: false, scores: [
       { subject: '독해', score: 0, prev: null, comment: '' },
       { subject: '어휘', score: 0, prev: null, comment: '' },
       { subject: '듣기', score: 0, prev: null, comment: '' },
@@ -331,89 +493,158 @@
     ], total: '' },
   ];
 
-  let reportType = 'monthly';
+  let reportType = 'midterm';
   let selectedId = null;
 
-  const fillEl = document.getElementById('sent-fill');
-  const cntEl = document.getElementById('sent-count');
-  const titleEl = document.getElementById('page-title');
-  const periodEl = document.getElementById('period-label');
-  const listEl = document.getElementById('student-list');
-  const paperEl = document.getElementById('report-paper');
-  const actionsEl = document.getElementById('report-actions');
-  const sentTimeEl = document.getElementById('sent-time');
+  // DOM refs
+  const $ = (id) => document.getElementById(id);
+  const subEl = $('period-sub');
+  const subToggleEl = $('exam-sub');
+  const sendAlertEl = $('send-alert');
+  const alertTitleEl = $('alert-title');
+  const alertSubEl = $('alert-sub');
+  const heroBtnEl = $('bulk-send-hero');
+  const listEl = $('student-list');
+  const paperEl = $('report-paper');
+  const previewActionsEl = $('preview-actions');
+  const sentMetaEl = $('sent-meta');
+  const sentTimeEl = $('sent-time');
+  const mobileSelectEl = $('mobile-student');
+  const bulkBarEl = $('bulk-bar');
+  const bulkCountEl = $('bulk-count');
+  const selectAllEl = $('select-all');
 
+  // ───── Header / alert state ─────
+  function gradeClass(g) { return ({m1:'m1',중1:'m1',중2:'m2',중3:'m3',고1:'h1',고2:'h2',고3:'h3'}[g] || 'etc'); }
+  function fillClass(s) { return s >= 85 ? 'rpt-bar-row__fill--high' : s >= 70 ? 'rpt-bar-row__fill--mid' : 'rpt-bar-row__fill--low'; }
+  function deltaSpan(s, p) {
+    if (s === 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">—</span>`;
+    if (!p) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">신규</span>`;
+    const d = s - p;
+    if (d > 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--up">▲ ${d}</span>`;
+    if (d < 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--down">▼ ${-d}</span>`;
+    return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">─</span>`;
+  }
+
+  function updateHeader() {
+    subEl.textContent = `${TYPE_PERIOD[reportType]} · ${pendingCount()}명 미발송`;
+    subToggleEl.style.display = reportType === 'monthly' ? 'none' : '';
+  }
+
+  function pendingCount() { return STUDENTS.filter(s => !s.sent).length; }
+  function sentCount() { return STUDENTS.filter(s => s.sent).length; }
+  function selectedCount() { return STUDENTS.filter(s => s.selected).length; }
+
+  function updateKPI() {
+    const p = pendingCount(); const s = sentCount(); const t = STUDENTS.length;
+    $('kpi-pending').innerHTML = `${p}<span class="kpi-cell__sub">명</span>`;
+    $('kpi-sent').innerHTML = `${s}<span class="kpi-cell__sub">/ ${t}</span>`;
+    $('kpi-pending-fill').style.width = `${(p / t) * 100}%`;
+    $('kpi-sent-fill').style.width = `${(s / t) * 100}%`;
+    $('nav-pending').textContent = p;
+  }
+
+  function updateAlert() {
+    const p = pendingCount();
+    if (p === 0) {
+      sendAlertEl.classList.add('send-alert--complete');
+      alertTitleEl.textContent = '모든 리포트 발송 완료';
+      alertSubEl.textContent = `${TYPE_PERIOD[reportType]} · ${STUDENTS.length}명 전부 발송됨`;
+      heroBtnEl.innerHTML = `<i data-lucide="check"></i>완료`;
+      heroBtnEl.disabled = true;
+    } else {
+      sendAlertEl.classList.remove('send-alert--complete');
+      const typeLabel = reportType === 'monthly' ? '월말평가' : '정기고사';
+      alertTitleEl.textContent = `${typeLabel} 리포트 — ${p}명 발송 대기`;
+      alertSubEl.textContent = `${TYPE_PERIOD[reportType]} · 학부모에게 카카오톡으로 일괄 발송 가능`;
+      heroBtnEl.innerHTML = `<i data-lucide="send"></i>${p}명 일괄 발송`;
+      heroBtnEl.disabled = false;
+    }
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function updateBulkBar() {
+    const n = selectedCount();
+    if (n === 0) { bulkBarEl.hidden = true; selectAllEl.checked = false; }
+    else {
+      bulkBarEl.hidden = false;
+      bulkCountEl.textContent = `${n}명 선택`;
+      selectAllEl.checked = (n === STUDENTS.length);
+    }
+  }
+
+  // ───── Render ─────
   function renderStudentList() {
-    const sent = STUDENTS.filter(s => s.sent).length;
-    cntEl.textContent = `${sent} / ${STUDENTS.length}`;
-    fillEl.style.width = `${(sent / STUDENTS.length) * 100}%`;
     listEl.innerHTML = STUDENTS.map((s, i) => {
-      const filled = s.scores.filter(sc => sc.score > 0).length;
-      const total = s.scores.length;
-      const cls = filled === total ? 'score-pill--done' : (filled > 0 ? 'score-pill--partial' : 'score-pill--empty');
+      const filled = s.scores.filter(x => x.score > 0).length;
+      const tot = s.scores.length;
+      const sc = filled === tot ? 'score-pill--done' : filled > 0 ? 'score-pill--partial' : 'score-pill--empty';
       const scoreCell = filled > 0
-        ? `<span class="score-pill ${cls}">${filled}/${total}</span>`
+        ? `<span class="score-pill ${sc}">${filled}/${tot}</span>`
         : `<span class="score-pill score-pill--empty">—</span>`;
-      const statusCell = s.sent
+      const status = s.sent
         ? `<span class="send-badge send-badge--sent">전송됨</span>`
         : `<span class="send-badge send-badge--pending">미전송</span>`;
       return `
         <tr class="send-row ${selectedId === s.id ? 'is-active' : ''}" data-id="${s.id}" tabindex="0" role="button">
+          <td class="send-cell-cb"><input type="checkbox" data-cb="${s.id}" ${s.selected ? 'checked' : ''} aria-label="${s.name} 선택" /></td>
           <td class="send-cell-num">${i + 1}</td>
           <td class="send-cell-name">${s.name} <span class="text-mute" style="font-size: var(--fs-11); font-weight: 600;">${s.grade}</span></td>
-          <td class="send-cell-score">${scoreCell}</td>
-          <td class="send-cell-status">${statusCell}</td>
+          <td>${scoreCell}</td>
+          <td class="send-cell-status">${status}</td>
         </tr>
       `;
     }).join('');
     listEl.querySelectorAll('.send-row').forEach((row) => {
-      row.addEventListener('click', () => selectStudent(row.dataset.id));
+      row.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        selectStudent(row.dataset.id);
+      });
       row.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectStudent(row.dataset.id); }
       });
     });
+    listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener('change', (e) => {
+        const s = STUDENTS.find(x => x.id === cb.dataset.cb);
+        if (s) s.selected = cb.checked;
+        updateBulkBar();
+        e.stopPropagation();
+      });
+    });
+    // Mobile select
+    mobileSelectEl.innerHTML = `<option value="">학생을 선택하세요</option>` + STUDENTS.map(s => {
+      const filled = s.scores.filter(x => x.score > 0).length;
+      return `<option value="${s.id}" ${selectedId === s.id ? 'selected' : ''}>${s.name} ${filled > 0 ? `(${filled}/${s.scores.length})` : ''} ${s.sent ? '✓' : ''}</option>`;
+    }).join('');
   }
 
-  function selectStudent(id) {
-    selectedId = id;
-    renderStudentList();
-    renderPaper();
-  }
+  function selectStudent(id) { selectedId = id; renderStudentList(); renderPaper(); }
+  mobileSelectEl.addEventListener('change', () => selectStudent(mobileSelectEl.value));
 
-  function fillClass(score) {
-    if (score >= 85) return 'rpt-bar-row__fill--high';
-    if (score >= 70) return 'rpt-bar-row__fill--mid';
-    return 'rpt-bar-row__fill--low';
-  }
-
-  function deltaSpan(score, prev) {
-    if (score === 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">—</span>`;
-    if (prev == null || prev === 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">신규</span>`;
-    const d = score - prev;
-    if (d > 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--up">▲ ${d}</span>`;
-    if (d < 0) return `<span class="rpt-bar-row__delta rpt-bar-row__delta--down">▼ ${Math.abs(d)}</span>`;
-    return `<span class="rpt-bar-row__delta rpt-bar-row__delta--flat">─</span>`;
-  }
-
+  // ───── Paper ─────
   function renderPaper() {
     const s = STUDENTS.find(x => x.id === selectedId);
     if (!s) {
-      actionsEl.hidden = true;
+      previewActionsEl.hidden = true;
       paperEl.innerHTML = `<div class="report-empty"><div class="report-empty__icon">←</div><div class="report-empty__msg">왼쪽에서 학생을 선택하세요</div></div>`;
       return;
     }
-    actionsEl.hidden = false;
+    previewActionsEl.hidden = false;
+    sentMetaEl.hidden = !s.sent;
+    if (s.sent) sentTimeEl.textContent = `${s.sentAt} 전송됨`;
+
+    // Send button state
+    const sendBtn = $('send-one');
     if (s.sent) {
-      sentTimeEl.hidden = false;
-      sentTimeEl.textContent = `${s.sentAt} 전송됨`;
+      sendBtn.innerHTML = `<i data-lucide="send"></i>재발송`;
+      sendBtn.className = 'btn btn--secondary btn--lg';
     } else {
-      sentTimeEl.hidden = true;
+      sendBtn.innerHTML = `<i data-lucide="send"></i>리포트 발송`;
+      sendBtn.className = 'btn btn--primary btn--lg';
     }
 
-    const monthHead = reportType === 'monthly'
-      ? `<div class="rpt-month">5월</div><div class="rpt-year">2026</div>`
-      : `<div class="rpt-month">1학기</div><div class="rpt-year">2026 · ${reportType === 'midterm' ? '중간' : '기말'}</div>`;
-
+    const h = TYPE_HEADER[reportType];
     const bars = s.scores.map(sc => `
       <div class="rpt-bar-row">
         <span class="rpt-bar-row__subj">${sc.subject}</span>
@@ -422,7 +653,6 @@
         ${deltaSpan(sc.score, sc.prev)}
       </div>
     `).join('');
-
     const subjects = s.scores.map((sc, idx) => `
       <div class="subj-card">
         <div class="subj-card__head">
@@ -443,12 +673,13 @@
     paperEl.innerHTML = `
       <div class="rpt-header">
         <div class="rpt-header-left">
-          <div class="rpt-logo">W</div>
-          <div><div class="rpt-academy">WAWA 수학+ 영어</div></div>
+          <div class="rpt-logo">W</div><div><div class="rpt-academy">WAWA 수학+ 영어</div></div>
         </div>
-        <div class="rpt-header-right">${monthHead}</div>
+        <div class="rpt-header-right">
+          <div class="rpt-month">${h.mo}</div><div class="rpt-year">${h.yr}</div>
+        </div>
       </div>
-      <div class="rpt-title-bar"><span class="rpt-title">${REPORT_TYPE_LABEL[reportType]} 리포트</span></div>
+      <div class="rpt-title-bar"><span class="rpt-title">${TYPE_LABEL[reportType]} 리포트</span></div>
       <div class="rpt-student-row">
         <span class="rpt-student-label">학생</span>
         <span class="rpt-student-name">${s.name}</span>
@@ -460,139 +691,163 @@
       </div>
       <div class="subj-list">${subjects}</div>
       <div class="rpt-total">
-        <div class="rpt-total__h">
-          <span>총평</span>
-          <button class="subj-card__ai" data-ai-total="${s.id}" style="position: static;"><i data-lucide="sparkles"></i>AI 총평 생성</button>
-        </div>
-        <textarea class="subj-card__textarea" data-sid="${s.id}" data-field="total" style="min-height: 100px;" placeholder="이번 달 종합 평가">${s.total}</textarea>
+        <div class="rpt-total__h"><span>총평</span><button class="subj-card__ai" data-ai-total="${s.id}" style="position: static;"><i data-lucide="sparkles"></i>AI 총평 생성</button></div>
+        <textarea class="subj-card__textarea" data-sid="${s.id}" data-field="total" style="min-height: 100px;" placeholder="이번 시즌 종합 평가">${s.total}</textarea>
       </div>
     `;
     if (window.lucide) lucide.createIcons();
     wireInputs();
   }
 
-  function gradeClass(g) {
-    const map = { 중1:'m1', 중2:'m2', 중3:'m3', 고1:'h1', 고2:'h2', 고3:'h3' };
-    return map[g] || 'etc';
-  }
-
   function wireInputs() {
-    paperEl.querySelectorAll('input[data-field="score"], textarea[data-field], textarea[data-field="total"]').forEach((el) => {
+    paperEl.querySelectorAll('input[data-field="score"], textarea[data-field]').forEach((el) => {
       el.addEventListener('input', () => showSaving(el));
       el.addEventListener('blur', () => saveField(el));
     });
-    paperEl.querySelectorAll('[data-ai-subject]').forEach((btn) => {
-      btn.addEventListener('click', () => generateAI(btn, 'subject'));
-    });
-    paperEl.querySelectorAll('[data-ai-total]').forEach((btn) => {
-      btn.addEventListener('click', () => generateAI(btn, 'total'));
-    });
+    paperEl.querySelectorAll('[data-ai-subject]').forEach(b => b.addEventListener('click', () => generateAI(b, 'subject')));
+    paperEl.querySelectorAll('[data-ai-total]').forEach(b => b.addEventListener('click', () => generateAI(b, 'total')));
   }
-
   function showSaving(el) {
-    const key = `${el.dataset.sid}-${el.dataset.sidx || 'total'}`;
-    const flag = document.querySelector(`[data-save="${key}"]`);
-    if (!flag) return;
-    flag.hidden = false;
-    flag.className = 'subj-card__save subj-card__save--saving';
-    flag.textContent = '…';
+    const k = `${el.dataset.sid}-${el.dataset.sidx || 'total'}`;
+    const f = document.querySelector(`[data-save="${k}"]`);
+    if (!f) return; f.hidden = false; f.className = 'subj-card__save subj-card__save--saving'; f.textContent = '…';
   }
-
   function saveField(el) {
-    const s = STUDENTS.find(x => x.id === el.dataset.sid);
-    if (!s) return;
+    const s = STUDENTS.find(x => x.id === el.dataset.sid); if (!s) return;
     const idx = Number(el.dataset.sidx);
-    if (el.dataset.field === 'score' && !isNaN(idx)) {
-      s.scores[idx].score = Number(el.value) || 0;
-    } else if (el.dataset.field === 'comment' && !isNaN(idx)) {
-      s.scores[idx].comment = el.value;
-    } else if (el.dataset.field === 'total') {
-      s.total = el.value;
-    }
-    const key = `${el.dataset.sid}-${el.dataset.sidx || 'total'}`;
-    const flag = document.querySelector(`[data-save="${key}"]`);
-    if (flag) {
-      flag.hidden = false;
-      flag.className = 'subj-card__save subj-card__save--saved';
-      flag.textContent = '✓ 저장됨';
-      setTimeout(() => { flag.hidden = true; }, 1600);
-    }
-    renderStudentList();
+    if (el.dataset.field === 'score' && !isNaN(idx)) s.scores[idx].score = Number(el.value) || 0;
+    else if (el.dataset.field === 'comment' && !isNaN(idx)) s.scores[idx].comment = el.value;
+    else if (el.dataset.field === 'total') s.total = el.value;
+    const k = `${el.dataset.sid}-${el.dataset.sidx || 'total'}`;
+    const f = document.querySelector(`[data-save="${k}"]`);
+    if (f) { f.hidden = false; f.className = 'subj-card__save subj-card__save--saved'; f.textContent = '✓ 저장됨'; setTimeout(() => f.hidden = true, 1600); }
+    renderStudentList(); updateKPI(); updateAlert(); updateHeader();
   }
-
   function generateAI(btn, kind) {
-    btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader"></i>생성 중…`;
-    if (window.lucide) lucide.createIcons();
+    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader"></i>생성 중…`; lucide.createIcons();
     setTimeout(() => {
       const s = STUDENTS.find(x => x.id === selectedId);
       if (kind === 'subject') {
-        const [, idx] = btn.dataset.aiSubject.split('-');
-        const sc = s.scores[Number(idx)];
-        const generated = sc.score >= 85
-          ? `${sc.subject} 영역에서 높은 안정성을 보입니다. ${sc.prev ? `전월 ${sc.prev}점 대비 ${sc.score - sc.prev}점 상승` : '전월 대비 성장 중'}.`
-          : sc.score >= 70
-          ? `${sc.subject} 영역은 안정세입니다. 추가 보강이 필요한 세부 단원을 함께 확인하겠습니다.`
-          : sc.score > 0
-          ? `${sc.subject} 영역은 약점입니다. 다음 달 별도 보강을 진행하여 기초 안정화 예정입니다.`
+        const idx = Number(btn.dataset.aiSubject.split('-')[1]);
+        const sc = s.scores[idx];
+        const gen = sc.score >= 85 ? `${sc.subject} 영역에서 높은 안정성을 보입니다. ${sc.prev ? `전월 ${sc.prev}점 대비 ${sc.score - sc.prev}점 상승` : '꾸준한 성장세'}.`
+          : sc.score >= 70 ? `${sc.subject} 영역은 안정세입니다. 세부 단원 보강 예정.`
+          : sc.score > 0 ? `${sc.subject} 영역은 약점입니다. 다음 시즌 별도 보강 진행.`
           : `${sc.subject} 영역은 아직 응시 전입니다.`;
         const ta = paperEl.querySelector(`textarea[data-sid="${s.id}"][data-sidx="${idx}"][data-field="comment"]`);
-        if (ta) { ta.value = generated; sc.comment = generated; }
+        if (ta) { ta.value = gen; sc.comment = gen; }
         AppToast.show(`${sc.subject} AI 코멘트 생성됨`, 'success');
       } else {
-        const avg = s.scores.filter(x => x.score > 0).reduce((a, b) => a + b.score, 0) / Math.max(1, s.scores.filter(x => x.score > 0).length);
-        const text = `${REPORT_TYPE_LABEL[reportType]} 평균 ${avg.toFixed(1)}점. 영역별 균형이 ${avg >= 80 ? '안정적' : '개선 필요한'} 상태입니다. 자세한 학습 계획은 다음 상담에서 공유 드립니다.`;
+        const filled = s.scores.filter(x => x.score > 0);
+        const avg = filled.reduce((a, b) => a + b.score, 0) / Math.max(1, filled.length);
+        const text = `${TYPE_LABEL[reportType]} 평균 ${avg.toFixed(1)}점. 영역별 균형이 ${avg >= 80 ? '안정적' : '개선 필요한'} 상태입니다. 자세한 학습 계획은 다음 상담에서 공유 드립니다.`;
         const ta = paperEl.querySelector(`textarea[data-field="total"]`);
         if (ta) { ta.value = text; s.total = text; }
         AppToast.show('AI 총평 생성됨', 'success');
       }
       btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="sparkles"></i>AI ${kind === 'subject' ? '코멘트' : '총평'} 생성`;
-      if (window.lucide) lucide.createIcons();
+      btn.innerHTML = kind === 'subject' ? `<i data-lucide="sparkles"></i>AI 코멘트 생성` : `<i data-lucide="sparkles"></i>AI 총평 생성`;
+      lucide.createIcons();
     }, 700);
   }
 
-  // ── Report type tab switching ──
+  // ───── Send actions ─────
+  function sendOne(s) {
+    s.sent = true;
+    s.sentAt = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+    s.selected = false;
+  }
+
+  function doBulkSend(list) {
+    if (list.length === 0) return;
+    const btn = list.length > 1 ? heroBtnEl : $('send-one');
+    btn.disabled = true;
+    const original = btn.innerHTML;
+    btn.innerHTML = `<i data-lucide="loader"></i>발송 중…`;
+    lucide.createIcons();
+    setTimeout(() => {
+      list.forEach(sendOne);
+      renderStudentList(); updateKPI(); updateAlert(); updateHeader(); updateBulkBar();
+      if (selectedId) renderPaper();
+      AppToast.show(`${list.length}명 발송 완료 — 학부모 카카오톡 전송됨`, 'success');
+      btn.disabled = false; btn.innerHTML = original; lucide.createIcons();
+    }, 900);
+  }
+
+  // Hero CTA — 미발송 전체 발송
+  heroBtnEl.addEventListener('click', () => {
+    const pending = STUDENTS.filter(s => !s.sent);
+    if (pending.length === 0) { AppToast.show('이미 모두 발송됨'); return; }
+    AppModal.open({
+      title: `${pending.length}명 일괄 발송`,
+      body: `<p style="margin:0 0 8px; font-size:14px;"><strong>${TYPE_PERIOD[reportType]}</strong> 리포트를 미발송 ${pending.length}명에게 학부모 카카오톡으로 일괄 발송합니다.</p><ul style="margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--text-secondary);">${pending.map(s => `<li>${s.name} (${s.grade})</li>`).join('')}</ul><p style="margin: 12px 0 0; font-size: 12px; color: var(--text-tertiary);">점수 미입력된 학생도 현재까지 입력된 내용으로 발송됩니다.</p>`,
+      footer: `<button class="btn btn--ghost" onclick="AppModal.close()">취소</button><button class="btn btn--primary" id="confirm-bulk"><i data-lucide="send"></i>${pending.length}명 발송</button>`,
+    });
+    setTimeout(() => {
+      $('confirm-bulk')?.addEventListener('click', () => { AppModal.close(); doBulkSend(pending); });
+      lucide.createIcons();
+    }, 50);
+  });
+
+  // Bulk-bar (선택된 학생만)
+  $('bulk-send').addEventListener('click', () => {
+    const sel = STUDENTS.filter(s => s.selected);
+    doBulkSend(sel);
+  });
+  $('bulk-clear').addEventListener('click', () => {
+    STUDENTS.forEach(s => s.selected = false);
+    renderStudentList(); updateBulkBar();
+  });
+  selectAllEl.addEventListener('change', () => {
+    STUDENTS.forEach(s => s.selected = selectAllEl.checked);
+    renderStudentList(); updateBulkBar();
+  });
+
+  // Per-student send button
+  $('send-one').addEventListener('click', () => {
+    const s = STUDENTS.find(x => x.id === selectedId);
+    if (!s) return;
+    doBulkSend([s]);
+  });
+
+  $('download-jpg').addEventListener('click', () => {
+    const btn = $('download-jpg');
+    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader"></i>생성 중…`; lucide.createIcons();
+    setTimeout(() => {
+      btn.disabled = false; btn.innerHTML = `<i data-lucide="download"></i>미리보기 PDF`; lucide.createIcons();
+      AppToast.show('리포트 PDF 다운로드 완료', 'success');
+    }, 800);
+  });
+
+  // ───── Tabs ─────
   document.querySelectorAll('.report-tab').forEach((tab) => {
     tab.dataset.wired = '1';
     tab.addEventListener('click', () => {
       document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('is-active'));
       tab.classList.add('is-active');
-      reportType = tab.dataset.type;
-      titleEl.textContent = `${REPORT_TYPE_LABEL[reportType]} 리포트`;
-      periodEl.textContent = PERIOD[reportType];
-      AppToast.show(`${REPORT_TYPE_LABEL[reportType]} 모드`);
+      if (tab.dataset.group === 'monthly') reportType = 'monthly';
+      else reportType = document.querySelector('#exam-sub button.is-active')?.dataset?.type || 'midterm';
+      $('page-title') && ($('page-title').textContent = '리포트 발송');
+      updateHeader(); updateKPI(); updateAlert();
       if (selectedId) renderPaper();
+      AppToast.show(`${TYPE_LABEL[reportType]} 모드`);
+    });
+  });
+  document.querySelectorAll('#exam-sub button').forEach((b) => {
+    b.dataset.wired = '1';
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#exam-sub button').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+      reportType = b.dataset.type;
+      updateHeader(); updateAlert(); if (selectedId) renderPaper();
+      AppToast.show(`${TYPE_LABEL[reportType]} 모드`);
     });
   });
 
-  // ── Action buttons ──
-  document.getElementById('download-jpg').addEventListener('click', () => {
-    const btn = document.getElementById('download-jpg');
-    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader"></i>생성 중…`; lucide.createIcons();
-    setTimeout(() => {
-      btn.disabled = false; btn.innerHTML = `<i data-lucide="download"></i>JPG 다운로드`; lucide.createIcons();
-      AppToast.show('리포트 JPG 다운로드 완료', 'success');
-    }, 900);
-  });
-  document.getElementById('share-kakao').addEventListener('click', () => {
-    const s = STUDENTS.find(x => x.id === selectedId);
-    if (!s) return;
-    const btn = document.getElementById('share-kakao');
-    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader"></i>업로드 중…`; lucide.createIcons();
-    setTimeout(() => {
-      s.sent = true;
-      s.sentAt = new Date().toISOString().slice(0,10).replace(/-/g, '.');
-      renderStudentList();
-      renderPaper();
-      btn.innerHTML = `<i data-lucide="check"></i>복사 완료!`; lucide.createIcons();
-      AppToast.show(`${s.name} 학부모 공유 링크 복사됨`, 'success');
-      setTimeout(() => {
-        btn.disabled = false; btn.innerHTML = `<i data-lucide="share-2"></i>카카오톡 공유`; lucide.createIcons();
-      }, 1600);
-    }, 900);
-  });
-
+  // ───── Init ─────
+  updateHeader();
+  updateKPI();
+  updateAlert();
   renderStudentList();
   renderPaper();
 </script>
