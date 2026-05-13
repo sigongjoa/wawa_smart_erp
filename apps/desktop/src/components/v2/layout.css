@@ -1,0 +1,228 @@
+/**
+ * mockup v2 _shared.css 의 공통 패턴.
+ * 기존 index.css 와 별도 — 새 v2 컴포넌트 만 사용.
+ */
+
+/* ── PageHeader ── */
+.v2-page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+}
+.v2-page-head__crumb {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: var(--sp-2);
+}
+.v2-page-head__title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text-primary);
+}
+.v2-page-head__sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+.v2-page-head__actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.v2-page-head__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+/* ── Panel ── */
+.v2-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.v2-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.v2-panel__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.v2-panel__title-meta {
+  color: var(--text-tertiary);
+  font-weight: 600;
+  font-size: 13px;
+  margin-left: 6px;
+}
+.v2-panel__body { padding: var(--sp-5); }
+.v2-panel__body--flush { padding: 0; }
+
+/* ── SummaryBar (KPI strip) ── */
+.v2-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.v2-summary-cell {
+  padding: var(--sp-4) var(--sp-5);
+  border-right: 1px solid var(--border-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.v2-summary-cell:last-child { border-right: none; }
+.v2-summary-cell__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+.v2-summary-cell__value {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.v2-summary-cell__value-sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.v2-summary-cell--alert .v2-summary-cell__value {
+  color: var(--danger);
+}
+
+/* ── KPITile (big number tile) ── */
+.v2-kpi-tile {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.v2-kpi-tile__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-2);
+}
+.v2-kpi-tile__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.v2-kpi-tile__value {
+  font-size: clamp(28px, 3.2vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.v2-kpi-tile__sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: var(--sp-2);
+}
+
+/* ── IssueCard (좌측 sidebar 카드) ── */
+.v2-issue-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border-primary);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: box-shadow 150ms ease;
+  text-decoration: none;
+  color: inherit;
+}
+.v2-issue-card:hover { box-shadow: var(--shadow-sm); }
+.v2-issue-card--danger { border-left-color: var(--danger); }
+.v2-issue-card--warning { border-left-color: var(--warning); }
+.v2-issue-card--info { border-left-color: var(--info); }
+.v2-issue-card--success { border-left-color: var(--success); }
+.v2-issue-card__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.v2-issue-card__meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* ── StatusPill ── */
+.v2-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.v2-pill .lucide { width: 12px; height: 12px; }
+.v2-pill--success { background: var(--success-surface); color: var(--success); }
+.v2-pill--warning { background: var(--warning-surface); color: var(--warning); }
+.v2-pill--danger  { background: var(--danger-surface);  color: var(--danger); }
+.v2-pill--info    { background: var(--info-surface);    color: var(--info); }
+.v2-pill--neutral { background: var(--bg-tertiary);     color: var(--text-secondary); border-color: var(--border-secondary); }
+.v2-pill--primary { background: var(--primary-surface); color: var(--primary); }
+
+/* status-surface fallbacks for vars 가 없을 경우 */
+:root {
+  --success-surface: #e3f6ec;
+  --warning-surface: #fcefda;
+  --danger-surface: #fce6e6;
+  --info-surface: #e1eafd;
+}
+
+/* ── AppMain container ── */
+.v2-app-main {
+  padding: var(--sp-6) var(--sp-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .v2-app-main { padding: var(--sp-4); }
+  .v2-page-head__title { font-size: 22px; }
+}
