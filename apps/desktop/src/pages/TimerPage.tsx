@@ -11,6 +11,8 @@ import { api, PauseRecord, RealtimeSession, AdhocSession, Student } from '../api
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import HomeroomSummaryCard from '../components/HomeroomSummaryCard';
+import { PageHeader } from '../components/v2';
+import { Icon } from '../components/icons/Icon';
 
 type Day = '월' | '화' | '수' | '목' | '금' | '토' | '일';
 const DAYS: Day[] = ['월', '화', '수', '목', '금', '토', '일'];
@@ -509,14 +511,11 @@ export default function TimerPage() {
 
   return (
     <div className="rt-root">
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="page-title">실시간 수업 관리 ({user?.name || ''})</h1>
-            <p className="page-description">담당 학생의 체크인/체크아웃을 실시간으로 관리합니다</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        crumb="운영 · 출석 타이머"
+        title="실시간 수업 관리"
+        sub={`${user?.name ? `${user.name} 강사 · ` : ''}담당 학생의 체크인/체크아웃을 실시간으로 관리`}
+      />
 
       <HomeroomSummaryCard />
 
@@ -555,7 +554,7 @@ export default function TimerPage() {
               onClick={openAdhocModal}
               type="button"
             >
-              + 임시 수업
+              <Icon name="Plus" size={14} /> 임시 수업
             </button>
           )}
           {isToday && (
@@ -565,7 +564,7 @@ export default function TimerPage() {
               type="button"
               data-testid="finish-day-btn"
             >
-              퇴근
+              <Icon name="LogIn" size={14} style={{ transform: 'rotate(180deg)' }} /> 퇴근
             </button>
           )}
         </div>
