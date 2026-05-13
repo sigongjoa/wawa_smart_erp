@@ -275,6 +275,188 @@
     .rpt-bar-row { grid-template-columns: 60px 1fr 48px 40px; }
     .preview-actions { flex-wrap: wrap; }
   }
+
+  /* ═════════════════════════════════════════════════════════════
+     PDF-only paper — 학부모용 인쇄물 톤
+     화면 #report-paper 와 별도. 편집 affordance 0.
+     hex 직접 사용 (html2canvas 의 CSS var 해석 불안정 회피)
+     ═════════════════════════════════════════════════════════════ */
+  .pdf-paper {
+    position: fixed; left: -10000px; top: 0;
+    width: 794px;  /* A4 portrait at 96dpi */
+    background: #ffffff;
+    color: #1a1e2e;
+    font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
+    padding: 40px 44px 28px;
+    font-size: 13pt;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+  }
+
+  /* Header — gradient 제거, 2px solid line 만 */
+  .pdf-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding-bottom: 18px;
+    border-bottom: 2px solid #2d3a8c;
+    margin-bottom: 28px;
+  }
+  .pdf-logo {
+    width: 56px; height: 56px;
+    background: #2d3a8c;
+    color: #ffffff;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-weight: 900;
+    font-size: 28pt;
+    letter-spacing: 0;
+  }
+  .pdf-academy { font-size: 16pt; font-weight: 800; letter-spacing: -0.01em; }
+  .pdf-academy-sub { font-size: 10.5pt; color: #5e6478; margin-top: 3px; letter-spacing: 0.02em; }
+  .pdf-header__period { text-align: right; }
+  .pdf-period-mo { font-size: 28pt; font-weight: 900; color: #2d3a8c; letter-spacing: -0.025em; line-height: 1; }
+  .pdf-period-yr { font-size: 10pt; font-weight: 700; color: #5e6478; margin-top: 6px; letter-spacing: 0.08em; }
+
+  /* Title — primary 좌측 라인 (solid block 제거) */
+  .pdf-title-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding: 8px 0 8px 16px;
+    border-left: 5px solid #2d3a8c;
+  }
+  .pdf-title { font-size: 20pt; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+  .pdf-student { display: flex; align-items: baseline; gap: 10px; }
+  .pdf-student-label { font-size: 9.5pt; font-weight: 800; color: #9098ad; text-transform: uppercase; letter-spacing: 0.1em; }
+  .pdf-student-name { font-size: 18pt; font-weight: 800; letter-spacing: -0.01em; }
+  .pdf-student-grade {
+    display: inline-grid; place-items: center;
+    min-width: 36px; padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 10pt; font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0;
+  }
+
+  /* Section */
+  .pdf-section { margin-bottom: 26px; }
+  .pdf-section-h {
+    font-size: 10pt;
+    font-weight: 800;
+    color: #2d3a8c;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e3e6ed;
+  }
+
+  /* Score table */
+  .pdf-scores { width: 100%; border-collapse: collapse; font-size: 12pt; }
+  .pdf-scores thead th {
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 9.5pt;
+    font-weight: 800;
+    color: #5e6478;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid #c8cdd9;
+    background: #f8f9fb;
+  }
+  .pdf-scores thead th.r { text-align: right; }
+  .pdf-scores tbody td {
+    padding: 11px 12px;
+    border-bottom: 1px solid #eff1f5;
+    vertical-align: middle;
+  }
+  .pdf-scores tbody td.subj { font-weight: 700; font-size: 12pt; }
+  .pdf-scores tbody td.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 800; font-size: 12.5pt; }
+  .pdf-score-high { color: #18a464; }
+  .pdf-score-mid  { color: #2d3a8c; }
+  .pdf-score-low  { color: #c87f04; }
+  .pdf-mute { color: #9098ad; font-weight: 600; }
+  .pdf-up    { color: #18a464; font-weight: 800; }
+  .pdf-down  { color: #d63d3d; font-weight: 800; }
+  .pdf-flat  { color: #9098ad; font-weight: 600; }
+
+  /* Comments */
+  .pdf-comments { display: flex; flex-direction: column; gap: 14px; }
+  .pdf-comment {
+    padding: 8px 0 8px 14px;
+    border-left: 3px solid #2d3a8c;
+  }
+  .pdf-comment-h { font-size: 12pt; font-weight: 800; color: #2d3a8c; margin-bottom: 4px; letter-spacing: -0.005em; }
+  .pdf-comment-body { margin: 0; font-size: 12pt; line-height: 1.7; color: #1a1e2e; }
+
+  /* Total */
+  .pdf-total .pdf-section-h { color: #1a1e2e; }
+  .pdf-total-body {
+    margin: 0;
+    font-size: 12pt;
+    line-height: 1.75;
+    padding: 16px 18px;
+    background: #f8f9fb;
+    border-left: 4px solid #2d3a8c;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Empty (no scores entered) */
+  .pdf-empty-row {
+    padding: 28px;
+    text-align: center;
+    color: #5e6478;
+    font-size: 11.5pt;
+    border: 1px dashed #c8cdd9;
+    border-radius: 4px;
+    background: #f8f9fb;
+  }
+
+  /* Footer — signature + academy contact + page line */
+  .pdf-footer {
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid #c8cdd9;
+  }
+  .pdf-footer__cols {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    font-size: 10pt;
+    color: #5e6478;
+  }
+  .pdf-footer__org { font-size: 10.5pt; font-weight: 800; color: #1a1e2e; margin-bottom: 4px; }
+  .pdf-footer__line { line-height: 1.65; }
+  .pdf-signature { text-align: right; }
+  .pdf-sig-row { font-size: 11pt; color: #5e6478; margin-bottom: 6px; }
+  .pdf-sig-row strong { color: #1a1e2e; font-weight: 800; margin-left: 4px; }
+  .pdf-sig-stamp {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 4px 12px;
+    border: 2px solid #2d3a8c;
+    color: #2d3a8c;
+    font-size: 10pt;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border-radius: 4px;
+  }
+  .pdf-footer__bottom {
+    margin-top: 16px;
+    padding-top: 10px;
+    border-top: 1px dashed #e3e6ed;
+    text-align: center;
+    font-size: 9pt;
+    color: #9098ad;
+    letter-spacing: 0.04em;
+  }
+
+  /* Page break controls */
+  .pdf-section { break-inside: avoid; page-break-inside: avoid; }
+  .pdf-footer  { break-inside: avoid; page-break-inside: avoid; }
+  .pdf-total   { break-before: auto; }
 </style>
 </head>
 <body>
@@ -810,7 +992,129 @@
     doBulkSend([s]);
   });
 
-  // ───── PDF 미리보기 (실제 html2pdf.js 로 생성) ─────
+  // ───── PDF DOM 빌더 — 편집 affordance 0, 학부모용 인쇄물 ─────
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function gradeColor(g) {
+    return ({중1:'#6366f1',중2:'#8b5cf6',중3:'#ec4899',고1:'#14b8a6',고2:'#f59e0b',고3:'#ef4444'}[g] || '#5e6478');
+  }
+  function todayKR() {
+    const d = new Date();
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function generatePdfDOM(s) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pdf-paper';
+    const h = TYPE_HEADER[reportType];
+    const filled = s.scores.filter(sc => sc.score > 0);
+    const filledWithComment = filled.filter(sc => sc.comment && sc.comment.trim());
+
+    let scoresHtml = '';
+    if (filled.length === 0) {
+      scoresHtml = `<div class="pdf-empty-row">아직 응시한 영역이 없어 점수를 표시할 수 없습니다.</div>`;
+    } else {
+      const rows = filled.map(sc => {
+        const cls = sc.score >= 85 ? 'pdf-score-high' : sc.score >= 70 ? 'pdf-score-mid' : 'pdf-score-low';
+        const prev = sc.prev ? `${sc.prev}점` : '—';
+        let deltaCell;
+        if (!sc.prev) deltaCell = `<span class="pdf-mute">신규 응시</span>`;
+        else {
+          const d = sc.score - sc.prev;
+          deltaCell = d > 0 ? `<span class="pdf-up">▲ ${d}점 상승</span>`
+            : d < 0 ? `<span class="pdf-down">▼ ${-d}점</span>`
+            : `<span class="pdf-flat">변동 없음</span>`;
+        }
+        return `<tr>
+          <td class="subj">${escapeHtml(sc.subject)}</td>
+          <td class="num ${cls}">${sc.score}점</td>
+          <td class="num pdf-mute">${prev}</td>
+          <td class="num">${deltaCell}</td>
+        </tr>`;
+      }).join('');
+      scoresHtml = `
+        <table class="pdf-scores">
+          <thead>
+            <tr><th>영역</th><th class="r">이번 점수</th><th class="r">전월</th><th class="r">변화</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    const commentsHtml = filledWithComment.length === 0
+      ? ''
+      : `<section class="pdf-section">
+           <h2 class="pdf-section-h">영역별 코멘트</h2>
+           <div class="pdf-comments">
+             ${filledWithComment.map(sc => `
+               <div class="pdf-comment">
+                 <div class="pdf-comment-h">${escapeHtml(sc.subject)}</div>
+                 <p class="pdf-comment-body">${escapeHtml(sc.comment)}</p>
+               </div>
+             `).join('')}
+           </div>
+         </section>`;
+
+    const totalHtml = (s.total && s.total.trim())
+      ? `<section class="pdf-section pdf-total">
+           <h2 class="pdf-section-h">담임 총평</h2>
+           <p class="pdf-total-body">${escapeHtml(s.total)}</p>
+         </section>`
+      : '';
+
+    const today = todayKR();
+    wrap.innerHTML = `
+      <header class="pdf-header">
+        <div class="pdf-logo">W</div>
+        <div>
+          <div class="pdf-academy">WAWA 수학+ 영어</div>
+          <div class="pdf-academy-sub">학부모 학습 리포트</div>
+        </div>
+        <div class="pdf-header__period">
+          <div class="pdf-period-mo">${escapeHtml(h.mo)}</div>
+          <div class="pdf-period-yr">${escapeHtml(h.yr)}</div>
+        </div>
+      </header>
+
+      <div class="pdf-title-row">
+        <h1 class="pdf-title">${escapeHtml(TYPE_LABEL[reportType])} 리포트</h1>
+        <div class="pdf-student">
+          <span class="pdf-student-label">학생</span>
+          <span class="pdf-student-name">${escapeHtml(s.name)}</span>
+          <span class="pdf-student-grade" style="background: ${gradeColor(s.grade)};">${escapeHtml(s.grade)}</span>
+        </div>
+      </div>
+
+      <section class="pdf-section">
+        <h2 class="pdf-section-h">영역별 점수 · 전월 대비</h2>
+        ${scoresHtml}
+      </section>
+
+      ${commentsHtml}
+      ${totalHtml}
+
+      <footer class="pdf-footer">
+        <div class="pdf-footer__cols">
+          <div>
+            <div class="pdf-footer__org">WAWA 수학+ 영어 학원</div>
+            <div class="pdf-footer__line">서울 강남구 테헤란로 123, 5층</div>
+            <div class="pdf-footer__line">02-1234-5678 · contact@wawa.kr</div>
+          </div>
+          <div class="pdf-signature">
+            <div class="pdf-sig-row">담임 <strong>강민지</strong></div>
+            <div class="pdf-sig-row">발송일 <strong>${today}</strong></div>
+            <div class="pdf-sig-stamp">WAWA · 학부모 리포트</div>
+          </div>
+        </div>
+        <div class="pdf-footer__bottom">© WAWA Academy · ${escapeHtml(TYPE_LABEL[reportType])} 리포트 · ${escapeHtml(h.mo)} ${escapeHtml(h.yr)}</div>
+      </footer>
+    `;
+    return wrap;
+  }
+
+  // ───── PDF 미리보기 — 클린 DOM 생성 후 캡처 ─────
   $('download-jpg').addEventListener('click', async () => {
     const s = STUDENTS.find(x => x.id === selectedId);
     if (!s) { AppToast.show('학생을 먼저 선택하세요', 'warning'); return; }
@@ -819,27 +1123,30 @@
     btn.innerHTML = `<i data-lucide="loader"></i>PDF 생성 중…`;
     lucide.createIcons();
 
+    // 화면용 paperEl 대신, 편집 affordance 없는 클린 DOM 생성
+    const pdfDom = generatePdfDOM(s);
+    document.body.appendChild(pdfDom);
+
     const filename = `${s.name}_${TYPE_LABEL[reportType]}_${TYPE_HEADER[reportType].mo}_리포트.pdf`;
     const opt = {
-      margin: [10, 10, 10, 10],
+      margin: 0,  // padding 은 .pdf-paper CSS 안에 있음
       filename,
-      image: { type: 'jpeg', quality: 0.96 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: 794 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
     };
 
     try {
-      const worker = html2pdf().set(opt).from(paperEl);
+      const worker = html2pdf().set(opt).from(pdfDom);
       const blob = await worker.outputPdf('blob');
       const url = URL.createObjectURL(blob);
 
-      // Preview modal with iframe + download CTA
       AppModal.open({
         title: `${s.name} · ${TYPE_LABEL[reportType]} 리포트 — PDF 미리보기`,
         body: `
           <div style="margin: 0 -24px -20px; padding: 0;">
-            <iframe src="${url}" style="width: 100%; height: 540px; border: 0; border-top: 1px solid var(--border-secondary);" title="PDF 미리보기"></iframe>
+            <iframe src="${url}" style="width: 100%; height: 600px; border: 0; border-top: 1px solid var(--border-secondary);" title="PDF 미리보기"></iframe>
           </div>
         `,
         footer: `
@@ -853,6 +1160,7 @@
       console.error(err);
       AppToast.show('PDF 생성 실패 — 콘솔 확인', 'danger');
     } finally {
+      pdfDom.remove();
       btn.disabled = false;
       btn.innerHTML = `<i data-lucide="download"></i>미리보기 PDF`;
       lucide.createIcons();
