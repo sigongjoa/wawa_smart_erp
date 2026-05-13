@@ -282,7 +282,8 @@
      hex 직접 사용 (html2canvas 의 CSS var 해석 불안정 회피)
      ═════════════════════════════════════════════════════════════ */
   .pdf-paper {
-    position: fixed; left: -10000px; top: 0;
+    /* 위치는 JS 에서 동적 부여 — html2canvas 가 offscreen 요소를 잘 못 잡으므로
+       PDF 생성 중에만 onscreen 으로 둠 (오버레이로 사용자에겐 가림) */
     width: 794px;  /* A4 portrait at 96dpi */
     background: #ffffff;
     color: #1a1e2e;
@@ -291,6 +292,7 @@
     font-size: 13pt;
     line-height: 1.6;
     letter-spacing: -0.005em;
+    box-sizing: border-box;
   }
 
   /* Header — gradient 제거, 2px solid line 만 */
@@ -1125,11 +1127,43 @@
 
     // 화면용 paperEl 대신, 편집 affordance 없는 클린 DOM 생성
     const pdfDom = generatePdfDOM(s);
+
+    // html2canvas 는 offscreen 요소를 잘 못 잡음.
+    // → pdfDom 을 화면 좌상단에 보이게 배치하고, 그 위에 오버레이로 덮어 사용자 시선 차단
+    pdfDom.style.position = 'absolute';
+    pdfDom.style.top = '0';
+    pdfDom.style.left = '0';
+    pdfDom.style.zIndex = '99998';
+
+    const overlay = document.createElement('div');
+    overlay.id = '__pdf-overlay';
+    overlay.style.cssText = `
+      position: fixed; inset: 0;
+      background: rgba(26, 30, 46, 0.55);
+      z-index: 99999;
+      display: grid; place-items: center;
+      backdrop-filter: blur(4px);
+    `;
+    overlay.innerHTML = `
+      <div style="background: #ffffff; color: #1a1e2e; padding: 20px 28px; border-radius: 12px; font-size: 15px; font-weight: 700; box-shadow: 0 12px 32px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 12px;">
+        <div style="width: 18px; height: 18px; border: 2px solid #e3e6ed; border-top-color: #2d3a8c; border-radius: 50%; animation: pdfspin 0.6s linear infinite;"></div>
+        <span>PDF 생성 중…</span>
+      </div>
+      <style>@keyframes pdfspin { to { transform: rotate(360deg); } }</style>
+    `;
+
     document.body.appendChild(pdfDom);
+    document.body.appendChild(overlay);
+
+    // 강제로 viewport 상단 스크롤 — html2canvas 가 viewport 기준 캡처
+    const prevScrollY = window.scrollY;
+    window.scrollTo(0, 0);
+    // 레이아웃 / 폰트 안정화 대기
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     const filename = `${s.name}_${TYPE_LABEL[reportType]}_${TYPE_HEADER[reportType].mo}_리포트.pdf`;
     const opt = {
-      margin: 0,  // padding 은 .pdf-paper CSS 안에 있음
+      margin: 0,
       filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
@@ -1138,14 +1172,14 @@
         backgroundColor: '#ffffff',
         logging: false,
         windowWidth: 794,
-        // 핵심: 클론된 DOM 에서 offscreen 포지셔닝 리셋
-        // 안 그러면 clone 도 left: -10000px 적용되어 capture 영역이 빔
+        // 클론에서 우리가 부여한 absolute 위치 리셋 (캡처 컨테이너 안에서는 static 으로)
         onclone: (clonedDoc) => {
           const cloned = clonedDoc.querySelector('.pdf-paper');
           if (cloned) {
             cloned.style.position = 'static';
             cloned.style.left = 'auto';
             cloned.style.top = 'auto';
+            cloned.style.zIndex = 'auto';
           }
         },
       },
@@ -1199,6 +1233,9 @@
       AppToast.show('PDF 생성 실패 — 콘솔 확인', 'danger');
     } finally {
       pdfDom.remove();
+      const ov = document.getElementById('__pdf-overlay');
+      if (ov) ov.remove();
+      window.scrollTo(0, prevScrollY);
       btn.disabled = false;
       btn.innerHTML = `<i data-lucide="download"></i>미리보기 PDF`;
       lucide.createIcons();
