@@ -307,6 +307,34 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  document.querySelectorAll('table.data-table tbody tr').forEach((row) => {
+    row.style.cursor = 'pointer'; row.dataset.wired = '1';
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('input, button, a')) return;
+      const name = row.querySelector('.cell-stack__primary')?.textContent?.trim() || '학생';
+      AppToast.show(`${name} · 시험지 편집`);
+      window.location.href = '04-form-editor.html';
+    });
+  });
+  document.querySelectorAll('.issue-card').forEach((card) => {
+    card.dataset.wired = '1';
+    card.addEventListener('click', () => {
+      const name = card.querySelector('.issue-card__title')?.textContent?.trim() || '학생';
+      const meta = card.querySelector('.issue-card__meta')?.textContent?.trim() || '';
+      AppToast.show(`${name} · ${meta}`, card.classList.contains('issue-card--danger') ? 'danger' : 'warning');
+    });
+  });
+  document.querySelectorAll('.month-picker').forEach((p) => {
+    p.dataset.wired = '1';
+    p.addEventListener('click', () => AppToast.show('월 선택 달력'));
+  });
+  document.querySelectorAll('.page-head__actions .btn--primary').forEach((btn) => {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => { AppToast.show('시험지 편집기 열기'); window.location.href = '04-form-editor.html'; });
+  });
+</script>
 <script>lucide.createIcons();</script>
 </body>
 </html>

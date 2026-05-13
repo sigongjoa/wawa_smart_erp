@@ -265,6 +265,113 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // ── Mock word DB matching VocabWord interface ──
+  const WORDS = {
+    'prevail':    { pos: 'v.',  ipa: '/prɪˈveɪl/',   ko: '우세하다 · 만연하다',          lvl: 4, src: 'EBS 수특',     wrong: 38 },
+    'scrutinize': { pos: 'v.',  ipa: '/ˈskruːtənaɪz/', ko: '면밀히 조사하다',             lvl: 5, src: 'EBS 수특',     wrong: 52 },
+    'ambiguous':  { pos: 'adj.', ipa: '/æmˈbɪɡjuəs/',  ko: '모호한 · 애매한',             lvl: 3, src: '학원 자체',   wrong: 22 },
+    'undermine':  { pos: 'v.',  ipa: '/ˌʌndərˈmaɪn/',  ko: '약화시키다 · 손상시키다',    lvl: 4, src: 'EBS 수특',     wrong: 41 },
+    'deliberate': { pos: 'adj. v.', ipa: '/dɪˈlɪbərət/', ko: '신중한 · 숙고하다',           lvl: 3, src: '능률 워크북', wrong: 18 },
+    'ephemeral':  { pos: 'adj.', ipa: '/ɪˈfemərəl/',   ko: '순식간의 · 단명하는',         lvl: 5, src: 'EBS 수특',     wrong: 68 },
+    'benign':     { pos: 'adj.', ipa: '/bɪˈnaɪn/',     ko: '온화한 · 양성의',             lvl: 3, src: '학원 자체',   wrong: 24 },
+    'advocate':   { pos: 'v. n.', ipa: '/ˈædvəkeɪt/',  ko: '옹호하다 · 지지자',           lvl: 3, src: 'EBS 수특',     wrong: 26 },
+  };
+
+  // ── Row click → update right detail panel ──
+  document.querySelectorAll('table.data-table tbody tr').forEach((row) => {
+    row.style.cursor = 'pointer';
+    row.dataset.wired = '1';
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('input[type="checkbox"], .btn-icon, button')) return;
+      document.querySelectorAll('table.data-table tbody tr').forEach((x) => x.classList.remove('is-selected'));
+      row.classList.add('is-selected');
+      const wordText = row.querySelector('.word')?.textContent?.trim();
+      if (!wordText) return;
+      const w = WORDS[wordText];
+      if (!w) { AppToast.show(`${wordText} (상세 데이터 없음)`, 'warning'); return; }
+      const hero = document.querySelector('.word-hero');
+      if (hero) {
+        hero.querySelector('.word-hero__main').textContent = wordText;
+        hero.querySelector('.word-hero__pos').textContent = `${w.pos} · ${wordText.replace(/(.{3,4})/g, '$1-').replace(/-$/, '')}`;
+        hero.querySelector('.word-hero__ipa').textContent = w.ipa;
+        const pills = hero.querySelectorAll('.pill');
+        if (pills[0]) pills[0].textContent = w.src;
+        if (pills[1]) pills[1].textContent = `Lv. ${w.lvl}`;
+        if (pills[2]) {
+          pills[2].textContent = `오답률 ${w.wrong}%`;
+          pills[2].className = w.wrong >= 50 ? 'pill pill--danger' : (w.wrong >= 30 ? 'pill pill--warning' : 'pill pill--neutral');
+        }
+      }
+      // Replace first definition with primary meaning
+      const defs = document.querySelectorAll('.definition__ko');
+      if (defs[0]) defs[0].textContent = w.ko;
+      AppToast.show(`'${wordText}' 선택됨`);
+    });
+  });
+
+  // ── Add new word ──
+  const addBtn = [...document.querySelectorAll('.page-head__actions .btn--primary')];
+  addBtn.forEach((btn) => {
+    if (btn.textContent.trim().includes('새 단어')) {
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', () => {
+        AppModal.open({
+          title: '새 단어 추가',
+          body: `
+            <form id="add-word-form" style="display: grid; gap: 14px;">
+              <div class="field">
+                <label class="field__label">단어 <span style="color: var(--danger);">*</span></label>
+                <input class="input" type="text" placeholder="예: prevail" required />
+              </div>
+              <div class="field">
+                <label class="field__label">뜻 <span style="color: var(--danger);">*</span></label>
+                <input class="input" type="text" placeholder="우세하다, 만연하다" required />
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div class="field">
+                  <label class="field__label">품사</label>
+                  <select class="select"><option>v.</option><option>n.</option><option>adj.</option><option>adv.</option></select>
+                </div>
+                <div class="field">
+                  <label class="field__label">등급</label>
+                  <select class="select"><option>Lv. 1</option><option>Lv. 2</option><option selected>Lv. 3</option><option>Lv. 4</option><option>Lv. 5</option></select>
+                </div>
+                <div class="field">
+                  <label class="field__label">소스</label>
+                  <select class="select"><option>EBS 수특</option><option>학원 자체</option><option>능률 워크북</option></select>
+                </div>
+              </div>
+            </form>
+          `,
+          footer: `
+            <button class="btn btn--ghost" onclick="AppModal.close()">취소</button>
+            <button class="btn btn--primary" id="confirm-word">추가</button>
+          `,
+        });
+        setTimeout(() => {
+          document.getElementById('confirm-word')?.addEventListener('click', () => {
+            const f = document.getElementById('add-word-form');
+            if (!f.checkValidity()) { f.reportValidity(); return; }
+            AppModal.close();
+            AppToast.show('단어 1개 추가됨 · status: pending', 'success');
+          });
+        }, 50);
+      });
+    }
+  });
+
+  // ── Detail tabs ──
+  document.querySelectorAll('.detail-tabs__item').forEach((t) => {
+    t.dataset.wired = '1';
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.detail-tabs__item').forEach((x) => x.classList.remove('is-active'));
+      t.classList.add('is-active');
+      AppToast.show(`상세 탭: ${t.textContent.trim()}`);
+    });
+  });
+</script>
 <script>lucide.createIcons();</script>
 </body>
 </html>

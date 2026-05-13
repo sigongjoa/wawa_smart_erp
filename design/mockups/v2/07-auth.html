@@ -171,6 +171,42 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // ── Login button submit ──
+  const loginBtn = document.querySelector('.auth-form .btn--primary.btn--lg');
+  if (loginBtn) {
+    loginBtn.dataset.wired = '1';
+    loginBtn.addEventListener('click', () => {
+      const slug = document.querySelector('.auth-form select')?.value;
+      const name = document.querySelector('.auth-form input[type="text"]')?.value?.trim();
+      const pinEl = document.querySelector('.auth-form input[type="password"], .auth-form input[type="text"][maxlength="6"]');
+      const pin = pinEl?.value?.trim();
+      if (!slug) { AppToast.show('학원을 선택해주세요', 'warning'); return; }
+      if (!name) { AppToast.show('이름을 입력해주세요', 'warning'); return; }
+      if (!pin || pin === '••••••') { AppToast.show('PIN을 입력해주세요', 'warning'); return; }
+      if (!/^\d{6}$/.test(pin)) { AppToast.show('PIN은 6자리 숫자여야 합니다', 'danger'); return; }
+      AppToast.show(`${slug} · ${name} 로그인 시도`, 'success');
+      setTimeout(() => { AppToast.show('대시보드로 이동합니다'); window.location.href = '02-dashboard.html'; }, 800);
+    });
+  }
+  // ── Clear last academy ──
+  document.querySelectorAll('.auth-form__row a').forEach((a) => {
+    a.dataset.wired = '1';
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sel = document.querySelector('.auth-form select');
+      if (sel) sel.value = '';
+      AppToast.show('최근 학원 기록 삭제됨');
+    });
+  });
+  // ── Pre-fill clearing on input ──
+  document.querySelectorAll('.auth-form input').forEach((inp) => {
+    if (inp.value === '••••••' || inp.value === '••••••••••') {
+      inp.addEventListener('focus', () => { if (inp.value === '••••••' || inp.value === '••••••••••') inp.value = ''; }, { once: true });
+    }
+  });
+</script>
 <script>lucide.createIcons();</script>
 </body>
 </html>

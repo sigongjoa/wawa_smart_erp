@@ -410,6 +410,87 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // ── Timer card state machine (status: ready/running/paused/expired/submitted/voided) ──
+  const PAUSE_REASONS = ['화장실', '몸이 안 좋음', '교사 호출', '기타'];
+
+  function setCardStatus(card, status) {
+    card.classList.remove('timer-card--running','timer-card--warning','timer-card--paused','timer-card--expired','timer-card--submitted');
+    if (status) card.classList.add(`timer-card--${status}`);
+    const tag = card.querySelector('.status-tag');
+    if (tag) {
+      tag.className = `status-tag status-tag--${status}`;
+      const labels = { ready:'대기', running:'진행 중', paused:'일시정지', expired:'시간 종료', submitted:'제출 완료' };
+      const icons  = { ready:'clock', running:'play', paused:'pause', expired:'x-circle', submitted:'check' };
+      tag.innerHTML = `<i data-lucide="${icons[status]}"></i>${labels[status]}`;
+    }
+    const actions = card.querySelector('.timer-card__actions');
+    if (actions) {
+      if (status === 'running') actions.innerHTML = `<button class="btn btn--secondary" data-tcaction="pause"><i data-lucide="pause"></i>정지</button><button class="btn btn--primary" data-tcaction="submit"><i data-lucide="check"></i>제출</button>`;
+      else if (status === 'paused') actions.innerHTML = `<button class="btn btn--secondary" data-tcaction="resume"><i data-lucide="play"></i>재개</button><button class="btn btn--primary" data-tcaction="submit"><i data-lucide="check"></i>제출</button>`;
+      else if (status === 'expired') actions.innerHTML = `<button class="btn btn--primary" data-tcaction="grade" style="flex:1; justify-content:center;"><i data-lucide="arrow-right"></i>채점하러 가기</button>`;
+      else if (status === 'submitted') actions.innerHTML = `<button class="btn btn--secondary" data-tcaction="grade" style="flex:1; justify-content:center;"><i data-lucide="arrow-right"></i>채점 페이지로</button>`;
+    }
+    if (window.lucide) lucide.createIcons();
+    bindCardActions(card);
+  }
+
+  function bindCardActions(card) {
+    card.querySelectorAll('[data-tcaction]').forEach((btn) => {
+      if (btn.dataset.wired) return;
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const name = card.querySelector('.timer-card__name')?.textContent?.trim().split(' ')[0] || '학생';
+        const act = btn.dataset.tcaction;
+        if (act === 'pause') openPauseModal(card, name);
+        else if (act === 'resume') { setCardStatus(card, 'running'); AppToast.show(`${name} 재개`); }
+        else if (act === 'submit') { setCardStatus(card, 'submitted'); AppToast.show(`${name} 제출 완료`, 'success'); }
+        else if (act === 'grade') AppToast.show(`${name} 채점 페이지 이동`);
+      });
+    });
+  }
+
+  function openPauseModal(card, name) {
+    const reasons = PAUSE_REASONS.map((r, i) => `<label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-primary); border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;"><input type="radio" name="pause-reason" value="${r}" ${i===0?'checked':''} />${r}</label>`).join('');
+    AppModal.open({
+      title: `${name} 정지`,
+      body: `<p style="margin: 0 0 12px; font-size: 13px; color: var(--text-secondary);">정지 사유를 선택하세요. 누적 정지 시간으로 기록됩니다.</p><div style="display: flex; flex-direction: column; gap: 6px;">${reasons}</div><div style="margin-top: 16px;"><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">메모 (선택)</label><textarea class="textarea" rows="2" style="margin-top: 6px;" placeholder="추가 메모"></textarea></div>`,
+      footer: `<button class="btn btn--ghost" onclick="AppModal.close()">취소</button><button class="btn btn--primary" id="confirm-pause">정지</button>`,
+    });
+    setTimeout(() => {
+      document.getElementById('confirm-pause')?.addEventListener('click', () => {
+        const reason = document.querySelector('input[name="pause-reason"]:checked')?.value || '기타';
+        setCardStatus(card, 'paused');
+        const label = card.querySelector('.timer-card__label');
+        if (label) label.textContent = `정지 중 · ${reason}`;
+        AppModal.close();
+        AppToast.show(`${name} 정지 (${reason})`, 'warning');
+      });
+    }, 50);
+  }
+
+  document.querySelectorAll('.timer-card').forEach(bindCardActions);
+
+  // ── Pending row toggle ──
+  document.querySelectorAll('.pending-row').forEach((row) => {
+    row.dataset.wired = '1';
+    row.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      const cb = row.querySelector('input[type="checkbox"]');
+      if (cb) cb.checked = !cb.checked;
+      row.classList.toggle('is-selected', !!cb?.checked);
+    });
+  });
+  document.querySelectorAll('.start-bar .btn--primary').forEach((btn) => {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      const n = document.querySelectorAll('.pending-row input[type="checkbox"]:checked').length;
+      AppToast.show(`${n || 2}명 타이머 시작`, 'success');
+    });
+  });
+</script>
 <script>lucide.createIcons();</script>
 </body>
 </html>

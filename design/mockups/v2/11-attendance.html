@@ -428,6 +428,128 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // ── Date input → enable 지정 button + schedule action ──
+  document.querySelectorAll('tbody tr').forEach((row) => {
+    const dateInput = row.querySelector('input[type="date"]');
+    if (!dateInput) return;
+    const designateBtn = [...row.querySelectorAll('.btn--primary')].find(b => b.textContent.trim() === '지정');
+    if (!designateBtn) return;
+
+    function refresh() {
+      const has = !!dateInput.value;
+      designateBtn.disabled = !has;
+      designateBtn.style.opacity = has ? '1' : '0.5';
+    }
+    dateInput.addEventListener('input', refresh);
+    refresh();
+
+    designateBtn.dataset.wired = '1';
+    designateBtn.addEventListener('click', () => {
+      if (!dateInput.value) return;
+      const name = row.querySelector('.cell-stack__primary')?.textContent?.trim() || '학생';
+      row.style.background = 'var(--info-surface)';
+      const statusCell = row.querySelector('.ms');
+      if (statusCell) {
+        statusCell.className = 'ms ms--scheduled';
+        statusCell.innerHTML = `<i data-lucide="calendar-clock"></i>보강예정`;
+      }
+      const dateCell = dateInput.parentElement;
+      dateCell.innerHTML = `<div class="scheduled-meta"><span class="scheduled-meta__date">${dateInput.value}</span><span class="scheduled-meta__time">방금 지정됨</span></div>`;
+      const actionCell = designateBtn.parentElement;
+      actionCell.innerHTML = `
+        <button class="btn btn--accent btn--sm" data-attaction="complete"><i data-lucide="check"></i>완료</button>
+        <button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>
+        <button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>
+        <button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>
+      `;
+      if (window.lucide) lucide.createIcons();
+      AppToast.show(`${name} · ${dateInput.value} 보강 지정`, 'success');
+      bindCompleteButtons();
+    });
+  });
+
+  // ── 완료 buttons → mark completed ──
+  function bindCompleteButtons() {
+    document.querySelectorAll('[data-attaction="complete"]').forEach((btn) => {
+      if (btn.dataset.wired) return;
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', () => {
+        const row = btn.closest('tr');
+        const name = row.querySelector('.cell-stack__primary')?.textContent?.trim() || '학생';
+        row.style.background = '';
+        row.style.opacity = '0.75';
+        const statusCell = row.querySelector('.ms');
+        if (statusCell) {
+          statusCell.className = 'ms ms--completed';
+          statusCell.innerHTML = `<i data-lucide="check-circle-2"></i>보강완료`;
+        }
+        const actions = btn.parentElement;
+        actions.innerHTML = `<span class="text-mute" style="font-size: var(--fs-12);">완료됨</span>` +
+          `<button class="btn-icon" title="회차"><i data-lucide="list-ordered"></i></button>` +
+          `<button class="btn-icon" title="수정"><i data-lucide="pencil"></i></button>` +
+          `<button class="btn-icon" title="삭제"><i data-lucide="trash-2"></i></button>`;
+        if (window.lucide) lucide.createIcons();
+        AppToast.show(`${name} 보강 완료`, 'success');
+      });
+    });
+  }
+  bindCompleteButtons();
+
+  // ── 결석 추가 modal ──
+  document.querySelectorAll('.page-head__actions .btn--primary').forEach((btn) => {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      AppModal.open({
+        title: '결석 추가',
+        body: `
+          <form id="add-absence-form" style="display: grid; gap: 14px;">
+            <div class="field">
+              <label class="field__label">학생 <span style="color: var(--danger);">*</span></label>
+              <select class="select" required>
+                <option value="">학생 선택</option>
+                <option>강민수 (고2)</option>
+                <option>이영희 (중3)</option>
+                <option>박지민 (고1)</option>
+                <option>최수지 (고3)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field__label">수업 <span style="color: var(--danger);">*</span></label>
+              <select class="select" required>
+                <option value="">수업 선택</option>
+                <option>고2 영어 · 월/수 19:00</option>
+                <option>중3 영어 · 월/수 16:00</option>
+                <option>고1 영어 · 화/목 17:00</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field__label">결석일 <span style="color: var(--danger);">*</span></label>
+              <input class="input" type="date" required value="2026-05-13" />
+            </div>
+            <div class="field">
+              <label class="field__label">사유 (선택)</label>
+              <input class="input" type="text" placeholder="질병, 학교 행사, 가족 일정 등" />
+            </div>
+          </form>
+        `,
+        footer: `
+          <button class="btn btn--ghost" onclick="AppModal.close()">취소</button>
+          <button class="btn btn--primary" id="confirm-add">결석 추가</button>
+        `,
+      });
+      setTimeout(() => {
+        document.getElementById('confirm-add')?.addEventListener('click', () => {
+          const form = document.getElementById('add-absence-form');
+          if (!form.checkValidity()) { form.reportValidity(); return; }
+          AppModal.close();
+          AppToast.show('결석 1건 추가됨 · status: pending', 'success');
+        });
+      }, 50);
+    });
+  });
+</script>
 <script>lucide.createIcons();</script>
 </body>
 </html>

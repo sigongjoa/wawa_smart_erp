@@ -452,6 +452,37 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // Month nav cycle
+  const monthInput = document.querySelector('input[type="month"]');
+  if (monthInput) {
+    const navBtns = document.querySelectorAll('.month-nav .btn-icon');
+    function shift(d) {
+      const [y, m] = monthInput.value.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1 + d, 1));
+      monthInput.value = dt.toISOString().slice(0, 7);
+      AppToast.show(`${monthInput.value} 조회`);
+    }
+    if (navBtns[0]) { navBtns[0].dataset.wired = '1'; navBtns[0].addEventListener('click', () => shift(-1)); }
+    if (navBtns[1]) { navBtns[1].dataset.wired = '1'; navBtns[1].addEventListener('click', () => shift(1)); }
+    monthInput.addEventListener('change', () => AppToast.show(`${monthInput.value} 조회`));
+  }
+  document.querySelectorAll('.list-row').forEach((row) => {
+    row.dataset.wired = '1'; row.style.cursor = 'pointer';
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('a, button')) return;
+      const name = row.querySelector('strong')?.textContent?.trim() || '학생';
+      AppToast.show(`${name} 프로필 보기`);
+    });
+  });
+  document.querySelectorAll('.matrix-table tbody td').forEach((td) => {
+    if (td.querySelector('.cmark')) {
+      td.dataset.wired = '1'; td.style.cursor = 'pointer';
+      td.addEventListener('click', () => AppToast.show('상담 기록 조회'));
+    }
+  });
+</script>
 <script>lucide.createIcons();</script>
 </body>
 </html>
