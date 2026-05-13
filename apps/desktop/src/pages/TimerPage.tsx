@@ -80,26 +80,30 @@ const ActiveSessionCard = memo(function ActiveSessionCard({
   now,
   onPause,
   onCheckOut,
+  onExtend,
 }: {
   student: StudentRow;
   session: RealtimeSession;
   now: Date;
   onPause: (session: RealtimeSession) => void;
   onCheckOut: (session: RealtimeSession) => void;
+  onExtend: (session: RealtimeSession, minutes: number) => void;
 }) {
 
   const checkIn = new Date(session.checkInTime);
   const totalElapsed = Math.floor((now.getTime() - checkIn.getTime()) / 60000);
   const pausedMins = calcPausedMinutes(session.pauseHistory, now);
   const netMins = totalElapsed - pausedMins;
-  const remaining = session.scheduledMinutes - netMins;
+  const addedMins = session.addedMinutes || 0;
+  const totalAllotted = session.scheduledMinutes + addedMins;
+  const remaining = totalAllotted - netMins;
   const isWarning = remaining <= 10 && remaining > 0;
   const isOvertime = remaining <= 0;
-  const progress = session.scheduledMinutes > 0 ? Math.min(netMins / session.scheduledMinutes, 1) : 0;
+  const progress = totalAllotted > 0 ? Math.min(netMins / totalAllotted, 1) : 0;
 
   // 시작/종료 시간 표시
   const checkInHHMM = checkIn.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  const expectedEnd = new Date(checkIn.getTime() + (session.scheduledMinutes + pausedMins) * 60000);
+  const expectedEnd = new Date(checkIn.getTime() + (totalAllotted + pausedMins) * 60000);
   const expectedEndHHMM = expectedEnd.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
   // 스케줄 대비 지연 표시 (scheduledEndTime이 있을 때)
   let delayLabel = '';
@@ -146,7 +150,12 @@ const ActiveSessionCard = memo(function ActiveSessionCard({
       <div className="rt-session-meta">
         <span>순수 {netMins}분</span>
         <span className="rt-meta-divider">/</span>
-        <span>예정 {session.scheduledMinutes}분</span>
+        <span>
+          예정 {totalAllotted}분
+          {addedMins !== 0 && (
+            <span className="rt-meta-added"> ({session.scheduledMinutes}{addedMins >= 0 ? '+' : ''}{addedMins})</span>
+          )}
+        </span>
         {pausedMins > 0 && (
           <>
             <span className="rt-meta-divider">|</span>
@@ -156,6 +165,22 @@ const ActiveSessionCard = memo(function ActiveSessionCard({
       </div>
 
       <div className="rt-session-actions">
+        <button
+          className="rt-action-btn rt-action-btn--extend"
+          onClick={() => onExtend(session, 10)}
+          type="button"
+          title="10분 연장"
+        >
+          +10분
+        </button>
+        <button
+          className="rt-action-btn rt-action-btn--extend"
+          onClick={() => onExtend(session, 30)}
+          type="button"
+          title="30분 연장"
+        >
+          +30분
+        </button>
         <button className="rt-action-btn rt-action-btn--pause" onClick={() => onPause(session)} type="button">
           정지
         </button>
@@ -193,7 +218,8 @@ const PausedSessionCard = memo(function PausedSessionCard({
   const checkIn = new Date(session.checkInTime);
   const checkInHHMM = checkIn.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
   const totalPausedMins = calcPausedMinutes(session.pauseHistory, now);
-  const expectedEnd = new Date(checkIn.getTime() + (session.scheduledMinutes + totalPausedMins) * 60000);
+  const totalAllotted = session.scheduledMinutes + (session.addedMinutes || 0);
+  const expectedEnd = new Date(checkIn.getTime() + (totalAllotted + totalPausedMins) * 60000);
   const expectedEndHHMM = expectedEnd.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   return (
@@ -424,6 +450,16 @@ export default function TimerPage() {
     }
   };
 
+  const handleExtend = async (session: RealtimeSession, minutes: number) => {
+    try {
+      const res = await api.sessionExtend(session.id, minutes);
+      toast.success(`${minutes >= 0 ? '+' : ''}${minutes}분 적용 (총 ${res.scheduledMinutes + res.addedMinutes}분)`);
+      await load();
+    } catch (err) {
+      toast.error('연장 실패: ' + (err as Error).message);
+    }
+  };
+
   // ─── 퇴근(수업 마침) ───────────────────────────
   const [finishOpen, setFinishOpen] = useState(false);
   const [finishResult, setFinishResult] = useState<{
@@ -573,6 +609,7 @@ export default function TimerPage() {
                       now={now}
                       onPause={handlePauseClick}
                       onCheckOut={handleCheckOut}
+                      onExtend={handleExtend}
                     />
                   ))}
                 </>
