@@ -57,42 +57,41 @@
   .send-alert--complete .send-alert__sub { color: var(--success); opacity: 0.78; }
   .send-alert--complete .send-alert__cta { background: var(--success); color: var(--text-inverse); }
 
-  /* ───── Tab group (정기고사 메인) ───── */
+  /* ───── 정기고사 유형 탭 (3개: 월말/중간/기말 — 모두 정기고사) ───── */
   .report-tabs {
-    display: inline-flex; align-items: center; gap: var(--sp-2);
-  }
-  .report-tab-group {
-    display: inline-flex; padding: 3px;
-    background: var(--bg-tertiary); border: 1px solid var(--border-primary);
+    display: inline-flex;
+    padding: 3px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
     border-radius: var(--radius-full);
   }
   .report-tab {
-    padding: 7px 18px;
+    padding: 7px 16px;
     font-size: var(--fs-13); font-weight: 700;
     color: var(--text-secondary);
     border-radius: var(--radius-full);
     cursor: pointer; border: none; background: transparent;
     transition: all var(--duration-fast);
     display: inline-flex; align-items: center; gap: 6px;
+    white-space: nowrap;
   }
   .report-tab:hover { color: var(--text-primary); }
-  .report-tab.is-active { background: var(--bg-secondary); color: var(--primary); box-shadow: var(--shadow-xs); font-weight: 800; }
-  .report-tab--main.is-active { background: var(--primary); color: var(--text-inverse); }
-  .report-tab__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); display: inline-block; }
-
-  /* Sub toggle inside 정기고사 */
-  .report-subtoggle {
-    display: inline-flex; gap: 0; align-items: center;
-    margin-left: var(--sp-2);
-    padding: 2px; background: var(--bg-tertiary);
-    border-radius: var(--radius-sm); border: 1px solid var(--border-primary);
+  .report-tab.is-active {
+    background: var(--primary);
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-xs);
+    font-weight: 800;
   }
-  .report-subtoggle button {
-    padding: 5px 12px; font-size: var(--fs-12); font-weight: 700;
-    color: var(--text-secondary); background: transparent;
-    border: none; border-radius: 4px; cursor: pointer;
+  .report-tab__badge {
+    font-size: var(--fs-11);
+    padding: 1px 7px;
+    border-radius: var(--radius-full);
+    background: var(--danger);
+    color: var(--text-inverse);
+    font-weight: 800;
+    line-height: 1.4;
   }
-  .report-subtoggle button.is-active { background: var(--bg-secondary); color: var(--text-primary); box-shadow: var(--shadow-xs); }
+  .report-tab.is-active .report-tab__badge { background: var(--text-inverse); color: var(--primary); }
 
   /* ───── KPI Strip — 페이지 핵심 progress ───── */
   .kpi-strip {
@@ -301,7 +300,7 @@
     </div>
     <div class="app-nav__group">
       <div class="app-nav__label">리포트</div>
-      <div class="app-nav__item is-active"><i data-lucide="send"></i>리포트 발송<span class="app-nav__count" id="nav-pending">4</span></div>
+      <div class="app-nav__item is-active"><i data-lucide="send"></i>정기고사 성적 기입<span class="app-nav__count" id="nav-pending">4</span></div>
       <a class="app-nav__item" href="06-report.html"><i data-lucide="file-text"></i>학부모 리포트 (preview)</a>
     </div>
     <div class="app-nav__group" style="margin-top: auto;">
@@ -314,23 +313,19 @@
 
     <header class="page-head">
       <div>
-        <div class="page-head__crumb">리포트 · 강사 입력 · 학부모 발송</div>
-        <h1 class="page-head__title">리포트 발송</h1>
-        <div class="page-head__sub" id="period-sub">2026년 1학기 중간고사 · 7명 중 4명 미발송</div>
+        <div class="page-head__crumb">
+          <a href="01-list-sidebar.html" style="color: inherit; text-decoration: none;">정기고사 관리</a>
+          <span style="opacity: 0.5; padding: 0 6px;">›</span>
+          <span>성적 기입 · 학부모 발송</span>
+        </div>
+        <h1 class="page-head__title">정기고사 성적 기입</h1>
+        <div class="page-head__sub" id="period-sub">2026년 5월 월말평가 · 7명 중 4명 미발송</div>
       </div>
       <div class="page-head__actions">
-        <div class="report-tabs" role="tablist" aria-label="리포트 유형">
-          <div class="report-tab-group">
-            <button class="report-tab report-tab--main is-active" data-group="exam" role="tab">
-              <span class="report-tab__dot" aria-hidden="true"></span>
-              정기고사
-            </button>
-            <button class="report-tab" data-group="monthly" role="tab">월말평가</button>
-          </div>
-          <div class="report-subtoggle" id="exam-sub" role="tablist" aria-label="정기고사 유형">
-            <button class="is-active" data-type="midterm">중간</button>
-            <button data-type="final">기말</button>
-          </div>
+        <div class="report-tabs" role="tablist" aria-label="정기고사 유형">
+          <button class="report-tab is-active" data-type="monthly" role="tab">월말평가<span class="report-tab__badge" id="b-monthly">4</span></button>
+          <button class="report-tab" data-type="midterm" role="tab">중간고사</button>
+          <button class="report-tab" data-type="final" role="tab">기말고사</button>
         </div>
       </div>
     </header>
@@ -340,7 +335,7 @@
       <div class="send-alert__icon"><i data-lucide="send"></i></div>
       <div class="send-alert__body">
         <div class="send-alert__title" id="alert-title">정기고사 리포트 — 4명 발송 대기</div>
-        <div class="send-alert__sub" id="alert-sub">2026년 1학기 중간고사 · 학부모에게 카카오톡으로 일괄 발송 가능</div>
+        <div class="send-alert__sub" id="alert-sub">2026년 5월 월말평가 · 점수 입력 완료 후 학부모 카카오톡으로 일괄 발송</div>
       </div>
       <button class="send-alert__cta" id="bulk-send-hero"><i data-lucide="send"></i>4명 일괄 발송</button>
     </div>
@@ -493,13 +488,12 @@
     ], total: '' },
   ];
 
-  let reportType = 'midterm';
+  let reportType = 'monthly';
   let selectedId = null;
 
   // DOM refs
   const $ = (id) => document.getElementById(id);
   const subEl = $('period-sub');
-  const subToggleEl = $('exam-sub');
   const sendAlertEl = $('send-alert');
   const alertTitleEl = $('alert-title');
   const alertSubEl = $('alert-sub');
@@ -528,7 +522,13 @@
 
   function updateHeader() {
     subEl.textContent = `${TYPE_PERIOD[reportType]} · ${pendingCount()}명 미발송`;
-    subToggleEl.style.display = reportType === 'monthly' ? 'none' : '';
+    // tab badge: 정기고사 미발송 카운트는 활성 type 기준 (mock 데이터는 type 무관 같은 학생들 사용)
+    const badge = $('b-monthly');
+    if (badge) {
+      const p = pendingCount();
+      badge.textContent = p;
+      badge.style.display = p > 0 ? '' : 'none';
+    }
   }
 
   function pendingCount() { return STUDENTS.filter(s => !s.sent).length; }
@@ -554,9 +554,8 @@
       heroBtnEl.disabled = true;
     } else {
       sendAlertEl.classList.remove('send-alert--complete');
-      const typeLabel = reportType === 'monthly' ? '월말평가' : '정기고사';
-      alertTitleEl.textContent = `${typeLabel} 리포트 — ${p}명 발송 대기`;
-      alertSubEl.textContent = `${TYPE_PERIOD[reportType]} · 학부모에게 카카오톡으로 일괄 발송 가능`;
+      alertTitleEl.textContent = `정기고사 리포트 — ${p}명 발송 대기`;
+      alertSubEl.textContent = `${TYPE_PERIOD[reportType]} · 점수 입력 완료 후 학부모 카카오톡으로 일괄 발송`;
       heroBtnEl.innerHTML = `<i data-lucide="send"></i>${p}명 일괄 발송`;
       heroBtnEl.disabled = false;
     }
@@ -819,28 +818,16 @@
     }, 800);
   });
 
-  // ───── Tabs ─────
+  // ───── Tabs (3 single tabs: monthly/midterm/final, all kinds of 정기고사) ─────
   document.querySelectorAll('.report-tab').forEach((tab) => {
     tab.dataset.wired = '1';
     tab.addEventListener('click', () => {
       document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('is-active'));
       tab.classList.add('is-active');
-      if (tab.dataset.group === 'monthly') reportType = 'monthly';
-      else reportType = document.querySelector('#exam-sub button.is-active')?.dataset?.type || 'midterm';
-      $('page-title') && ($('page-title').textContent = '리포트 발송');
+      reportType = tab.dataset.type;
       updateHeader(); updateKPI(); updateAlert();
       if (selectedId) renderPaper();
-      AppToast.show(`${TYPE_LABEL[reportType]} 모드`);
-    });
-  });
-  document.querySelectorAll('#exam-sub button').forEach((b) => {
-    b.dataset.wired = '1';
-    b.addEventListener('click', () => {
-      document.querySelectorAll('#exam-sub button').forEach(x => x.classList.remove('is-active'));
-      b.classList.add('is-active');
-      reportType = b.dataset.type;
-      updateHeader(); updateAlert(); if (selectedId) renderPaper();
-      AppToast.show(`${TYPE_LABEL[reportType]} 모드`);
+      AppToast.show(`${TYPE_LABEL[reportType]}`);
     });
   });
 
