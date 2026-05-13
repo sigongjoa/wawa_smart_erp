@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>09 · Vocab — 오답 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .wrong-summary {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    background: var(--bg-secondary); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md); overflow: hidden;
+  }
+  .wrong-summary__cell { padding: var(--sp-4) var(--sp-5); border-right: 1px solid var(--border-secondary); }
+  .wrong-summary__cell:last-child { border-right: none; }
+  .wrong-summary__label { font-size: var(--fs-12); color: var(--text-tertiary); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .wrong-summary__value { font-size: var(--fs-28); font-weight: 800; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; margin-top: 4px; display: flex; align-items: baseline; gap: 6px; }
+  .wrong-summary__value-sub { font-size: var(--fs-13); color: var(--text-tertiary); font-weight: 600; }
+
+  .student-group {
+    background: var(--bg-secondary); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md); overflow: hidden;
+    transition: box-shadow var(--duration-fast) var(--ease-std);
+  }
+  .student-group + .student-group { margin-top: var(--sp-3); }
+  .student-group__head {
+    display: grid; grid-template-columns: 20px 1fr auto auto; gap: var(--sp-3);
+    padding: var(--sp-4) var(--sp-5);
+    align-items: center;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    transition: background var(--duration-fast) var(--ease-std);
+  }
+  .student-group__head:hover { background: var(--bg-tertiary); }
+  .student-group__caret {
+    width: 16px; height: 16px;
+    transition: transform var(--duration-normal) var(--ease-out);
+    color: var(--text-tertiary);
+  }
+  .student-group.is-open .student-group__caret { transform: rotate(90deg); }
+  .student-group__name { font-size: var(--fs-15); font-weight: 800; display: flex; align-items: center; gap: var(--sp-2); }
+  .student-group__total { font-size: var(--fs-13); color: var(--text-tertiary); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .student-group__body { display: none; padding: 0 var(--sp-5) var(--sp-4); }
+  .student-group.is-open .student-group__body { display: block; }
+
+  .wrong-word {
+    display: grid; grid-template-columns: 220px 1fr auto auto auto;
+    gap: var(--sp-3);
+    align-items: center;
+    padding: var(--sp-3) 0;
+    border-bottom: 1px solid var(--border-secondary);
+  }
+  .wrong-word:last-child { border-bottom: none; }
+  .wrong-word__main { font-family: ui-serif, "Georgia", serif; font-style: italic; font-size: var(--fs-15); font-weight: 700; }
+  .wrong-word__ko { font-size: var(--fs-13); color: var(--text-secondary); }
+  .wrong-word__count { font-size: var(--fs-13); font-weight: 800; color: var(--danger); font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="11-attendance.html"><i data-lucide="calendar-x"></i>출결·보강</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <div class="app-nav__item is-active"><i data-lucide="book-marked"></i>단어<span class="app-nav__count">312</span></div>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>학습 현황</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">컨텐츠 · 단어 운영</div>
+        <h1 class="page-head__title">단어 시험 관리</h1>
+        <div class="page-head__sub">학생별 오답 누적 — Box 1로 리셋하여 재학습 시킴</div>
+      </div>
+      <div class="page-head__actions">
+        <a class="btn btn--secondary" href="09c-vocab-policy.html"><i data-lucide="settings-2"></i>정책 설정</a>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <a class="tabs__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어<span class="tabs__count">1,248</span></a>
+      <div class="tabs__item is-active"><i data-lucide="alert-circle"></i>오답<span class="tabs__count">312</span></div>
+      <a class="tabs__item" href="09b-vocab-grade.html"><i data-lucide="bar-chart-2"></i>등급<span class="tabs__count">5</span></a>
+      <a class="tabs__item" href="09c-vocab-policy.html"><i data-lucide="settings-2"></i>정책</a>
+    </div>
+
+    <!-- Summary bar (matches real top: 명 · 오답 단어 X개 · 누적 오답 X회) -->
+    <div class="wrong-summary">
+      <div class="wrong-summary__cell">
+        <div class="wrong-summary__label">학생</div>
+        <div class="wrong-summary__value">8<span class="wrong-summary__value-sub">명</span></div>
+      </div>
+      <div class="wrong-summary__cell">
+        <div class="wrong-summary__label">오답 단어</div>
+        <div class="wrong-summary__value">312<span class="wrong-summary__value-sub">개</span></div>
+      </div>
+      <div class="wrong-summary__cell">
+        <div class="wrong-summary__label">누적 오답</div>
+        <div class="wrong-summary__value">847<span class="wrong-summary__value-sub">회</span></div>
+      </div>
+    </div>
+
+    <!-- Collapsible student groups -->
+    <div>
+      <div class="student-group is-open">
+        <div class="student-group__head">
+          <i data-lucide="chevron-right" class="student-group__caret"></i>
+          <div class="student-group__name">최수지 <span class="grade grade--h3">고3</span> <span class="pill pill--danger">오답 42개</span></div>
+          <div></div>
+          <div class="student-group__total">총 156회</div>
+        </div>
+        <div class="student-group__body">
+          <div class="wrong-word">
+            <span class="wrong-word__main">ephemeral</span>
+            <span class="wrong-word__ko">순식간의 · 단명하는</span>
+            <span class="pill pill--neutral">형용사</span>
+            <span class="pill pill--neutral">Box 1</span>
+            <div class="cluster" style="--gap: var(--sp-2);"><span class="wrong-word__count">12회</span><button class="btn btn--ghost btn--sm" data-action="reset" data-word="ephemeral"><i data-lucide="rotate-ccw"></i>재학습</button></div>
+          </div>
+          <div class="wrong-word">
+            <span class="wrong-word__main">scrutinize</span>
+            <span class="wrong-word__ko">면밀히 조사하다</span>
+            <span class="pill pill--neutral">동사</span>
+            <span class="pill pill--neutral">Box 2</span>
+            <div class="cluster" style="--gap: var(--sp-2);"><span class="wrong-word__count">8회</span><button class="btn btn--ghost btn--sm" data-action="reset" data-word="scrutinize"><i data-lucide="rotate-ccw"></i>재학습</button></div>
+          </div>
+          <div class="wrong-word">
+            <span class="wrong-word__main">undermine</span>
+            <span class="wrong-word__ko">약화시키다 · 손상시키다</span>
+            <span class="pill pill--neutral">동사</span>
+            <span class="pill pill--neutral">Box 1</span>
+            <div class="cluster" style="--gap: var(--sp-2);"><span class="wrong-word__count">7회</span><button class="btn btn--ghost btn--sm" data-action="reset" data-word="undermine"><i data-lucide="rotate-ccw"></i>재학습</button></div>
+          </div>
+          <div class="wrong-word">
+            <span class="wrong-word__main">prevail</span>
+            <span class="wrong-word__ko">우세하다 · 만연하다</span>
+            <span class="pill pill--neutral">동사</span>
+            <span class="pill pill--neutral">Box 3</span>
+            <div class="cluster" style="--gap: var(--sp-2);"><span class="wrong-word__count">5회</span><button class="btn btn--ghost btn--sm" data-action="reset" data-word="prevail"><i data-lucide="rotate-ccw"></i>재학습</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="student-group">
+        <div class="student-group__head">
+          <i data-lucide="chevron-right" class="student-group__caret"></i>
+          <div class="student-group__name">김재훈 <span class="grade grade--h2">고2</span> <span class="pill pill--warning">오답 28개</span></div>
+          <div></div>
+          <div class="student-group__total">총 98회</div>
+        </div>
+        <div class="student-group__body">
+          <div class="wrong-word">
+            <span class="wrong-word__main">deliberate</span>
+            <span class="wrong-word__ko">신중한 · 숙고하다</span>
+            <span class="pill pill--neutral">형용사</span>
+            <span class="pill pill--neutral">Box 2</span>
+            <div class="cluster" style="--gap: var(--sp-2);"><span class="wrong-word__count">6회</span><button class="btn btn--ghost btn--sm" data-action="reset" data-word="deliberate"><i data-lucide="rotate-ccw"></i>재학습</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="student-group">
+        <div class="student-group__head">
+          <i data-lucide="chevron-right" class="student-group__caret"></i>
+          <div class="student-group__name">박지민 <span class="grade grade--h1">고1</span> <span class="pill pill--warning">오답 35개</span></div>
+          <div></div>
+          <div class="student-group__total">총 118회</div>
+        </div>
+        <div class="student-group__body"></div>
+      </div>
+
+      <div class="student-group">
+        <div class="student-group__head">
+          <i data-lucide="chevron-right" class="student-group__caret"></i>
+          <div class="student-group__name">이영희 <span class="grade grade--m3">중3</span> <span class="pill pill--neutral">오답 22개</span></div>
+          <div></div>
+          <div class="student-group__total">총 76회</div>
+        </div>
+        <div class="student-group__body"></div>
+      </div>
+
+      <div class="student-group">
+        <div class="student-group__head">
+          <i data-lucide="chevron-right" class="student-group__caret"></i>
+          <div class="student-group__name">강민수 <span class="grade grade--h2">고2</span> <span class="pill pill--neutral">오답 18개</span></div>
+          <div></div>
+          <div class="student-group__total">총 62회</div>
+        </div>
+        <div class="student-group__body"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // ── Collapsible groups ──
+  document.querySelectorAll('.student-group__head').forEach((head) => {
+    head.dataset.wired = '1';
+    head.addEventListener('click', () => {
+      const grp = head.parentElement;
+      grp.classList.toggle('is-open');
+      const name = head.querySelector('.student-group__name')?.textContent?.trim().split(' ')[0];
+      AppToast.show(`${name} ${grp.classList.contains('is-open') ? '펼침' : '접음'}`);
+    });
+  });
+
+  // ── 재학습 confirm ──
+  document.querySelectorAll('[data-action="reset"]').forEach((btn) => {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const word = btn.dataset.word;
+      AppModal.open({
+        title: '오답 기록 초기화',
+        body: `<p style="margin: 0 0 8px; font-size: 14px;"><strong>'${word}'</strong> 의 오답 기록을 초기화할까요?</p><p style="margin: 0; font-size: 13px; color: var(--text-secondary);">Box는 1로 리셋되고 오답 수는 0이 됩니다.</p>`,
+        footer: `<button class="btn btn--ghost" onclick="AppModal.close()">취소</button><button class="btn btn--danger" id="confirm-reset">초기화</button>`,
+      });
+      setTimeout(() => {
+        document.getElementById('confirm-reset')?.addEventListener('click', () => {
+          AppModal.close();
+          const wrongWord = btn.closest('.wrong-word');
+          if (wrongWord) {
+            wrongWord.style.transition = 'opacity 240ms';
+            wrongWord.style.opacity = '0.5';
+            const count = wrongWord.querySelector('.wrong-word__count');
+            if (count) { count.textContent = '0회'; count.style.color = 'var(--text-tertiary)'; }
+            const box = [...wrongWord.querySelectorAll('.pill')].find(p => p.textContent.includes('Box'));
+            if (box) box.textContent = 'Box 1';
+          }
+          AppToast.show(`'${word}' 재학습 큐로 이동 · Box 1`, 'success');
+        });
+      }, 50);
+    });
+  });
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

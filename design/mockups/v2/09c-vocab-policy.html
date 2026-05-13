@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>09 · Vocab — 정책 설정</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .policy-card { padding: 0; }
+  .policy-card__head { padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border-secondary); }
+  .policy-card__title { margin: 0 0 4px; font-size: var(--fs-19); font-weight: 800; letter-spacing: -0.01em; display: flex; align-items: center; gap: var(--sp-2); }
+  .policy-card__hint { margin: 0; font-size: var(--fs-13); color: var(--text-tertiary); line-height: 1.55; }
+  .policy-card__body { padding: var(--sp-5) var(--sp-6); }
+  .policy-card__foot { padding: var(--sp-4) var(--sp-6); border-top: 1px solid var(--border-secondary); background: var(--bg-primary); display: flex; justify-content: flex-end; }
+
+  .form-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4) var(--sp-5);
+  }
+  .form-grid--full { grid-column: span 2; }
+  .form-grid .field__hint { font-size: var(--fs-11); color: var(--text-tertiary); margin-top: 2px; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle__slider { position: absolute; cursor: pointer; inset: 0; background: var(--border-strong); border-radius: 999px; transition: background var(--duration-fast); }
+  .toggle__slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px; background: var(--bg-secondary); border-radius: 50%; transition: transform var(--duration-fast) var(--ease-out); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+  .toggle input:checked + .toggle__slider { background: var(--primary); }
+  .toggle input:checked + .toggle__slider::before { transform: translateX(18px); }
+
+  .time-range { display: grid; grid-template-columns: 1fr 14px 1fr; gap: 8px; align-items: center; }
+  .time-range__sep { text-align: center; color: var(--text-tertiary); font-weight: 700; }
+
+  .applied-pill { font-size: var(--fs-11); padding: 2px 8px; border-radius: var(--radius-full); font-weight: 700; }
+  .applied-pill--default { background: var(--bg-tertiary); color: var(--text-tertiary); }
+  .applied-pill--override { background: var(--accent-surface); color: var(--accent-hover); }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <nav class="app-nav">
+    <div class="app-nav__brand"><div class="app-nav__brand-mark">W</div>WAWA ERP</div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">운영</div>
+      <a class="app-nav__item" href="02-dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+      <a class="app-nav__item" href="01-list-sidebar.html"><i data-lucide="clipboard-list"></i>정기고사<span class="app-nav__count">18</span></a>
+      <a class="app-nav__item" href="03-detail-profile.html"><i data-lucide="users"></i>학생</a>
+      <a class="app-nav__item" href="11-attendance.html"><i data-lucide="calendar-x"></i>출결·보강</a>
+      <a class="app-nav__item" href="05-timer-live.html"><i data-lucide="timer"></i>타이머</a>
+    </div>
+    <div class="app-nav__group">
+      <div class="app-nav__label">컨텐츠</div>
+      <a class="app-nav__item" href="04-form-editor.html"><i data-lucide="pencil-line"></i>문제 편집</a>
+      <div class="app-nav__item is-active"><i data-lucide="book-marked"></i>단어</div>
+      <a class="app-nav__item" href="10-proof-editor.html"><i data-lucide="function-square"></i>증명</a>
+      <a class="app-nav__item" href="08-gacha-dashboard.html"><i data-lucide="layers"></i>학습 현황</a>
+    </div>
+    <div class="app-nav__group" style="margin-top: auto;">
+      <a class="app-nav__item" href="00-design-system.html"><i data-lucide="palette"></i>Design System</a>
+      <a class="app-nav__item" href="index.html"><i data-lucide="grid-2x2"></i>Mockup index</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+
+    <header class="page-head">
+      <div>
+        <div class="page-head__crumb">컨텐츠 · 단어 운영</div>
+        <h1 class="page-head__title">단어 시험 정책</h1>
+        <div class="page-head__sub">학원 기본 정책 + 학생별 오버라이드 — 학생 앱 자동 출제 로직</div>
+      </div>
+      <div class="page-head__actions">
+        <a class="btn btn--ghost" href="09b-vocab-grade.html"><i data-lucide="bar-chart-2"></i>응시 기록</a>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <a class="tabs__item" href="09-vocab-admin.html"><i data-lucide="book-marked"></i>단어<span class="tabs__count">1,248</span></a>
+      <a class="tabs__item" href="09a-vocab-wrong.html"><i data-lucide="alert-circle"></i>오답<span class="tabs__count">312</span></a>
+      <a class="tabs__item" href="09b-vocab-grade.html"><i data-lucide="bar-chart-2"></i>등급<span class="tabs__count">87</span></a>
+      <div class="tabs__item is-active"><i data-lucide="settings-2"></i>정책</div>
+    </div>
+
+    <!-- Academy default policy card -->
+    <div class="panel policy-card">
+      <div class="policy-card__head">
+        <h2 class="policy-card__title"><i data-lucide="building-2" style="width: 18px; height: 18px; color: var(--primary);"></i>학원 기본 정책</h2>
+        <p class="policy-card__hint">학생/교사 오버라이드가 없을 때 모든 학생에게 적용됩니다. 학생이 학생앱에서 직접 시험을 시작할 때 이 설정으로 출제됩니다.</p>
+      </div>
+      <div class="policy-card__body">
+        <form id="default-policy">
+          <div class="form-grid">
+            <div class="form-grid--full">
+              <div class="toggle-row">
+                <div>
+                  <div style="font-size: var(--fs-14); font-weight: 700;">활성화</div>
+                  <div class="field__hint">비활성화 시 학생 앱의 시험 시작 버튼이 숨겨집니다</div>
+                </div>
+                <label class="toggle"><input type="checkbox" checked /><span class="toggle__slider"></span></label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field__label">문항 수</label>
+              <input class="input" type="number" min="1" max="50" value="10" />
+              <span class="field__hint">1 ~ 50</span>
+            </div>
+
+            <div class="field">
+              <label class="field__label">응시 시간 (초)</label>
+              <input class="input" type="number" min="0" max="7200" value="600" />
+              <span class="field__hint">0 = 무제한 · 최대 7200 (2시간)</span>
+            </div>
+
+            <div class="field">
+              <label class="field__label">쿨다운 (분)</label>
+              <input class="input" type="number" min="0" max="1440" value="30" />
+              <span class="field__hint">시험 완료 후 재응시까지 대기 시간 · 0 = 즉시</span>
+            </div>
+
+            <div class="field">
+              <label class="field__label">일일 한도 (회)</label>
+              <input class="input" type="number" min="0" max="50" value="3" />
+              <span class="field__hint">0 = 무제한</span>
+            </div>
+
+            <div class="field">
+              <label class="field__label">단어 쿨다운 (분)</label>
+              <input class="input" type="number" min="0" max="10080" value="1440" />
+              <span class="field__hint">같은 단어 재출제 대기 시간 · 1440 = 1일</span>
+            </div>
+
+            <div class="field">
+              <label class="field__label">Box 필터 (CSV)</label>
+              <input class="input" type="text" placeholder="1,2,3,4" value="1,2,3" />
+              <span class="field__hint">출제할 Box 번호 (1~5)</span>
+            </div>
+
+            <div class="field form-grid--full">
+              <label class="field__label">응시 가능 시간대</label>
+              <div class="time-range">
+                <input class="input" type="time" value="09:00" />
+                <span class="time-range__sep">~</span>
+                <input class="input" type="time" value="22:00" />
+              </div>
+              <span class="field__hint">시작·종료 모두 입력하거나 모두 비워야 합니다</span>
+            </div>
+
+            <div class="form-grid--full">
+              <div class="toggle-row">
+                <div>
+                  <div style="font-size: var(--fs-14); font-weight: 700;">영작 포함</div>
+                  <div class="field__hint">단어 → 영작 문제 추가 출제</div>
+                </div>
+                <label class="toggle"><input type="checkbox" /><span class="toggle__slider"></span></label>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="policy-card__foot">
+        <button class="btn btn--primary" id="save-default"><i data-lucide="check"></i>학원 기본 정책 저장</button>
+      </div>
+    </div>
+
+    <!-- Student override section -->
+    <div class="panel policy-card">
+      <div class="policy-card__head">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-4);">
+          <div>
+            <h2 class="policy-card__title"><i data-lucide="users" style="width: 18px; height: 18px; color: var(--primary);"></i>학생별 오버라이드</h2>
+            <p class="policy-card__hint">특정 학생만 다른 정책을 적용할 때 설정. 미설정 학생은 학원 기본을 따릅니다.</p>
+          </div>
+          <div class="cluster" style="--gap: var(--sp-2);">
+            <div class="input-group" style="width: 220px;">
+              <i data-lucide="search"></i>
+              <input id="student-search" placeholder="학생 이름 검색" />
+            </div>
+            <span class="text-mute" id="student-count" style="font-size: var(--fs-13); font-weight: 600; white-space: nowrap;">7 / 7명</span>
+          </div>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>이름</th>
+            <th style="width: 130px;">적용 정책</th>
+            <th style="width: 70px;" class="tabular">문항</th>
+            <th style="width: 90px;" class="tabular">쿨다운</th>
+            <th style="width: 70px;" class="tabular">일일</th>
+            <th style="width: 180px;">작업</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-student="강민수" data-override="1">
+            <td><div class="cluster"><div class="avatar">강민</div><div class="cell-stack"><span class="cell-stack__primary">강민수</span><span class="cell-stack__meta"><span class="grade grade--h2">고2</span> · 강남고</span></div></div></td>
+            <td><span class="applied-pill applied-pill--override">오버라이드</span></td>
+            <td class="tabular">20</td>
+            <td class="tabular">60분</td>
+            <td class="tabular">5</td>
+            <td><div class="cluster" style="--gap: 4px;"><button class="btn btn--secondary btn--sm" data-action="edit">편집</button><button class="btn btn--ghost btn--sm" data-action="reset"><i data-lucide="undo"></i>기본으로</button></div></td>
+          </tr>
+          <tr data-student="이영희" data-override="0">
+            <td><div class="cluster"><div class="avatar">이영</div><div class="cell-stack"><span class="cell-stack__primary">이영희</span><span class="cell-stack__meta"><span class="grade grade--m3">중3</span> · 서초중</span></div></div></td>
+            <td><span class="applied-pill applied-pill--default">학원 기본</span></td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td><button class="btn btn--secondary btn--sm" data-action="edit">편집</button></td>
+          </tr>
+          <tr data-student="박지민" data-override="0">
+            <td><div class="cluster"><div class="avatar">박지</div><div class="cell-stack"><span class="cell-stack__primary">박지민</span><span class="cell-stack__meta"><span class="grade grade--h1">고1</span> · 양재고</span></div></div></td>
+            <td><span class="applied-pill applied-pill--default">학원 기본</span></td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td><button class="btn btn--secondary btn--sm" data-action="edit">편집</button></td>
+          </tr>
+          <tr data-student="최수지" data-override="1">
+            <td><div class="cluster"><div class="avatar" style="background: var(--danger-surface); color: var(--danger);">최수</div><div class="cell-stack"><span class="cell-stack__primary">최수지</span><span class="cell-stack__meta"><span class="grade grade--h3">고3</span> · 대치고</span></div></div></td>
+            <td><span class="applied-pill applied-pill--override">오버라이드</span></td>
+            <td class="tabular">15</td>
+            <td class="tabular">15분</td>
+            <td class="tabular">10</td>
+            <td><div class="cluster" style="--gap: 4px;"><button class="btn btn--secondary btn--sm" data-action="edit">편집</button><button class="btn btn--ghost btn--sm" data-action="reset"><i data-lucide="undo"></i>기본으로</button></div></td>
+          </tr>
+          <tr data-student="정하늘" data-override="0">
+            <td><div class="cluster"><div class="avatar">정하</div><div class="cell-stack"><span class="cell-stack__primary">정하늘</span><span class="cell-stack__meta"><span class="grade grade--h2">고2</span> · 강남고</span></div></div></td>
+            <td><span class="applied-pill applied-pill--default">학원 기본</span></td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td><button class="btn btn--secondary btn--sm" data-action="edit">편집</button></td>
+          </tr>
+          <tr data-student="김재훈" data-override="0">
+            <td><div class="cluster"><div class="avatar">김재</div><div class="cell-stack"><span class="cell-stack__primary">김재훈</span><span class="cell-stack__meta"><span class="grade grade--h2">고2</span> · 대치고</span></div></div></td>
+            <td><span class="applied-pill applied-pill--default">학원 기본</span></td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td><button class="btn btn--secondary btn--sm" data-action="edit">편집</button></td>
+          </tr>
+          <tr data-student="윤서연" data-override="0">
+            <td><div class="cluster"><div class="avatar">윤서</div><div class="cell-stack"><span class="cell-stack__primary">윤서연</span><span class="cell-stack__meta"><span class="grade grade--m2">중2</span> · 서초중</span></div></div></td>
+            <td><span class="applied-pill applied-pill--default">학원 기본</span></td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td class="tabular text-mute">—</td>
+            <td><button class="btn btn--secondary btn--sm" data-action="edit">편집</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_app.js"></script>
+<script>
+  // ── Save default policy ──
+  document.getElementById('save-default')?.addEventListener('click', () => {
+    const form = document.getElementById('default-policy');
+    const vocabCount = Number(form.querySelector('input[type="number"]').value);
+    if (vocabCount < 1 || vocabCount > 50) { AppToast.show('문항 수는 1~50 사이여야 합니다', 'danger'); return; }
+    const boxFilter = form.querySelectorAll('input[type="text"]')[0].value.trim();
+    if (boxFilter && !/^[1-5](,[1-5])*$/.test(boxFilter)) { AppToast.show('Box 필터는 1~5 숫자 CSV (예: 1,2,3,4)', 'danger'); return; }
+    AppToast.show('학원 기본 정책 저장됨', 'success');
+  });
+
+  // ── Search students ──
+  const search = document.getElementById('student-search');
+  const countEl = document.getElementById('student-count');
+  const rows = document.querySelectorAll('tbody tr[data-student]');
+  search?.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    let hits = 0;
+    rows.forEach((r) => {
+      const ok = !q || r.dataset.student.toLowerCase().includes(q);
+      r.style.display = ok ? '' : 'none';
+      if (ok) hits++;
+    });
+    if (countEl) countEl.textContent = `${hits} / ${rows.length}명`;
+  });
+
+  // ── Edit override modal ──
+  document.querySelectorAll('[data-action="edit"]').forEach((btn) => {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      const row = btn.closest('tr');
+      const name = row.dataset.student;
+      const isOverride = row.dataset.override === '1';
+      AppModal.open({
+        title: `${name} 정책`,
+        body: `
+          <form id="override-form" style="display: grid; gap: 14px;">
+            <div class="toggle-row" style="padding: 8px 0; border-bottom: 1px dashed var(--border-secondary); margin-bottom: 6px;">
+              <div>
+                <div style="font-size: 14px; font-weight: 700;">오버라이드 사용</div>
+                <div class="field__hint" style="font-size: 11px; color: var(--text-tertiary);">끄면 학원 기본을 따릅니다</div>
+              </div>
+              <label class="toggle"><input type="checkbox" ${isOverride ? 'checked' : ''} /><span class="toggle__slider"></span></label>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="field"><label class="field__label">문항 수</label><input class="input" type="number" min="1" max="50" value="${isOverride ? '20' : '10'}" /></div>
+              <div class="field"><label class="field__label">응시 시간 (초)</label><input class="input" type="number" min="0" max="7200" value="600" /></div>
+              <div class="field"><label class="field__label">쿨다운 (분)</label><input class="input" type="number" min="0" max="1440" value="${isOverride ? '60' : '30'}" /></div>
+              <div class="field"><label class="field__label">일일 한도</label><input class="input" type="number" min="0" max="50" value="${isOverride ? '5' : '3'}" /></div>
+            </div>
+          </form>
+        `,
+        footer: `<button class="btn btn--ghost" onclick="AppModal.close()">취소</button><button class="btn btn--primary" id="confirm-override">저장</button>`,
+      });
+      setTimeout(() => {
+        document.getElementById('confirm-override')?.addEventListener('click', () => {
+          const checked = document.querySelector('#override-form input[type="checkbox"]')?.checked;
+          row.dataset.override = checked ? '1' : '0';
+          const pill = row.querySelector('.applied-pill');
+          if (pill) {
+            pill.className = `applied-pill ${checked ? 'applied-pill--override' : 'applied-pill--default'}`;
+            pill.textContent = checked ? '오버라이드' : '학원 기본';
+          }
+          AppModal.close();
+          AppToast.show(`${name} 정책 저장됨`, 'success');
+        });
+      }, 50);
+    });
+  });
+
+  // ── Reset to default ──
+  document.querySelectorAll('[data-action="reset"]').forEach((btn) => {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      const row = btn.closest('tr');
+      const name = row.dataset.student;
+      AppModal.open({
+        title: '오버라이드 삭제',
+        body: `<p style="margin:0 0 8px; font-size:14px;"><strong>${name}</strong>의 오버라이드를 삭제할까요?</p><p style="margin:0; font-size:13px; color:var(--text-secondary);">학원 기본 정책이 적용됩니다.</p>`,
+        footer: `<button class="btn btn--ghost" onclick="AppModal.close()">취소</button><button class="btn btn--danger" id="confirm-reset">삭제</button>`,
+      });
+      setTimeout(() => {
+        document.getElementById('confirm-reset')?.addEventListener('click', () => {
+          AppModal.close();
+          row.dataset.override = '0';
+          const pill = row.querySelector('.applied-pill');
+          if (pill) { pill.className = 'applied-pill applied-pill--default'; pill.textContent = '학원 기본'; }
+          row.querySelectorAll('td.tabular').forEach((td, i) => { if (i < 3) { td.textContent = '—'; td.classList.add('text-mute'); } });
+          const actions = row.querySelector('td:last-child');
+          if (actions) actions.innerHTML = `<button class="btn btn--secondary btn--sm" data-action="edit">편집</button>`;
+          AppToast.show(`${name} 학원 기본 적용`, 'success');
+        });
+      }, 50);
+    });
+  });
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
