@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, type ExamAbsentee, type ExamPaper, type ExamAttemptByPeriod, type ExamAssignmentUpdate, type ExamShareEntry } from '../api';
 import { toast } from '../components/Toast';
 import Modal from '../components/Modal';
+import { Icon } from '../components/icons/Icon';
 import { useAuthStore } from '../store';
 import { escapeHtml } from '../utils/html';
 
@@ -147,10 +148,10 @@ function AbsenteeView({
                       a.adhoc_status === 'cancelled' ? (
                         <span className="exam-adhoc-state exam-adhoc-state--cancelled">취소됨</span>
                       ) : (
-                        <span className="exam-adhoc-state exam-adhoc-state--active">✓ 등록됨</span>
+                        <span className="exam-adhoc-state exam-adhoc-state--active with-icon"><Icon name="Check" size={12} /> 등록됨</span>
                       )
                     ) : (
-                      <span className="exam-adhoc-state exam-adhoc-state--missing">⚠ 시간 미입력</span>
+                      <span className="exam-adhoc-state exam-adhoc-state--missing with-icon"><Icon name="AlertTriangle" size={12} /> 시간 미입력</span>
                     )}
                   </td>
                   <td>
@@ -751,7 +752,7 @@ export default function ExamManagementPage() {
                           aria-label="링크 편집"
                           title="편집"
                         >
-                          ✏️
+                          <Icon name="Pencil" size={14} />
                         </button>
                       </span>
                     ) : (
@@ -846,7 +847,7 @@ export default function ExamManagementPage() {
                           className="exam-report-check"
                           title={`${typeLabel} · ${new Date(rep.sentAt).toLocaleDateString('ko-KR')}`}
                           aria-label={`${typeLabel} 리포트 보기`}
-                        >✓</a>
+                        ><Icon name="Check" size={12} /></a>
                       );
                     })()}
                   </td>

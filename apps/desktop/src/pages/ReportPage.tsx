@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, Student, ReportEntry, ReportType } from '../api';
 import { toast } from '../components/Toast';
+import { Icon } from '../components/icons/Icon';
 import { useAuthStore } from '../store';
 import { TIMING } from '../constants/timing';
 import { useDebounce } from '../hooks/useDebounce';
@@ -488,7 +489,7 @@ export default function ReportPage() {
             <div className="report-paper" ref={reportRef} id="report-paper">
               {!selectedStudent ? (
                 <div className="report-empty">
-                  <div className="report-empty-icon">←</div>
+                  <div className="report-empty-icon"><Icon name="ArrowLeft" size={32} /></div>
                   <div>학생을 선택하세요</div>
                 </div>
               ) : (
@@ -567,8 +568,10 @@ export default function ReportPage() {
                                 </div>
                                 <span className="rpt-chart-value">{g.score}</span>
                                 {delta != null ? (
-                                  <span className={`rpt-chart-delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'same'}`}>
-                                    {delta > 0 ? `▲${delta}` : delta < 0 ? `▼${Math.abs(delta)}` : '-'}
+                                  <span className={`rpt-chart-delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'same'} with-icon`}>
+                                    {delta > 0 ? <><Icon name="ChevronUp" size={12} />{delta}</>
+                                      : delta < 0 ? <><Icon name="ChevronDown" size={12} />{Math.abs(delta)}</>
+                                      : '-'}
                                   </span>
                                 ) : (
                                   <span className="rpt-chart-delta same">{' '}</span>
