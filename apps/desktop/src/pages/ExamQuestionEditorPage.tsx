@@ -116,8 +116,9 @@ export default function ExamQuestionEditorPage() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <button
+          className="with-icon"
           onClick={() => navigate(backTo)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
         ><Icon name="ArrowLeft" /> 돌아가기</button>
       </div>
       <h1 style={{ fontSize: 22, margin: '4px 0 20px', color: 'var(--text-primary)' }}>
@@ -242,7 +243,7 @@ export default function ExamQuestionEditorPage() {
                   </div>
                 );
               })}
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <div className="with-icon" style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
                 <Icon name="ArrowLeft" size={12} /> 번호 버튼을 눌러 정답 설정 (현재: {q.correctChoice})
               </div>
             </div>

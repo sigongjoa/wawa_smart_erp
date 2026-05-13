@@ -60,7 +60,7 @@ export default function ExamResultPage() {
       <div className="exam-result-page">
         <div className="exam-result-error">
           <p>{error || '결과가 없어요'}</p>
-          <button className="btn btn-secondary" onClick={() => navigate(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <button className="btn btn-secondary" onClick={() => navigate(-1)}>
             <Icon name="ArrowLeft" /> 돌아가기
           </button>
         </div>
@@ -80,7 +80,7 @@ export default function ExamResultPage() {
     <div className="exam-result-page">
       {/* 헤더 — 뒤로가기 + 학생/시험지 정보 */}
       <div className="exam-result-topbar">
-        <button type="button" className="exam-result-back" onClick={() => navigate(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <button type="button" className="exam-result-back with-icon" onClick={() => navigate(-1)}>
           <Icon name="ArrowLeft" /> 돌아가기
         </button>
       </div>

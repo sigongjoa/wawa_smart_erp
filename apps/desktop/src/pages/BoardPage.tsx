@@ -322,7 +322,7 @@ export default function BoardPage() {
                         <div className="board-action-info">
                           <span className="board-action-title">{a.title}</span>
                           {a.notice_title && (
-                            <span className="board-action-notice" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <span className="board-action-notice with-icon">
                               <Icon name="ArrowLeft" size={12} /> {a.notice_title}
                             </span>
                           )}

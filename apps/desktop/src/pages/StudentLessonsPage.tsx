@@ -661,7 +661,7 @@ function LessonListItem({
         <span className={`lessons-chip ${statusChipClass}`}>{STATUS_LABEL[item.status]}</span>
         {item.visible_to_parent && <span className="lessons-chip lessons-chip--parent">학부모공개</span>}
         {item.files.length > 0 && (
-          <span className="lessons-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span className="lessons-chip with-icon">
             <Icon name="Paperclip" size={12} /> {item.files.length}
           </span>
         )}

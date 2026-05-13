@@ -152,7 +152,7 @@ export default function HomeroomExamsPage() {
                     </td>
                     <td style={{ padding: '8px' }}>
                       {ec.pre.length > 0 ? (
-                        <span style={{ color: 'var(--accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span className="with-icon" style={{ color: 'var(--accent)', fontWeight: 600 }}>
                           <Icon name="Check" size={14} /> {ec.pre.length}건
                         </span>
                       ) : (
@@ -161,7 +161,7 @@ export default function HomeroomExamsPage() {
                     </td>
                     <td style={{ padding: '8px' }}>
                       {ec.post.length > 0 ? (
-                        <span style={{ color: 'var(--accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span className="with-icon" style={{ color: 'var(--accent)', fontWeight: 600 }}>
                           <Icon name="Check" size={14} /> {ec.post.length}건
                         </span>
                       ) : (

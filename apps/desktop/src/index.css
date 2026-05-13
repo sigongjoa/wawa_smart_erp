@@ -310,6 +310,14 @@
   margin-bottom: var(--sp-3);
 }
 
+/* Icon + text 인라인 정렬 유틸 — span/div/non-.btn 버튼용
+   (.btn 은 자체적으로 inline-flex 갖고 있어 별도 적용 불필요) */
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
 /* ── Buttons ── */
 .btn {
   display: inline-flex;

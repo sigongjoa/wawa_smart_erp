@@ -122,20 +122,20 @@ const AttemptCard = memo(function AttemptCard({
         )}
         {effectiveStatus === 'running' && (
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => onPause(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => onPause(attempt)}>
               <Icon name="Pause" /> 정지
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)}>
               <Icon name="Check" /> 제출
             </button>
           </>
         )}
         {effectiveStatus === 'paused' && (
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => onResume(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => onResume(attempt)}>
               <Icon name="Play" /> 재개
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button type="button" className="btn btn-primary" onClick={() => onSubmit(attempt)}>
               <Icon name="Check" /> 제출
             </button>
           </>
