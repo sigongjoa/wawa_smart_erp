@@ -425,6 +425,7 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="_app.js"></script>
 <script>
   // ───── Mock state ─────
@@ -809,13 +810,53 @@
     doBulkSend([s]);
   });
 
-  $('download-jpg').addEventListener('click', () => {
+  // ───── PDF 미리보기 (실제 html2pdf.js 로 생성) ─────
+  $('download-jpg').addEventListener('click', async () => {
+    const s = STUDENTS.find(x => x.id === selectedId);
+    if (!s) { AppToast.show('학생을 먼저 선택하세요', 'warning'); return; }
     const btn = $('download-jpg');
-    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader"></i>생성 중…`; lucide.createIcons();
-    setTimeout(() => {
-      btn.disabled = false; btn.innerHTML = `<i data-lucide="download"></i>미리보기 PDF`; lucide.createIcons();
-      AppToast.show('리포트 PDF 다운로드 완료', 'success');
-    }, 800);
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader"></i>PDF 생성 중…`;
+    lucide.createIcons();
+
+    const filename = `${s.name}_${TYPE_LABEL[reportType]}_${TYPE_HEADER[reportType].mo}_리포트.pdf`;
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename,
+      image: { type: 'jpeg', quality: 0.96 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    };
+
+    try {
+      const worker = html2pdf().set(opt).from(paperEl);
+      const blob = await worker.outputPdf('blob');
+      const url = URL.createObjectURL(blob);
+
+      // Preview modal with iframe + download CTA
+      AppModal.open({
+        title: `${s.name} · ${TYPE_LABEL[reportType]} 리포트 — PDF 미리보기`,
+        body: `
+          <div style="margin: 0 -24px -20px; padding: 0;">
+            <iframe src="${url}" style="width: 100%; height: 540px; border: 0; border-top: 1px solid var(--border-secondary);" title="PDF 미리보기"></iframe>
+          </div>
+        `,
+        footer: `
+          <button class="btn btn--ghost" onclick="AppModal.close()">닫기</button>
+          <a class="btn btn--secondary" href="${url}" target="_blank" rel="noopener"><i data-lucide="external-link"></i>새 탭</a>
+          <a class="btn btn--primary" href="${url}" download="${filename}"><i data-lucide="download"></i>다운로드</a>
+        `,
+      });
+      AppToast.show(`PDF 생성됨 — ${filename}`, 'success');
+    } catch (err) {
+      console.error(err);
+      AppToast.show('PDF 생성 실패 — 콘솔 확인', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="download"></i>미리보기 PDF`;
+      lucide.createIcons();
+    }
   });
 
   // ───── Tabs (3 single tabs: monthly/midterm/final, all kinds of 정기고사) ─────
