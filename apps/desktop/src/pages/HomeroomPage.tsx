@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import HomeroomNotesOverview from '../components/HomeroomNotesOverview';
 import { Icon } from '../components/icons/Icon';
+import { PageHeader } from '../components/v2';
 
 type Calendar = Awaited<ReturnType<typeof api.getHomeroomCalendar>>;
 type CalendarConsultation = Calendar['consultations'][number];
@@ -80,52 +81,50 @@ export default function HomeroomPage() {
 
   return (
     <div style={{ padding: 16 }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 16,
-          flexWrap: 'wrap',
-        }}
-      >
-        <h2 style={{ margin: 0 }}>담임 대시보드</h2>
-        <nav style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <Link className="btn btn-ghost btn-sm" to="/homeroom/consultations">
-            학부모 상담
-          </Link>
-          <Link className="btn btn-ghost btn-sm" to="/homeroom/follow-ups">
-            후속 상담
-          </Link>
-          <Link className="btn btn-ghost btn-sm" to="/homeroom/exams">
-            시험 전후 상담
-          </Link>
-        </nav>
-        <div style={{ flex: 1 }} />
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={() => setMonth(monthShift(month, -1))}
-          aria-label="이전 달"
-        >
-          <Icon name="ChevronLeft" />
-        </button>
-        <input
-          type="month"
-          className="form-input"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          aria-label="조회 월 선택"
-          style={{ width: 160 }}
-        />
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={() => setMonth(monthShift(month, 1))}
-          aria-label="다음 달"
-        >
-          <Icon name="ChevronRight" />
-        </button>
-      </div>
-
+      <PageHeader
+        crumb="운영 · 담임"
+        title="담임 대시보드"
+        sub="월별 학부모 상담 매트릭스 · 후속 / 시험 전후 상담 현황"
+        titleExtra={
+          <nav style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <Link className="btn btn-ghost btn-sm" to="/homeroom/consultations">
+              학부모 상담
+            </Link>
+            <Link className="btn btn-ghost btn-sm" to="/homeroom/follow-ups">
+              후속 상담
+            </Link>
+            <Link className="btn btn-ghost btn-sm" to="/homeroom/exams">
+              시험 전후 상담
+            </Link>
+          </nav>
+        }
+        actions={
+          <>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setMonth(monthShift(month, -1))}
+              aria-label="이전 달"
+            >
+              <Icon name="ChevronLeft" />
+            </button>
+            <input
+              type="month"
+              className="form-input"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              aria-label="조회 월 선택"
+              style={{ width: 160 }}
+            />
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setMonth(monthShift(month, 1))}
+              aria-label="다음 달"
+            >
+              <Icon name="ChevronRight" />
+            </button>
+          </>
+        }
+      />
       {summary && summary.homeroom_count === 0 ? (
         <p className="no-data">담임으로 지정된 학생이 없습니다. (관리자에게 문의)</p>
       ) : loading ? (

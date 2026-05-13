@@ -5,6 +5,8 @@ import Modal from '../components/Modal';
 import MakeupSessionsModal from '../components/MakeupSessionsModal';
 import { useAuthStore } from '../store';
 import { errorMessage } from '../utils/errors';
+import { PageHeader } from '../components/v2';
+import { Icon } from '../components/icons/Icon';
 
 type MakeupStatus = '' | 'pending' | 'scheduled' | 'completed';
 
@@ -201,20 +203,31 @@ export default function AbsencePage() {
   return (
     <div className="absence-page">
       {ConfirmDialog}
-      <div className="absence-page-header">
-        <h2 className="page-title">보강 관리</h2>
-        {isAdmin && (
-          <div className="scope-toggle" role="group">
-            <button
-              className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
-              onClick={() => setScope('mine')}
-            >내 학생</button>
-            <button
-              className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
-              onClick={() => setScope('all')}
-            >모두 보기</button>
-          </div>
-        )}
+      <PageHeader
+        crumb="운영 · 출결·보강"
+        title="보강 관리"
+        sub="결석 → 보강 일정 추적"
+        actions={
+          <>
+            {isAdmin && (
+              <div className="scope-toggle" role="group">
+                <button
+                  className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
+                  onClick={() => setScope('mine')}
+                >내 학생</button>
+                <button
+                  className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
+                  onClick={() => setScope('all')}
+                >모두 보기</button>
+              </div>
+            )}
+            <button className="btn btn-primary btn-sm with-icon" onClick={() => setShowAdd(true)}>
+              <Icon name="Plus" size={14} /> 결석 추가
+            </button>
+          </>
+        }
+      />
+      <div className="absence-page-header" style={{ display: 'block' }}>
         <div className="absence-filters">
           {([
             { key: '', label: '전체' },
@@ -233,7 +246,6 @@ export default function AbsencePage() {
               )}
             </button>
           ))}
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ 결석 추가</button>
         </div>
       </div>
 

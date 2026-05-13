@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
+import { PageHeader } from '../components/v2';
 
 interface Notice {
   id: string;
@@ -250,17 +251,21 @@ export default function BoardPage() {
 
   return (
     <div className="board-page">
-      <div className="board-header">
-        <h2 className="page-title">보드</h2>
-        <div className="board-header-actions">
-          <button className="btn btn-sm btn-secondary" onClick={() => setShowActionModal(true)}>
-            + 할일
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowNoticeModal(true)}>
-            + 공지 작성
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumb="운영 · 학원 게시판"
+        title="보드"
+        sub="고정 공지 · 내 할일 · 최근 공지"
+        actions={
+          <>
+            <button className="btn btn-sm btn-secondary with-icon" onClick={() => setShowActionModal(true)}>
+              <Icon name="Plus" size={14} /> 할일
+            </button>
+            <button className="btn btn-primary with-icon" onClick={() => setShowNoticeModal(true)}>
+              <Icon name="Plus" size={14} /> 공지 작성
+            </button>
+          </>
+        }
+      />
 
       {loading ? (
         <div className="rpt-loading" role="status"><div className="rpt-spinner" /><span>로딩 중...</span></div>

@@ -6,6 +6,7 @@ import Modal from '../components/Modal';
 import { Icon } from '../components/icons/Icon';
 import { useAuthStore } from '../store';
 import { escapeHtml } from '../utils/html';
+import { PageHeader } from '../components/v2';
 
 type ByMonthStudent = {
   student_id: string;
@@ -522,26 +523,32 @@ export default function ExamManagementPage() {
 
   return (
     <div className="exam-page">
-      <div className="exam-header">
-        <h2 className="page-title">정기고사 관리</h2>
-        {isAdmin && (
-          <div className="scope-toggle" role="group" aria-label="담당 범위 선택">
-            <button
-              type="button"
-              aria-pressed={scope === 'mine'}
-              className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
-              onClick={() => setScope('mine')}
-            >내 학생</button>
-            <button
-              type="button"
-              aria-pressed={scope === 'all'}
-              className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
-              onClick={() => setScope('all')}
-            >모두 보기</button>
-          </div>
-        )}
-        <EnglishExamPaperPicker periodId={periodId} />
-      </div>
+      <PageHeader
+        crumb="운영 · 정기고사"
+        title="정기고사 관리"
+        sub="시험지 진행 단계 · 학생 배정 · 점수 입력"
+        actions={
+          <>
+            {isAdmin && (
+              <div className="scope-toggle" role="group" aria-label="담당 범위 선택">
+                <button
+                  type="button"
+                  aria-pressed={scope === 'mine'}
+                  className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
+                  onClick={() => setScope('mine')}
+                >내 학생</button>
+                <button
+                  type="button"
+                  aria-pressed={scope === 'all'}
+                  className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
+                  onClick={() => setScope('all')}
+                >모두 보기</button>
+              </div>
+            )}
+            <EnglishExamPaperPicker periodId={periodId} />
+          </>
+        }
+      />
 
       {/* 월 탭 */}
       <div className="exam-month-tabs" role="tablist">

@@ -10,6 +10,7 @@ import {
 import Modal from '../components/Modal';
 import { toast, useConfirm } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
+import { PageHeader } from '../components/v2';
 import './CurriculumPage.css';
 
 const COMMON_TERMS = ['2026-1', '2026-여름', '2026-2', '2026-겨울'];
@@ -198,17 +199,16 @@ export default function CurriculumPage() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">커리큘럼 관리</h1>
-          <p className="curr-page-subtitle">
-            학기/학년/과목별 카탈로그를 만들어 학생에게 일괄 적용합니다.
-          </p>
-        </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          + 새 카탈로그
-        </button>
-      </div>
+      <PageHeader
+        crumb="컨텐츠 · 커리큘럼"
+        title="커리큘럼 관리"
+        sub="학기/학년/과목별 카탈로그를 만들어 학생에게 일괄 적용"
+        actions={
+          <button className="btn btn-primary with-icon" onClick={() => setShowCreate(true)}>
+            <Icon name="Plus" size={14} /> 새 카탈로그
+          </button>
+        }
+      />
 
       <div className="curr-toolbar" role="region" aria-label="필터">
         <select className="input" value={filter.term} onChange={(e) => setFilter({ ...filter, term: e.target.value })}>
