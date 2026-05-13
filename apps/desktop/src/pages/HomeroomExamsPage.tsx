@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { toast } from '../components/Toast';
+import { Icon } from '../components/icons/Icon';
 import { errorMessage } from '../utils/errors';
 import { MS_PER_DAY } from '../constants/timing';
 
@@ -151,8 +152,8 @@ export default function HomeroomExamsPage() {
                     </td>
                     <td style={{ padding: '8px' }}>
                       {ec.pre.length > 0 ? (
-                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
-                          ✓ {ec.pre.length}건
+                        <span style={{ color: 'var(--accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name="Check" size={14} /> {ec.pre.length}건
                         </span>
                       ) : (
                         <span style={{ color: 'var(--warning-text)' }}>미실시</span>
@@ -160,8 +161,8 @@ export default function HomeroomExamsPage() {
                     </td>
                     <td style={{ padding: '8px' }}>
                       {ec.post.length > 0 ? (
-                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
-                          ✓ {ec.post.length}건
+                        <span style={{ color: 'var(--accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name="Check" size={14} /> {ec.post.length}건
                         </span>
                       ) : (
                         <span style={{ color: 'var(--text-tertiary)' }}>—</span>
