@@ -609,7 +609,6 @@
 </div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="_app.js"></script>
 <script>
   // ───── Mock state ─────
@@ -1116,130 +1115,106 @@
     return wrap;
   }
 
-  // ───── PDF 미리보기 — 클린 DOM 생성 후 캡처 ─────
-  $('download-jpg').addEventListener('click', async () => {
+  // ───── PDF 미리보기 — 브라우저 네이티브 print (html2canvas 없이) ─────
+  // 새 창에 클린 HTML 띄우고 window.print() → 사용자가 "PDF로 저장" 선택
+  // html2canvas 캔버스 깨짐 문제 회피, 텍스트 PDF (선택/검색 가능)
+  $('download-jpg').addEventListener('click', () => {
     const s = STUDENTS.find(x => x.id === selectedId);
     if (!s) { AppToast.show('학생을 먼저 선택하세요', 'warning'); return; }
-    const btn = $('download-jpg');
-    btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader"></i>PDF 생성 중…`;
-    lucide.createIcons();
 
-    // 화면용 paperEl 대신, 편집 affordance 없는 클린 DOM 생성
     const pdfDom = generatePdfDOM(s);
+    const title = `${s.name} · ${TYPE_LABEL[reportType]} 리포트 (${TYPE_HEADER[reportType].mo} ${TYPE_HEADER[reportType].yr})`;
+    const filename = `${s.name}_${TYPE_LABEL[reportType]}_${TYPE_HEADER[reportType].mo}_리포트`;
 
-    // html2canvas 는 offscreen 요소를 잘 못 잡음.
-    // → pdfDom 을 화면 좌상단에 보이게 배치하고, 그 위에 오버레이로 덮어 사용자 시선 차단
-    pdfDom.style.position = 'absolute';
-    pdfDom.style.top = '0';
-    pdfDom.style.left = '0';
-    pdfDom.style.zIndex = '99998';
-
-    const overlay = document.createElement('div');
-    overlay.id = '__pdf-overlay';
-    overlay.style.cssText = `
-      position: fixed; inset: 0;
-      background: rgba(26, 30, 46, 0.55);
-      z-index: 99999;
-      display: grid; place-items: center;
-      backdrop-filter: blur(4px);
-    `;
-    overlay.innerHTML = `
-      <div style="background: #ffffff; color: #1a1e2e; padding: 20px 28px; border-radius: 12px; font-size: 15px; font-weight: 700; box-shadow: 0 12px 32px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 12px;">
-        <div style="width: 18px; height: 18px; border: 2px solid #e3e6ed; border-top-color: #2d3a8c; border-radius: 50%; animation: pdfspin 0.6s linear infinite;"></div>
-        <span>PDF 생성 중…</span>
-      </div>
-      <style>@keyframes pdfspin { to { transform: rotate(360deg); } }</style>
-    `;
-
-    document.body.appendChild(pdfDom);
-    document.body.appendChild(overlay);
-
-    // 강제로 viewport 상단 스크롤 — html2canvas 가 viewport 기준 캡처
-    const prevScrollY = window.scrollY;
-    window.scrollTo(0, 0);
-    // 레이아웃 / 폰트 안정화 대기
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    const filename = `${s.name}_${TYPE_LABEL[reportType]}_${TYPE_HEADER[reportType].mo}_리포트.pdf`;
-    const opt = {
-      margin: 0,
-      filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        windowWidth: 794,
-        // 클론에서 우리가 부여한 absolute 위치 리셋 (캡처 컨테이너 안에서는 static 으로)
-        onclone: (clonedDoc) => {
-          const cloned = clonedDoc.querySelector('.pdf-paper');
-          if (cloned) {
-            cloned.style.position = 'static';
-            cloned.style.left = 'auto';
-            cloned.style.top = 'auto';
-            cloned.style.zIndex = 'auto';
-          }
-        },
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-    };
-
-    try {
-      const worker = html2pdf().set(opt).from(pdfDom);
-      const blob = await worker.outputPdf('blob');
-
-      // file:// 환경에서는 blob URL 이 iframe 에 차단됨 → data URI fallback
-      const isFile = window.location.protocol === 'file:';
-      let previewUrl, linkUrl;
-      if (isFile) {
-        previewUrl = await new Promise((resolve) => {
-          const fr = new FileReader();
-          fr.onloadend = () => resolve(fr.result);
-          fr.readAsDataURL(blob);
-        });
-        linkUrl = previewUrl;
-      } else {
-        const blobUrl = URL.createObjectURL(blob);
-        previewUrl = blobUrl;
-        linkUrl = blobUrl;
-      }
-
-      const fileNotice = isFile ? `
-        <div style="padding: 10px 16px; background: var(--warning-surface); color: var(--warning); border-bottom: 1px solid var(--border-secondary); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-          <i data-lucide="info" style="width: 14px; height: 14px;"></i>
-          <span>로컬 파일(<code style="font-family: ui-monospace, monospace;">file://</code>) 환경 — data URI 모드로 표시 중. 정상 호스팅 시 더 빠릅니다.</span>
-        </div>` : '';
-
-      AppModal.open({
-        title: `${s.name} · ${TYPE_LABEL[reportType]} 리포트 — PDF 미리보기`,
-        body: `
-          <div style="margin: 0 -24px -20px; padding: 0;">
-            ${fileNotice}
-            <iframe src="${previewUrl}" style="width: 100%; height: 600px; border: 0; border-top: 1px solid var(--border-secondary);" title="PDF 미리보기"></iframe>
-          </div>
-        `,
-        footer: `
-          <button class="btn btn--ghost" onclick="AppModal.close()">닫기</button>
-          <a class="btn btn--secondary" href="${linkUrl}" target="_blank" rel="noopener"><i data-lucide="external-link"></i>새 탭</a>
-          <a class="btn btn--primary" href="${linkUrl}" download="${filename}"><i data-lucide="download"></i>다운로드</a>
-        `,
-      });
-      AppToast.show(`PDF 생성됨 — ${filename}`, 'success');
-    } catch (err) {
-      console.error(err);
-      AppToast.show('PDF 생성 실패 — 콘솔 확인', 'danger');
-    } finally {
-      pdfDom.remove();
-      const ov = document.getElementById('__pdf-overlay');
-      if (ov) ov.remove();
-      window.scrollTo(0, prevScrollY);
-      btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="download"></i>미리보기 PDF`;
-      lucide.createIcons();
+    // .pdf-paper 의 모든 CSS 를 head 에 인라인으로 복사
+    // (새 창에서 _shared.css 안 불러도 작동하도록 self-contained)
+    const styleSheets = Array.from(document.styleSheets);
+    let css = '';
+    for (const sheet of styleSheets) {
+      try {
+        for (const rule of sheet.cssRules || []) css += rule.cssText + '\n';
+      } catch (e) { /* CORS 차단된 외부 stylesheet 무시 */ }
     }
+
+    const printHtml = `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>${title}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<style>
+  ${css}
+  /* Print/PDF 전용 — 새 창에서만 적용 */
+  html, body { margin: 0; padding: 0; background: #f3f5f9; }
+  body { padding: 24px; }
+  .pdf-paper { position: static !important; left: auto !important; top: auto !important; z-index: auto !important; margin: 0 auto; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+
+  /* Print 액션 toolbar — print 시 숨김 */
+  .print-toolbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: #2d3a8c; color: white;
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
+    font-size: 14px; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+  }
+  .print-toolbar button {
+    padding: 8px 16px; border-radius: 6px;
+    background: #ffffff; color: #2d3a8c;
+    border: none; cursor: pointer;
+    font-weight: 800; font-size: 13px;
+    font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .print-toolbar button:hover { opacity: 0.9; }
+  .print-toolbar .sub { margin-left: auto; font-size: 12px; opacity: 0.85; font-weight: 600; }
+
+  body { padding-top: 72px; }  /* toolbar 공간 */
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm;
+  }
+  @media print {
+    html, body { background: #ffffff; padding: 0 !important; }
+    .print-toolbar { display: none !important; }
+    .pdf-paper { box-shadow: none; padding: 0 !important; width: 100% !important; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <div class="print-toolbar">
+    <button id="btn-print">⌘ PDF로 저장 / 인쇄</button>
+    <button id="btn-close" style="background: rgba(255,255,255,0.2); color: white;">닫기</button>
+    <span class="sub">파일명: ${filename}.pdf · Ctrl+P 단축키도 가능합니다</span>
+  </div>
+  ${pdfDom.outerHTML}
+  <script>
+    document.title = ${JSON.stringify(filename)};
+    document.getElementById('btn-print').addEventListener('click', () => window.print());
+    document.getElementById('btn-close').addEventListener('click', () => window.close());
+    // 폰트 로드 후 자동 print
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => setTimeout(() => window.print(), 300));
+    } else {
+      setTimeout(() => window.print(), 800);
+    }
+  <\/script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) {
+      AppToast.show('새 창이 차단됨 — 팝업 허용 후 다시 시도하세요', 'danger');
+      return;
+    }
+    win.document.open();
+    win.document.write(printHtml);
+    win.document.close();
+
+    AppToast.show(`PDF 미리보기 새 창 열림 — Ctrl+P 또는 상단 버튼으로 저장`, 'success');
   });
 
   // ───── Tabs (3 single tabs: monthly/midterm/final, all kinds of 정기고사) ─────
