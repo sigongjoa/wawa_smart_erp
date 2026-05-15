@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type BaseballWord, type BaseballWordsResponse } from '../api';
+import TtsButton from '../components/TtsButton';
 import './BaseballPage.css';
 
 type Tier = 1 | 2 | 3 | 4;
@@ -939,7 +940,10 @@ export default function BaseballPage() {
             <span className="q-hint">
               {isOffense ? '⚾ 공이 날아온다 — 뜻 맞혀 쳐라!' : '🧢 공을 던져라 — 빠를수록 스트라이크!'}
             </span>
-            <span className="q-word">{current?.prompt ?? '—'}</span>
+            <span className="q-word">
+              {current?.prompt ?? '—'}
+              {isOffense && current?.prompt && <TtsButton text={current.prompt} size={18} />}
+            </span>
             <div className="timer-bar">
               <div
                 className="timer-bar-fill"

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import { medtermApi, MedTermCard, MedTermAnswerResult, MedTermDetail, MedTermFigureLabel } from '../api';
+import TtsButton from '../components/TtsButton';
 import './MedTermPage.css';
 
 type CardState = 'idle' | 'submitting' | 'graded';
@@ -179,7 +180,10 @@ export default function MedTermPage() {
 
         {card.study_mode === 'meaning' && (
           <>
-            <div className="medterm-term" data-testid="medterm-term-text">{card.term}</div>
+            <div className="medterm-term" data-testid="medterm-term-text">
+              {card.term}
+              <TtsButton text={card.term} size={20} />
+            </div>
             <div className="medterm-prompt">한국어 의미를 입력하세요.</div>
             <input
               type="text"
@@ -196,7 +200,10 @@ export default function MedTermPage() {
 
         {card.study_mode === 'decompose' && (
           <>
-            <div className="medterm-term" data-testid="medterm-term-text">{card.term}</div>
+            <div className="medterm-term" data-testid="medterm-term-text">
+              {card.term}
+              <TtsButton text={card.term} size={20} />
+            </div>
             <div className="medterm-prompt">
               단어를 요소로 분리하세요 ({expectedSlots}개 슬롯)
             </div>
@@ -242,7 +249,9 @@ export default function MedTermPage() {
         {card.study_mode === 'figure' && (
           <>
             <div className="medterm-prompt">
-              <b>{card.term}</b> 에 해당하는 위치를 그림에서 클릭하세요.
+              <b>{card.term}</b>
+              <TtsButton text={card.term} size={16} />
+              {' '}에 해당하는 위치를 그림에서 클릭하세요.
             </div>
             <div className="medterm-figure-wrap" data-testid="medterm-figure-wrap">
               {figureLabels.length > 0 && (
@@ -264,7 +273,10 @@ export default function MedTermPage() {
         {card.study_mode === 'plural' && (
           <>
             <div className="medterm-prompt">복수형을 입력하세요.</div>
-            <div className="medterm-term" data-testid="medterm-term-text">{card.term}</div>
+            <div className="medterm-term" data-testid="medterm-term-text">
+              {card.term}
+              <TtsButton text={card.term} size={20} />
+            </div>
             <input
               type="text"
               className="medterm-input"
