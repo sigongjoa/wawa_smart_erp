@@ -7,6 +7,7 @@ import type { VocabOutletContext } from '../VocabAdminPage';
 import { MetricTabs } from '../../components/list/MetricTabs';
 import { Pager } from '../../components/list/Pager';
 import { EmptyState } from '../../components/list/EmptyState';
+import TtsButton from '../../components/TtsButton';
 
 type GachaStudentLite = { id: string; name: string; grade?: string | null };
 
@@ -259,7 +260,10 @@ export default function VocabWordsTab() {
               return (
                 <tr key={w.id} data-id={w.id}>
                   <td className="vocab-cell-word" title={example || undefined}>
-                    <div className="vocab-cell-english">{w.english}</div>
+                    <div className="vocab-cell-english">
+                      {w.english}
+                      <TtsButton text={w.english} size={13} />
+                    </div>
                     <div className="vocab-cell-korean">{w.korean}</div>
                     <div className="vocab-cell-student">{sName}</div>
                   </td>

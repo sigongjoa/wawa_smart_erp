@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, VocabExamDetail } from '../api';
+import TtsButton from '../components/TtsButton';
 import './VocabExamPage.css';
 
 export default function VocabExamResultPage() {
@@ -50,7 +51,10 @@ export default function VocabExamResultPage() {
           <div key={q.wordId} className={`vresult-item ${q.correct ? 'vresult-correct' : 'vresult-wrong'}`}>
             <div className="vresult-no">{i + 1}</div>
             <div className="vresult-body">
-              <div className="vresult-prompt">{q.prompt}</div>
+              <div className="vresult-prompt">
+                <span>{q.prompt}</span>
+                <TtsButton text={q.prompt} size={14} />
+              </div>
               <div className="vresult-answer">
                 정답: <strong>{q.choices[q.correctIndex] ?? '—'}</strong>
                 {q.selectedIndex !== null && q.selectedIndex !== q.correctIndex && (

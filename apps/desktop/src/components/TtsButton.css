@@ -1,0 +1,50 @@
+/* TTS Button — Desktop (강사) 가이드 부합
+ * - 강사용이므로 mouse hover 중심
+ * - 평상시 ghost, hover에서 primary surface
+ * - 재생 중: primary 채움 + 2px ring
+ */
+.tts-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--tts-icon-size, 14px) + 10px);
+  height: calc(var(--tts-icon-size, 14px) + 10px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-left: 4px;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-normal) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.tts-btn:hover {
+  background: var(--primary-surface);
+  color: var(--primary);
+}
+
+.tts-btn:active {
+  transform: scale(0.92);
+}
+
+.tts-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.tts-btn.is-speaking {
+  background: var(--primary-surface);
+  color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.tts-btn.is-speaking:hover {
+  background: var(--primary-surface);
+  color: var(--primary);
+}

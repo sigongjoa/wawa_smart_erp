@@ -132,6 +132,7 @@ import {
   GitBranch,
   CheckCheck,
   Printer,
+  Volume2,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -164,7 +165,7 @@ const ICONS: Record<string, ComponentType<LucideProps>> = {
   KeyRound, Lock, Briefcase, QrCode, LogIn, Bell, Megaphone,
   Palette, Grid2x2, Dices, ListOrdered, History,
   FolderOpen, Folder, Globe, MoreHorizontal, ZoomIn, Expand, Wand2,
-  Undo, GitBranch, CheckCheck, Printer,
+  Undo, GitBranch, CheckCheck, Printer, Volume2,
 };
 
 export type IconName = keyof typeof ICONS;

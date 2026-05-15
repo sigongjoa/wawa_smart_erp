@@ -1,0 +1,61 @@
+/* TTS Button — STUDENT.md · IMPECCABLE 부합
+ * - 단어 도메인 = type-water (포켓몬 타입 시스템)
+ * - 평상시: 정보(단어)가 주인공이라 ghost
+ * - 재생 중: type-water 채움 + 2px ring — Pokemon type chip 톤, 한 시점 한 모션
+ * - 모션은 ease-out-quart, 진입 한 번만
+ * - 모바일 터치 타겟 ::before 확장 (시각 크기는 단어 옆에 어울리게)
+ */
+.tts-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--tts-icon-size, 18px) + 14px);
+  height: calc(var(--tts-icon-size, 18px) + 14px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink-40);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  vertical-align: middle;
+  transition:
+    background var(--dur-fast) var(--ease-out-quart),
+    color var(--dur-fast) var(--ease-out-quart),
+    box-shadow var(--dur-base) var(--ease-out-quart),
+    transform var(--dur-fast) var(--ease-out-quart);
+}
+
+/* 모바일 터치 hit area — 시각적 크기는 유지하면서 손가락 타겟만 ±8px 확장 */
+.tts-btn::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.tts-btn:hover {
+  background: var(--type-water-surface);
+  color: var(--type-water);
+}
+
+.tts-btn:active {
+  transform: scale(0.92);
+}
+
+.tts-btn:focus-visible {
+  outline: 2px solid var(--type-water);
+  outline-offset: 2px;
+}
+
+/* Speaking — Pokemon type chip 톤. ring 등장은 box-shadow transition(dur-base)으로 결정적 */
+.tts-btn.is-speaking {
+  background: var(--type-water-surface);
+  color: var(--type-water);
+  box-shadow: 0 0 0 2px var(--type-water);
+}
+.tts-btn.is-speaking:hover {
+  /* 재생 중에는 hover override 막아 상태 일관성 유지 */
+  background: var(--type-water-surface);
+  color: var(--type-water);
+}

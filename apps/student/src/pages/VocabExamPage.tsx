@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, VocabExamDetail } from '../api';
+import TtsButton from '../components/TtsButton';
 import './VocabExamPage.css';
 
 const FALLBACK_TIME_LIMIT_MS = 600 * 1000;
@@ -118,7 +119,10 @@ export default function VocabExamPage() {
 
       <main className="vexam-main">
         <div className="vexam-prompt">
-          <span className="vexam-en">{cur.prompt}</span>
+          <span className="vexam-en">
+            {cur.prompt}
+            <TtsButton text={cur.prompt} size={22} />
+          </span>
           <span className="vexam-en-hint">한국어 뜻을 고르세요</span>
         </div>
 
