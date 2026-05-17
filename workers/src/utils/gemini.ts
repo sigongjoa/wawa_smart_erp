@@ -19,10 +19,16 @@ interface KVLike {
 
 interface MinimalEnv {
   GEMINI_API_KEY?: string;
+  /**
+   * Cloudflare AI Gateway proxy base URL. 설정 시 모든 Gemini 호출이 게이트웨이를 경유 →
+   * 대시보드에서 token/cost/latency/error 즉시 가시화. 미설정 시 Google 직접 호출.
+   * 예: https://gateway.ai.cloudflare.com/v1/<account>/<gateway>/google-ai-studio/v1beta/models
+   */
+  AI_GATEWAY_GEMINI_BASE?: string;
   KV: KVLike;
 }
 
-const ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const DEFAULT_ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 const DAY_SECONDS = 24 * 60 * 60;
 
@@ -51,6 +57,12 @@ export interface GeminiOptions {
   responseSchema?: object;
   /** 멀티모달 — Gemini Vision parts.inlineData 로 첨부 */
   imageParts?: Array<{ mimeType: string; data: string }>;  // data: base64 (no prefix)
+  /**
+   * KV 기반 daily limit·usage 누적을 건너뜀.
+   * 다단계 호출(예: ask-ai orchestrate-v2 의 Plan+Fill N회)에서
+   * caller 가 진입점에서 1회만 체크/누적하도록 위임할 때 사용 → KV 쓰기 N배 폭증 회피.
+   */
+  skipKVTracking?: boolean;
 }
 
 export interface GeminiResult {
@@ -83,9 +95,11 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
     return { blocked: errorResponse('Gemini API 키가 설정되지 않았습니다', 500) };
   }
 
-  // Daily limit 체크 (사용자별)
-  const limitBlocked = await checkAiDailyLimit(env.KV, userId, kind);
-  if (limitBlocked) return { blocked: limitBlocked };
+  // Daily limit 체크 (사용자별). caller 가 진입점에서 1회만 체크하는 경우 (multi-call) 건너뜀.
+  if (!opts.skipKVTracking) {
+    const limitBlocked = await checkAiDailyLimit(env.KV, userId, kind);
+    if (limitBlocked) return { blocked: limitBlocked };
+  }
 
   const generationConfig: Record<string, unknown> = {
     temperature: opts.temperature ?? 0.6,
@@ -109,7 +123,8 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
   };
 
   const model = opts.model ?? DEFAULT_MODEL;
-  const endpoint = `${ENDPOINT_BASE}/${model}:generateContent`;
+  const base = env.AI_GATEWAY_GEMINI_BASE ?? DEFAULT_ENDPOINT_BASE;
+  const endpoint = `${base}/${model}:generateContent`;
 
   let res: Response | null = null;
   let lastErr: unknown = null;
@@ -149,7 +164,7 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
     total: Number(um.totalTokenCount ?? 0),
   } : undefined;
 
-  if (usage) {
+  if (usage && !opts.skipKVTracking) {
     await Promise.all([
       incrementUsage(env.KV, `user:${userId}`, usage.total),
       academyId ? incrementUsage(env.KV, `academy:${academyId}`, usage.total) : Promise.resolve(),

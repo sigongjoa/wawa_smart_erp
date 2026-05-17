@@ -122,12 +122,17 @@ function fillContext(plan: PlanResult, idx: number, userMsg: string): string {
   ].join('\n');
 }
 
+interface ToolCallResult<T> {
+  data: T;
+  tokens: { input: number; output: number };
+}
+
 async function callTool<T>(
   fetcher: ClaudeFetcher,
   systemText: string,
   userText: string,
   tool: ClaudeTool,
-): Promise<T> {
+): Promise<ToolCallResult<T>> {
   const messages: ClaudeMessage[] = [
     { role: 'system', content: systemText },
     { role: 'user', content: userText },
@@ -135,7 +140,13 @@ async function callTool<T>(
   const raw = await fetcher.generate(messages, [tool]);
   const toolUse = raw.content.find((c) => c.type === 'tool_use' && c.name === tool.name);
   if (!toolUse?.input) throw new Error(`Gemini did not return ${tool.name} tool_use`);
-  return toolUse.input as T;
+  return {
+    data: toolUse.input as T,
+    tokens: {
+      input: raw.usage?.input_tokens ?? 0,
+      output: raw.usage?.output_tokens ?? 0,
+    },
+  };
 }
 
 function generateConversationId(now: Date): string {
@@ -155,38 +166,57 @@ export async function orchestrateV2(opts: OrchestrateOpts): Promise<OrchestrateR
     unit_filter: opts.request.unit_id,
   });
 
+  // D5 — token 누적기. Plan + Fill[N] 호출 전부 합산.
+  let tokensIn = 0;
+  let tokensOut = 0;
+
   // 1) Plan call
   const planSys = planSystemPrompt({ studentMeta: opts.studentMeta, references });
-  const plan = await callTool<PlanResult>(opts.claudeFetch, planSys, opts.request.message, PLAN_TOOL);
+  const planCall = await callTool<PlanResult>(opts.claudeFetch, planSys, opts.request.message, PLAN_TOOL);
+  const plan = planCall.data;
+  tokensIn += planCall.tokens.input;
+  tokensOut += planCall.tokens.output;
 
   // 2) Fill calls — parallel per step
   const fillSys = '너는 와와 학원 수학 설명 AI. plan 의 한 step 을 채운다. 한국어, KaTeX inline ($..$) 가능.';
-  const fillPromises = plan.steps.map(async (planStep, i): Promise<Step> => {
+  const fillPromises = plan.steps.map(async (planStep, i): Promise<{ step: Step; tokens: { input: number; output: number } }> => {
     const ctx = fillContext(plan, i, opts.request.message);
     if (planStep.kind === 'explain') {
       const r = await callTool<{ title: string; body_md: string }>(opts.claudeFetch, fillSys, ctx, FILL_EXPLAIN_TOOL);
-      return { kind: 'explain', title: r.title, body_md: r.body_md } as Step;
+      return { step: { kind: 'explain', title: r.data.title, body_md: r.data.body_md } as Step, tokens: r.tokens };
     }
     if (planStep.kind === 'checkpoint') {
       const r = await callTool<{ question: string }>(opts.claudeFetch, fillSys, ctx, FILL_CHECKPOINT_TOOL);
-      return { kind: 'checkpoint', question: r.question, required: true } as Step;
+      return { step: { kind: 'checkpoint', question: r.data.question, required: true } as Step, tokens: r.tokens };
     }
     // figure
     const r = await callTool<{ xs: number[]; ys: number[]; xlabel?: string; ylabel?: string; caption: string }>(
       opts.claudeFetch, fillSys, ctx, FILL_FIGURE_TOOL,
     );
-    if (!Array.isArray(r.xs) || r.xs.length < 2 || r.xs.length !== r.ys?.length) {
+    const d = r.data;
+    if (!Array.isArray(d.xs) || d.xs.length < 2 || d.xs.length !== d.ys?.length) {
       // figure fill 실패 → explain 으로 안전 강등
-      return { kind: 'explain', title: planStep.hint || '그림', body_md: r.caption || '(그림 데이터 누락)' } as Step;
+      return {
+        step: { kind: 'explain', title: planStep.hint || '그림', body_md: d.caption || '(그림 데이터 누락)' } as Step,
+        tokens: r.tokens,
+      };
     }
     return {
-      kind: 'figure',
-      spec: { type: 'points-2d', xs: r.xs, ys: r.ys, ...(r.xlabel ? { xlabel: r.xlabel } : {}), ...(r.ylabel ? { ylabel: r.ylabel } : {}) },
-      ...(r.caption ? { caption: r.caption } : {}),
-    } as Step;
+      step: {
+        kind: 'figure',
+        spec: { type: 'points-2d', xs: d.xs, ys: d.ys, ...(d.xlabel ? { xlabel: d.xlabel } : {}), ...(d.ylabel ? { ylabel: d.ylabel } : {}) },
+        ...(d.caption ? { caption: d.caption } : {}),
+      } as Step,
+      tokens: r.tokens,
+    };
   });
 
-  const filledSteps = await Promise.all(fillPromises);
+  const filledResults = await Promise.all(fillPromises);
+  for (const f of filledResults) {
+    tokensIn += f.tokens.input;
+    tokensOut += f.tokens.output;
+  }
+  const filledSteps = filledResults.map((f) => f.step);
 
   // 3) 조합 + Zod 방어 검증
   const responseDraft = {
@@ -204,7 +234,7 @@ export async function orchestrateV2(opts: OrchestrateOpts): Promise<OrchestrateR
   return {
     response: parsed.data,
     conversation_id: generateConversationId(opts.now()),
-    used_tokens: 0,  // v2 는 step 별 분산 — 정확 산출 후속 (logger 에서 sum 가능)
+    used_tokens: tokensIn + tokensOut,
     duration_ms,
   };
 }

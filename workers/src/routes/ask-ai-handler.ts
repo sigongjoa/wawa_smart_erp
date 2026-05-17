@@ -31,6 +31,7 @@ import { orchestrate } from '@/services/ask-ai/orchestrator';
 import { orchestrateV2 } from '@/services/ask-ai/orchestrate-v2';
 import { GeminiFetcher } from '@/services/ask-ai/gemini-adapter';
 import { checkQuota, incrementQuota, freshQuotaState, isStaleForToday } from '@/services/ask-ai/quota';
+import { checkAiDailyLimit } from '@/utils/ai-rate-limit';
 import { applyDecision, filterQueue, sortQueue, type ConversationSummary } from '@/services/ask-ai/teacher';
 import { nextSM2 } from '@/services/ask-ai/sm2';
 import { makePhotoKey, validatePhotoFile, expirationDate, MAX_PHOTO_BYTES } from '@/services/ask-ai/photo-upload';
@@ -148,11 +149,15 @@ async function handleAsk(request: Request, context: RequestContext): Promise<Res
   const quotaResp = checkAskQuota(quotaState, req.attached_photos.length > 0);
   if (quotaResp) return quotaResp;
 
-  // 4) Gemini key 체크
+  // 4) Gemini key 체크 + AI daily limit (KV 1회 read+write per /ask)
   if (!context.env.GEMINI_API_KEY) {
     logger.error('GEMINI_API_KEY missing');
     return errorResponse('AI 서비스 설정 오류', 500);
   }
+  // ask-ai는 orchestrate-v2 가 sub-call N회 호출 → daily limit 은 진입점 1회만 체크.
+  // gemini-adapter 에 skipKVTracking=true 로 sub-call 의 KV 폭증 차단.
+  const aiLimitBlocked = await checkAiDailyLimit(context.env.KV, auth.userId, 'ask-ai');
+  if (aiLimitBlocked) return aiLimitBlocked;
 
   // 5) UC-01 — orchestrate (v2: Plan + Fill, multi-call로 truncate 회피)
   const studentMeta = await loadStudentMeta(context, auth.userId);
@@ -172,8 +177,9 @@ async function handleAsk(request: Request, context: RequestContext): Promise<Res
     now: () => new Date(),
   });
 
-  // 6) 영속화 (대화 + quota)
+  // 6) 영속화 (대화 + quota) + Analytics Engine 메트릭
   await persistConversation(context, auth.userId, req, result);
+  writeAskAIMetric(context, auth, req, result);
   const finalQuota = bumpQuota(quotaState, req.attached_photos.length > 0);
   await persistQuota(context, finalQuota);
 
@@ -218,6 +224,46 @@ function checkAskQuota(state: any, hasPhoto: boolean): Response | null {
 function bumpQuota(state: any, hasPhoto: boolean) {
   const next = incrementQuota(state, 'question');
   return hasPhoto ? incrementQuota(next, 'photo') : next;
+}
+
+/**
+ * Analytics Engine 으로 conversation metric 1건 발행.
+ * D2~D5 회귀를 prod 트래픽에서 즉시 가시화하기 위한 신호.
+ * - blob1: academy_id (격리·필터링)
+ * - blob2: confidence
+ * - blob3: needs_teacher (string)
+ * - blob4: unit_id
+ * - blob5: is_short ('1' if message length < 30)  — D1 회귀 신호
+ * - double1: used_tokens
+ * - double2: duration_ms
+ *
+ * binding 미설정이면 silently skip (개발 환경 호환).
+ */
+function writeAskAIMetric(
+  context: RequestContext,
+  auth: { academyId?: string },
+  req: { unit_id?: string; message: string },
+  result: { response: any; used_tokens: number; duration_ms: number },
+): void {
+  const ae = context.env.AE_ASKAI;
+  if (!ae) return;
+  try {
+    const academyId = auth.academyId ?? 'unknown';
+    ae.writeDataPoint({
+      blobs: [
+        academyId,
+        String(result.response.confidence ?? 'unknown'),
+        result.response.needs_teacher ? '1' : '0',
+        req.unit_id ?? 'none',
+        req.message.length < 30 ? '1' : '0',
+      ],
+      doubles: [result.used_tokens, result.duration_ms],
+      indexes: [academyId],
+    });
+  } catch (err) {
+    // AE 실패가 응답을 막아선 안 됨
+    logger.warn('AE_ASKAI writeDataPoint 실패: ' + (err instanceof Error ? err.message : String(err)));
+  }
 }
 
 async function persistConversation(

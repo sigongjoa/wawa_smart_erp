@@ -10,6 +10,8 @@ export interface Env {
   JWT_REFRESH_SECRET?: string;
   PARENT_REPORT_SECRET?: string;
   GEMINI_API_KEY?: string;
+  AI_GATEWAY_GEMINI_BASE?: string;
+  AE_ASKAI?: AnalyticsEngineDataset;
   CLOVA_INVOKE_URL?: string;
   CLOVA_SECRET_KEY?: string;
   NOTION_API_KEY?: string;

@@ -64,6 +64,20 @@ binding = "BUCKET"
 bucket_name = "wawa-smart-erp"
 jurisdiction = "eu"
 
+# Analytics Engine — ask-ai 응답 메트릭 (confidence·needs_teacher·token·unit_id·is_short)
+# 멀티테넌트 격리는 blob1=academy_id 로. 무료 tier 5M writes/day.
+[[analytics_engine_datasets]]
+binding = "AE_ASKAI"
+dataset = "askai_metrics"
+
+[[env.development.analytics_engine_datasets]]
+binding = "AE_ASKAI"
+dataset = "askai_metrics_dev"
+
+[[env.production.analytics_engine_datasets]]
+binding = "AE_ASKAI"
+dataset = "askai_metrics"
+
 # 기본 환경 변수 (wrangler deploy 시 사용)
 # top-level 은 test DB 를 향하므로 ENVIRONMENT=development 로 명시한다 —
 # prod 는 반드시 `wrangler deploy --env production` 으로만 접근.
@@ -94,6 +108,11 @@ STUDENT_APP_URL = "https://learn.wawa.app"
 JWT_EXPIRES_IN = "3600"
 REFRESH_TOKEN_EXPIRES_IN = "2592000"
 LOG_LEVEL = "info"
+# AI Gateway proxy URL (선택). 활성화하려면 Cloudflare 대시보드 AI Gateway 생성 후
+# 아래 형식으로 wrangler secret 등록:
+#   wrangler secret put AI_GATEWAY_GEMINI_BASE --env production
+#   value: https://gateway.ai.cloudflare.com/v1/<ACCOUNT>/<GATEWAY>/google-ai-studio/v1beta/models
+# 미설정 시 utils/gemini.ts 가 Google 직접 호출로 fallback.
 
 # Cron Triggers — 1분마다 만료된 exam_attempts 자동 처리
 [triggers]

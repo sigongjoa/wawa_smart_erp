@@ -97,6 +97,10 @@ export class GeminiFetcher implements ClaudeFetcher {
       model: this.opts.model ?? 'gemini-2.5-flash',
       responseSchema: schema,
       imageParts,
+      // ask-ai는 orchestrate-v2 가 sub-call N회 호출 (Plan+Fill).
+      // KV daily limit·usage 추적은 handleAsk 진입점에서 1회만 → KV 쓰기 80% 감소.
+      // 응답 메트릭은 Analytics Engine (AE_ASKAI) 가 대체.
+      skipKVTracking: true,
     });
 
     if (result.blocked) {

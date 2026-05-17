@@ -66,6 +66,8 @@ describe('orchestrateV2 — Plan + Fill', () => {
     expect(r.response.steps[2].kind).toBe('checkpoint');
     expect(r.response.confidence).toBe('high');
     expect(r.response.needs_teacher).toBe(false);
+    // D5 — token 집계 회귀 가드. Plan 1회 + Fill 3회 = 4회 × (50+100) = 600
+    expect(r.used_tokens).toBe(4 * 150);
   });
 
   it('confidence=low → needs_teacher 자동 true', async () => {
