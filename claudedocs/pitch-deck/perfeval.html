@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1400" />
+<title>07 · PerfEval — 와와 EduTech Stack</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<link rel="stylesheet" href="deck.css" />
+<style>
+  :root {
+    --sys-dark: #7c3aed;
+    --sys-mid:  #8b5cf6;
+    --sys-soft: #ede9fe;
+    --sys-fill: #f5f3ff;
+    --sys-rule: #c4b5fd;
+    --sys-ink:  #4c1d95;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="curves" viewBox="0 0 480 480" fill="none" stroke="currentColor">
+      <path d="M 480 100 Q 360 220, 480 360" />
+      <path d="M 480 140 Q 320 240, 480 380" />
+      <path d="M 480 180 Q 280 260, 480 400" />
+      <path d="M 480 220 Q 240 280, 480 420" />
+      <path d="M 480 260 Q 200 300, 480 440" />
+      <path d="M 480 300 Q 160 320, 460 460" />
+      <path d="M 480 340 Q 140 360, 420 470" />
+    </symbol>
+  </defs>
+</svg>
+
+<nav class="topnav" aria-label="시스템 탐색">
+  <div class="topnav-inner">
+    <a class="nav-brand" href="index.html">와와<em> · EduTech</em></a>
+    <div class="nav-links">
+      <a href="index.html"><span class="dot" aria-hidden="true" style="background:#0f0f1f"></span>Overview</a>
+      <a href="erp.html"><span class="dot" aria-hidden="true" style="background:#475569"></span>01 ERP</a>
+      <a href="askai.html"><span class="dot" aria-hidden="true" style="background:#4f46e5"></span>02 AskAI</a>
+      <a href="proof.html"><span class="dot" aria-hidden="true" style="background:#059669"></span>03 Proof</a>
+      <a href="english.html"><span class="dot" aria-hidden="true" style="background:#d97706"></span>04 English</a>
+      <a href="vocab.html"><span class="dot" aria-hidden="true" style="background:#dc2626"></span>05 Vocab</a>
+      <a href="tutorflow.html"><span class="dot" aria-hidden="true" style="background:#0891b2"></span>06 TutorFlow</a>
+      <a href="perfeval.html" class="active"><span class="dot" aria-hidden="true" style="background:#7c3aed"></span>07 PerfEval</a>
+    </div>
+    <span class="nav-meta">System 07 of 07 · UPCOMING</span>
+  </div>
+</nav>
+
+<main class="canvas">
+
+  <header class="canvas-header">
+    <h1 class="canvas-title">07 · PerfEval<em> — 서논술형 평가 훈련 · 보고서 초안 자동화</em></h1>
+    <span class="canvas-tag">제작 예정 · 2026 Q3 MVP · 4 단계 글쓰기 프로토콜 + Skill 6 종 · 3 frames</span>
+    <div class="canvas-meta">
+      <div><b>Plum theme</b> · #7c3aed</div>
+      <div>System 07 of 07 · Upcoming</div>
+    </div>
+  </header>
+
+  <section class="slide-row">
+
+    <!-- 07.01 Intro -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">07 · 01</span><span>Intro</span><span class="dim">— PerfEval thesis</span></div>
+      <div class="slide s-intro">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>Detail · <span class="sys">07 · PerfEval</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">PerfEval</span></div>
+          </div>
+          <div class="lead-row">
+            <div>
+              <h1>ChatGPT로<br/>쓰면 <s>들킨다</s>.<br/><span class="acc">우리는 안 들킨다</span>.</h1>
+              <div class="sub">학원 자체 <span class="acc">수학신문·탐구보고서·수행평가 결과물</span> 위에서 만든다. 학교에서 이미 통과된 자료가 <span class="acc">처음부터 만들 필요 0</span>의 차별점.</div>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="v">0<sub>초기비용</sub></div><div class="k">처음부터 만들 필요 X<small>학원 결과물 그대로 활용</small></div></div>
+              <div class="stat"><div class="v">6<sub>skills</sub></div><div class="k">Claude Code skill 패키징<small>코치 PC 로컬</small></div></div>
+              <div class="stat"><div class="v">Q3<sub>2026</sub></div><div class="k">MVP 출시 예정<small>파일럿 코치 3 명</small></div></div>
+              <div class="stat"><div class="v">세특<sub>자동</sub></div><div class="k">강사 학기말 작업 1위 해소<small>수십 명 손작성</small></div></div>
+            </div>
+          </div>
+          <div class="toc">
+            <div class="item"><div class="n">07.1</div><div class="t">Why moat<small>학원 결과물 자산</small></div></div>
+            <div class="item"><div class="n">07.2</div><div class="t">6 Skill 패키징<small>/perfeval-*</small></div></div>
+            <div class="item"><div class="n">07.3</div><div class="t">배포 차별점<small>로컬 + 학원 데이터</small></div></div>
+            <div class="item"><div class="n">↗</div><div class="t">상단 탭<small>다른 시스템</small></div></div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · PerfEval Subdeck · 2026 Q2</div><div class="page"><b>07 · 01</b> / 07 · 03</div></div>
+      </div>
+    </div>
+
+    <!-- 07.02 Why moat + skills -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">07 · 02</span><span>Why moat + Skills</span><span class="dim">— 자산 + 패키징</span></div>
+      <div class="slide s-two">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>07 · PerfEval · <span class="sys">Why moat + Skills</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">PerfEval</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>왜 우리만 만들 수 있나, <span class="acc">어떻게 배포할까</span>.</h2>
+            <div class="subtitle">자산 4 항목 + Claude Code Native Skill 6 종</div>
+          </div>
+          <div class="two equal">
+            <div class="why">
+              <h3>— LEFT · 4 가지 moat</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">학원 자체 결과물 자산</div><div class="d">수학신문 · 탐구보고서 · 수행평가 <b>실물 보유</b> — <span class="acc">AI에게 예시 몇 개만 보여줘도 학습</span> 가능.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">학교별 루브릭 사진 자동 인식</div><div class="d">학교마다 다른 루브릭 사진 → 자동 구조화. <span class="acc">시간 갈수록 강해지는 차별점</span>.</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">세특 초안 자동화</div><div class="d">강사 학기말 <span class="acc">고통 1위 작업</span> 해소. 수십 명 손작성 → AI 초안.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">학습이론 안전장치</div><div class="d">Writing 3-step처럼 <span class="acc">학생 사고 강제 흐름</span> 내장. AI 검출기 회피.</div></div></li>
+              </ul>
+            </div>
+            <div>
+              <h3>— RIGHT · 6 Skill 패키징 (Claude Code Native)</h3>
+              <div class="skill-list">
+                <div class="row"><div class="cmd">/perfeval-rubric</div><div class="desc">루브릭 사진 → 구조화 JSON</div></div>
+                <div class="row"><div class="cmd">/perfeval-research</div><div class="desc">진로 × 주제 × 루브릭 딥리서치</div></div>
+                <div class="row"><div class="cmd">/perfeval-draft</div><div class="desc">탐구보고서 5 유형 Typst 생성</div></div>
+                <div class="row"><div class="cmd">/perfeval-grade</div><div class="desc">루브릭 기반 자가채점</div></div>
+                <div class="row"><div class="cmd">/perfeval-saeteuk</div><div class="desc">세특 초안 (학교·강사 톤)</div></div>
+                <div class="row"><div class="cmd">/perfeval-newspaper</div><div class="desc">수학신문 figure + 레이아웃</div></div>
+              </div>
+              <div class="note-box"><b>배포 차별점.</b> 외부 SaaS 없이 코치 PC에 <b>skill 파일만</b> 설치 — 학원 데이터가 학원 컴퓨터에 남는다.</div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · PerfEval Subdeck · 2026 Q2</div><div class="page"><b>07 · 02</b> / 07 · 03</div></div>
+      </div>
+    </div>
+
+    <!-- 07.03 ChatGPT vs PerfEval -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">07 · 03</span><span>ChatGPT vs PerfEval</span><span class="dim">— 정면 비교</span></div>
+      <div class="slide">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>07 · PerfEval · <span class="sys">vs ChatGPT</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">PerfEval</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>왜 일반 AI로는 <span class="acc">못 만드나</span>.</h2>
+            <div class="subtitle">ChatGPT · Claude 단독 사용 vs PerfEval 정면 비교</div>
+          </div>
+          <div class="s-vs">
+            <div class="col them">
+              <div class="l">— 일반 AI 도구 (ChatGPT · Claude 단독)</div>
+              <h3>평균형 결과물.</h3>
+              <ul>
+                <li><span class="i">×</span><span>학교별 루브릭 <b>모름</b> → 일반 답</span></li>
+                <li><span class="i">×</span><span>학교 통과 수준 <b>기준 없음</b></span></li>
+                <li><span class="i">×</span><span>"AI 티 나는 톤" → <b>AI 검출기 적발</b></span></li>
+                <li><span class="i">×</span><span>학생이 그대로 베끼면 <b>학습 효과 0</b></span></li>
+                <li><span class="i">×</span><span>세특·채점 <b>지원 안 함</b></span></li>
+              </ul>
+            </div>
+            <div class="col us">
+              <div class="l">— 와와 PerfEval</div>
+              <h3>학원 <span class="acc">결과물</span> 위에서.</h3>
+              <ul>
+                <li><span class="i">✓</span><span>학교별 <span class="acc">루브릭 사진 자동 인식</span> + 채점 성향 학습</span></li>
+                <li><span class="i">✓</span><span>학교 통과한 <span class="acc">실제 결과물</span>을 AI 예시로 학습</span></li>
+                <li><span class="i">✓</span><span>학원·강사 <span class="acc">톤</span> 학습 → AI 티 X</span></li>
+                <li><span class="i">✓</span><span>Writing 3-step식 <span class="acc">학생 사고 강제</span></span></li>
+                <li><span class="i">✓</span><span>세특 초안 + 채점 + 수학신문까지 <span class="acc">한 skill 세트</span></span></li>
+              </ul>
+            </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · PerfEval Subdeck · 2026 Q2</div><div class="page"><b>07 · 03</b> / 07 · 03 · END</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="canvas-footer">
+    <h2>End of PerfEval subdeck<em> · 3 frames</em></h2>
+    <span></span>
+    <div class="meta"><div>Plum <b>#7c3aed</b> · System 07 of 07 · Upcoming Q3 2026</div></div>
+  </footer>
+
+</main>
+</body>
+</html>

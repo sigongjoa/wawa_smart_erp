@@ -11,12 +11,13 @@ const GRADE_OPTIONS = [
   '고1', '고2', '고3',
 ];
 
+type SheetKind = null | 'academy' | 'grade' | 'teacher';
+
 export default function SignupRequestPage() {
   const navigate = useNavigate();
 
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [selectedAcademy, setSelectedAcademy] = useState<Academy | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [name, setName] = useState('');
   const [grade, setGrade] = useState('');
   const [pin, setPin] = useState('');
@@ -26,6 +27,7 @@ export default function SignupRequestPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<Phase>('form');
+  const [sheet, setSheet] = useState<SheetKind>(null);  // 한 번에 하나만 열림
 
   const pinRef = useRef<HTMLInputElement>(null);
   const pinConfirmRef = useRef<HTMLInputElement>(null);
@@ -78,6 +80,7 @@ export default function SignupRequestPage() {
     pinConfirm.length === 4 &&
     !loading;
   const visibleAcademies = academies.filter((a) => !a.slug.startsWith('test-') && a.slug !== 'e2e-test');
+  const teacherDisabled = !selectedAcademy || teachers.length === 0;
 
   if (phase === 'submitted') {
     return (
@@ -108,6 +111,8 @@ export default function SignupRequestPage() {
       </header>
 
       <form className="lg-form" onSubmit={handleSubmit} noValidate>
+
+        {/* 학원 ───────────────────────────────────── */}
         <div className="lg-field">
           <span className="lg-field-label">
             <span>학원</span>
@@ -117,7 +122,7 @@ export default function SignupRequestPage() {
             type="button"
             className="lg-academy"
             data-empty={!selectedAcademy}
-            onClick={() => setSheetOpen(true)}
+            onClick={() => setSheet('academy')}
           >
             <span className="lg-academy-name">
               {selectedAcademy ? selectedAcademy.name : '학원을 선택하세요'}
@@ -126,6 +131,7 @@ export default function SignupRequestPage() {
           </button>
         </div>
 
+        {/* 이름 ───────────────────────────────────── */}
         <div className="lg-field">
           <span className="lg-field-label">
             <span>이름</span>
@@ -143,24 +149,24 @@ export default function SignupRequestPage() {
           />
         </div>
 
+        {/* 학년 ───────────────────────────────────── */}
         <div className="lg-field">
           <span className="lg-field-label">
             <span>학년 (선택)</span>
             <span className="lg-field-index">03</span>
           </span>
-          <select
-            className="lg-name"
-            value={grade}
-            onChange={(e) => setGrade(e.target.value)}
-            aria-label="학년"
+          <button
+            type="button"
+            className="lg-academy"
+            data-empty={!grade}
+            onClick={() => setSheet('grade')}
           >
-            <option value="">학년을 선택하세요</option>
-            {GRADE_OPTIONS.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
+            <span className="lg-academy-name">{grade || '학년을 선택하세요'}</span>
+            <span className="lg-academy-arrow" aria-hidden="true">›</span>
+          </button>
         </div>
 
+        {/* PIN ────────────────────────────────────── */}
         <div className="lg-field">
           <span className="lg-field-label">
             <span>PIN · 4자리</span>
@@ -193,6 +199,7 @@ export default function SignupRequestPage() {
           </div>
         </div>
 
+        {/* PIN 재확인 ──────────────────────────────── */}
         <div className="lg-field">
           <span className="lg-field-label">
             <span>PIN 재확인</span>
@@ -225,29 +232,30 @@ export default function SignupRequestPage() {
           </div>
         </div>
 
+        {/* 담당 선생님 ─────────────────────────────── */}
         <div className="lg-field">
           <span className="lg-field-label">
             <span>담당 선생님 (선택)</span>
             <span className="lg-field-index">06</span>
           </span>
-          <select
-            className="lg-name"
-            value={teacherName}
-            onChange={(e) => setTeacherName(e.target.value)}
-            disabled={!selectedAcademy || teachers.length === 0}
-            aria-label="담당 선생님"
+          <button
+            type="button"
+            className="lg-academy"
+            data-empty={!teacherName}
+            disabled={teacherDisabled}
+            onClick={() => setSheet('teacher')}
           >
-            <option value="">
-              {!selectedAcademy
+            <span className="lg-academy-name">
+              {teacherName
+                ? `${teacherName} 선생님`
+                : !selectedAcademy
                 ? '먼저 학원을 선택하세요'
                 : teachers.length === 0
                 ? '등록된 선생님이 없습니다'
                 : '담당 선생님을 선택하세요'}
-            </option>
-            {teachers.map((t) => (
-              <option key={t} value={t}>{t} 선생님</option>
-            ))}
-          </select>
+            </span>
+            <span className="lg-academy-arrow" aria-hidden="true">›</span>
+          </button>
         </div>
 
         {error && <div className="lg-error" role="alert">{error}</div>}
@@ -272,44 +280,105 @@ export default function SignupRequestPage() {
         </Link>
       </form>
 
-      {sheetOpen && (
+      {/* ─ Bottom Sheet — 학원 / 학년 / 담당선생님 공통 ─ */}
+      {sheet && (
         <div
           className="lg-sheet-scrim"
-          onClick={() => setSheetOpen(false)}
+          onClick={() => setSheet(null)}
           role="dialog"
           aria-modal="true"
-          aria-label="학원 선택"
+          aria-label={
+            sheet === 'academy' ? '학원 선택' :
+            sheet === 'grade' ? '학년 선택' : '담당 선생님 선택'
+          }
         >
           <div className="lg-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="lg-sheet-header">
-              <h2 className="lg-sheet-title">학원 선택</h2>
-              <button type="button" className="lg-sheet-close" onClick={() => setSheetOpen(false)} aria-label="닫기">×</button>
+              <h2 className="lg-sheet-title">
+                {sheet === 'academy' ? '학원 선택' :
+                 sheet === 'grade' ? '학년 선택' : '담당 선생님 선택'}
+              </h2>
+              <button type="button" className="lg-sheet-close" onClick={() => setSheet(null)} aria-label="닫기">×</button>
             </div>
-            {visibleAcademies.length === 0 ? (
-              <div className="lg-sheet-empty">등록된 학원이 없습니다</div>
-            ) : (
+
+            {sheet === 'academy' && (
+              visibleAcademies.length === 0 ? (
+                <div className="lg-sheet-empty">등록된 학원이 없습니다</div>
+              ) : (
+                <ul className="lg-sheet-list">
+                  {visibleAcademies.map((a) => (
+                    <li
+                      key={a.slug}
+                      role="button"
+                      tabIndex={0}
+                      className="lg-sheet-item"
+                      aria-selected={selectedAcademy?.slug === a.slug}
+                      onClick={() => { setSelectedAcademy(a); setSheet(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedAcademy(a); setSheet(null);
+                        }
+                      }}
+                    >
+                      <span className="lg-sheet-item-name">{a.name}</span>
+                      <span className="lg-sheet-item-meta">{a.slug.toUpperCase()}</span>
+                    </li>
+                  ))}
+                </ul>
+              )
+            )}
+
+            {sheet === 'grade' && (
               <ul className="lg-sheet-list">
-                {visibleAcademies.map((a) => (
+                {GRADE_OPTIONS.map((g) => (
                   <li
-                    key={a.slug}
+                    key={g}
                     role="button"
                     tabIndex={0}
                     className="lg-sheet-item"
-                    aria-selected={selectedAcademy?.slug === a.slug}
-                    onClick={() => { setSelectedAcademy(a); setSheetOpen(false); }}
+                    aria-selected={grade === g}
+                    onClick={() => { setGrade(g); setSheet(null); }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        setSelectedAcademy(a);
-                        setSheetOpen(false);
+                        setGrade(g); setSheet(null);
                       }
                     }}
                   >
-                    <span className="lg-sheet-item-name">{a.name}</span>
-                    <span className="lg-sheet-item-meta">{a.slug.toUpperCase()}</span>
+                    <span className="lg-sheet-item-name">{g}</span>
                   </li>
                 ))}
               </ul>
+            )}
+
+            {sheet === 'teacher' && (
+              teachers.length === 0 ? (
+                <div className="lg-sheet-empty">
+                  {!selectedAcademy ? '먼저 학원을 선택하세요' : '등록된 선생님이 없습니다'}
+                </div>
+              ) : (
+                <ul className="lg-sheet-list">
+                  {teachers.map((t) => (
+                    <li
+                      key={t}
+                      role="button"
+                      tabIndex={0}
+                      className="lg-sheet-item"
+                      aria-selected={teacherName === t}
+                      onClick={() => { setTeacherName(t); setSheet(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setTeacherName(t); setSheet(null);
+                        }
+                      }}
+                    >
+                      <span className="lg-sheet-item-name">{t} 선생님</span>
+                    </li>
+                  ))}
+                </ul>
+              )
             )}
           </div>
         </div>

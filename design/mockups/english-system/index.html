@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>영어 학습 시스템 · Mockup Index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+  :root {
+    --paper:#f6f4ee; --paper-2:#ebe7dc; --stage:#fffdf5;
+    --ink:#1a1e2e; --ink-soft:#5e6478; --rule:#d8d3c4;
+    --mark:#d97706; --accent:#2d3a8c; --mint:#006e5a;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    font-family:'Pretendard Variable',system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, var(--stage), transparent 60%),
+      var(--paper);
+    background-attachment:fixed;
+    padding:48px clamp(16px,4vw,32px) 80px;
+    position:relative;
+  }
+  body::before{
+    content:''; position:fixed; inset:0; pointer-events:none;
+    background-image: radial-gradient(circle at 1px 1px, rgba(26,30,46,0.025) 1px, transparent 0);
+    background-size: 3px 3px;
+  }
+  .wrap{position:relative; max-width:1080px; margin:0 auto;}
+  header{
+    display:flex; flex-direction:column; gap:8px;
+    padding-bottom:32px; margin-bottom:32px;
+    border-bottom:1px solid var(--rule);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--mark); font-weight:700;
+  }
+  h1{
+    font-family:'Fraunces',Georgia,serif;
+    font-variation-settings:'opsz' 96,'wght' 500;
+    font-size:clamp(34px,5.5vw,56px);
+    letter-spacing:-0.025em; line-height:1.05;
+    margin:0;
+  }
+  h1 em{ font-style:italic; color:var(--mark); font-variation-settings:'opsz' 96,'wght' 400; }
+  .lede{
+    max-width:60ch; font-size:15px; line-height:1.65;
+    color:var(--ink-soft); margin-top:8px;
+  }
+  .lede b{ color:var(--ink); font-weight:600; }
+  .group-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:700;
+    display:flex; align-items:center; gap:14px;
+    margin:32px 0 16px;
+  }
+  .group-label::after{ content:''; flex:1; height:1px; background:var(--rule);}
+  .grid{
+    display:grid; gap:16px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+  .card{
+    background:#fff; border:1px solid var(--rule); border-radius:14px;
+    padding:22px 20px; text-decoration:none; color:inherit;
+    display:flex; flex-direction:column; gap:10px;
+    transition: transform 200ms cubic-bezier(0.16,1,0.3,1), box-shadow 200ms ease, border-color 200ms ease;
+    box-shadow:0 1px 0 rgba(26,30,46,0.04);
+    position:relative;
+  }
+  .card:hover{
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow:0 24px 40px -20px rgba(45,58,140,0.28);
+  }
+  .card .pno{
+    font-family:'Fraunces',Georgia,serif;
+    font-variation-settings:'opsz' 144,'wght' 300;
+    font-size:38px; line-height:0.85; color:var(--mark);
+    letter-spacing:-0.03em;
+  }
+  .card h2{
+    margin:0;
+    font-family:'Fraunces',Georgia,serif;
+    font-variation-settings:'opsz' 28,'wght' 500;
+    font-size:19px; letter-spacing:-0.01em;
+    color:var(--ink);
+  }
+  .card h2 em{ font-style:italic; color:var(--accent); font-variation-settings:'opsz' 28,'wght' 400; }
+  .card .desc{ font-size:13px; line-height:1.55; color:var(--ink-soft); }
+  .card .tag{
+    align-self:flex-start; margin-top:auto;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:700;
+    padding:5px 9px; border-radius:999px; background:var(--paper-2);
+  }
+  .card.root .tag{ background:rgba(45,58,140,0.1); color:var(--accent);}
+  .card.writing .tag{ background:rgba(0,110,90,0.12); color:var(--mint);}
+  footer{
+    margin-top:48px; padding-top:24px;
+    border-top:1px dashed var(--rule);
+    font-size:12px; color:var(--ink-soft); line-height:1.6;
+  }
+  footer code{
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    background:var(--paper-2); padding:2px 6px; border-radius:4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">WAWA Smart ERP · 영어 학습 시스템 mockup</span>
+    <h1>어근부터 <em>자기 글 메타학습</em>까지, 다섯 화면</h1>
+    <p class="lede">
+      <b>어근 학습 → 추론 퀴즈 → 영작 → AI 첨삭 → 자기 글로 메타 학습</b>의 한 사이클을
+      목업으로 제시합니다. 각 카드를 눌러 정적 화면을 확인하세요. 종이 텍스처 · Fraunces serif ·
+      morpheme 색상 분해라는 공통 언어로 다섯 화면이 한 가족처럼 묶여 있습니다.
+    </p>
+  </header>
+
+  <div class="group-label">A · Root System</div>
+  <div class="grid">
+    <a class="card root" href="./01-root-study.html">
+      <span class="pno">01</span>
+      <h2>어근 <em>학습</em> 화면</h2>
+      <p class="desc">어근 카드(spec — 보다) + 파생어 5개를 morpheme 타일로 분해해서 보여주는 학습 페이지.</p>
+      <span class="tag">Root Study</span>
+    </a>
+    <a class="card root" href="./02-root-inference.html">
+      <span class="pno">02</span>
+      <h2>어근 <em>추론</em> 퀴즈</h2>
+      <p class="desc">처음 보는 단어(prospectus)를 어근 힌트만으로 4지선다 추론하는 퀴즈쇼 화면.</p>
+      <span class="tag">Inference</span>
+    </a>
+  </div>
+
+  <div class="group-label">B · English Workbook (3-Pass)</div>
+  <div class="grid">
+    <a class="card writing" href="./03-writing-draft.html">
+      <span class="pno">03</span>
+      <h2>Pass 1 · <em>영작</em> 화면</h2>
+      <p class="desc">수행평가 프롬프트를 받아 학생이 영어 에세이를 작성하는 종이 톤 에디터.</p>
+      <span class="tag">Draft</span>
+    </a>
+    <a class="card writing" href="./04-writing-review.html">
+      <span class="pno">04</span>
+      <h2>Pass 2 · <em>AI 첨삭</em></h2>
+      <p class="desc">inline annotation 6곳에 색상별 카테고리 + popup에 *수정 전·후·이유*를 노출하는 첨삭 화면.</p>
+      <span class="tag">AI Review</span>
+    </a>
+    <a class="card writing" href="./05-writing-meta.html">
+      <span class="pno">05</span>
+      <h2>Pass 3 · <em>메타 학습</em></h2>
+      <p class="desc">자기 글에서 추출한 요지·핵심어휘·논리구조 3종 자동 워크북.</p>
+      <span class="tag">Meta Practice</span>
+    </a>
+  </div>
+
+  <footer>
+    파일 위치 <code>design/mockups/english-system/</code> · 모든 화면이 standalone — 더블 클릭으로
+    브라우저에서 바로 확인 가능. 학생 앱 라우트에 등록되어 있지 않습니다 (mockup).
+  </footer>
+</div>
+</body>
+</html>

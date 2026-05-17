@@ -1,0 +1,243 @@
+/* ═════════════════════════════════════════════════════════
+   AskAIHubPage — mockups/ask-ai/mobile-home.html 1:1 포팅
+   클래스 prefix: .ah-* (Layout 안 — 탭바 위)
+   ═════════════════════════════════════════════════════════ */
+
+.ah-page {
+  font-family: var(--font-display);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: var(--bg-canvas);
+  min-height: 100%;
+}
+
+.ah-header {
+  padding: calc(var(--safe-top) + 24px) 22px 12px;
+  background: var(--bg-canvas);
+  position: sticky; top: 0; z-index: 5;
+}
+
+.ah-greeting {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.ah-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--type-grass); color: white;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 17px;
+  letter-spacing: -0.02em;
+  box-shadow: 0 2px 6px rgba(63,161,41,0.25);
+}
+.ah-greeting h1 {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+.ah-greeting h1 b {
+  color: var(--type-grass); font-weight: 800;
+}
+.ah-bell {
+  margin-left: auto;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: var(--border-hair);
+  color: var(--ink-72);
+  display: grid; place-items: center;
+  cursor: pointer;
+  position: relative;
+}
+.ah-bell:active { background: var(--ink-05); }
+
+.ah-unit-strip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border-radius: 999px;
+  border: var(--border-hair);
+  width: fit-content;
+}
+.ah-unit-swatch {
+  width: 24px; height: 24px; border-radius: 7px;
+  background: var(--type-grass);
+  color: white; display: grid; place-items: center;
+  font-size: 11px; font-weight: 800;
+}
+.ah-unit-info { min-width: 0; }
+.ah-unit-name {
+  font-size: 14px; font-weight: 700; color: var(--ink);
+  line-height: 1.2;
+}
+
+/* main */
+.ah-main {
+  padding: 20px 22px 32px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.ah-section-label {
+  font-size: 11px; font-weight: 800;
+  color: var(--ink-60);
+  letter-spacing: 0.6px; text-transform: uppercase;
+  margin: 32px 0 12px;
+}
+
+/* HERO — 묻기 시작 */
+.ah-hero {
+  margin: 12px 0 4px;
+  background: var(--primary);
+  color: white;
+  border-radius: var(--r-lg);
+  padding: 28px 24px 0;
+  overflow: hidden;
+}
+.ah-hero h2 {
+  font-size: 22px; font-weight: 900;
+  letter-spacing: -0.02em; line-height: 1.2;
+  margin: 0;
+}
+.ah-hero h2 em {
+  font-style: normal;
+  background: linear-gradient(180deg, transparent 60%, rgba(250,192,0,0.4) 60%);
+  padding: 0 2px;
+}
+.ah-hero-actions {
+  margin: 24px -24px 0;
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 1px;
+  background: rgba(255,255,255,0.12);
+}
+.ah-hero-actions button {
+  background: var(--primary);
+  border: none;
+  padding: 22px 18px 26px;
+  color: white;
+  display: flex; flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  min-height: 96px;
+  transition: background 150ms var(--ease);
+}
+.ah-hero-actions button:active { background: var(--primary-hover); }
+.ah-hero-actions .ah-ico {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  display: grid; place-items: center;
+  margin-bottom: 4px;
+}
+.ah-hero-actions .ah-ico svg { width: 20px; height: 20px; }
+.ah-hero-actions .ah-label {
+  font-size: 15px; font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* quota */
+.ah-quota {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: var(--border-hair);
+  border-radius: var(--r-md);
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12px;
+}
+.ah-quota .label { color: var(--ink-60); font-weight: 600; }
+.ah-quota .bar {
+  flex: 1;
+  height: 6px; border-radius: 3px;
+  background: var(--ink-05);
+  overflow: hidden;
+  position: relative;
+}
+.ah-quota .bar i {
+  display: block; height: 100%;
+  background: var(--type-grass);
+  border-radius: 3px;
+  transition: width 220ms var(--ease);
+}
+.ah-quota .num {
+  color: var(--ink); font-weight: 800;
+  font-feature-settings: 'tnum' 1;
+  font-size: 13px;
+}
+.ah-quota .num small { color: var(--ink-60); font-weight: 600; }
+
+/* drill card */
+.ah-drill-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--bg-card);
+  border: var(--border-hair);
+  border-left: 4px solid var(--type-electric);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  transition: transform 150ms var(--ease);
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.ah-drill-card:active { transform: scale(0.985); }
+.ah-drill-card .ah-drill-left {
+  text-align: left;
+  border-right: 1px dashed var(--ink-09);
+  padding-right: 14px;
+}
+.ah-drill-card .ah-drill-left .big {
+  font-size: 28px; font-weight: 900; letter-spacing: -0.02em;
+  line-height: 1;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  color: var(--ink);
+}
+.ah-drill-card .ah-drill-left .big .dim {
+  font-size: 13px; font-weight: 700; color: var(--ink-60);
+  margin-left: 2px;
+}
+.ah-drill-card .ah-drill-left .sub {
+  margin-top: 6px;
+  font-size: 11px; color: var(--ink-60); font-weight: 600;
+}
+.ah-drill-right {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  align-content: center;
+}
+.ah-drill-right .src-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10.5px; font-weight: 700;
+  background: var(--ink-05);
+  color: var(--c, var(--ink-72));
+  border: 1px solid color-mix(in srgb, var(--c) 20%, transparent);
+}
+
+/* tip */
+.ah-tip {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: var(--bg-paper);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--ink-72);
+  line-height: 1.65;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.ah-tip-ico {
+  color: var(--type-electric); font-size: 16px;
+  line-height: 1; flex-shrink: 0;
+  margin-top: 2px;
+}
+.ah-tip b { color: var(--ink); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}

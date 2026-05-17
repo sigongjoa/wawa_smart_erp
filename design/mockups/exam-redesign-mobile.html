@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Exam Mobile | WAWA Smart ERP</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --primary: #2d3a8c;
+      --bg-primary: #f8f9fb;
+      --bg-secondary: #ffffff;
+      --text-primary: #1a1e2e;
+      --text-secondary: #5e6478;
+      --text-tertiary: #9098ad;
+      --border-primary: #e3e6ed;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius-md: 16px;
+      --sp-4: 16px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0; font-family: "Pretendard", sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column;
+    }
+
+    .app-header { background: white; padding: var(--sp-4); border-bottom: 1px solid var(--border-primary); flex-shrink: 0; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; }
+    .page-title { font-size: 18px; font-weight: 800; margin: 0; }
+
+    /* Centered Month Picker */
+    .month-selector-wrap { display: flex; justify-content: center; padding: 4px 16px 16px; background: white; border-bottom: 1px solid var(--border-primary); flex-shrink: 0; }
+    .month-picker-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 24px; border-radius: 99px; background: var(--bg-primary);
+      border: 1px solid var(--border-primary); font-size: 14px; font-weight: 800;
+      color: var(--text-primary); cursor: pointer;
+    }
+    .month-picker-btn svg { color: var(--primary); }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* Mobile Exam Card */
+    .exam-card {
+      background: white; border-radius: var(--radius-md); border: 2px solid var(--border-primary);
+      padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .exam-card--done { border-color: var(--success); }
+    .exam-card--issue { border-color: var(--danger); }
+
+    .card-top { display: flex; justify-content: space-between; align-items: center; }
+    .name-info { display: flex; flex-direction: column; }
+    .name { font-weight: 800; font-size: 17px; }
+    .meta { font-size: 11px; color: var(--text-tertiary); }
+
+    .status-tag { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; }
+    .tag--completed { background: #dcfce7; color: #166534; }
+    .tag--absent { background: #fee2e2; color: #991b1b; }
+
+    .step-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .step-btn { 
+      padding: 8px 4px; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border-primary);
+      font-size: 9px; font-weight: 800; color: var(--text-tertiary); text-align: center;
+    }
+    .step-btn.done { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px dashed var(--border-primary); }
+    .score-box { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .date-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+
+    .fab {
+      position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 28px;
+      background: var(--primary); color: white; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(45, 58, 140, 0.4); border: none;
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-row">
+    <h1 class="page-title">정기고사 관리</h1>
+    <button style="border: none; background: none; font-size: 18px;">🔍</button>
+  </div>
+</header>
+
+<div class="month-selector-wrap">
+  <button class="month-picker-btn" onclick="alert('월 선택 바텀시트 노출')">
+    2026년 5월
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+</div>
+
+<main class="content-area" id="exam-list"></main>
+
+<button class="fab">＋</button>
+
+<script>
+  const state = {
+    exams: [
+      { name: '강민수', grade: '고2', school: '강남고', steps: [1,1,1,1], status: 'completed', date: '05.07', score: '92' },
+      { name: '이영희', grade: '중3', school: '서초중', steps: [1,1,0,0], status: 'scheduled', date: '05.12', score: '-' },
+      { name: '박지민', grade: '고1', school: '양재고', steps: [1,0,0,0], status: 'scheduled', date: '05.09', score: '-' },
+      { name: '최수지', grade: '고3', school: '대치고', steps: [0,0,0,0], status: 'absent', date: '-', score: '-' }
+    ]
+  };
+
+  function render() {
+    const list = document.getElementById('exam-list');
+    list.innerHTML = state.exams.map(e => `
+      <div class="exam-card ${e.status === 'completed' ? 'exam-card--done' : (e.status === 'absent' ? 'exam-card--issue' : '')}">
+        <div class="card-top">
+          <div class="name-info"><span class="name">${e.name}</span><span class="meta">${e.grade} · ${e.school}</span></div>
+          <span class="status-tag ${e.status === 'completed' ? 'tag--completed' : (e.status === 'absent' ? 'tag--absent' : '')}">${e.status}</span>
+        </div>
+        <div class="step-grid">
+          <div class="step-btn ${e.steps[0] ? 'done' : ''}">제작</div>
+          <div class="step-btn ${e.steps[1] ? 'done' : ''}">프린트</div>
+          <div class="step-btn ${e.steps[2] ? 'done' : ''}">검토</div>
+          <div class="step-btn ${e.steps[3] ? 'done' : ''}">완료</div>
+        </div>
+        <div class="card-footer">
+          <span class="date-label">📅 ${e.date}</span>
+          <span class="score-box">${e.score !== '-' ? e.score + '점' : ''}</span>
+          <button style="border: none; background: none; font-size: 12px; color: var(--primary); font-weight: 700;">상세보기 〉</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  render();
+</script>
+</body>
+</html>

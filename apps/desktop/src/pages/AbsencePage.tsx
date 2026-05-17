@@ -1,3 +1,14 @@
+/**
+ * AbsencePage — mockup v2/11-attendance.html 톤으로 전면 재작성.
+ *
+ * 비즈니스 로직(API 호출, 모달 3종)은 유지. 마크업·스타일은 mockup 11 1:1 매핑.
+ *
+ * 핵심 요소:
+ *   - PageHeader: title-row 안에 scope-toggle, sub 에 live stats, actions 에 월간 export + 결석 추가
+ *   - SummaryBar (5 cells): 이번 달 결석 · 미보강 · 보강 예정 · 보강 완료 · 7일 내 미배정
+ *   - Panel: filter-row (chips + 검색 + 월 select) + data-table
+ *   - cluster/avatar/cell-stack 패턴, ms (makeup status) 핀, scheduled-meta 2줄, btn-icon 액션
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { toast, useConfirm } from '../components/Toast';
@@ -5,7 +16,7 @@ import Modal from '../components/Modal';
 import MakeupSessionsModal from '../components/MakeupSessionsModal';
 import { useAuthStore } from '../store';
 import { errorMessage } from '../utils/errors';
-import { PageHeader } from '../components/v2';
+import { PageHeader, SummaryBar } from '../components/v2';
 import { Icon } from '../components/icons/Icon';
 
 type MakeupStatus = '' | 'pending' | 'scheduled' | 'completed';
@@ -35,12 +46,22 @@ const STATUS_LABELS: Record<string, string> = {
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
+function daysBetween(iso: string, today: Date = new Date()): number {
+  const d = new Date(iso + 'T00:00:00');
+  return Math.floor((today.getTime() - d.getTime()) / 86400000);
+}
+
+function avatarChars(name: string): string {
+  return name.slice(0, 2);
+}
+
 export default function AbsencePage() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
   const [scope, setScope] = useState<'mine' | 'all'>('mine');
   const [makeups, setMakeups] = useState<MakeupRow[]>([]);
   const [filter, setFilter] = useState<MakeupStatus>('');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [scheduleDates, setScheduleDates] = useState<Record<string, string>>({});
 
@@ -71,7 +92,7 @@ export default function AbsencePage() {
     try {
       const data = await api.getMakeups(status || undefined, isAdmin && scope === 'all' ? 'all' : 'mine');
       setMakeups(data || []);
-    } catch (err) {
+    } catch {
       toast.error('보강 목록 조회 실패');
       setMakeups([]);
     } finally {
@@ -184,257 +205,366 @@ export default function AbsencePage() {
     }
   };
 
-  // 4번 순회 → 1번 순회로 통합
+  // 카운트 (filter 와 무관하게 전체에서 산출)
   const counts = useMemo(() => {
-    const acc = { pending: 0, scheduled: 0, completed: 0 };
+    const acc = { pending: 0, scheduled: 0, completed: 0, overdue: 0 };
     for (const m of makeups) {
-      if (m.status === 'pending') acc.pending++;
-      else if (m.status === 'scheduled') acc.scheduled++;
+      if (m.status === 'pending') {
+        acc.pending++;
+        if (daysBetween(m.absence_date) >= 7) acc.overdue++;
+      } else if (m.status === 'scheduled') acc.scheduled++;
       else if (m.status === 'completed') acc.completed++;
     }
     return acc;
   }, [makeups]);
 
-  const displayMakeups = useMemo(
-    () => (filter ? makeups.filter((m) => m.status === filter) : makeups),
-    [makeups, filter],
-  );
+  // 필터 + 검색
+  const displayMakeups = useMemo(() => {
+    let list = filter ? makeups.filter((m) => m.status === filter) : makeups;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter((m) =>
+        m.student_name.toLowerCase().includes(q) ||
+        (m.class_name || '').toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [makeups, filter, search]);
 
   return (
-    <div className="absence-page">
+    <div className="absence-page-v2">
       {ConfirmDialog}
       <PageHeader
-        crumb="운영 · 출결·보강"
+        crumb="운영 · 보강 관리"
         title="보강 관리"
-        sub="결석 → 보강 일정 추적"
+        titleExtra={isAdmin ? (
+          <div className="scope-toggle" role="group" aria-label="조회 범위">
+            <button
+              className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
+              onClick={() => setScope('mine')}
+              type="button"
+            >내 학생</button>
+            <button
+              className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
+              onClick={() => setScope('all')}
+              type="button"
+            >모두 보기</button>
+          </div>
+        ) : undefined}
+        sub={`결석 → 보강 일정 추적 · 미보강 ${counts.pending}건 · 보강예정 ${counts.scheduled}건${counts.overdue > 0 ? ` · 7일 경과 ${counts.overdue}건` : ''}`}
         actions={
-          <>
-            {isAdmin && (
-              <div className="scope-toggle" role="group">
-                <button
-                  className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
-                  onClick={() => setScope('mine')}
-                >내 학생</button>
-                <button
-                  className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
-                  onClick={() => setScope('all')}
-                >모두 보기</button>
-              </div>
-            )}
-            <button className="btn btn-primary btn-sm with-icon" onClick={() => setShowAdd(true)}>
-              <Icon name="Plus" size={14} /> 결석 추가
-            </button>
-          </>
+          <button className="v2-btn v2-btn--primary" onClick={() => setShowAdd(true)} type="button">
+            <Icon name="Plus" size={14} /> 결석 추가
+          </button>
         }
       />
-      <div className="absence-page-header" style={{ display: 'block' }}>
-        <div className="absence-filters">
+
+      <SummaryBar
+        cells={[
+          { label: '이번 달 결석', value: makeups.length, sub: '건' },
+          { label: '미보강', value: counts.pending, alert: counts.pending > 0 },
+          { label: '보강 예정', value: counts.scheduled },
+          { label: '보강 완료', value: counts.completed },
+          { label: '7일 경과', value: counts.overdue, alert: counts.overdue > 0 },
+        ]}
+      />
+
+      <div className="v2-panel">
+        {/* filter-row: chips + 검색 */}
+        <div className="v2-filter-row">
           {([
-            { key: '', label: '전체' },
-            { key: 'pending', label: '미보강' },
-            { key: 'scheduled', label: '보강예정' },
-            { key: 'completed', label: '완료' },
-          ] as { key: MakeupStatus; label: string }[]).map(({ key, label }) => (
+            { key: '', label: '전체', count: makeups.length },
+            { key: 'pending', label: '미보강', count: counts.pending },
+            { key: 'scheduled', label: '보강예정', count: counts.scheduled },
+            { key: 'completed', label: '보강완료', count: counts.completed },
+          ] as { key: MakeupStatus; label: string; count: number }[]).map(({ key, label, count }) => (
             <button
               key={key}
-              className={`filter-btn ${filter === key ? 'filter-btn--active' : ''}`}
+              className={`v2-filter-chip${filter === key ? ' is-active' : ''}`}
               onClick={() => setFilter(key)}
+              type="button"
             >
               {label}
-              {key && counts[key as keyof typeof counts] > 0 && (
-                <span className="filter-count">{counts[key as keyof typeof counts]}</span>
-              )}
+              {count > 0 && <span className="v2-filter-chip__count">{count}</span>}
             </button>
           ))}
+          <div style={{ flex: 1 }} />
+          <div className="v2-input-group">
+            <Icon name="Search" size={14} />
+            <input
+              placeholder="학생·수업 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
+
+        {loading ? (
+          <div className="rpt-loading" role="status">
+            <div className="rpt-spinner" />
+            <span>로딩 중...</span>
+          </div>
+        ) : displayMakeups.length === 0 ? (
+          <div className="v2-empty">
+            <Icon name="Info" size={28} />
+            <div>
+              {filter ? `${STATUS_LABELS[filter]} 항목이 없습니다` : '보강 데이터가 없습니다'}
+            </div>
+          </div>
+        ) : (
+          <>
+            <table className="v2-data-table v2-absence-desktop">
+              <thead>
+                <tr>
+                  <th>학생</th>
+                  <th style={{ width: 110 }} className="v2-tabular">결석일</th>
+                  <th>수업</th>
+                  <th>사유</th>
+                  <th style={{ width: 180 }}>보강일</th>
+                  <th style={{ width: 130 }}>상태</th>
+                  <th style={{ width: 230 }}>액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayMakeups.map((m) => {
+                  const overdue = m.status === 'pending' && daysBetween(m.absence_date) >= 7;
+                  const isCompleted = m.status === 'completed';
+                  return (
+                    <tr key={m.id} className={`${overdue ? 'is-overdue' : ''} ${isCompleted ? 'is-completed' : ''}`}>
+                      <td>
+                        <div className="v2-cluster">
+                          <div className={`v2-avatar${overdue ? ' v2-avatar--danger' : m.status === 'pending' ? ' v2-avatar--warning' : ''}`}>
+                            {avatarChars(m.student_name)}
+                          </div>
+                          <div className="v2-cell-stack">
+                            <span className="v2-cell-stack__primary">{m.student_name}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="v2-tabular">{m.absence_date}</td>
+                      <td>{m.class_name}</td>
+                      <td>{m.reason || <span className="v2-text-mute">(미입력)</span>}</td>
+                      <td>
+                        {m.status === 'pending' ? (
+                          <input
+                            type="date"
+                            className="v2-date-input"
+                            value={scheduleDates[m.absence_id] || ''}
+                            onChange={(e) =>
+                              setScheduleDates((prev) => ({ ...prev, [m.absence_id]: e.target.value }))
+                            }
+                          />
+                        ) : m.scheduled_date ? (
+                          <div className="v2-scheduled-meta">
+                            <span className="v2-scheduled-meta__date">{m.scheduled_date}</span>
+                            <span className="v2-scheduled-meta__time">
+                              {m.status === 'completed'
+                                ? `완료 ${m.completed_date?.slice(5) || ''}`
+                                : m.scheduled_start_time && m.scheduled_end_time
+                                  ? `${m.scheduled_start_time}–${m.scheduled_end_time}`
+                                  : '시간 미지정'}
+                            </span>
+                          </div>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <span className={`v2-ms v2-ms--${m.status}`}>
+                          <Icon
+                            name={m.status === 'pending' ? 'AlertCircle' : m.status === 'scheduled' ? 'CalendarClock' : 'CheckCircle2'}
+                            size={12}
+                          />
+                          {STATUS_LABELS[m.status]}
+                          {overdue && ` · ${daysBetween(m.absence_date)}일 경과`}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="v2-action-cell">
+                          {m.status === 'pending' && (
+                            <button
+                              className="v2-btn v2-btn--primary v2-btn--sm"
+                              onClick={() => handleSchedule(m.absence_id)}
+                              disabled={!scheduleDates[m.absence_id]}
+                              type="button"
+                            >지정</button>
+                          )}
+                          {m.status === 'scheduled' && (
+                            <button
+                              className="v2-btn v2-btn--accent v2-btn--sm"
+                              onClick={() => handleComplete(m.id)}
+                              type="button"
+                            >
+                              <Icon name="Check" size={12} /> 완료
+                            </button>
+                          )}
+                          {isCompleted && (
+                            <span className="v2-text-mute" style={{ fontSize: 12 }}>완료됨</span>
+                          )}
+                          <button className="v2-btn-icon" title="회차" onClick={() => setSessionsTarget(m)} type="button">
+                            <Icon name="ListOrdered" size={14} />
+                          </button>
+                          <button className="v2-btn-icon" title="수정" onClick={() => openEdit(m)} type="button">
+                            <Icon name="Pencil" size={14} />
+                          </button>
+                          <button className="v2-btn-icon v2-btn-icon--danger" title="삭제" onClick={() => handleDeleteAbsence(m)} type="button">
+                            <Icon name="Trash2" size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Mobile cards */}
+            <div className="v2-absence-mobile">
+              {displayMakeups.map((m) => {
+                const overdue = m.status === 'pending' && daysBetween(m.absence_date) >= 7;
+                return (
+                  <div key={m.id} className={`v2-absence-card${overdue ? ' is-overdue' : ''}`}>
+                    <div className="v2-absence-card__head">
+                      <div className="v2-cluster">
+                        <div className={`v2-avatar${overdue ? ' v2-avatar--danger' : m.status === 'pending' ? ' v2-avatar--warning' : ''}`}>
+                          {avatarChars(m.student_name)}
+                        </div>
+                        <div className="v2-cell-stack">
+                          <span className="v2-cell-stack__primary">{m.student_name}</span>
+                          <span className="v2-cell-stack__meta">{m.absence_date} · {m.class_name}</span>
+                        </div>
+                      </div>
+                      <span className={`v2-ms v2-ms--${m.status}`}>
+                        <Icon
+                          name={m.status === 'pending' ? 'AlertCircle' : m.status === 'scheduled' ? 'CalendarClock' : 'CheckCircle2'}
+                          size={12}
+                        />
+                        {STATUS_LABELS[m.status]}
+                      </span>
+                    </div>
+                    {m.reason && (
+                      <div className="v2-absence-card__reason">사유 · {m.reason}</div>
+                    )}
+                    {m.scheduled_date && (
+                      <div className="v2-absence-card__schedule">
+                        보강 {m.scheduled_date}
+                        {m.scheduled_start_time && m.scheduled_end_time && ` · ${m.scheduled_start_time}–${m.scheduled_end_time}`}
+                      </div>
+                    )}
+                    <div className="v2-action-cell">
+                      {m.status === 'pending' && (
+                        <>
+                          <input
+                            type="date"
+                            className="v2-date-input"
+                            value={scheduleDates[m.absence_id] || ''}
+                            onChange={(e) =>
+                              setScheduleDates((prev) => ({ ...prev, [m.absence_id]: e.target.value }))
+                            }
+                          />
+                          <button
+                            className="v2-btn v2-btn--primary v2-btn--sm"
+                            onClick={() => handleSchedule(m.absence_id)}
+                            disabled={!scheduleDates[m.absence_id]}
+                            type="button"
+                          >보강일 지정</button>
+                        </>
+                      )}
+                      {m.status === 'scheduled' && (
+                        <button
+                          className="v2-btn v2-btn--accent v2-btn--sm"
+                          onClick={() => handleComplete(m.id)}
+                          type="button"
+                        >
+                          <Icon name="Check" size={12} /> 보강 완료
+                        </button>
+                      )}
+                      <button className="v2-btn-icon" title="회차" onClick={() => setSessionsTarget(m)} type="button">
+                        <Icon name="ListOrdered" size={14} />
+                      </button>
+                      <button className="v2-btn-icon" title="수정" onClick={() => openEdit(m)} type="button">
+                        <Icon name="Pencil" size={14} />
+                      </button>
+                      <button className="v2-btn-icon v2-btn-icon--danger" title="삭제" onClick={() => handleDeleteAbsence(m)} type="button">
+                        <Icon name="Trash2" size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
-      {loading ? (
-        <div className="rpt-loading" role="status">
-          <div className="rpt-spinner" />
-          <span>로딩 중...</span>
-        </div>
-      ) : displayMakeups.length === 0 ? (
-        <div className="absence-empty">
-          {filter ? `${STATUS_LABELS[filter]} 항목이 없습니다` : '보강 데이터가 없습니다'}
-        </div>
-      ) : (
-        <>
-        <table className="absence-table absence-desktop">
-          <thead>
-            <tr>
-              <th>학생</th>
-              <th>결석일</th>
-              <th>수업</th>
-              <th>사유</th>
-              <th>보강일</th>
-              <th>상태</th>
-              <th style={{ width: 200 }}>액션</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayMakeups.map((m) => (
-              <tr key={m.id}>
-                <td style={{ fontWeight: 600 }}>{m.student_name}</td>
-                <td>{m.absence_date}</td>
-                <td>{m.class_name}</td>
-                <td>{m.reason || '-'}</td>
-                <td>
-                  {m.status === 'pending' ? (
-                    <input
-                      type="date"
-                      className="date-input"
-                      value={scheduleDates[m.absence_id] || ''}
-                      onChange={(e) =>
-                        setScheduleDates((prev) => ({ ...prev, [m.absence_id]: e.target.value }))
-                      }
-                    />
-                  ) : (
-                    m.scheduled_date || '-'
-                  )}
-                </td>
-                <td>
-                  <span className={`makeup-status makeup-status--${m.status}`}>
-                    {STATUS_LABELS[m.status]}
-                  </span>
-                </td>
-                <td>
-                  <div className="action-cell">
-                    {m.status === 'pending' && (
-                      <button
-                        className="btn btn-sm btn-present"
-                        onClick={() => handleSchedule(m.absence_id)}
-                        disabled={!scheduleDates[m.absence_id]}
-                      >지정</button>
-                    )}
-                    {m.status === 'scheduled' && (
-                      <button className="btn btn-sm btn-present" onClick={() => handleComplete(m.id)}>완료</button>
-                    )}
-                    <button className="btn btn-sm btn-ghost" onClick={() => setSessionsTarget(m)}>회차</button>
-                    <button className="btn btn-sm btn-ghost" onClick={() => openEdit(m)}>수정</button>
-                    <button className="btn btn-sm btn-danger-ghost" onClick={() => handleDeleteAbsence(m)}>삭제</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="absence-cards absence-mobile">
-          {displayMakeups.map((m) => (
-            <div key={m.id} className="absence-card">
-              <div className="absence-card-top">
-                <span className="absence-card-name">{m.student_name}</span>
-                <span className={`makeup-status makeup-status--${m.status}`}>
-                  {STATUS_LABELS[m.status]}
-                </span>
-              </div>
-              <div className="absence-card-details">
-                <span>결석 {m.absence_date}</span>
-                <span>{m.class_name}</span>
-                {m.reason && <span>{m.reason}</span>}
-              </div>
-              {m.scheduled_date && (
-                <div className="absence-card-schedule">보강일: {m.scheduled_date}</div>
-              )}
-              <div className="absence-card-action">
-                {m.status === 'pending' && (
-                  <>
-                    <input
-                      type="date"
-                      className="date-input"
-                      value={scheduleDates[m.absence_id] || ''}
-                      onChange={(e) =>
-                        setScheduleDates((prev) => ({ ...prev, [m.absence_id]: e.target.value }))
-                      }
-                    />
-                    <button
-                      className="btn btn-sm btn-present"
-                      onClick={() => handleSchedule(m.absence_id)}
-                      disabled={!scheduleDates[m.absence_id]}
-                    >보강일 지정</button>
-                  </>
-                )}
-                {m.status === 'scheduled' && (
-                  <button className="btn btn-sm btn-present" onClick={() => handleComplete(m.id)}>보강 완료</button>
-                )}
-                <button className="btn btn-sm btn-ghost" onClick={() => openEdit(m)}>수정</button>
-                <button className="btn btn-sm btn-danger-ghost" onClick={() => handleDeleteAbsence(m)}>삭제</button>
-              </div>
-            </div>
-          ))}
-        </div>
-        </>
-      )}
-
+      {/* 결석 추가 모달 */}
       {showAdd && (
         <Modal onClose={() => setShowAdd(false)}>
           <Modal.Header>결석 추가</Modal.Header>
           <Modal.Body>
-              <label className="form-label">학생 *</label>
-              <select className="form-select" value={addForm.studentId} onChange={e => setAddForm({ ...addForm, studentId: e.target.value })}>
-                <option value="">학생 선택</option>
-                {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <label className="form-label">수업 *</label>
-              <select className="form-select" value={addForm.classId} onChange={e => setAddForm({ ...addForm, classId: e.target.value })}>
-                <option value="">수업 선택</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <label className="form-label">결석일 *</label>
-              <input type="date" className="form-input" value={addForm.absenceDate} onChange={e => setAddForm({ ...addForm, absenceDate: e.target.value })} />
-              <label className="form-label">사유</label>
-              <input className="form-input" value={addForm.reason} onChange={e => setAddForm({ ...addForm, reason: e.target.value })} placeholder="예: 감기" />
+            <label className="form-label">학생 *</label>
+            <select className="form-select" value={addForm.studentId} onChange={(e) => setAddForm({ ...addForm, studentId: e.target.value })}>
+              <option value="">학생 선택</option>
+              {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <label className="form-label">수업 *</label>
+            <select className="form-select" value={addForm.classId} onChange={(e) => setAddForm({ ...addForm, classId: e.target.value })}>
+              <option value="">수업 선택</option>
+              {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <label className="form-label">결석일 *</label>
+            <input type="date" className="form-input" value={addForm.absenceDate} onChange={(e) => setAddForm({ ...addForm, absenceDate: e.target.value })} />
+            <label className="form-label">사유</label>
+            <input className="form-input" value={addForm.reason} onChange={(e) => setAddForm({ ...addForm, reason: e.target.value })} placeholder="예: 감기" />
           </Modal.Body>
           <Modal.Footer>
-              <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>취소</button>
-              <button className="btn btn-primary" onClick={handleAdd} disabled={saving}>
-                {saving ? '추가 중...' : '추가'}
-              </button>
+            <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>취소</button>
+            <button className="btn btn-primary" onClick={handleAdd} disabled={saving}>
+              {saving ? '추가 중...' : '추가'}
+            </button>
           </Modal.Footer>
         </Modal>
       )}
 
+      {/* 수정 모달 */}
       {editTarget && (
         <Modal onClose={() => setEditTarget(null)}>
           <Modal.Header>{editTarget.student_name} — 결석/보강 수정</Modal.Header>
           <Modal.Body>
-              <label className="form-label">결석일</label>
-              <input type="date" className="form-input" value={editForm.absence_date} onChange={e => setEditForm({ ...editForm, absence_date: e.target.value })} />
-              <label className="form-label">수업</label>
-              <select className="form-select" value={editForm.class_id} onChange={e => setEditForm({ ...editForm, class_id: e.target.value })}>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <label className="form-label">사유</label>
-              <input className="form-input" value={editForm.reason} onChange={e => setEditForm({ ...editForm, reason: e.target.value })} />
-              <label className="form-label">보강일</label>
-              <input type="date" className="form-input" value={editForm.scheduled_date} onChange={e => setEditForm({ ...editForm, scheduled_date: e.target.value })} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">시작 시각</label>
-                  <input type="time" className="form-input" value={editForm.scheduled_start_time} onChange={e => setEditForm({ ...editForm, scheduled_start_time: e.target.value })} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">종료 시각</label>
-                  <input type="time" className="form-input" value={editForm.scheduled_end_time} onChange={e => setEditForm({ ...editForm, scheduled_end_time: e.target.value })} />
-                </div>
+            <label className="form-label">결석일</label>
+            <input type="date" className="form-input" value={editForm.absence_date} onChange={(e) => setEditForm({ ...editForm, absence_date: e.target.value })} />
+            <label className="form-label">수업</label>
+            <select className="form-select" value={editForm.class_id} onChange={(e) => setEditForm({ ...editForm, class_id: e.target.value })}>
+              {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <label className="form-label">사유</label>
+            <input className="form-input" value={editForm.reason} onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })} />
+            <label className="form-label">보강일</label>
+            <input type="date" className="form-input" value={editForm.scheduled_date} onChange={(e) => setEditForm({ ...editForm, scheduled_date: e.target.value })} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label className="form-label">시작 시각</label>
+                <input type="time" className="form-input" value={editForm.scheduled_start_time} onChange={(e) => setEditForm({ ...editForm, scheduled_start_time: e.target.value })} />
               </div>
-              <label className="form-label">보강 메모</label>
-              <input className="form-input" value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
-              <label className="form-label">보강 상태</label>
-              <select className="form-select" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as 'pending' | 'scheduled' | 'completed' })}>
-                <option value="pending">미보강</option>
-                <option value="scheduled">보강예정</option>
-                <option value="completed">보강완료</option>
-              </select>
+              <div style={{ flex: 1 }}>
+                <label className="form-label">종료 시각</label>
+                <input type="time" className="form-input" value={editForm.scheduled_end_time} onChange={(e) => setEditForm({ ...editForm, scheduled_end_time: e.target.value })} />
+              </div>
+            </div>
+            <label className="form-label">보강 메모</label>
+            <input className="form-input" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+            <label className="form-label">보강 상태</label>
+            <select className="form-select" value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as 'pending' | 'scheduled' | 'completed' })}>
+              <option value="pending">미보강</option>
+              <option value="scheduled">보강예정</option>
+              <option value="completed">보강완료</option>
+            </select>
           </Modal.Body>
           <Modal.Footer>
-              <button className="btn btn-danger-ghost" onClick={() => handleDeleteAbsence(editTarget)}>삭제</button>
-              <div style={{ flex: 1 }} />
-              <button className="btn btn-ghost" onClick={() => setEditTarget(null)}>취소</button>
-              <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
-                {saving ? '저장 중...' : '저장'}
-              </button>
+            <button className="btn btn-danger-ghost" onClick={() => handleDeleteAbsence(editTarget)}>삭제</button>
+            <div style={{ flex: 1 }} />
+            <button className="btn btn-ghost" onClick={() => setEditTarget(null)}>취소</button>
+            <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
+              {saving ? '저장 중...' : '저장'}
+            </button>
           </Modal.Footer>
         </Modal>
       )}

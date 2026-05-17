@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>설명 AI — 목업 인덱스</title>
+<meta name="description" content="와와 학원 설명 AI 시스템 — 학생용 채팅, 사진 업로드, 강사 큐, 디자인 시스템 목업 인덱스">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg-canvas); color: var(--ink); font-family: 'Pretendard Variable', Pretendard, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100dvh; display: grid; place-items: center; padding: 48px 24px; }
+  main { width: min(880px, 100%); }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-60); margin-bottom: 12px; }
+  h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.04; }
+  h1 em { font-style: normal; color: var(--primary); }
+  p.lede { margin-top: 16px; max-width: 56ch; font-size: 17px; line-height: 1.55; color: var(--ink-60); }
+  .grid { margin-top: 56px; display: grid; gap: 14px; grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  a.tile { display: block; padding: 28px; background: var(--bg-card); border: 1px solid var(--ink-09); border-radius: 16px; text-decoration: none; color: inherit; transition: transform 220ms cubic-bezier(.25,1,.5,1), border-color 220ms; position: relative; overflow: hidden; }
+  a.tile:hover { transform: translateY(-2px); border-color: var(--primary); }
+  a.tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+  a.tile h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+  a.tile .role { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--c); margin-bottom: 8px; }
+  a.tile p { margin-top: 12px; color: var(--ink-60); font-size: 14px; line-height: 1.55; }
+  a.tile .meta { margin-top: 20px; font-size: 12px; color: var(--ink-60); font-feature-settings: 'tnum'; }
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--ink-09); font-size: 12px; color: var(--ink-60); display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<main id="main">
+  <div class="eyebrow">와와 학원 · 내부 도구 목업</div>
+  <h1>학원 학생이 묻고,<br><em>학원 자료</em>로 답하는<br>설명 AI.</h1>
+  <p class="lede">ChatGPT는 우리 단원지를 모른다. 우리 학생도 모른다. <br>설명 AI는 둘 다 안다.</p>
+
+  <div class="grid">
+    <a class="tile" href="./student-chat.html" style="--c: var(--type-grass)">
+      <div class="role">학생용 · 텍스트</div>
+      <h2>물어보기</h2>
+      <p>한 줄로 시작하는 일반 질문. 한 줄씩 멈춰가며 풀이를 받고, 단원지 인용으로 정의를 확인한다.</p>
+      <div class="meta">student-chat.html</div>
+    </a>
+    <a class="tile" href="./student-photo.html" style="--c: #d92e2e">
+      <div class="role">학생용 · 사진</div>
+      <h2>사진으로 묻기</h2>
+      <p>교과서 문제와 내 손글씨 풀이 두 장을 던지면, AI가 빨간펜으로 어디가 무너졌는지 표시한다.</p>
+      <div class="meta">student-photo.html</div>
+    </a>
+    <a class="tile" href="./teacher-queue.html" style="--c: var(--type-water)">
+      <div class="role">강사용</div>
+      <h2>오늘의 큐</h2>
+      <p>학생이 무엇을 물었고, AI가 무엇을 답했는지. OK·코멘트·AI틀림 세 줄로 분류한다.</p>
+      <div class="meta">teacher-queue.html</div>
+    </a>
+  </div>
+
+  <div class="eyebrow" style="margin-top: 56px;">학생용 · 모바일 (실제 사용 환경)</div>
+  <p class="lede" style="margin-top: 8px;">학생들 90%는 핸드폰으로 쓸 거니까 — 데스크톱을 줄인 게 아니라 모바일-퍼스트로 다시 짠 화면들. 폰에서 바로 열거나, 데스크톱에선 가운데 폰 프리뷰로 보임.</p>
+  <div class="grid" style="margin-top: 24px;">
+    <a class="tile" href="./mobile-home.html" style="--c: var(--type-grass)">
+      <div class="role">📱 묻기 홈</div>
+      <h2 style="font-size: 20px;">홈 화면</h2>
+      <p>큰 사진/글 CTA · 이어할 대화 · 강사 코멘트 알림 · 하단 탭바.</p>
+      <div class="meta">mobile-home.html</div>
+    </a>
+    <a class="tile" href="./mobile-write.html" style="--c: #b8860b">
+      <div class="role">📱 글로 묻기</div>
+      <h2 style="font-size: 20px;">쓰기 화면</h2>
+      <p>노트 종이톤 + 큰 textarea · 수식 입력 toolbar · 음성 입력 · 빠른 시작 칩.</p>
+      <div class="meta">mobile-write.html</div>
+    </a>
+    <a class="tile" href="./mobile-chat.html" style="--c: var(--primary)">
+      <div class="role">📱 채팅</div>
+      <h2 style="font-size: 20px;">대화 화면</h2>
+      <p>단계 collapse · sticky composer · 인용 자료는 bottom sheet 로 슬라이드업.</p>
+      <div class="meta">mobile-chat.html</div>
+    </a>
+    <a class="tile" href="./mobile-photo.html" style="--c: #d92e2e">
+      <div class="role">📱 사진 채점</div>
+      <h2 style="font-size: 20px;">빨간펜 화면</h2>
+      <p>가로 스크롤 사진 갤러리 · 풀-블리드 채점 오버레이 · OCR 확인 게이트.</p>
+      <div class="meta">mobile-photo.html</div>
+    </a>
+    <a class="tile" href="./mobile-drill.html" style="--c: var(--type-electric)">
+      <div class="role">📱 반복학습 ★신규</div>
+      <h2 style="font-size: 20px;">오늘 복습</h2>
+      <p>AskAI 막힌 단계·시험 오답·숙제 감점·단원지 X를 자동 카드화. SM-2 스페이스드 리피티션 + AskAI 재진입.</p>
+      <div class="meta">mobile-drill.html</div>
+    </a>
+  </div>
+
+  <div style="display: grid; gap: 14px; grid-template-columns: 1fr 1fr; margin-top: 14px;">
+    <a class="tile" href="./design-system.html"
+       style="--c: var(--primary); padding: 22px 28px;">
+      <div class="role">참고용 · 데스크톱 시트</div>
+      <h2 style="font-size: 20px;">디자인 시스템</h2>
+      <p>desktop 4화면을 React로 옮길 때 시각 어휘 카탈로그. 토큰·아톰·몰리큘·파일 경로.</p>
+      <div class="meta">design-system.html</div>
+    </a>
+    <a class="tile" href="./mobile-system.html"
+       style="--c: var(--type-grass); padding: 22px 28px;">
+      <div class="role">참고용 · 모바일 시스템 ★신규</div>
+      <h2 style="font-size: 20px;">모바일 시스템 디자인</h2>
+      <p>5 모바일 화면 + 모바일-only 컴포넌트 + PWA 구현 전략 + Native API 매핑.</p>
+      <div class="meta">mobile-system.html</div>
+    </a>
+  </div>
+
+  <footer>
+    <span>설명 AI · v0 목업</span>
+    <span>2026-05-15</span>
+  </footer>
+</main>
+</body>
+</html>

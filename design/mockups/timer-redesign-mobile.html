@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Timer Mobile | WAWA Smart ERP</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --primary: #2d3a8c;
+      --primary-surface: #eef0f8;
+      --bg-primary: #f8f9fb;
+      --bg-secondary: #ffffff;
+      --text-primary: #1a1e2e;
+      --text-secondary: #5e6478;
+      --text-tertiary: #9098ad;
+      --border-primary: #e3e6ed;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius-md: 12px;
+      --sp-2: 8px;
+      --sp-4: 16px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header & Filters */
+    .app-header {
+      background: var(--bg-secondary);
+      padding: var(--sp-4);
+      border-bottom: 1px solid var(--border-primary);
+      flex-shrink: 0;
+    }
+    .page-title { font-size: 18px; font-weight: 800; margin: 0; }
+    
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .select-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--border-primary);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--bg-primary);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-primary);
+      flex-shrink: 0;
+    }
+    .tab {
+      flex: 1;
+      padding: 14px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+    }
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .tab-count {
+      font-size: 11px;
+      margin-left: 4px;
+      background: var(--border-primary);
+      padding: 1px 6px;
+      border-radius: 10px;
+      color: var(--text-secondary);
+    }
+    .tab.active .tab-count { background: var(--primary-surface); color: var(--primary); }
+
+    /* Content Area */
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--sp-4);
+      display: none;
+    }
+    .tab-content.active { display: block; }
+
+    /* Tablet Responsive Grid */
+    #timer-grid, #waiting-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 600px) {
+      #timer-grid, #waiting-list {
+        grid-template-columns: repeat(2, 1fr); /* 태블릿 2열 배치 */
+      }
+      .modal-content {
+        max-width: 480px;
+        margin: 0 auto;
+        border-radius: 20px;
+        bottom: 24px;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      #timer-grid, #waiting-list {
+        grid-template-columns: repeat(3, 1fr); /* 큰 화면 3열 배치 */
+      }
+    }
+
+    /* Timer Cards */
+    .timer-card {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .timer-card--running { border-color: var(--success); }
+    .timer-card--paused { border-color: var(--warning); background: #fffcf5; }
+    .timer-card--warning { border-color: var(--danger); animation: pulse 2s infinite; }
+    .timer-card--overtime { border-color: var(--danger); background: #fff5f5; }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.01); }
+    }
+
+    .card-top { display: flex; justify-content: space-between; align-items: center; }
+    .student-info { display: flex; flex-direction: column; }
+    .student-name { font-weight: 800; font-size: 17px; }
+    .student-subject { font-size: 12px; color: var(--text-secondary); }
+    .status-tag { font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 99px; text-transform: uppercase; }
+    .status-tag--running { background: #dcfce7; color: #166534; }
+    .status-tag--paused { background: #fef3c7; color: #92400e; }
+
+    .card-display {
+      background: var(--bg-primary);
+      padding: 16px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .timer-value { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .timer-card--overtime .timer-value { color: var(--danger); }
+    .timer-label { font-size: 11px; color: var(--text-tertiary); display: block; margin-top: -4px; }
+
+    .progress-bar { height: 6px; background: var(--border-primary); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--success); transition: width 1s linear; }
+
+    .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: var(--primary-surface); color: var(--primary); }
+
+    /* Waiting List */
+    .waiting-card {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border-primary);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .waiting-info { display: flex; flex-direction: column; }
+    .waiting-name { font-weight: 700; font-size: 16px; }
+    .waiting-meta { font-size: 12px; color: var(--text-tertiary); }
+    .btn-checkin { background: var(--primary); color: white; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; }
+
+    /* Floating Button */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(45, 58, 140, 0.4);
+      border: none;
+      z-index: 100;
+    }
+
+    /* Modal Mobile */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: flex-end; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; width: 100%; border-radius: 20px 20px 0 0; padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+
+    .toast-container { position: fixed; top: 20px; left: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 2000; pointer-events: none; }
+    .toast { background: rgba(26, 30, 46, 0.95); color: white; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); animation: toast-in 0.3s ease; }
+    @keyframes toast-in { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  </style>
+</head>
+<body>
+
+<div id="toast-root" class="toast-container"></div>
+
+<header class="app-header">
+  <h1 class="page-title">실시간 수업 타이머</h1>
+  <div class="filter-row">
+    <select class="select-input" id="day-select">
+      <option selected>목요일 (오늘)</option>
+      <option>금요일</option><option>토요일</option><option>일요일</option>
+    </select>
+    <select class="select-input" id="sort-select">
+      <option value="remaining">시간순</option>
+      <option value="name">이름순</option>
+    </select>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('active')">진행 중 <span class="tab-count" id="active-count">0</span></div>
+  <div class="tab" onclick="switchTab('waiting')">대기 중 <span class="tab-count" id="waiting-count">0</span></div>
+</nav>
+
+<main id="active-tab" class="tab-content active">
+  <div id="timer-grid"></div>
+</main>
+
+<main id="waiting-tab" class="tab-content">
+  <div id="waiting-list"></div>
+</main>
+
+<button class="fab" onclick="openAdhocModal()">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+</button>
+
+<!-- Modals -->
+<div class="modal-overlay" id="adhoc-modal">
+  <div class="modal-content">
+    <div class="modal-title">임시 학생 추가</div>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <input type="text" id="adhoc-name" class="select-input" placeholder="학생 이름" style="background: var(--bg-primary);">
+      <div style="display: flex; gap: 8px;">
+        <select id="adhoc-grade" class="select-input" style="background: var(--bg-primary);">
+          <option>중등</option><option selected>고등</option>
+        </select>
+        <input type="number" id="adhoc-duration" class="select-input" value="90" style="background: var(--bg-primary);">
+      </div>
+      <input type="text" id="adhoc-subject" class="select-input" placeholder="학습 내용" style="background: var(--bg-primary);">
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 8px;">
+        <button class="btn btn-secondary" onclick="closeModal('adhoc-modal')">취소</button>
+        <button class="btn btn-primary" onclick="addAdhocStudent()">추가하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pause-modal">
+  <div class="modal-content">
+    <div class="modal-title">일시정지 사유</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+      <button class="btn btn-secondary" onclick="confirmPause('화장실')">화장실</button>
+      <button class="btn btn-secondary" onclick="confirmPause('휴식')">휴식</button>
+      <button class="btn btn-secondary" onclick="confirmPause('교사호출')">교사호출</button>
+      <button class="btn btn-secondary" onclick="confirmPause('기타')">기타</button>
+    </div>
+    <button class="btn btn-primary" style="width: 100%;" onclick="closeModal('pause-modal')">닫기</button>
+  </div>
+</div>
+
+<script>
+  const toast = {
+    success(msg) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = '✓ ' + msg;
+      document.getElementById('toast-root').appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    }
+  };
+
+  let state = {
+    waiting: [
+      { id: 1, name: '김철수', grade: '고2', subject: '영단어', duration: 90 },
+      { id: 2, name: '이영희', grade: '중3', subject: '수학 상', duration: 120 },
+      { id: 3, name: '박지민', grade: '고1', subject: '영문법', duration: 90 }
+    ],
+    active: [
+      { id: 101, name: '강민수', grade: '고2', subject: '수학 상 · 이차방정식', checkInTime: new Date(Date.now() - 45 * 60000), allottedMinutes: 90, addedMinutes: 0, pausedMinutes: 0, status: 'running' }
+    ],
+    pauseTarget: null
+  };
+
+  function switchTab(target) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById(target + '-tab').classList.add('active');
+  }
+
+  function formatMMSS(seconds) {
+    const absSec = Math.abs(seconds);
+    const m = Math.floor(absSec / 60);
+    const s = absSec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function render() {
+    // Waiting
+    document.getElementById('waiting-list').innerHTML = state.waiting.map(s => `
+      <div class="waiting-card">
+        <div class="waiting-info">
+          <span class="waiting-name">${s.name} <small style="color: var(--text-tertiary)">${s.grade}</small></span>
+          <span class="waiting-meta">${s.duration}분 · ${s.subject}</span>
+        </div>
+        <button class="btn-checkin" onclick="checkIn(${s.id})">체크인</button>
+      </div>
+    `).join('');
+    document.getElementById('waiting-count').textContent = state.waiting.length;
+
+    // Active
+    const now = new Date();
+    document.getElementById('timer-grid').innerHTML = state.active.map(s => {
+      const checkIn = new Date(s.checkInTime);
+      let elapsedMs = now.getTime() - checkIn.getTime();
+      let totalPausedMs = s.pausedMinutes * 60000;
+      if (s.status === 'paused') totalPausedMs += (now.getTime() - s.lastPausedAt.getTime());
+      
+      const remainingSec = (s.allottedMinutes * 60) - Math.floor((elapsedMs - totalPausedMs) / 1000);
+      const isOvertime = remainingSec <= 0;
+      const progress = Math.min(((s.allottedMinutes * 60 - remainingSec) / (s.allottedMinutes * 60)) * 100, 100);
+
+      let cardClass = 'timer-card';
+      if (s.status === 'paused') cardClass += ' timer-card--paused';
+      else if (isOvertime) cardClass += ' timer-card--overtime';
+      else cardClass += ' timer-card--running';
+
+      return `
+        <div class="${cardClass}">
+          <div class="card-top">
+            <div class="student-info"><span class="student-name">${s.name}</span><span class="student-subject">${s.subject}</span></div>
+            <span class="status-tag ${s.status === 'paused' ? 'status-tag--paused' : 'status-tag--running'}">${s.status === 'paused' ? '일시정지' : '수업 중'}</span>
+          </div>
+          <div class="card-display">
+            <span class="timer-value">${isOvertime ? '+' : ''}${formatMMSS(remainingSec)}</span>
+            <span class="timer-label">${isOvertime ? '초과' : '남은 시간'}</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%; background: ${isOvertime ? 'var(--danger)' : (s.status === 'paused' ? 'var(--warning)' : 'var(--success)')}"></div></div>
+          <div class="card-actions">
+            ${s.status === 'paused' 
+              ? `<button class="btn btn-primary" style="grid-column: span 2" onclick="resume(${s.id})">재개하기</button>`
+              : `<button class="btn btn-secondary" onclick="openPauseModal(${s.id})">정지</button><button class="btn btn-primary" onclick="finish(${s.id})">완료</button>`
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('active-count').textContent = state.active.length;
+  }
+
+  function checkIn(id) {
+    const s = state.waiting.find(x => x.id === id);
+    state.waiting = state.waiting.filter(x => x.id !== id);
+    state.active.push({ ...s, checkInTime: new Date(), pausedMinutes: 0, status: 'running' });
+    toast.success(`${s.name} 체크인`);
+    render();
+  }
+  function openPauseModal(id) { state.pauseTarget = id; document.getElementById('pause-modal').style.display = 'flex'; }
+  function confirmPause(reason) {
+    const s = state.active.find(x => x.id === state.pauseTarget);
+    s.status = 'paused'; s.lastPausedAt = new Date();
+    closeModal('pause-modal'); render();
+  }
+  function resume(id) {
+    const s = state.active.find(x => x.id === id);
+    s.pausedMinutes += (new Date().getTime() - s.lastPausedAt.getTime()) / 60000;
+    s.status = 'running'; render();
+  }
+  function finish(id) { state.active = state.active.filter(x => x.id !== id); toast.success('수업 종료'); render(); }
+  function openAdhocModal() { document.getElementById('adhoc-modal').style.display = 'flex'; }
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+  function addAdhocStudent() {
+    const name = document.getElementById('adhoc-name').value;
+    if (!name) return;
+    state.waiting.unshift({ id: Date.now(), name, grade: document.getElementById('adhoc-grade').value, duration: document.getElementById('adhoc-duration').value, subject: document.getElementById('adhoc-subject').value || '임시 수업' });
+    closeModal('adhoc-modal'); toast.success('학생 추가됨'); render();
+  }
+
+  setInterval(render, 1000);
+  render();
+</script>
+</body>
+</html>

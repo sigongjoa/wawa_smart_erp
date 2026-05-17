@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#fafbfc" />
+<title>설명 AI · 오늘 복습 — 모바일</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body { background: var(--ink-05); min-height: 100dvh; }
+
+  .viewport {
+    max-width: 430px; margin: 0 auto;
+    background: var(--bg-canvas);
+    min-height: 100dvh;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  @media (min-width: 480px) {
+    body { padding: 32px 0; }
+    .viewport {
+      min-height: calc(100dvh - 64px); height: calc(100dvh - 64px);
+      border-radius: 36px; overflow: hidden;
+      box-shadow: var(--shadow-frame);
+      border: 1px solid var(--ink-09);
+    }
+  }
+
+  /* ───────────────────────────── header */
+  header.app {
+    flex-shrink: 0;
+    padding: calc(var(--safe-top) + 8px) 12px 0;
+    background: var(--bg-canvas);
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    gap: 8px;
+    border-bottom: var(--border-hair);
+  }
+  .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: none; background: transparent;
+    color: var(--ink-72); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .icon-btn:active { background: var(--ink-05); color: var(--ink); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  header h1 {
+    font-size: 16px; font-weight: 800; letter-spacing: -0.01em;
+    text-align: center;
+  }
+  header h1 .num {
+    color: var(--ink-60); font-weight: 700;
+    margin-left: 6px;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* progress strip */
+  .progress {
+    grid-column: 1 / -1;
+    display: flex; gap: 4px;
+    padding: 12px 4px 8px;
+  }
+  .progress i {
+    flex: 1; height: 4px; border-radius: 2px;
+    background: var(--ink-09);
+    transition: background var(--dur-base) var(--ease);
+  }
+  .progress i.done { background: var(--success); }
+  .progress i.now {
+    background: var(--ink);
+    animation: pulse-now 1.6s var(--ease) infinite;
+  }
+  @keyframes pulse-now {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+  }
+
+  /* ───────────────────────────── streak strip (subtle) */
+  .streak {
+    flex-shrink: 0;
+    padding: 14px 18px 8px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--ink-72);
+  }
+  .streak .flame {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: rgba(250, 192, 0, 0.10);
+    color: var(--type-electric);
+    display: grid; place-items: center;
+    font-size: 14px; font-weight: 800;
+  }
+  .streak b { color: var(--ink); font-weight: 800; font-feature-settings: 'tnum' 1; }
+  .streak .dim { color: var(--ink-40); margin-left: auto; font-weight: 600; }
+
+  /* ───────────────────────────── card stack area */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 18px 0;
+    display: flex; flex-direction: column;
+    overscroll-behavior: contain;
+  }
+
+  .card-wrap {
+    position: relative;
+    margin-bottom: 18px;
+  }
+  /* 뒤에 비치는 다음 카드들 (스택 효과) */
+  .card-wrap::before,
+  .card-wrap::after {
+    content: "";
+    position: absolute;
+    left: 14px; right: 14px;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: var(--r-lg);
+    z-index: -1;
+  }
+  .card-wrap::before {
+    top: -8px; bottom: -8px;
+    opacity: 0.6;
+  }
+  .card-wrap::after {
+    top: -16px; left: 28px; right: 28px;
+    bottom: -16px;
+    opacity: 0.35;
+    z-index: -2;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--ink-09);
+    border-left: 4px solid var(--c, var(--type-grass));
+    border-radius: var(--r-lg);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* source pill — 어디서 왔는지 */
+  .source {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    font-size: 11px; font-weight: 700;
+    color: var(--c, var(--type-grass));
+    letter-spacing: 0.4px; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .source .ico {
+    font-size: 13px; line-height: 1;
+    text-transform: none;
+  }
+  .source .when {
+    color: var(--ink-60); font-weight: 600;
+    text-transform: none; letter-spacing: 0;
+    margin-left: auto;
+  }
+
+  /* unit chip */
+  .unit {
+    font-size: 12.5px; color: var(--ink-72); font-weight: 600;
+    margin-bottom: 14px;
+  }
+
+  /* 막혔던 단계 — context note */
+  .context-note {
+    background: var(--bg-paper);
+    border-left: 3px solid var(--ink-20);
+    padding: 10px 14px;
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    margin-bottom: 16px;
+    font-size: 12.5px; color: var(--ink-72);
+    line-height: 1.55;
+  }
+  .context-note b { color: var(--ink); font-weight: 700; }
+
+  /* problem area */
+  .problem {
+    font-size: 16px; line-height: 1.75; color: var(--ink);
+    margin-bottom: 16px;
+  }
+  .problem p + p { margin-top: 12px; }
+  .problem .katex-display { margin: 14px 0; overflow-x: auto; overflow-y: hidden; }
+  .problem .em-inline {
+    background: linear-gradient(180deg, transparent 60%, var(--type-electric-surface) 60%);
+    padding: 0 2px;
+  }
+
+  /* reveal CTA */
+  .reveal-btn {
+    width: 100%;
+    height: 52px;
+    border-radius: var(--r-md);
+    background: var(--ink); color: var(--bg-canvas);
+    border: none; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-top: 4px;
+    transition: background var(--dur-fast) var(--ease);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .reveal-btn:active { background: var(--primary); }
+  .reveal-btn .kbd-hint {
+    font-family: var(--font-mono); font-size: 10px;
+    padding: 1px 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.16); color: rgba(255,255,255,0.7);
+    margin-left: 4px;
+  }
+
+  /* answer card (after reveal) */
+  .answer {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--ink-09);
+    display: none;
+  }
+  .answer.show { display: block; }
+  .answer .label {
+    font-size: 10.5px; font-weight: 800;
+    color: var(--success); letter-spacing: 0.5px; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .answer .label::before { content: "✓ "; }
+  .answer p {
+    font-size: 14.5px; line-height: 1.75; color: var(--ink-72);
+  }
+  .answer p + p { margin-top: 10px; }
+  .answer .katex-display { margin: 14px 0; overflow-x: auto; overflow-y: hidden; }
+  .answer .ai-cite {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--bg-paper);
+    border-left: 3px solid var(--type-grass);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    font-size: 12.5px; line-height: 1.55;
+    color: var(--ink-72);
+  }
+  .answer .ai-cite .src {
+    display: block;
+    font-size: 10px; font-weight: 800;
+    color: var(--type-grass); letter-spacing: 0.4px;
+    text-transform: uppercase; margin-bottom: 3px;
+  }
+
+  /* self-rate row (sticky bottom-ish) */
+  .rate {
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border-top: var(--border-hair);
+    padding: 14px 14px calc(14px + var(--safe-bottom));
+    margin-top: auto;
+  }
+  @media (min-width: 480px) { .rate { border-radius: 0 0 36px 36px; } }
+  .rate .question {
+    text-align: center;
+    font-size: 12.5px; color: var(--ink-60); font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .rate .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .rate-btn {
+    height: 64px;
+    border: 1px solid var(--ink-09);
+    border-radius: 12px;
+    background: var(--bg-card);
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px;
+    font-family: inherit;
+    transition: all var(--dur-fast) var(--ease);
+    padding: 4px;
+  }
+  .rate-btn:active { transform: scale(0.96); }
+  .rate-btn .face {
+    font-size: 18px;
+    line-height: 1;
+    margin-bottom: 1px;
+  }
+  .rate-btn .label {
+    font-size: 12px; font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .rate-btn .next {
+    font-size: 10px;
+    color: var(--ink-60);
+    font-weight: 600;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* color per rating intent */
+  .rate-btn.easy   { border-color: rgba(63, 161, 41, 0.30); }
+  .rate-btn.easy:hover, .rate-btn.easy:active { background: var(--type-grass-surface); }
+  .rate-btn.easy .label { color: var(--success); }
+
+  .rate-btn.ok     { border-color: rgba(45, 58, 140, 0.25); }
+  .rate-btn.ok:hover, .rate-btn.ok:active { background: var(--primary-surface); }
+  .rate-btn.ok .label { color: var(--primary); }
+
+  .rate-btn.hard   { border-color: rgba(250, 192, 0, 0.40); }
+  .rate-btn.hard:hover, .rate-btn.hard:active { background: var(--type-electric-surface); }
+  .rate-btn.hard .label { color: #b18800; }
+
+  .rate-btn.dunno  { border-color: rgba(230, 40, 41, 0.30); }
+  .rate-btn.dunno:hover, .rate-btn.dunno:active { background: rgba(230,40,41,0.06); }
+  .rate-btn.dunno .label { color: var(--danger); }
+  .rate-btn.dunno .next { font-size: 9.5px; }
+
+  /* mini "다시 설명" link below — for after answer revealed */
+  .ask-link {
+    display: block; width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    background: none; border: none;
+    color: var(--ink-60); font-family: inherit;
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--ink-20);
+    text-underline-offset: 3px;
+  }
+  .ask-link:active { color: var(--ink); }
+
+  /* finish state (when deck done) — not active in this mockup but ready */
+  .done-state {
+    display: none;
+    text-align: center;
+    padding: 60px 24px;
+  }
+
+  /* katex tweaks */
+  .katex { font-size: 1em; }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+<div class="viewport">
+
+  <header class="app">
+    <button class="icon-btn" aria-label="뒤로" onclick="history.back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h1>오늘 복습 <span class="num">3 / 8</span></h1>
+    <button class="icon-btn" aria-label="복습 설정">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <div class="progress" role="progressbar" aria-label="복습 진행 3 / 8" aria-valuenow="3" aria-valuemax="8">
+      <i class="done"></i><i class="done"></i><i class="now"></i>
+      <i></i><i></i><i></i><i></i><i></i>
+    </div>
+  </header>
+
+  <div class="streak" role="status" aria-label="4일 연속 복습 중">
+    <span class="flame" aria-hidden="true">🔥</span>
+    <span><b>4일</b> 연속 복습 중</span>
+    <span class="dim">남은 5장 · 약 3분</span>
+  </div>
+
+  <main id="main">
+
+    <div class="card-wrap">
+      <article class="card" style="--c: var(--type-grass);" aria-labelledby="problem-title">
+        <header class="source">
+          <span class="ico" aria-hidden="true">✦</span>
+          AskAI 막힌 단계
+          <span class="when">4일 전</span>
+        </header>
+        <div class="unit">확통 III-1 · 표본분포</div>
+
+        <div class="context-note">
+          <b>너 그때 멈춘 자리</b> — "정의 → 성질" 까지는 OK였는데 <b>3단계 계산</b>에서 식 정리 못 했어. 오늘 다시 한 번.
+        </div>
+
+        <div class="problem" id="problem-title">
+          <p>모분산이 $\sigma^2$ 인 모집단에서 크기 $n$인 확률표본을 뽑을 때, 표본평균 $\bar X$ 의 분산을 구하시오.</p>
+          <p>(단, $X_1, \ldots, X_n$ 은 <span class="em-inline">독립이고 동일분포</span>를 따름.)</p>
+        </div>
+
+        <button class="reveal-btn" id="revealBtn">
+          답 보기 <span class="kbd-hint">Space</span>
+        </button>
+
+        <section class="answer" id="answer" aria-live="polite">
+          <div class="label">정답 풀이</div>
+          <p>$$V(\bar X) = V\!\left(\tfrac{1}{n}\sum X_i\right) = \tfrac{1}{n^2}\sum V(X_i) = \tfrac{1}{n^2} \cdot n\sigma^2 = \tfrac{\sigma^2}{n}$$</p>
+          <p>핵심: <b>독립</b>이라 가법성 → 합의 분산이 분산의 합. 그 다음 $1/n^2$ 가 $1/n$ 로 줄어듦.</p>
+
+          <div class="ai-cite">
+            <span class="src">AskAI 대화 · 4일 전</span>
+            너 그때 "분산 가법성을 어디서 쓸지" 헷갈렸어. 오늘은 그 줄을 직접 적어보자.
+          </div>
+        </section>
+      </article>
+    </div>
+
+  </main>
+
+  <!-- self-rate footer -->
+  <footer class="rate" role="region" aria-label="복습 자가평가">
+    <div class="question">얼마나 잘 풀었어?</div>
+    <div class="row">
+      <button class="rate-btn easy" onclick="rate('easy')" aria-label="쉬움 — 7일 후 다시">
+        <span class="face" aria-hidden="true">😎</span>
+        <span class="label">쉬움</span>
+        <span class="next">7일 후</span>
+      </button>
+      <button class="rate-btn ok" onclick="rate('ok')" aria-label="적당 — 3일 후 다시">
+        <span class="face" aria-hidden="true">🙂</span>
+        <span class="label">적당</span>
+        <span class="next">3일 후</span>
+      </button>
+      <button class="rate-btn hard" onclick="rate('hard')" aria-label="어려움 — 1일 후 다시">
+        <span class="face" aria-hidden="true">😅</span>
+        <span class="label">어려움</span>
+        <span class="next">1일 후</span>
+      </button>
+      <button class="rate-btn dunno" onclick="rate('dunno')" aria-label="모름 — AskAI로 다시 배우기">
+        <span class="face" aria-hidden="true">😶</span>
+        <span class="label">모름</span>
+        <span class="next">→ 다시 배우기</span>
+      </button>
+    </div>
+    <button class="ask-link" id="askLink" hidden>이거 다시 설명해줘 →</button>
+  </footer>
+
+</div>
+
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+          delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}],
+          throwOnError: false
+        });"></script>
+
+<script>
+  // 답 보기 reveal
+  const reveal = document.getElementById('revealBtn');
+  const answer = document.getElementById('answer');
+  const askLink = document.getElementById('askLink');
+
+  function showAnswer() {
+    answer.classList.add('show');
+    reveal.style.display = 'none';
+    askLink.hidden = false;
+    answer.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  }
+  reveal.addEventListener('click', showAnswer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ' ' && !answer.classList.contains('show')) {
+      e.preventDefault(); showAnswer();
+    }
+    if (e.key === '1') rate('easy');
+    if (e.key === '2') rate('ok');
+    if (e.key === '3') rate('hard');
+    if (e.key === '4') rate('dunno');
+  });
+
+  // 자가평가 → toast (목업)
+  function rate(level) {
+    const labels = {easy: '쉬움 (7일 후)', ok: '적당 (3일 후)', hard: '어려움 (1일 후)', dunno: '모름 → AskAI'};
+    const t = document.createElement('div');
+    t.textContent = `✓ ${labels[level]} 기록됨 — 다음 카드`;
+    t.style.cssText = `
+      position: fixed; bottom: 200px; left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: white;
+      padding: 10px 16px; border-radius: 10px;
+      font-family: inherit; font-weight: 700; font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999;
+    `;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = 0; t.style.transition = 'opacity 250ms'; }, 1200);
+    setTimeout(() => t.remove(), 1500);
+
+    // 모름 → AskAI 진입
+    if (level === 'dunno') {
+      setTimeout(() => location.href = './mobile-chat.html', 600);
+    }
+  }
+
+  askLink.addEventListener('click', () => location.href = './mobile-chat.html');
+</script>
+</body>
+</html>

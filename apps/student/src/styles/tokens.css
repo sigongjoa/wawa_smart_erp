@@ -113,6 +113,34 @@
   /* ─ 도메인 색 (특정 학습 도메인 시그니처) ────────────── */
   --medterm-signature: #8B0000;        /* 의학용어 시그니처 — 보건고 짙은 적색 */
   --medterm-signature-hover: #6a0000;
+
+  /* ─ AskAI 신규 토큰 (mockups/ask-ai/_shared.css 에서 머지) ─ */
+  --bg-paper:        #f7f5ee;          /* 단원지 인용 / 종이톤 */
+  --bg-question:     #f1f3f9;          /* 학생 질문 박스 — 옅은 잉크 */
+  --bg-photo:        #efece4;          /* 노트 사진 베이스 */
+  --paper-textbook:  #faf6ee;          /* 교과서 페이지 누런종이 */
+  --rule-line:       #d9d2bd;          /* 노트 가로줄 */
+  --rule-line-soft:  #c8b89a;          /* 노트 줄 (옅게) */
+  --margin-line:     #d99a9a;          /* 노트 빨간 마진선 */
+  --textbook-blue:   #1c4ea8;          /* 교과서 헤더 강조 */
+  --pen-red:         #d92e2e;          /* AI 빨간펜 (채도 살짝 죽임) */
+  --pen-red-soft:    rgba(217, 46, 46, 0.12);
+  --font-hand:       'Gaegu', sans-serif;  /* 학생 손글씨 표현 (annotated photo) */
+
+  /* ─ 잉크 추가 단계 + 보더·섀도우·이즈 (mockup _shared.css 호환) ─ */
+  --ink-72:          rgba(17, 20, 26, 0.72);
+  --ink-05:          rgba(17, 20, 26, 0.05);
+  --border-hair:     1px solid var(--ink-09);
+  --shadow-card:     0 1px 1px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(17, 20, 26, 0.05);
+  --shadow-photo:    0 1px 1px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(17, 20, 26, 0.10);
+  --shadow-frame:    0 24px 60px rgba(0, 0, 0, 0.10), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --ease:            cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* ─ 모바일 측정 + 안전영역 ─ */
+  --header-h:        56px;
+  --composer-h:      64px;
+  --safe-top:        env(safe-area-inset-top, 0px);
+  --safe-bottom:     env(safe-area-inset-bottom, 0px);
   --shadow-sm: var(--shadow-pop);
   --shadow-md: var(--shadow-pop);
   --shadow-lg: var(--shadow-pop);

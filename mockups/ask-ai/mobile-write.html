@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#f7f5ee" />
+<title>설명 AI · 글로 묻기 — 모바일</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--ink-05);
+    min-height: 100dvh;
+  }
+  .viewport {
+    max-width: 430px;
+    margin: 0 auto;
+    background: var(--bg-paper);
+    min-height: 100dvh;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  @media (min-width: 480px) {
+    body { padding: 32px 0; }
+    .viewport {
+      min-height: calc(100dvh - 64px); height: calc(100dvh - 64px);
+      border-radius: 36px; overflow: hidden;
+      box-shadow: var(--shadow-frame);
+      border: 1px solid var(--ink-09);
+    }
+  }
+
+  /* ───────────────────────────── sticky header */
+  header.app {
+    flex-shrink: 0;
+    padding: calc(var(--safe-top) + 8px) 8px 8px;
+    background: rgba(247, 245, 238, 0.92);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .icon-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    border: none; background: transparent;
+    color: var(--ink-72); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .icon-btn:active { background: rgba(0,0,0,0.04); color: var(--ink); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  header h1 {
+    font-size: 16px; font-weight: 800; letter-spacing: -0.01em;
+    text-align: center;
+  }
+  header h1 small {
+    display: block;
+    font-size: 10.5px; font-weight: 600; color: var(--ink-60);
+    letter-spacing: 0.3px; margin-top: 1px;
+  }
+  .send-top {
+    height: 36px; padding: 0 16px;
+    border-radius: 10px;
+    background: var(--ink); color: var(--bg-canvas);
+    border: none; cursor: pointer;
+    font-family: inherit; font-size: 13.5px; font-weight: 800;
+    display: inline-flex; align-items: center; gap: 5px;
+    min-height: 44px;
+    transition: background 150ms var(--ease);
+  }
+  .send-top:active { background: var(--primary); }
+  .send-top:disabled {
+    background: rgba(17,20,26,0.10); color: var(--ink-40);
+    cursor: not-allowed;
+  }
+  .send-top svg { width: 14px; height: 14px; }
+
+  /* ───────────────────────────── unit chip row */
+  .ctx-row {
+    flex-shrink: 0;
+    padding: 16px 18px 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ctx-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px 8px 8px;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: 999px;
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    min-height: 44px;
+  }
+  .ctx-pill:active { background: var(--ink-05); }
+  .ctx-pill .swatch {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--type-grass); color: white;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .ctx-pill .chev {
+    color: var(--ink-40); font-weight: 600; font-size: 11px;
+    margin-left: 2px;
+  }
+  .quota-mini {
+    margin-left: auto;
+    font-size: 11.5px; color: var(--ink-60);
+    font-weight: 600;
+    text-align: right;
+    line-height: 1.2;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+  .quota-mini .num {
+    font-size: 13px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .quota-mini .num .dim { color: var(--ink-40); font-weight: 600; }
+  .ctx-row .quota {
+    margin-left: auto;
+    font-size: 11px; color: var(--ink-60);
+    font-feature-settings: 'tnum' 1;
+    text-align: right;
+    line-height: 1.2;
+  }
+  .ctx-row .quota b {
+    color: var(--ink); font-weight: 800; font-size: 13px;
+    display: block;
+  }
+
+  /* ───────────────────────────── HERO — 글쓰기 영역 (paper) */
+  main {
+    flex: 1;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    padding: 12px 16px 0;
+  }
+
+  .paper {
+    flex: 1;
+    display: flex; flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid rgba(0,0,0,0.04);
+    border-radius: var(--r-lg);
+    box-shadow: 0 2px 8px rgba(17,20,26,0.04);
+    overflow: hidden;
+    /* 노트 줄 — repeating gradient */
+    background-image:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 31px,
+        var(--rule-line) 31px,
+        var(--rule-line) 32px
+      );
+    background-position: 0 36px;
+    background-attachment: local;
+    position: relative;
+  }
+  .paper::before {
+    /* 빨간 마진선 */
+    content: "";
+    position: absolute;
+    left: 38px; top: 0; bottom: 0;
+    width: 1px;
+    background: var(--margin-line);
+    opacity: 0.5;
+  }
+
+  .paper textarea {
+    flex: 1; width: 100%;
+    border: none; background: transparent;
+    padding: 18px 18px 18px 52px;  /* margin-line 만큼 left padding */
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 32px;             /* 노트 줄 간격과 일치 */
+    color: var(--ink);
+    resize: none;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .paper textarea::placeholder {
+    color: var(--ink-40);
+    line-height: 32px;
+  }
+
+  /* live preview (when typing, show LaTeX render) */
+  .preview {
+    flex-shrink: 0;
+    border-top: 1px dashed var(--ink-09);
+    padding: 12px 18px 14px 52px;
+    background: var(--bg-paper);
+    font-size: 13.5px; line-height: 1.65;
+    color: var(--ink-72);
+    max-height: 30dvh; overflow-y: auto;
+    display: none;
+  }
+  .preview.show { display: block; }
+  .preview .label {
+    font-size: 9.5px; font-weight: 800; color: var(--ink-60);
+    letter-spacing: 0.5px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .preview .label::before {
+    content: "✦"; color: var(--type-grass); margin-right: 4px;
+  }
+
+  /* meta footer (글자수 + 격려 메시지) */
+  .meta-row {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    display: flex; align-items: center;
+    font-size: 11px; color: var(--ink-60);
+  }
+  .meta-row .count {
+    font-feature-settings: 'tnum' 1; font-weight: 700;
+    color: var(--ink-72);
+  }
+  .meta-row .praise {
+    margin-left: auto;
+    color: var(--type-grass); font-weight: 700;
+    display: none;
+    align-items: center; gap: 4px;
+  }
+  .meta-row .praise.show { display: inline-flex; }
+
+  /* ───────────────────────────── quick-start (when textarea empty) */
+  .quick {
+    flex-shrink: 0;
+    padding: 8px 16px 12px;
+    transition: opacity 200ms var(--ease);
+  }
+  .quick.hidden { display: none; }
+  .quick h2 {
+    font-size: 11px; font-weight: 800;
+    color: var(--ink-60); letter-spacing: 0.5px; text-transform: uppercase;
+    margin: 14px 4px 10px;
+  }
+  .quick .chips {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .quick .chip {
+    padding: 9px 14px;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: 999px;
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    color: var(--ink-72); cursor: pointer;
+    min-height: 36px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .quick .chip:active { background: var(--ink-05); color: var(--ink); }
+  .quick .chip .ico { font-size: 11px; opacity: 0.7; }
+
+  /* ───────────────────────────── math toolbar (sticky above keyboard) */
+  .math-bar {
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--ink-09);
+    padding: 8px 8px calc(10px + var(--safe-bottom));
+  }
+  @media (min-width: 480px) { .math-bar { border-radius: 0 0 36px 36px; } }
+  .math-bar .scroll {
+    display: flex; gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px 6px;
+  }
+  .math-bar .scroll::-webkit-scrollbar { display: none; }
+  .math-key {
+    flex-shrink: 0;
+    min-width: 44px; height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--ink-09);
+    background: var(--bg-canvas);
+    font-family: 'SF Mono', 'Times New Roman', serif;
+    font-size: 17px;
+    font-style: italic;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 12px;
+    transition: all 100ms var(--ease);
+    line-height: 1;
+  }
+  .math-key:active {
+    background: var(--primary-surface);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: scale(0.96);
+  }
+  .math-key.wide { min-width: auto; padding: 0 14px; }
+  .math-key.cat {
+    font-style: normal; font-family: var(--font-display);
+    font-size: 11px; font-weight: 800;
+    color: var(--ink-60); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    background: transparent; border: none;
+    min-width: auto; padding: 0 8px 0 4px;
+    cursor: default;
+  }
+  .math-key.cat::after {
+    content: "│"; margin-left: 8px; color: var(--ink-09);
+  }
+
+  /* mic floating button */
+  .mic {
+    position: fixed;
+    right: 20px;
+    bottom: calc(60px + var(--safe-bottom) + 12px);
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--ink); color: white;
+    border: none; cursor: pointer;
+    display: grid; place-items: center;
+    box-shadow: 0 6px 20px rgba(17,20,26,0.20);
+    z-index: 50;
+  }
+  .mic:active { transform: scale(0.94); background: var(--primary); }
+  .mic svg { width: 24px; height: 24px; }
+  @media (min-width: 480px) {
+    .mic {
+      position: absolute;
+      right: 14px;
+      bottom: calc(60px + 16px);
+    }
+  }
+
+  .katex { font-size: 1.05em; }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+<div class="viewport">
+
+  <header class="app">
+    <button class="icon-btn" aria-label="뒤로" onclick="history.back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h1>글로 묻기</h1>
+    <button class="send-top" id="sendTop" disabled aria-disabled="true">
+      보내기
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+  </header>
+
+  <div class="ctx-row">
+    <a class="ctx-pill" href="#" aria-label="단원 변경">
+      <span class="swatch" aria-hidden="true">증</span>
+      확통 III-1 · 표본분포
+      <span class="chev" aria-hidden="true">▾</span>
+    </a>
+    <div class="quota-mini" role="status" aria-label="오늘 남은 질문 22 회">
+      <span class="num">22<span class="dim">/30</span></span>
+    </div>
+  </div>
+
+  <main id="main">
+    <div class="paper">
+      <textarea
+        id="ta"
+        aria-label="질문이나 풀이 내용 적기"
+        placeholder="여기에 자유롭게 써봐.
+한 줄로도 좋고, 풀이 과정 풀어 적어도 좋아.
+
+예) 표본평균 분산이 σ²/n 인데 왜 n으로 나누는지
+직관으로 이해가 안 돼요. 분산은 (X - μ)² 의 평균
+이라고 알고 있는데, 표본평균이면 그게 어떻게…"
+      ></textarea>
+
+      <div class="preview" id="preview" aria-live="polite">
+        <div class="label">수식 미리보기</div>
+        <div id="previewContent">표본평균 $\bar X = \frac{1}{n} \sum X_i$ 에서 $V(\bar X) = \frac{\sigma^2}{n}$.</div>
+      </div>
+
+      <div class="meta-row">
+        <span class="count" id="charCount">0자</span>
+      </div>
+    </div>
+
+    <!-- quick-start (when textarea empty) -->
+    <section class="quick" id="quick" aria-label="빠른 시작">
+      <h2>예시로 시작</h2>
+      <div class="chips">
+        <button class="chip" onclick="insertText(this.textContent.trim())">분산이 σ²/n 인 이유</button>
+        <button class="chip" onclick="insertText(this.textContent.trim())">표본평균과 모평균의 차이</button>
+        <button class="chip" onclick="insertText(this.textContent.trim())">중심극한정리 직관</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- math toolbar -->
+  <div class="math-bar" role="toolbar" aria-label="수식 입력 도구">
+    <div class="scroll">
+      <button class="math-key" onclick="insertText('½')" aria-label="분수">½</button>
+      <button class="math-key" onclick="insertText('x²')" aria-label="제곱">x²</button>
+      <button class="math-key" onclick="insertText('√')" aria-label="제곱근">√</button>
+      <button class="math-key" onclick="insertText('π')" aria-label="파이">π</button>
+      <button class="math-key" onclick="insertText('σ')" aria-label="시그마">σ</button>
+      <button class="math-key" onclick="insertText('μ')" aria-label="뮤">μ</button>
+      <button class="math-key" onclick="insertText('∑')" aria-label="합">∑</button>
+      <button class="math-key" onclick="insertText('∫')" aria-label="적분">∫</button>
+      <button class="math-key" onclick="insertText('≤')" aria-label="이하">≤</button>
+      <button class="math-key" onclick="insertText('≥')" aria-label="이상">≥</button>
+      <button class="math-key" onclick="insertText('≠')" aria-label="같지 않다">≠</button>
+      <button class="math-key" onclick="insertText('∴')" aria-label="따라서">∴</button>
+      <button class="math-key" onclick="insertText('→')" aria-label="화살">→</button>
+    </div>
+  </div>
+
+  <!-- mic floating button -->
+  <button class="mic" aria-label="음성으로 입력" title="음성으로 입력">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+
+</div>
+
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.getElementById('previewContent'), {
+          delimiters: [{left: '$', right: '$', display: false}],
+          throwOnError: false
+        });"></script>
+
+<script>
+  const ta = document.getElementById('ta');
+  const send = document.getElementById('sendTop');
+  const quick = document.getElementById('quick');
+  const count = document.getElementById('charCount');
+  const praise = document.getElementById('praise');
+  const preview = document.getElementById('preview');
+  const previewContent = document.getElementById('previewContent');
+
+  // textarea 변경 핸들러
+  ta.addEventListener('input', update);
+  ta.addEventListener('change', update);
+
+  function update() {
+    const v = ta.value;
+    const empty = v.trim().length === 0;
+
+    // send 활성화
+    send.disabled = empty;
+    send.setAttribute('aria-disabled', String(empty));
+
+    // quick chips 숨김 (typing 시작하면)
+    quick.classList.toggle('hidden', !empty);
+
+    // 글자수 / 줄수
+    const chars = v.length;
+    count.textContent = `${chars}자`;
+
+    // 수식 미리보기 ($ ... $ 포함된 경우)
+    if (v.includes('$') && v.match(/\$[^$]+\$/)) {
+      preview.classList.add('show');
+      previewContent.textContent = v;
+      if (window.renderMathInElement) {
+        renderMathInElement(previewContent, {
+          delimiters: [{left: '$', right: '$', display: false},
+                       {left: '$$', right: '$$', display: true}],
+          throwOnError: false
+        });
+      }
+    } else {
+      preview.classList.remove('show');
+    }
+  }
+
+  // 수식 toolbar 키 → 커서 위치에 삽입
+  function insertText(text) {
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = ta.value.substring(0, start);
+    const after = ta.value.substring(end);
+    ta.value = before + text + after;
+    const newPos = start + text.length;
+    ta.focus();
+    ta.setSelectionRange(newPos, newPos);
+    update();
+  }
+
+  // 보내기 (mockup — chat 화면으로 이동)
+  send.addEventListener('click', () => {
+    if (send.disabled) return;
+    // 실제 앱에선 질문 저장 후 navigate
+    location.href = './mobile-chat.html';
+  });
+
+  // textarea autofocus on desktop preview only (mobile은 키보드 자동올림 피함)
+  if (window.matchMedia('(min-width: 480px)').matches) {
+    setTimeout(() => ta.focus(), 200);
+  }
+</script>
+</body>
+</html>

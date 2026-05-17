@@ -58,6 +58,41 @@ function zodError(err: unknown): Response | null {
   return null;
 }
 
+// ── 학생별 단어 집계 (chip row, dropdown 정확도용) ──
+//
+// /api/vocab/words 는 pagination(50) 이라 학생별 정확 카운트가 불가능.
+// 이 endpoint 는 academy 단위로 GROUP BY 한 번에 집계해서 반환.
+async function handleStudentStats(context: RequestContext): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+  const academyId = getAcademyId(context);
+
+  interface StatRow {
+    student_id: string;
+    total: number;
+    pending: number;
+    approved: number;
+    wrong: number;
+  }
+
+  const rows = await executeQuery<StatRow>(
+    context.env.DB,
+    `SELECT
+       student_id,
+       COUNT(*) AS total,
+       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+       SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved,
+       SUM(CASE WHEN COALESCE(wrong_count, 0) > 0 THEN 1 ELSE 0 END) AS wrong
+     FROM vocab_words
+     WHERE academy_id = ?
+     GROUP BY student_id`,
+    [academyId]
+  );
+
+  return successResponse({ items: rows });
+}
+
 // ── 단어 CRUD ──
 
 async function handleGetWords(request: Request, context: RequestContext): Promise<Response> {
@@ -598,6 +633,11 @@ export async function handleVocab(
   context: RequestContext
 ): Promise<Response> {
   try {
+    // /api/vocab/words/student-stats — 학생별 단어 집계 (pagination 없이 전체)
+    if (pathname === '/api/vocab/words/student-stats' && method === 'GET') {
+      return await handleStudentStats(context);
+    }
+
     // /api/vocab/words
     if (pathname === '/api/vocab/words') {
       if (method === 'GET') return await handleGetWords(request, context);

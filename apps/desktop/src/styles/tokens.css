@@ -54,6 +54,16 @@
   --medterm-signature: #8B0000;
   --medterm-signature-hover: #6a0000;
 
+  /* Font sizes (mockup v2 scale) */
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-15: 15px;
+  --fs-17: 17px;
+  --fs-22: 22px;
+  --fs-28: 28px;
+
   /* Spacing scale (4px base) */
   --sp-1: 4px;
   --sp-2: 8px;

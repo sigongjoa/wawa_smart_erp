@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1400" />
+<title>06 · TutorFlow — 와와 EduTech Stack</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<link rel="stylesheet" href="deck.css" />
+<style>
+  :root {
+    --sys-dark: #0891b2;
+    --sys-mid:  #06b6d4;
+    --sys-soft: #cffafe;
+    --sys-fill: #ecfeff;
+    --sys-rule: #67e8f9;
+    --sys-ink:  #164e63;
+    /* WCAG: cyan-dark borderline on white. Use deeper cyan for inline text. */
+    --sys-text: #155e75;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="curves" viewBox="0 0 480 480" fill="none" stroke="currentColor">
+      <path d="M 480 100 Q 360 220, 480 360" />
+      <path d="M 480 140 Q 320 240, 480 380" />
+      <path d="M 480 180 Q 280 260, 480 400" />
+      <path d="M 480 220 Q 240 280, 480 420" />
+      <path d="M 480 260 Q 200 300, 480 440" />
+      <path d="M 480 300 Q 160 320, 460 460" />
+      <path d="M 480 340 Q 140 360, 420 470" />
+    </symbol>
+  </defs>
+</svg>
+
+<nav class="topnav" aria-label="시스템 탐색">
+  <div class="topnav-inner">
+    <a class="nav-brand" href="index.html">와와<em> · EduTech</em></a>
+    <div class="nav-links">
+      <a href="index.html"><span class="dot" aria-hidden="true" style="background:#0f0f1f"></span>Overview</a>
+      <a href="erp.html"><span class="dot" aria-hidden="true" style="background:#475569"></span>01 ERP</a>
+      <a href="askai.html"><span class="dot" aria-hidden="true" style="background:#4f46e5"></span>02 AskAI</a>
+      <a href="proof.html"><span class="dot" aria-hidden="true" style="background:#059669"></span>03 Proof</a>
+      <a href="english.html"><span class="dot" aria-hidden="true" style="background:#d97706"></span>04 English</a>
+      <a href="vocab.html"><span class="dot" aria-hidden="true" style="background:#dc2626"></span>05 Vocab</a>
+      <a href="tutorflow.html" class="active"><span class="dot" aria-hidden="true" style="background:#0891b2"></span>06 TutorFlow</a>
+      <a href="perfeval.html"><span class="dot" aria-hidden="true" style="background:#7c3aed"></span>07 PerfEval</a>
+    </div>
+    <span class="nav-meta">System 06 of 07</span>
+  </div>
+</nav>
+
+<main class="canvas">
+
+  <header class="canvas-header">
+    <h1 class="canvas-title">06 · TutorFlow<em> — 라이브 + AI 자동 리포트</em></h1>
+    <span class="canvas-tag">실시간 화상 · AI 요약 · 카톡 알림 · 5 frames</span>
+    <div class="canvas-meta">
+      <div><b>Cyan theme</b> · #0891b2</div>
+      <div>System 06 of 07 · separate repo</div>
+    </div>
+  </header>
+
+  <section class="slide-row">
+
+    <!-- 06.01 Intro -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">06 · 01</span><span>Intro</span><span class="dim">— TutorFlow thesis</span></div>
+      <div class="slide s-intro">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>Detail · <span class="sys">06 · TutorFlow</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">TutorFlow</span></div>
+          </div>
+          <div class="lead-row">
+            <div>
+              <h1>강사의 가장<br/>비싼 시간은<br/><s>수업 중</s>이<br/><span class="acc">아니다</span>.</h1>
+              <div class="sub">강사는 수업 후 <span class="acc">1~2 시간씩</span> 리포트·오답노트·알림을 손으로 쓴다. 우리는 그 시간을 0 으로 만든다.</div>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="v">~90<sub>분/수업</sub></div><div class="k">강사 작업 시간 절감<small>리포트·오답·알림 자동</small></div></div>
+              <div class="stat"><div class="v">0<sub>원/영상</sub></div><div class="k">학생↔강사 직통 화상<small>중계 서버 없음 (WebRTC P2P)</small></div></div>
+              <div class="stat"><div class="v">7<sub>steps</sub></div><div class="k">end-to-end 파이프라인<small>녹화 → 학부모 카톡</small></div></div>
+              <div class="stat"><div class="v">repo<sub>↗</sub></div><div class="k">tutorflow-live (별도)<small>독립 매각 가능</small></div></div>
+            </div>
+          </div>
+          <div class="toc" style="grid-template-columns:repeat(5,1fr);">
+            <div class="item"><div class="n">06.1</div><div class="t">Pipeline<small>7 step</small></div></div>
+            <div class="item"><div class="n">06.2</div><div class="t">기술 스택<small>화상 + AI</small></div></div>
+            <div class="item"><div class="n">06.3</div><div class="t">시장<small>1:1 과외 SaaS</small></div></div>
+            <div class="item"><div class="n">06.4</div><div class="t">Live Room<small>실 캡처</small></div></div>
+            <div class="item"><div class="n">06.5</div><div class="t">End-to-End<small>수업→요약→숙제</small></div></div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · TutorFlow Subdeck · 2026 Q2</div><div class="page"><b>06 · 01</b> / 06 · 05</div></div>
+      </div>
+    </div>
+
+    <!-- 06.02 Pipeline -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">06 · 02</span><span>7-Step Pipeline</span><span class="dim">— end-to-end</span></div>
+      <div class="slide s-pipeline" style="--steps: 7;">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>06 · TutorFlow · <span class="sys">Pipeline</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">TutorFlow</span></div>
+          </div>
+          <div class="slide-head">
+            <h2><span class="acc">7 단계</span>가 자동으로 도미노처럼 떨어진다.</h2>
+            <div class="subtitle">수업 종료 트리거 한 번 → 학부모 카톡까지 강사 손 안 댐</div>
+          </div>
+
+          <div class="pipe">
+            <div class="step">
+              <div class="n">STEP 1</div>
+              <div class="t">1:1 화상</div>
+              <div class="d">학생↔강사 직통 화상. 중계 서버 비용 0.</div>
+            </div>
+            <div class="step">
+              <div class="n">STEP 2</div>
+              <div class="t">자동 녹화</div>
+              <div class="d">MediaRecorder API → Cloudflare R2.</div>
+            </div>
+            <div class="step">
+              <div class="n">STEP 3</div>
+              <div class="t">음성 → 문자</div>
+              <div class="d">Whisper API → 네이버 Clova 전환 예정.</div>
+            </div>
+            <div class="step hot">
+              <div class="n">STEP 4</div>
+              <div class="t"><span class="acc">Claude 요약</span></div>
+              <div class="d">수업 + 오답 + 다음 단원 추천.</div>
+            </div>
+            <div class="step hot">
+              <div class="n">STEP 5</div>
+              <div class="t"><span class="acc">오답·숙제</span></div>
+              <div class="d">오답노트·다음 수업 숙제 자동 등록.</div>
+            </div>
+            <div class="step">
+              <div class="n">STEP 6</div>
+              <div class="t">알림톡</div>
+              <div class="d">NCP SENS 카톡 알림톡 발송.</div>
+            </div>
+            <div class="step">
+              <div class="n">STEP 7</div>
+              <div class="t">학부모</div>
+              <div class="d">read-only 토큰 링크 클릭.</div>
+            </div>
+          </div>
+
+          <div class="s-impact" style="margin-top:18px;">
+            <div class="grid" style="--items: 3;">
+              <div class="item">
+                <div class="k">~90<sub>분 / 수업</sub></div>
+                <div class="l">강사 작업 시간 절감</div>
+                <div class="b">리포트·오답노트·알림 자동화. 강사 1 인당 <span class="acc">수강 가능 학생 수 ↑</span>.</div>
+              </div>
+              <div class="item">
+                <div class="k">0<sub>원/영상 중계</sub></div>
+                <div class="l">P2P 운영비</div>
+                <div class="b">영상 트래픽 비용 0. <span class="acc">인수 후 GP 마진 직결</span>.</div>
+              </div>
+              <div class="item">
+                <div class="k">+α<sub>증거</sub></div>
+                <div class="l">녹화 + 리포트 = 학부모 신뢰</div>
+                <div class="b">수업 품질이 <span class="acc">증거로 남는다</span> → NPS · 재등록률 ↑.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · TutorFlow Subdeck · 2026 Q2</div><div class="page"><b>06 · 02</b> / 06 · 05</div></div>
+      </div>
+    </div>
+
+    <!-- 06.03 Stack + 시장 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">06 · 03</span><span>Stack + 시장</span><span class="dim">— 기술 + 포지셔닝</span></div>
+      <div class="slide s-two">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>06 · TutorFlow · <span class="sys">Stack + 시장</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">TutorFlow</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>기술은 흔하다. <span class="acc">조합</span>이 차별이다.</h2>
+            <div class="subtitle">레퍼런스 스택을 하나로 묶은 end-to-end 파이프라인이 진짜 자산</div>
+          </div>
+          <div class="two equal">
+            <div class="why">
+              <h3>— LEFT · 기술 스택 (각자는 흔한 것)</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">React 웹앱 <span class="gloss">앱 설치 없이 웹에서 (PWA)</span> + 학생↔강사 직통 화상 <span class="gloss">WebRTC P2P</span></div><div class="d">갤럭시탭 A8 (학생) + 데스크톱 Chrome (강사). <span class="acc">중계 서버 비용 0</span>.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">Supabase (Auth · Realtime · RLS)</div><div class="d">PostgreSQL + 시그널링 + 학원 격리 RLS.</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">Cloudflare 서버리스 (저장·연산·큐)</div><div class="d">녹화 저장 + 음성→문자 변환 큐 + 리포트 생성 자동.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">Claude Sonnet + NCP SENS</div><div class="d">요약 생성 + 카톡 알림톡 발송 자동화.</div></div></li>
+              </ul>
+            </div>
+            <div class="why">
+              <h3>— RIGHT · 시장 포지셔닝</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">1:1 과외 시장 — 매우 큼</div><div class="d">국내 시간제 과외만 <span class="acc">수 천억대</span>. 운영툴 없음 = 강사 손 작업.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">SaaS화 가능한 모듈</div><div class="d">학원 내장이 아니라 <span class="acc">개별 강사 / 소형 학원</span>에도 그대로 팔 수 있음. 별 repo.</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">에듀테크 인수 트리거 1순위</div><div class="d">"수업 후 자동화"는 모든 학원이 원함. <span class="acc">클래스팅·아이스크림</span> 같은 곳이 탐낼 자산.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">학부모 카톡 알림톡</div><div class="d">NPS 가장 강한 채널. 한국 시장 특화 — 글로벌 OEM이 못 따라옴.</div></div></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · TutorFlow Subdeck · 2026 Q2</div><div class="page"><b>06 · 03</b> / 06 · 05</div></div>
+      </div>
+    </div>
+
+    <!-- 06.04 Use Case -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">06 · 04</span><span>Use Case</span><span class="dim">— 강사 라이브 화면</span></div>
+      <div class="slide s-usecase">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>06 · TutorFlow · <span class="sys">Use Case</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">TutorFlow</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>강사가 수업 중 <span class="acc">실제로 보는 화면</span>.</h2>
+            <div class="subtitle">tutorflow-live · 데스크톱 Chrome · 학생 풀이 위 빨간펜 첨삭 + 자동 녹화</div>
+          </div>
+
+          <div class="layout">
+            <div class="hero" data-tag="TEACHER · LIVE ROOM · 빨간펜 첨삭 · 실 캡처">
+              <img class="screenshot desktop" src="img/tutor-live-room-annotated.png" alt="TutorFlow 라이브 룸 — 강사가 학생 풀이 위에 빨간펜 첨삭" />
+            </div>
+            <div class="annotations">
+              <div class="anno">
+                <span class="n">1</span>
+                <div class="body">
+                  <div class="t">메인 캔버스 · 빨간펜 첨삭</div>
+                  <div class="d">학생 풀이 위에 강사 자유 첨삭. <span class="acc">획(stroke) 단위 레이어</span>로 분리 — 학생 풀이는 보존, 코멘트만 후저장.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">2</span>
+                <div class="body">
+                  <div class="t">양방향 카메라 (좌·우)</div>
+                  <div class="d">좌상단 학생 카메라 · 우상단 강사 카메라 + 마이크·카메라 토글. <span class="acc">학생↔강사 직통 화상 (중계 서버 0)</span>.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">3</span>
+                <div class="body">
+                  <div class="t">7-tool 툴바 · 펜 굵기·색상</div>
+                  <div class="d">펜 · 형광 · 지우개 · 도형 + 5색 팔레트 + 3 굵기 + 줌. <span class="acc">강사 워크플로 그대로</span>.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">4</span>
+                <div class="body">
+                  <div class="t">상단 상태 표시 (idle / live)</div>
+                  <div class="d">우상단 <span class="acc">idle</span> 또는 라이브 시 변경. 학생도 같은 표시 — <span class="acc">상태 동기화 시각화</span>.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">5</span>
+                <div class="body">
+                  <div class="t">우하단 "종료" → AI 리포트 트리거</div>
+                  <div class="d">한 번 클릭 → <span class="acc">녹화 종료 → 음성→문자 → AI 요약 → 카톡 알림</span> 7단계 자동 발화.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · TutorFlow Subdeck · 2026 Q2</div><div class="page"><b>06 · 04</b> / 06 · 05</div></div>
+      </div>
+    </div>
+
+    <!-- 06.05 End-to-End scenario (mockup with virtual data) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">06 · 05</span><span>End-to-End</span><span class="dim">— 수업 → 요약 → 숙제 자동화 시나리오</span></div>
+      <div class="slide s-scenario">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>06 · TutorFlow · <span class="sys">End-to-End</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">TutorFlow</span></div>
+          </div>
+          <div class="slide-head">
+            <h2><span class="acc">한 번의 수업</span>이 <span class="acc">자동 숙제 발행</span>까지 가는 길.</h2>
+            <div class="subtitle">가상 시나리오 · 이학생(중2) · 이차부등식 90분 수업 · 수업 종료 후 1분 안에 학부모 카톡까지</div>
+          </div>
+
+          <div class="cascade">
+
+            <!-- Stage 1: 수업 진행 -->
+            <div class="stage">
+              <div class="thumb">
+                <img src="img/tutor-live-room-annotated.png" alt="라이브 룸" />
+                <span class="badge">LIVE</span>
+              </div>
+              <div class="label">— Stage 1 · 수업</div>
+              <h4>이차부등식 풀이 · 90분</h4>
+              <div class="meta">
+                STUDENT: <b>이학생</b> · 중2<br/>
+                SESSION: <b>5/17 11:00–12:30</b><br/>
+                STROKES: <b>17</b> · DURATION: <b>89:42</b>
+              </div>
+              <div class="body">
+                <p><b>진행 흐름</b></p>
+                <ul>
+                  <li><span class="i">1.</span><span>x²−5x+6&lt;0 인수분해 → (x−2)(x−3)&lt;0 도출 (강사 힌트 1회)</span></li>
+                  <li><span class="i">2.</span><span>부등호 방향 <span class="acc">2회 혼동</span> — "양수×양수&lt;0 불가능" 개념 막힘</span></li>
+                  <li><span class="i">3.</span><span>해 2&lt;x&lt;3 자력 도출 (마지막 시도)</span></li>
+                </ul>
+              </div>
+              <div class="footer">강사 클릭: <b>"종료" ↗</b></div>
+            </div>
+
+            <!-- Stage 2: AI 요약 -->
+            <div class="stage">
+              <div class="thumb" style="background: var(--sys-fill); display: flex; align-items: center; padding: 0 14px;">
+                <div style="text-align: left;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--sys-text); letter-spacing: 0.16em;">CLAUDE SONNET 4.6</div>
+                  <div style="font-size: 14px; font-weight: 800; color: var(--ink); margin-top: 2px;">Session Summary #8424</div>
+                  <div style="font-size: 10.5px; color: var(--ink-3); margin-top: 2px;">음성→문자 → AI 분석 · 12.3 초</div>
+                </div>
+                <span class="badge" style="background: var(--sys-text);">AI</span>
+              </div>
+              <div class="label">— Stage 2 · 요약</div>
+              <h4>핵심 막힘 + 다음 단원 추천</h4>
+              <div class="meta">
+                CONFIDENCE: <b>high</b> · 9.4/10<br/>
+                CORRECT RATE: <b>33%</b> (1/3 자력)<br/>
+                MOOD: <b>마지막 15분 피로</b>
+              </div>
+              <div class="body">
+                <p><b>약점 진단</b></p>
+                <ul>
+                  <li><span class="i">▸</span><span><span class="acc">부등호 방향 결정</span> — 2회 혼동, 핵심 약점</span></li>
+                  <li><span class="i">▸</span><span>인수분해 자체는 OK · 강사 힌트 후 즉시 이해</span></li>
+                </ul>
+                <p style="margin-top: 8px;"><b>다음 단원 추천</b></p>
+                <ul>
+                  <li><span class="i">→</span><span><span class="acc">이차함수 그래프</span> · 시각화로 부등호 방향 보강</span></li>
+                </ul>
+              </div>
+              <div class="footer">자동 발행: <b>숙제 + 알림톡 ↗</b></div>
+            </div>
+
+            <!-- Stage 3: 자동 숙제 -->
+            <div class="stage">
+              <div class="thumb" style="background: var(--sys-soft); display: flex; align-items: center; padding: 0 14px;">
+                <div style="text-align: left;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--sys-text); letter-spacing: 0.16em;">HOMEWORK · AUTO</div>
+                  <div style="font-size: 14px; font-weight: 800; color: var(--ink); margin-top: 2px;">과제 #142 발행</div>
+                  <div style="font-size: 10.5px; color: var(--ink-3); margin-top: 2px;">due 5/19 23:59 · 마감 36h</div>
+                </div>
+                <span class="badge">HW</span>
+              </div>
+              <div class="label">— Stage 3 · 숙제</div>
+              <h4>약점 기반 8문 + 영상 1편</h4>
+              <div class="meta">
+                ITEMS: <b>8</b> · ESTIMATED: <b>45 min</b><br/>
+                LINKED UNIT: <b>이차부등식 § 2-3</b><br/>
+                STATUS: <b>학생 큐 도착 ✓</b>
+              </div>
+              <div class="body">
+                <p><b>자동 생성 과제</b></p>
+                <ul>
+                  <li><span class="i">1</span><span><span class="acc">인수분해 유제 5문</span> (개념원리 p.142–143)</span></li>
+                  <li><span class="i">2</span><span><span class="acc">부등호 방향 응용 3문</span> · 약점 직격</span></li>
+                  <li><span class="i">3</span><span>이차함수 그래프 보조 영상 (KhanAcademy 5:24)</span></li>
+                </ul>
+              </div>
+              <div class="footer">발송: <b>학부모 카톡 알림톡 ↘</b></div>
+            </div>
+
+          </div>
+
+          <!-- Notification footer: 알림톡 -->
+          <div class="notification">
+            <div class="icon">톡</div>
+            <div>
+              <div class="l">— PARENT NOTIFICATION · NCP SENS</div>
+              <div class="t">이학생 어머니 (010-****-3491)에게 <span class="acc">수업 요약 + 숙제 + read-only 링크</span> 발송 — 강사 작업 0초</div>
+            </div>
+            <div class="status">✓ 발송 완료 12:31:08</div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · TutorFlow Subdeck · 2026 Q2</div><div class="page"><b>06 · 05</b> / 06 · 05 · END</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="canvas-footer">
+    <h2>End of TutorFlow subdeck<em> · 5 frames</em></h2>
+    <span></span>
+    <div class="meta"><div>Cyan <b>#0891b2</b> · System 06 of 07</div></div>
+  </footer>
+
+</main>
+</body>
+</html>

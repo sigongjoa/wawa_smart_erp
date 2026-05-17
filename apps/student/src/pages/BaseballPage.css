@@ -294,7 +294,7 @@
   top: 44%; left: 50%; transform: translate(-50%, -50%);
   width: 10%; max-width: 36px; aspect-ratio: 2 / 3;
 }
-.bb-root .char.pitcher-me { animation: bb-pitcher-wind 2.8s ease-in-out infinite; transform-origin: 50% 80%; }
+.bb-root .char.pitcher-me { animation: bb-pitcher-wind 5.6s ease-in-out infinite; transform-origin: 50% 80%; }
 @keyframes bb-pitcher-wind {
   0%,100% { transform: translate(-50%, -50%) rotate(0) scale(1); }
   60%     { transform: translate(-50%, -55%) rotate(-6deg) scale(1.05); }
@@ -342,12 +342,12 @@
   transform: rotate(25deg); pointer-events: none;
 }
 .bb-root .ball::after { transform: rotate(-25deg); }
-.bb-root .ball.throwing.off { animation: bb-throw-in-off 2.8s linear forwards; }
+.bb-root .ball.throwing.off { animation: bb-throw-in-off 5.6s linear forwards; }
 @keyframes bb-throw-in-off {
   0%   { top: 20%; transform: translate(-50%, -50%) scale(0.25); opacity: 1; }
   100% { top: 80%; transform: translate(-50%, -50%) scale(1.3);  opacity: 1; }
 }
-.bb-root .ball.throwing.def { animation: bb-throw-in-def 2.8s linear forwards; }
+.bb-root .ball.throwing.def { animation: bb-throw-in-def 5.6s linear forwards; }
 @keyframes bb-throw-in-def {
   0%   { top: 80%; transform: translate(-50%, -50%) scale(1.3);  opacity: 1; }
   100% { top: 28%; transform: translate(-50%, -50%) scale(0.4);  opacity: 1; }

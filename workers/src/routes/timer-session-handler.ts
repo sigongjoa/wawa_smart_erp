@@ -143,6 +143,12 @@ export async function handleTimerSession(
     return handleCheckOut(id, request, context);
   }
 
+  // POST /api/timer/sessions/:id/extend
+  if (method === 'POST' && /^\/api\/timer\/sessions\/[^/]+\/extend$/.test(pathname)) {
+    const id = pathname.split('/')[4];
+    return handleExtend(id, request, context);
+  }
+
   return null;
 }
 
@@ -699,7 +705,8 @@ async function handleCheckOut(
     (now.getTime() - new Date(session.check_in_time).getTime()) / 1000 / 60
   );
   const netMinutes = Math.max(totalElapsed - pausedMins, 0);
-  const wasOvertime = netMinutes > session.scheduled_minutes;
+  const totalAllotted = session.scheduled_minutes + (session.added_minutes || 0);
+  const wasOvertime = netMinutes > totalAllotted;
 
   // 학생 이름 (감사 기록용)
   // realtime_sessions.status = 'completed', check_out_time = now
@@ -714,7 +721,7 @@ async function handleCheckOut(
     [nowIso, JSON.stringify(history), id]
   );
 
-  // attendance_records 생성
+  // attendance_records 생성 — scheduled_minutes는 원본 보존, added_minutes 별도 기록
   const recordId = crypto.randomUUID();
   await executeInsert(
     context.env.DB,
@@ -722,9 +729,9 @@ async function handleCheckOut(
        id, session_id, student_id, teacher_id, academy_id, date,
        check_in_time, check_out_time,
        scheduled_start_time, scheduled_end_time,
-       scheduled_minutes, net_minutes, total_paused_minutes, pause_count,
+       scheduled_minutes, added_minutes, net_minutes, total_paused_minutes, pause_count,
        pause_history, subject, was_late, was_overtime, note, created_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))`,
     [
       recordId,
       session.id,
@@ -737,6 +744,7 @@ async function handleCheckOut(
       session.scheduled_start_time,
       session.scheduled_end_time,
       session.scheduled_minutes,
+      session.added_minutes || 0,
       netMinutes,
       pausedMins,
       history.length,
@@ -782,6 +790,59 @@ async function handleCheckOut(
     pauseCount: history.length,
     wasOvertime,
     makeupCompleted: !!makeupId,
+  });
+}
+
+// ─── POST /api/timer/sessions/:id/extend ───────────────
+// 진행 중(active/paused/overtime) 세션에 분 단위 가감.
+// 양수 = 연장, 음수 = 단축. 누적 added_minutes < 0 으로는 못 내림(0 floor).
+async function handleExtend(
+  id: string,
+  request: Request,
+  context: RequestContext
+): Promise<Response> {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
+    return unauthorizedResponse();
+  }
+
+  const body = (await request.json().catch(() => ({}))) as { minutes?: number };
+  const delta = Number(body.minutes);
+  if (!Number.isFinite(delta) || delta === 0) {
+    return errorResponse('minutes는 0이 아닌 정수여야 합니다', 400);
+  }
+  // 안전 가드 — 한 번에 ±240분 초과 차단 (오타 방지)
+  if (Math.abs(delta) > 240) {
+    return errorResponse('한 번에 ±240분을 초과할 수 없습니다', 400);
+  }
+
+  const session = await executeFirst<SessionRow>(
+    context.env.DB,
+    'SELECT * FROM realtime_sessions WHERE id = ? AND teacher_id = ?',
+    [id, context.auth!.userId]
+  );
+  if (!session) return notFoundResponse();
+  if (session.status === 'completed') {
+    return errorResponse('이미 완료된 세션은 연장할 수 없습니다', 400);
+  }
+
+  const currentAdded = session.added_minutes || 0;
+  const nextAdded = Math.max(currentAdded + Math.trunc(delta), 0);
+
+  await executeUpdate(
+    context.env.DB,
+    `UPDATE realtime_sessions
+        SET added_minutes = ?, updated_at = datetime('now')
+      WHERE id = ?`,
+    [nextAdded, id]
+  );
+
+  logger.logRequest('POST', '/api/timer/sessions/extend', context.auth!.userId);
+
+  return successResponse({
+    id,
+    scheduledMinutes: session.scheduled_minutes,
+    addedMinutes: nextAdded,
+    delta: nextAdded - currentAdded,
   });
 }
 

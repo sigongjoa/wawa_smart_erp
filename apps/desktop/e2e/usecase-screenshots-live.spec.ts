@@ -23,7 +23,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
       fullPage: true
     });
 
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       await expect(activeCard).toBeVisible();
       console.log('✓ UC-1: 활성 세션 카드 렌더링 확인');
@@ -34,7 +34,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-2: 세션 액션 버튼
   test('UC-2: 활성 세션 버튼 - 정지, 수업추가, 완료', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
 
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.screenshot({
@@ -65,7 +65,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-3: 일시정지 세션 카드
   test('UC-3: 일시정지 세션 카드 렌더링', async ({ page }) => {
-    const pausedCard = page.locator('.rt-session-card--paused').first();
+    const pausedCard = page.locator('.v2-timer-card--paused').first();
 
     if (await pausedCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.screenshot({
@@ -81,7 +81,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-4: 진행률 바
   test('UC-4: 진행률 바 표시', async ({ page }) => {
-    const progressBar = page.locator('.rt-progress-bar, [role="progressbar"]').first();
+    const progressBar = page.locator('.v2-timer-card__progress, [role="progressbar"]').first();
 
     if (await progressBar.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.screenshot({
@@ -97,7 +97,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-5: 세션 메타 정보
   test('UC-5: 세션 메타 정보 (순수/예정/정지 시간)', async ({ page }) => {
-    const sessionCard = page.locator('.rt-session-card').first();
+    const sessionCard = page.locator('.v2-timer-card').first();
 
     if (await sessionCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.screenshot({
@@ -105,7 +105,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
         fullPage: true
       });
 
-      const metaInfo = sessionCard.locator('.rt-session-meta, [class*="meta"]');
+      const metaInfo = sessionCard.locator('.v2-timer-card__meta, [class*="meta"]');
       if (await metaInfo.isVisible().catch(() => false)) {
         await expect(metaInfo).toBeVisible();
         console.log('✓ UC-5: 세션 메타 정보 표시 확인');
@@ -119,7 +119,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-6: ExtendSheet 모달
   test('UC-6: 수업추가 모달 (ExtendSheet)', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
 
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       const extendBtn = activeCard.locator('button:has-text("수업추가")');
@@ -154,7 +154,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-7: 실시간 타이머 업데이트
   test('UC-7: 실시간 타이머 업데이트 (1초 간격)', async ({ page }) => {
-    const timerDisplay = page.locator('.rt-timer-display .rt-timer-value').first();
+    const timerDisplay = page.locator('.v2-timer-card__time').first();
 
     if (await timerDisplay.isVisible({ timeout: 2000 }).catch(() => false)) {
       const firstValue = await timerDisplay.textContent();
@@ -180,7 +180,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-8: 경고 상태 (Warning)
   test('UC-8: 경고 상태 (Warning)', async ({ page }) => {
-    const warningCard = page.locator('.rt-session-card.warning').first();
+    const warningCard = page.locator('.v2-timer-card--warning').first();
 
     if (await warningCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.screenshot({
@@ -196,7 +196,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-9: 초과 상태 (Overtime)
   test('UC-9: 초과 상태 (Overtime)', async ({ page }) => {
-    const overtimeCard = page.locator('.rt-session-card.overtime').first();
+    const overtimeCard = page.locator('.v2-timer-card--overtime').first();
 
     if (await overtimeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.screenshot({
@@ -212,7 +212,7 @@ test.describe('Timer System - Usecase Screenshots Live', () => {
 
   // UC-10: 일시정지 세션 버튼
   test('UC-10: 일시정지 세션 버튼 (재개, 완료)', async ({ page }) => {
-    const pausedCard = page.locator('.rt-session-card--paused').first();
+    const pausedCard = page.locator('.v2-timer-card--paused').first();
 
     if (await pausedCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.screenshot({

@@ -79,8 +79,8 @@ const PatchProgressSchema = z.object({
 
 const SelfStartSchema = z.object({
   max_words: z.number().int().min(4).max(30).optional(),
-  // 출제 출처 — 'mywords'(기본, 학생 단어장) | 'csat'(공유 카탈로그)
-  source: z.enum(['mywords', 'csat']).optional(),
+  // 출제 출처 — 'mywords'(기본, 학생 단어장) | 'csat'(공유 카탈로그) | 'mixed'(내 + 모든 granted catalog)
+  source: z.enum(['mywords', 'csat', 'mixed']).optional(),
   // CSAT 전용: 빈도 등급 (1=쉬움, 2=중, 3=어려움). 미지정 시 mixed.
   tier: z.number().int().min(1).max(3).optional(),
   // CSAT 카탈로그 id (기본 'csat-megastudy-2025')
@@ -367,11 +367,22 @@ async function ensureCsatWordsForStudent(
   db: D1Database,
   auth: PlayAuth,
   catalogId: string,
-  tier?: number
+  tier?: number,
+  limitOverride?: number
 ): Promise<void> {
+  // vocab 시험 전용 시드. medterm 등 비-vocab kind 의 catalog 는 차단.
+  const meta = await executeFirst<{ kind: string }>(
+    db,
+    `SELECT kind FROM vocab_catalogs WHERE id = ?`,
+    [catalogId]
+  );
+  if (!meta || meta.kind !== 'vocab') return;
+
   const tierClause = tier ? 'AND tier = ?' : '';
   const tierParams = tier ? [tier] : [];
-  const limit = tier ? 250 : 120;
+  // limitOverride 가 있으면 그 값 사용 (mywords/mixed 전체 풀 시드 케이스)
+  // 없으면 기본 — tier 지정 시 250, 없으면 120 (CSAT default)
+  const limit = limitOverride ?? (tier ? 250 : 120);
   const catalogWords = await executeQuery<{
     id: string; english: string; korean: string; pos: string | null; example: string | null;
   }>(
@@ -407,7 +418,11 @@ async function ensureCsatWordsForStudent(
       cw.english, cw.korean, cw.pos, cw.example, cw.id
     );
   });
-  if (stmts.length > 0) await db.batch(stmts);
+  // D1 batch 한도(통상 100 stmts) 회피 — 100개씩 청크로 분할 실행
+  const CHUNK = 100;
+  for (let i = 0; i < stmts.length; i += CHUNK) {
+    await db.batch(stmts.slice(i, i + CHUNK));
+  }
 }
 
 /**
@@ -420,12 +435,14 @@ async function handleListMyCatalogs(
   auth: PlayAuth
 ): Promise<Response> {
   const db = context.env.DB;
-  // csat-megastudy-2025 만 default 노출, 그 외(medical-* 포함)는 매핑된 학생만
+  // 학생에게 노출되는 모든 catalog (kind 무관). 프론트가 kind 로 분기:
+  //   - vocab 시험 dropdown: kind='vocab' 만 필터
+  //   - 의학용어 시험 버튼 visibility: kind='medterm' 존재 여부 체크
   const rows = await executeQuery<{
-    id: string; title: string; word_count: number;
+    id: string; title: string; word_count: number; kind: string;
   }>(
     db,
-    `SELECT id, title, word_count FROM vocab_catalogs
+    `SELECT id, title, word_count, kind FROM vocab_catalogs
        WHERE id = 'csat-megastudy-2025'
           OR id IN (SELECT catalog_id FROM student_vocab_catalogs WHERE student_id = ?)
        ORDER BY (id = 'csat-megastudy-2025') DESC, id ASC`,
@@ -436,6 +453,7 @@ async function handleListMyCatalogs(
       id: r.id,
       title: r.title,
       word_count: r.word_count,
+      kind: r.kind,                          // ← 프론트 분기용
       is_default: r.id === 'csat-megastudy-2025',
     })),
   });
@@ -492,6 +510,25 @@ async function handleSelfStartPrintJob(
     await ensureCsatWordsForStudent(db, auth, catalogId, parsed.tier);
   }
 
+  // mywords / mixed / 기본: 학생이 권한 가진 모든 vocab catalog 의 단어를 vocab_words 에
+  // 자동 시드 → 학생 본인 단어 + 어휘끝 4종 + 수능 catalog 모두 통합 풀 형성.
+  // (medical 카탈로그는 ensureCsatWordsForStudent 가 kind='vocab' 가드로 차단함)
+  // CSAT 모드 (특정 catalog/tier 지정) 는 별도 분기에서 처리됨.
+  if (parsed.source !== 'csat') {
+    const grantedCatalogs = await executeQuery<{ catalog_id: string }>(
+      db,
+      `SELECT svc.catalog_id
+         FROM student_vocab_catalogs svc
+         JOIN vocab_catalogs vc ON vc.id = svc.catalog_id
+        WHERE svc.student_id = ? AND vc.kind = 'vocab'`,
+      [auth.studentId]
+    );
+    // limit 5000 = 모든 catalog 의 전체 단어 시드 (최대 ~1854개/책)
+    for (const g of grantedCatalogs) {
+      await ensureCsatWordsForStudent(db, auth, g.catalog_id, undefined, 5000);
+    }
+  }
+
   // 정책 vocab_count를 기본, max_words 가 더 작으면 그걸 사용 (학생 입장에선 줄이는 것만 허용)
   const maxWords = Math.min(parsed.max_words ?? policy.vocab_count, policy.vocab_count);
   const allowedBoxes = parseBoxFilter(policy.box_filter);
@@ -511,18 +548,26 @@ async function handleSelfStartPrintJob(
     const answers = await executeQuery<any>(
       db,
       `SELECT a.word_id, a.selected_index, a.correct_index, a.choices_json,
-              w.english, w.korean
+              w.english, w.korean, w.origin_catalog_word_id,
+              vc.title AS catalog_title
        FROM vocab_print_answers a
        JOIN vocab_words w ON w.id = a.word_id
+       LEFT JOIN vocab_catalog_words vcw ON vcw.id = w.origin_catalog_word_id
+       LEFT JOIN vocab_catalogs vc ON vc.id = vcw.catalog_id
        WHERE a.print_job_id = ?`,
       [existingActive.id]
     );
-    const questions = answers.map((r) => ({
-      wordId: r.word_id,
-      prompt: r.english,
-      choices: safeParse(r.choices_json) || [],
-      selectedIndex: r.selected_index,
-    }));
+    const questions = answers.map((r) => {
+      const isTextbook = !!r.origin_catalog_word_id;
+      return {
+        wordId: r.word_id,
+        prompt: r.english,
+        choices: safeParse(r.choices_json) || [],
+        selectedIndex: r.selected_index,
+        source: (isTextbook ? 'textbook' : 'student') as 'textbook' | 'student',
+        textbookTitle: isTextbook ? (r.catalog_title || null) : null,
+      };
+    });
     return successResponse({
       id: existingActive.id,
       status: existingActive.status,
@@ -558,7 +603,11 @@ async function handleSelfStartPrintJob(
   const cooldownClause = (policy.word_cooldown_min > 0 && !isUnlimited)
     ? `AND (last_quizzed_at IS NULL OR datetime(last_quizzed_at) <= datetime('now', '-${policy.word_cooldown_min} minutes'))`
     : '';
-  // CSAT 모드: 방금 시드한 카탈로그 출신 단어로만 풀 한정
+  // source 분기:
+  //   - 'csat': 특정 카탈로그 시드 단어만 한정 (수능 영단어 시험 등)
+  //   - 'mywords' (기본) / 'mixed': 학생 vocab_words 전체에서 sample
+  //       → 본인 추가 + CSAT 시드 + textbook 시드 모두 섞임
+  //       (medical 카탈로그 시드는 candidates 의 vc.kind 필터로 별도 차단)
   const csatClause = parsed.source === 'csat'
     ? `AND origin_catalog_word_id IS NOT NULL
        AND origin_catalog_word_id IN (
@@ -571,9 +620,14 @@ async function handleSelfStartPrintJob(
     : [];
   const candidates = await executeQuery<any>(
     db,
-    `SELECT * FROM vocab_words
-      WHERE academy_id = ? AND student_id = ? AND status = 'approved'
-        AND box IN (${boxPlaceholders}) ${cooldownClause} ${csatClause}`,
+    `SELECT vw.*, vc.title AS catalog_title
+       FROM vocab_words vw
+       LEFT JOIN vocab_catalog_words vcw ON vcw.id = vw.origin_catalog_word_id
+       LEFT JOIN vocab_catalogs vc ON vc.id = vcw.catalog_id
+      WHERE vw.academy_id = ? AND vw.student_id = ? AND vw.status = 'approved'
+        AND vw.box IN (${boxPlaceholders})
+        AND (vc.kind IS NULL OR vc.kind = 'vocab')   -- medterm 등 비-vocab catalog 시드 제외
+        ${cooldownClause.replace(/last_quizzed_at/g, 'vw.last_quizzed_at')} ${csatClause.replace(/origin_catalog_word_id/g, 'vw.origin_catalog_word_id')}`,
     [auth.academyId, auth.studentId, ...allowedBoxes, ...csatParams]
   );
   if (candidates.length < 1) {
@@ -681,12 +735,19 @@ async function handleSelfStartPrintJob(
   if (stmts.length > 0) await db.batch(stmts);
 
   // 생성된 job + 오늘 N번째 정보 응답 — 위에서 만든 동일한 q를 재사용
-  const questions = built.map(({ t, q }) => ({
-    wordId: t.id,
-    prompt: t.english,
-    choices: q.choices,
-    selectedIndex: null as number | null,
-  }));
+  // 각 문항에 source 메타 추가: origin_catalog_word_id 가 있으면 'textbook' (catalog 어휘),
+  // 없으면 'student' (학생 본인 단어). textbook 인 경우 catalog title 도 함께.
+  const questions = built.map(({ t, q }) => {
+    const isTextbook = !!t.origin_catalog_word_id;
+    return {
+      wordId: t.id,
+      prompt: t.english,
+      choices: q.choices,
+      selectedIndex: null as number | null,
+      source: (isTextbook ? 'textbook' : 'student') as 'textbook' | 'student',
+      textbookTitle: isTextbook ? (t.catalog_title || null) : null,
+    };
+  });
   return successResponse({
     id: jobId,
     status: 'in_progress',
@@ -815,9 +876,12 @@ async function handleGetPrintJob(jobId: string, context: RequestContext, auth: P
   const rows = await executeQuery<any>(
     db,
     `SELECT a.word_id, a.selected_index, a.correct_index, a.choices_json,
-            w.english
+            w.english, w.origin_catalog_word_id,
+            vc.title AS catalog_title
        FROM vocab_print_answers a
        JOIN vocab_words w ON w.id = a.word_id
+       LEFT JOIN vocab_catalog_words vcw ON vcw.id = w.origin_catalog_word_id
+       LEFT JOIN vocab_catalogs vc ON vc.id = vcw.catalog_id
       WHERE a.print_job_id = ?
       ORDER BY w.id`,
     [jobId]
@@ -825,11 +889,14 @@ async function handleGetPrintJob(jobId: string, context: RequestContext, auth: P
   const questions = rows.map((r: any) => {
     let choices: string[] = [];
     try { choices = JSON.parse(r.choices_json); } catch {}
+    const isTextbook = !!r.origin_catalog_word_id;
     return {
       wordId: r.word_id,
       prompt: r.english,
       choices,
       selectedIndex: r.selected_index,
+      source: (isTextbook ? 'textbook' : 'student') as 'textbook' | 'student',
+      textbookTitle: isTextbook ? (r.catalog_title || null) : null,
     };
   });
 

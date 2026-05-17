@@ -50,9 +50,22 @@ function IconProfile(active: boolean) {
   );
 }
 
+function IconCalendar(active: boolean) {
+  const fill = active ? 'currentColor' : 'none';
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <line x1="3.5" y1="10" x2="20.5" y2="10" />
+      <line x1="8" y1="3" x2="8" y2="7" />
+      <line x1="16" y1="3" x2="16" y2="7" />
+    </svg>
+  );
+}
+
 const TABS: TabItem[] = [
   { to: '/', label: '홈', icon: IconHome, match: ['/'] },
   { to: '/learn', label: '학습', icon: IconLearn, match: ['/learn', '/assignments', '/exam'] },
+  { to: '/calendar', label: '캘린더', icon: IconCalendar, match: ['/calendar'] },
   { to: '/dex', label: '도감', icon: IconDex, match: ['/dex', '/archives'] },
   { to: '/me', label: '나', icon: IconProfile, match: ['/me'] },
 ];

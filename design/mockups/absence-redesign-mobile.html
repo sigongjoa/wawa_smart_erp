@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Absence Mobile | WAWA Smart ERP</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --primary: #2d3a8c;
+      --primary-surface: #eef0f8;
+      --bg-primary: #f8f9fb;
+      --bg-secondary: #ffffff;
+      --text-primary: #1a1e2e;
+      --text-secondary: #5e6478;
+      --text-tertiary: #9098ad;
+      --border-primary: #e3e6ed;
+      --success: #10b981;
+      --success-surface: #dcfce7;
+      --warning: #f59e0b;
+      --warning-surface: #fffbeb;
+      --danger: #ef4444;
+      --radius-md: 16px;
+      --sp-3: 12px;
+      --sp-4: 16px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .app-header {
+      background: var(--bg-secondary);
+      padding: var(--sp-4);
+      border-bottom: 1px solid var(--border-primary);
+      flex-shrink: 0;
+    }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .page-title { font-size: 18px; font-weight: 800; margin: 0; }
+    
+    .scope-btn {
+      font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 20px;
+      border: 1px solid var(--border-primary); background: var(--bg-primary); color: var(--text-secondary);
+    }
+    .scope-btn.active { background: var(--primary-surface); color: var(--primary); border-color: var(--primary); }
+
+    /* Filters - Horizontal Scroll */
+    .filter-bar {
+      display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-tab {
+      padding: 8px 16px; border-radius: 99px; font-size: 13px; font-weight: 700;
+      background: var(--bg-primary); border: 1px solid var(--border-primary);
+      color: var(--text-tertiary); white-space: nowrap;
+    }
+    .filter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* Content Area */
+    .content-area { flex: 1; overflow-y: auto; padding: var(--sp-4); }
+
+    /* Mobile Absence Card */
+    .absence-card {
+      background: var(--bg-secondary); border-radius: var(--radius-md);
+      border: 1px solid var(--border-primary); padding: 16px; margin-bottom: 16px;
+      display: flex; flex-direction: column; gap: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .card-top { display: flex; justify-content: space-between; align-items: center; }
+    .student-info { display: flex; align-items: center; gap: 6px; }
+    .student-name { font-weight: 800; font-size: 17px; }
+    .my-badge { font-size: 10px; background: var(--primary-surface); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; }
+    
+    .status-badge { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; }
+    .status--pending { background: var(--warning-surface); color: var(--warning); }
+    .status--scheduled { background: var(--primary-surface); color: var(--primary); }
+    .status--completed { background: var(--success-surface); color: var(--success); }
+
+    .card-body {
+      background: var(--bg-primary); padding: 12px; border-radius: 12px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .info-label { font-size: 10px; color: var(--text-tertiary); font-weight: 600; display: block; }
+    .info-value { font-size: 13px; font-weight: 700; }
+
+    .card-actions { display: flex; gap: 8px; align-items: center; }
+    .action-main { flex: 1; display: flex; gap: 6px; }
+    .date-input { flex: 1; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; font-size: 13px; background: white; width: 100%; }
+
+    .btn {
+      padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-secondary { background: var(--primary-surface); color: var(--primary); }
+
+    /* FAB */
+    .fab {
+      position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 28px;
+      background: var(--primary); color: white; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(45, 58, 140, 0.4); border: none; z-index: 100;
+    }
+
+    /* Bottom Sheet Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: flex-end; z-index: 1000; }
+    .modal-content {
+      background: white; width: 100%; border-radius: 24px 24px 0 0; padding: 24px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+    .form-input { width: 100%; padding: 14px; border: 1px solid var(--border-primary); border-radius: 12px; font-size: 15px; margin-bottom: 16px; background: var(--bg-primary); }
+
+    /* Toast */
+    .toast-container { position: fixed; top: 20px; left: 20px; right: 20px; z-index: 2000; pointer-events: none; }
+    .toast { background: rgba(26, 30, 46, 0.95); color: white; padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: toast-in 0.3s ease; }
+    @keyframes toast-in { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  </style>
+</head>
+<body>
+
+<div id="toast-root" class="toast-container"></div>
+
+<header class="app-header">
+  <div class="header-row">
+    <h1 class="page-title">보강 관리</h1>
+    <button class="scope-btn" id="scope-toggle" onclick="toggleScope()">내 학생만 보기</button>
+  </div>
+  <div class="filter-bar" id="filter-bar">
+    <div class="filter-tab active" onclick="setFilter('', this)">전체</div>
+    <div class="filter-tab" onclick="setFilter('pending', this)">미보강 <span id="count-pending">0</span></div>
+    <div class="filter-tab" onclick="setFilter('scheduled', this)">보강예정 <span id="count-scheduled">0</span></div>
+    <div class="filter-tab" onclick="setFilter('completed', this)">완료</div>
+  </div>
+</header>
+
+<main class="content-area" id="absence-list"></main>
+
+<button class="fab" onclick="openAddModal()">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+</button>
+
+<!-- Bottom Sheet -->
+<div class="modal-overlay" id="add-modal" onclick="closeModal('add-modal')">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-title">결석 등록</div>
+    <input type="text" id="add-name" class="form-input" placeholder="학생 이름">
+    <input type="date" id="add-date" class="form-input">
+    <input type="text" id="add-class" class="form-input" placeholder="해당 수업 (예: 영단어)">
+    <input type="text" id="add-reason" class="form-input" placeholder="결석 사유">
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px;">
+      <button class="btn btn-secondary" onclick="closeModal('add-modal')">취소</button>
+      <button class="btn btn-primary" onclick="handleAdd()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let state = {
+    absences: [
+      { id: 1, name: '김철수', grade: '고2', date: '05.07', className: '영단어 1500', reason: '감기 몸살', status: 'pending', scheduledDate: null, isMine: true },
+      { id: 2, name: '이영희', grade: '중3', date: '05.04', className: '수학 상', reason: '가족 행사', status: 'scheduled', scheduledDate: '05.09', isMine: true },
+      { id: 3, name: '박지민', grade: '고1', date: '04.28', className: '영문법', reason: '학교 행사', status: 'completed', scheduledDate: '05.02', isMine: false }
+    ],
+    filter: '',
+    scope: 'all'
+  };
+
+  const toast = {
+    success(msg) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = '✓ ' + msg;
+      document.getElementById('toast-root').appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    }
+  };
+
+  function render() {
+    const list = document.getElementById('absence-list');
+    const filtered = state.absences.filter(a => {
+      const matchScope = state.scope === 'all' || a.isMine;
+      const matchStatus = !state.filter || a.status === state.filter;
+      return matchScope && matchStatus;
+    });
+
+    document.getElementById('count-pending').textContent = state.absences.filter(a => a.status === 'pending').length;
+    document.getElementById('count-scheduled').textContent = state.absences.filter(a => a.status === 'scheduled').length;
+
+    list.innerHTML = filtered.map(a => `
+      <div class="absence-card" style="${a.status === 'completed' ? 'opacity: 0.7' : ''}">
+        <div class="card-top">
+          <div class="student-info">
+            <span class="student-name">${a.name}</span>
+            ${a.isMine ? '<span class="my-badge">My</span>' : ''}
+            <small style="color: var(--text-tertiary); font-weight: 600; margin-left: 2px;">${a.grade}</small>
+          </div>
+          <span class="status-badge ${a.status === 'pending' ? 'status--pending' : a.status === 'scheduled' ? 'status--scheduled' : 'status--completed'}">
+            ${a.status === 'pending' ? '미보강' : a.status === 'scheduled' ? '보강예정' : '완료'}
+          </span>
+        </div>
+        <div class="card-body">
+          <div><span class="info-label">결석일</span><span class="info-value">${a.date}</span></div>
+          <div>
+            <span class="info-label">${a.status === 'completed' ? '완료일' : (a.status === 'scheduled' ? '보강일' : '수업')}</span>
+            <span class="info-value" style="${a.status === 'scheduled' ? 'color: var(--primary)' : ''}">${a.status === 'pending' ? a.className : (a.scheduledDate || '-')}</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <div class="action-main">
+            ${a.status === 'pending' ? `
+              <input type="date" class="date-input" id="date-${a.id}">
+              <button class="btn btn-primary" onclick="schedule(${a.id})">지정</button>
+            ` : a.status === 'scheduled' ? `
+              <button class="btn btn-success" style="width: 100%" onclick="complete(${a.id})">✓ 보강 완료</button>
+            ` : `
+              <button class="btn btn-secondary" style="width: 100%" onclick="toast.success('기록 상세 조회')">상세 기록</button>
+            `}
+          </div>
+        </div>
+      </div>
+    `).reverse().join('');
+  }
+
+  function setFilter(f, el) {
+    state.filter = f;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+
+  function toggleScope() {
+    state.scope = state.scope === 'all' ? 'mine' : 'all';
+    const btn = document.getElementById('scope-toggle');
+    btn.textContent = state.scope === 'mine' ? '모든 학생 보기' : '내 학생만 보기';
+    btn.classList.toggle('active', state.scope === 'mine');
+    render();
+  }
+
+  function schedule(id) {
+    const d = document.getElementById(`date-${id}`);
+    if (!d.value) return;
+    const a = state.absences.find(x => x.id === id);
+    a.status = 'scheduled'; a.scheduledDate = d.value.split('-').slice(1).join('.');
+    toast.success('보강 지정 완료'); render();
+  }
+
+  function complete(id) {
+    const a = state.absences.find(x => x.id === id);
+    a.status = 'completed'; toast.success('보강 완료 처리'); render();
+  }
+
+  function openAddModal() {
+    document.getElementById('add-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('add-modal').style.display = 'flex';
+  }
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+  function handleAdd() {
+    const name = document.getElementById('add-name').value;
+    if (!name) return;
+    state.absences.push({ id: Date.now(), name, grade: '기타', date: document.getElementById('add-date').value.split('-').slice(1).join('.'), className: document.getElementById('add-class').value || '수업', reason: document.getElementById('add-reason').value, status: 'pending', scheduledDate: null, isMine: true });
+    closeModal('add-modal'); toast.success('등록 완료'); render();
+  }
+
+  render();
+</script>
+</body>
+</html>

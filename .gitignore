@@ -51,6 +51,8 @@ backups/
 erpbackup/
 *.d1.sql
 *-backup-*.sql
+backup-pre-*.sql
+workers/backup-pre-*.sql
 
 # ========================================
 # SECRETS & ENVIRONMENT (최우선 보호)

@@ -22,7 +22,8 @@ interface MinimalEnv {
   KV: KVLike;
 }
 
-const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 const DAY_SECONDS = 24 * 60 * 60;
 
 export type AiKind =
@@ -31,7 +32,8 @@ export type AiKind =
   | 'meeting-action'
   | 'ai-comment'
   | 'ai-summary'
-  | 'ai-generate';
+  | 'ai-generate'
+  | 'ask-ai';
 
 export interface GeminiOptions {
   env: MinimalEnv;
@@ -43,6 +45,10 @@ export interface GeminiOptions {
   maxOutputTokens?: number;
   /** 학생 등 외부 입력을 prompt에 포함할 때 — 인젝션 가드용 라벨 */
   userInputLabel?: string;
+  /** 모델 override (기본: gemini-2.5-flash-lite) */
+  model?: string;
+  /** 응답을 JSON으로 강제 + 스키마 검증 */
+  responseSchema?: object;
 }
 
 export interface GeminiResult {
@@ -79,19 +85,28 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
   const limitBlocked = await checkAiDailyLimit(env.KV, userId, kind);
   if (limitBlocked) return { blocked: limitBlocked };
 
+  const generationConfig: Record<string, unknown> = {
+    temperature: opts.temperature ?? 0.6,
+    maxOutputTokens: opts.maxOutputTokens ?? 1024,
+  };
+  if (opts.responseSchema) {
+    generationConfig.responseMimeType = 'application/json';
+    generationConfig.responseSchema = opts.responseSchema;
+  }
+
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: opts.temperature ?? 0.6,
-      maxOutputTokens: opts.maxOutputTokens ?? 1024,
-    },
+    generationConfig,
   };
+
+  const model = opts.model ?? DEFAULT_MODEL;
+  const endpoint = `${ENDPOINT_BASE}/${model}:generateContent`;
 
   let res: Response | null = null;
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      res = await fetch(ENDPOINT, {
+      res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
         body: JSON.stringify(body),

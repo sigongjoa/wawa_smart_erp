@@ -1,0 +1,1442 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>와와 설명 AI · 디자인 시스템</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    background: var(--bg-canvas);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.5;
+  }
+
+  /* ───────────────────────────── shell */
+  .shell {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    min-height: 100dvh;
+  }
+  @media (max-width: 880px) {
+    .shell { grid-template-columns: 1fr; }
+    .toc { position: relative !important; height: auto !important; border-right: none !important; border-bottom: var(--border-hair); }
+  }
+
+  /* ───── TOC */
+  .toc {
+    position: sticky; top: 0;
+    height: 100dvh;
+    border-right: var(--border-hair);
+    background: var(--bg-card);
+    padding: 28px 24px;
+    overflow-y: auto;
+  }
+  .toc .crest {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 22px;
+  }
+  .toc .crest .mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--primary); color: white;
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 12px; letter-spacing: -0.02em;
+  }
+  .toc .crest .name {
+    font-size: 13px; font-weight: 800; letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .toc .crest .name small { display: block; font-weight: 500; color: var(--ink-60); font-size: 11px; letter-spacing: 0; }
+
+  .toc h4 {
+    font-size: 10px; font-weight: 800;
+    color: var(--ink-40); letter-spacing: 0.8px; text-transform: uppercase;
+    margin: 22px 0 8px;
+  }
+  .toc h4:first-of-type { margin-top: 0; }
+  .toc a {
+    display: block;
+    padding: 5px 8px;
+    margin: 0 -8px;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    color: var(--ink-72);
+    text-decoration: none;
+    transition: background 100ms var(--ease);
+  }
+  .toc a:hover { background: var(--ink-05); color: var(--ink); }
+  .toc a.depth-2 { padding-left: 18px; font-size: 12px; color: var(--ink-60); }
+
+  .toc .meta-foot {
+    margin-top: 32px; padding-top: 16px;
+    border-top: var(--border-hair);
+    font-size: 11px; color: var(--ink-40);
+    line-height: 1.5;
+  }
+  .toc .meta-foot b { color: var(--ink-60); font-weight: 600; }
+
+  /* ───── main */
+  .main {
+    padding: 56px clamp(24px, 5vw, 64px) 96px;
+    max-width: 1200px;
+  }
+
+  /* hero */
+  .hero {
+    margin-bottom: 64px;
+    padding-bottom: 32px;
+    border-bottom: var(--border-hair);
+  }
+  .hero .crumb {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--ink-60);
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    line-height: 1.04;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--primary);
+  }
+  .hero p {
+    margin-top: 18px;
+    max-width: 64ch;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--ink-72);
+  }
+  .hero .meta-row {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    margin-top: 24px;
+    font-size: 12px; color: var(--ink-60);
+  }
+  .hero .meta-row b {
+    display: block; color: var(--ink); font-weight: 700; font-size: 13px;
+    margin-bottom: 2px;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* section */
+  section.sec {
+    margin-bottom: 80px;
+    scroll-margin-top: 24px;
+  }
+  section.sec > h2 {
+    font-size: 13px; font-weight: 800;
+    color: var(--primary);
+    letter-spacing: 0.8px; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  section.sec > .h2-title {
+    font-size: 32px; font-weight: 900;
+    letter-spacing: -0.02em; line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  section.sec > .h2-lede {
+    max-width: 60ch;
+    font-size: 14.5px; line-height: 1.6;
+    color: var(--ink-72);
+    margin-bottom: 32px;
+  }
+
+  h3.sub {
+    font-size: 18px; font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 40px 0 12px;
+    padding-top: 20px;
+    border-top: var(--border-hair);
+  }
+  h3.sub:first-of-type { padding-top: 0; border-top: none; }
+  h3.sub small { color: var(--ink-60); font-weight: 500; font-size: 13px; margin-left: 8px; letter-spacing: 0; }
+
+  /* specimen card */
+  .specimens {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .specimens.wide { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+  .specimens.full { grid-template-columns: 1fr; }
+
+  .spec {
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .spec .demo {
+    flex: 1;
+    padding: 24px;
+    background: var(--bg-canvas);
+    background-image:
+      linear-gradient(45deg, rgba(0,0,0,0.018) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(0,0,0,0.018) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.018) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.018) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    display: grid;
+    place-items: center;
+    min-height: 120px;
+  }
+  .spec .demo.left { place-items: start; }
+  .spec .demo.plain {
+    background: var(--bg-card);
+    background-image: none;
+  }
+  .spec .meta {
+    padding: 12px 16px;
+    border-top: var(--border-hair);
+    font-size: 12px;
+  }
+  .spec .meta .name {
+    font-weight: 700; color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .spec .meta .desc {
+    color: var(--ink-60);
+    line-height: 1.5;
+  }
+  .spec .meta .file {
+    margin-top: 6px;
+    font-family: var(--font-mono); font-size: 10.5px;
+    color: var(--ink-40);
+  }
+  .spec .meta .file::before { content: "→ "; }
+
+  /* color swatches */
+  .palette {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .swatch {
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+  }
+  .swatch .chip {
+    height: 64px;
+    background: var(--c, var(--ink-09));
+    position: relative;
+  }
+  .swatch .chip.bordered {
+    border-bottom: var(--border-hair);
+  }
+  .swatch .info {
+    padding: 10px 12px;
+    font-size: 11.5px;
+  }
+  .swatch .info .n {
+    font-family: var(--font-mono);
+    font-weight: 700; color: var(--ink);
+    font-size: 11px;
+    letter-spacing: -0.02em;
+  }
+  .swatch .info .v {
+    margin-top: 2px;
+    color: var(--ink-60);
+    font-family: var(--font-mono); font-size: 10.5px;
+  }
+  .swatch .info .role {
+    margin-top: 4px;
+    color: var(--ink-72);
+    font-size: 11.5px;
+  }
+
+  /* type scale */
+  .type-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 200px;
+    gap: 16px; align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--ink-09);
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-row .key {
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700;
+    color: var(--ink-60);
+    letter-spacing: -0.02em;
+  }
+  .type-row .sample {
+    color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .type-row .props {
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--ink-60);
+    text-align: right;
+  }
+
+  /* spacing visualizer */
+  .space-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px;
+    gap: 16px; align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--ink-09);
+  }
+  .space-row .key {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--ink-60);
+  }
+  .space-row .bar {
+    height: 14px; background: var(--primary);
+    border-radius: 2px;
+  }
+  .space-row .v { font-family: var(--font-mono); font-size: 11px; color: var(--ink-72); }
+
+  /* radius visualizer */
+  .radii {
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  .rad {
+    aspect-ratio: 1;
+    background: var(--ink-05);
+    border: 2px solid var(--ink-20);
+    display: grid; place-items: end;
+    padding: 12px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--ink-60);
+  }
+
+  /* ─── shared atoms (live) — CSS for the actual specimens === */
+
+  /* button */
+  .btn { height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid transparent;
+    font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; transition: all var(--dur-fast) var(--ease); }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-ink { background: var(--ink); color: var(--bg-canvas); }
+  .btn-ghost { background: transparent; color: var(--ink-72); border-color: var(--ink-20); }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--ink-40); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-danger-outline { background: var(--bg-card); color: var(--danger); border-color: var(--danger); }
+
+  /* chip */
+  .chip { height: 30px; padding: 0 12px; border-radius: 8px;
+    border: 1px solid var(--ink-09); background: transparent;
+    font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-72);
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .chip.on { background: var(--ink); color: white; border-color: var(--ink); }
+  .chip .ct { color: var(--ink-40); font-feature-settings: 'tnum' 1; }
+  .chip.on .ct { color: rgba(255,255,255,0.7); }
+
+  .ctx-chip { display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 8px; border-radius: 999px;
+    background: var(--type-grass-surface); color: var(--type-grass);
+    font-size: 13px; font-weight: 600; }
+  .ctx-chip .swatch { width: 16px; height: 16px; border-radius: 5px;
+    background: var(--type-grass); color: white; display: grid; place-items: center;
+    font-size: 10px; font-weight: 800; }
+
+  /* badge */
+  .badge { padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 800;
+    letter-spacing: 0.3px; text-transform: uppercase; }
+  .badge.needs { background: rgba(230,40,41,0.10); color: var(--danger); }
+  .badge.ok { background: rgba(63,161,41,0.10); color: var(--success); }
+  .badge.commented { background: rgba(45,58,140,0.08); color: var(--primary); }
+  .badge.wrong { background: rgba(145,81,33,0.10); color: var(--type-ground); }
+
+  /* confidence */
+  .conf { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-60); font-weight: 600; }
+  .conf .bar { display: inline-flex; gap: 2px; }
+  .conf .bar i { width: 4px; height: 9px; border-radius: 1px; background: var(--ink-09); display: inline-block; }
+  .conf.high   .bar i { background: var(--success); }
+  .conf.medium .bar i:nth-child(1), .conf.medium .bar i:nth-child(2) { background: var(--warning); }
+  .conf.low    .bar i:nth-child(1) { background: var(--danger); }
+
+  /* avatar */
+  .avatar { width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 13px; color: white; letter-spacing: -0.02em; }
+
+  /* step number */
+  .step-num { width: 44px; height: 44px; background: var(--ink); color: var(--bg-canvas);
+    border-radius: 12px; display: grid; place-items: center;
+    font-family: var(--font-display); font-size: 22px; font-weight: 900;
+    letter-spacing: -0.04em; line-height: 1;
+    font-feature-settings: 'tnum' 1, 'lnum' 1; }
+
+  /* photo chip */
+  .photo-chip { position: relative; width: 64px; height: 64px;
+    border-radius: 8px; background: var(--bg-photo);
+    overflow: hidden; border: 1px solid var(--ink-09); }
+  .photo-chip svg { width: 100%; height: 100%; display: block; }
+  .photo-chip .x { position: absolute; top: 4px; right: 4px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(17,20,26,0.7); color: white;
+    border: none; cursor: pointer; display: grid; place-items: center;
+    font-size: 10px; line-height: 1; }
+  .photo-chip .name { position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 2px 4px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.65));
+    font-size: 9px; color: white; font-weight: 600;
+    text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* slip card */
+  .slip-card { display: grid; grid-template-columns: 4px 1fr;
+    background: var(--bg-card); border: var(--border-hair); border-radius: var(--r-sm);
+    width: 100%; max-width: 320px; overflow: hidden; }
+  .slip-card .stripe { background: var(--type-grass); }
+  .slip-card .body { padding: 12px 14px; font-size: 12px; }
+  .slip-card .name { font-size: 13px; font-weight: 800; }
+  .slip-card .tag { padding: 1px 5px; border-radius: 3px;
+    background: var(--type-grass-surface); color: var(--type-grass);
+    font-size: 10px; font-weight: 700; margin-right: 4px; }
+  .slip-card .preview { color: var(--ink-72); margin-top: 4px; line-height: 1.4; }
+
+  /* checkpoint */
+  .ck-mini { padding: 12px 14px;
+    background: linear-gradient(180deg, transparent 0%, var(--primary-surface) 100%);
+    border: 1px dashed rgba(45, 58, 140, 0.35);
+    border-radius: var(--r-sm);
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ck-mini .q { font-size: 12px; font-weight: 600; color: var(--primary); flex: 1 1 100px; }
+  .ck-mini .q::before { content: "✦"; margin-right: 4px; color: var(--type-grass); }
+  .ck-mini button { height: 28px; padding: 0 10px; border-radius: 6px;
+    border: none; background: var(--primary); color: white;
+    font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+
+  /* inline cite */
+  .cite-mini { padding: 10px 14px; background: var(--bg-paper);
+    border-left: 3px solid var(--type-grass);
+    border-radius: 0 6px 6px 0; font-size: 12.5px; color: var(--ink-72);
+    line-height: 1.5; max-width: 320px; }
+  .cite-mini .src { display: block; font-size: 10px; font-weight: 700;
+    color: var(--type-grass); letter-spacing: 0.4px; text-transform: uppercase;
+    margin-bottom: 4px; }
+
+  /* annotated micro */
+  .annot-mini { background: var(--bg-photo); padding: 12px;
+    border-radius: var(--r-sm); border: var(--border-hair);
+    width: 100%; max-width: 280px; }
+
+  /* ocr-paste mini */
+  .ocr-mini { padding: 12px 14px; background: var(--bg-paper);
+    border: 1px solid rgba(0,0,0,0.04); border-radius: var(--r-sm);
+    font-size: 12px; max-width: 320px; }
+  .ocr-mini .src { font-size: 10px; font-weight: 700; color: var(--ink-60);
+    letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 8px; }
+  .ocr-mini .src b { color: var(--ink); text-transform: none; font-weight: 700; font-size: 11px; letter-spacing: -0.01em; }
+  .ocr-mini .stmt { font-size: 13px; color: var(--ink); line-height: 1.5; }
+
+  /* dropzone preview */
+  .drop-mini { border: 1.5px dashed var(--ink-20); border-radius: var(--r-md);
+    padding: 12px; background: var(--bg-canvas); width: 100%; max-width: 360px; }
+  .drop-mini .head { display: flex; gap: 8px; font-size: 11px; color: var(--ink-60); margin-bottom: 8px; }
+  .drop-mini .head b { color: var(--ink); font-weight: 700; }
+  .drop-mini .row { display: flex; gap: 8px; }
+  .drop-mini .add { width: 64px; height: 64px; border: 1.5px dashed var(--ink-20);
+    border-radius: 8px; background: transparent;
+    display: grid; place-items: center; color: var(--ink-60); }
+
+  /* source button row */
+  .src-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .src-btn { height: 32px; padding: 0 10px; border-radius: 8px;
+    border: 1px solid var(--ink-09); background: var(--bg-card);
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    color: var(--ink-72); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .src-btn kbd { font-family: var(--font-mono); font-size: 9px;
+    padding: 1px 4px; border-radius: 3px;
+    background: var(--ink-05); color: var(--ink-60);
+    border: var(--border-hair); margin-left: 2px; }
+
+  /* action button row */
+  .action-btn { height: 36px; padding: 0 12px; border-radius: 9px;
+    border: 1px solid transparent;
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .action-btn .k { font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+    padding: 1px 4px; border-radius: 3px; background: rgba(255,255,255,0.2); }
+  .action-btn.ok      { background: var(--success); color: white; }
+  .action-btn.comment { background: var(--primary); color: white; }
+  .action-btn.wrong   { background: var(--bg-card); color: var(--danger); border-color: var(--danger); }
+  .action-btn.wrong .k { background: rgba(230,40,41,0.1); color: var(--danger); }
+
+  /* StepBlock specimen */
+  .step-block-mini { padding-left: 56px; position: relative; max-width: 420px; }
+  .step-block-mini .step-num { position: absolute; left: 0; top: 2px; }
+  .step-block-mini .tag { font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--ink-60); display: block; margin-bottom: 4px; }
+  .step-block-mini h4 { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.3; margin-bottom: 6px; }
+  .step-block-mini p { font-size: 13px; line-height: 1.6; color: var(--ink-72); }
+
+  /* impl table */
+  .impl-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .impl-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-60);
+    background: var(--ink-05);
+    border-bottom: 1px solid var(--ink-09);
+  }
+  .impl-table td {
+    padding: 12px 14px;
+    border-bottom: var(--border-hair);
+    vertical-align: top;
+  }
+  .impl-table td.comp { font-family: var(--font-mono); font-weight: 700; color: var(--ink); font-size: 12px; }
+  .impl-table td.path { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-72); }
+  .impl-table td.note { color: var(--ink-72); font-size: 12.5px; line-height: 1.5; }
+
+  /* token diff */
+  .token-add {
+    background: rgba(63, 161, 41, 0.06);
+    padding: 14px 18px;
+    border-left: 3px solid var(--success);
+    border-radius: 0 8px 8px 0;
+    font-family: var(--font-mono);
+    font-size: 12.5px; line-height: 1.7;
+    color: var(--ink);
+    overflow-x: auto;
+  }
+  .token-add .k { color: var(--type-water); }
+  .token-add .v { color: var(--ink-72); }
+  .token-add .c { color: var(--ink-40); }
+
+  /* open question card */
+  .questions-grid {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  .q-card {
+    padding: 16px 18px;
+    background: rgba(250, 192, 0, 0.05);
+    border: 1px dashed rgba(250, 192, 0, 0.5);
+    border-radius: var(--r-md);
+  }
+  .q-card .who {
+    font-size: 10px; font-weight: 800;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--type-ground);
+    margin-bottom: 8px;
+  }
+  .q-card h4 {
+    font-size: 14px; font-weight: 800; letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .q-card p { font-size: 12.5px; line-height: 1.55; color: var(--ink-72); }
+
+  /* katex tweaks */
+  .katex { font-size: 1em; }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<div class="shell">
+
+  <!-- ─── TOC ─── -->
+  <nav class="toc">
+    <div class="crest">
+      <div class="mark">와</div>
+      <div class="name">설명 AI<small>디자인 시스템 v0.1</small></div>
+    </div>
+
+    <h4>Foundations</h4>
+    <a href="#color">컬러 팔레트</a>
+    <a href="#type">타이포그래피</a>
+    <a href="#space">간격 · 라디우스</a>
+    <a href="#shadow">섀도우 · 모션</a>
+
+    <h4>Atoms</h4>
+    <a href="#buttons">Button</a>
+    <a href="#chips">Chip · Tag · Badge</a>
+    <a href="#inputs">Input · Textarea</a>
+    <a href="#avatar">Avatar · StepNum</a>
+    <a href="#confidence">ConfidenceBar</a>
+    <a href="#photochip">PhotoChip</a>
+
+    <h4>Molecules</h4>
+    <a href="#step-block">StepBlock</a>
+    <a href="#checkpoint">CheckpointCard</a>
+    <a href="#ocr">OcrPasteCard</a>
+    <a href="#cite">InlineCite</a>
+    <a href="#annotated">AnnotatedPhoto</a>
+    <a href="#dropzone">DropzoneSlot</a>
+    <a href="#sources">SourceButtonRow</a>
+    <a href="#slip">ConversationSlip</a>
+    <a href="#actions">TeacherActionRow</a>
+
+    <h4>Patterns</h4>
+    <a href="#pat-conv">대화 스레드</a>
+    <a href="#pat-queue">강사 큐</a>
+    <a href="#pat-photo">사진 업로드</a>
+
+    <h4>Implementation</h4>
+    <a href="#tokens-add">신규 토큰 (CSS)</a>
+    <a href="#filemap">파일 매핑 (React)</a>
+    <a href="#open">열린 질문</a>
+
+    <div class="meta-foot">
+      <b>Owner</b> 서재용<br>
+      <b>Last update</b> 2026-05-15<br>
+      <b>Source</b> mockups/ask-ai/*.html<br>
+      <b>Status</b> v0.1 · 검토 중
+    </div>
+  </nav>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main" id="main">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="crumb">와와 학원 · 내부 도구 · 디자인 시스템</div>
+      <h1>설명 AI<br>를 진짜로 만들기 전에<br>합의해둘 <em>시각 어휘</em>.</h1>
+      <p>이 문서는 <code>mockups/ask-ai/</code> 의 HTML 목업을 React 컴포넌트로 구현할 때 필요한 토큰·아톰·몰리큘·패턴을 한 페이지에 모은 것이다. 기존 <code>apps/student/src/styles/tokens.css</code> 를 기반으로, AskAI 한정 추가분만 새로 정의한다.</p>
+
+      <div class="meta-row">
+        <div><b>4</b>대상 화면</div>
+        <div><b>3</b>신규 색 토큰</div>
+        <div><b>1</b>신규 폰트 (손글씨)</div>
+        <div><b>~14</b>컴포넌트</div>
+        <div><b>0</b>신규 라이브러리 (KaTeX·function-plot 만)</div>
+      </div>
+    </header>
+
+    <!-- ─── FOUNDATIONS ─── -->
+
+    <section class="sec" id="color">
+      <h2>Foundations · 01</h2>
+      <h3 class="h2-title">컬러 팔레트</h3>
+      <p class="h2-lede">기존 wawa-learn 토큰 그대로. 단, AskAI 전용으로 <b>종이톤 3색</b>과 <b>빨간펜 1색</b>을 추가했다. 새 hue 도입 없이, 의미 채널만 늘림.</p>
+
+      <h3 class="sub">잉크 스케일 <small>· 기존</small></h3>
+      <div class="palette">
+        <div class="swatch"><div class="chip" style="--c: var(--ink); --c: rgb(17,20,26)"></div><div class="info"><div class="n">--ink</div><div class="v">rgba(17,20,26,.92)</div><div class="role">본문 텍스트</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: rgba(17,20,26,0.72)"></div><div class="info"><div class="n">--ink-72</div><div class="v">opacity 72%</div><div class="role">본문 보조</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: rgba(17,20,26,0.60)"></div><div class="info"><div class="n">--ink-60</div><div class="v">opacity 60%</div><div class="role">메타 · 캡션</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: rgba(17,20,26,0.40)"></div><div class="info"><div class="n">--ink-40</div><div class="v">opacity 40%</div><div class="role">placeholder</div></div></div>
+        <div class="swatch"><div class="chip bordered" style="--c: rgba(17,20,26,0.09)"></div><div class="info"><div class="n">--ink-09</div><div class="v">opacity 9%</div><div class="role">hairline 보더</div></div></div>
+        <div class="swatch"><div class="chip bordered" style="--c: rgba(17,20,26,0.05)"></div><div class="info"><div class="n">--ink-05</div><div class="v">opacity 5%</div><div class="role">hover bg</div></div></div>
+      </div>
+
+      <h3 class="sub">시멘틱 <small>· 기존</small></h3>
+      <div class="palette">
+        <div class="swatch"><div class="chip" style="--c: #2d3a8c"></div><div class="info"><div class="n">--primary</div><div class="v">#2d3a8c</div><div class="role">앱 강조 · CTA</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #3FA129"></div><div class="info"><div class="n">--success</div><div class="v">#3FA129</div><div class="role">통과 · 확인</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #E62829"></div><div class="info"><div class="n">--danger</div><div class="v">#E62829</div><div class="role">에러 · 경고</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #FAC000"></div><div class="info"><div class="n">--warning</div><div class="v">#FAC000</div><div class="role">주의 · 보통</div></div></div>
+      </div>
+
+      <h3 class="sub">타입 컬러 (포켓몬 시스템) <small>· 기존 — 단원/과목 시그니처</small></h3>
+      <div class="palette">
+        <div class="swatch"><div class="chip" style="--c: #3FA129"></div><div class="info"><div class="n">--type-grass</div><div class="v">#3FA129</div><div class="role">증명 · 논리</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #2980EF"></div><div class="info"><div class="n">--type-water</div><div class="v">#2980EF</div><div class="role">단어 · 언어</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #FAC000"></div><div class="info"><div class="n">--type-electric</div><div class="v">#FAC000</div><div class="role">수행평가</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #F584A8"></div><div class="info"><div class="n">--type-psychic</div><div class="v">#F584A8</div><div class="role">문법 · 추상</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #915121"></div><div class="info"><div class="n">--type-ground</div><div class="v">#915121</div><div class="role">시험지</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #5060E1"></div><div class="info"><div class="n">--type-dragon</div><div class="v">#5060E1</div><div class="role">도전 · 최난</div></div></div>
+      </div>
+
+      <h3 class="sub">AskAI 신규 토큰 <small>· 종이·노트·빨간펜</small></h3>
+      <div class="palette">
+        <div class="swatch"><div class="chip bordered" style="--c: #f7f5ee"></div><div class="info"><div class="n">--bg-paper</div><div class="v">#f7f5ee</div><div class="role">학원 단원지 인용 카드</div></div></div>
+        <div class="swatch"><div class="chip bordered" style="--c: #f1f3f9"></div><div class="info"><div class="n">--bg-question</div><div class="v">#f1f3f9</div><div class="role">학생 질문 박스</div></div></div>
+        <div class="swatch"><div class="chip bordered" style="--c: #efece4"></div><div class="info"><div class="n">--bg-photo</div><div class="v">#efece4</div><div class="role">노트 사진 종이톤</div></div></div>
+        <div class="swatch"><div class="chip" style="--c: #d92e2e"></div><div class="info"><div class="n">--pen-red</div><div class="v">#d92e2e</div><div class="role">AI 빨간펜 — 채도 살짝 죽임</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="type">
+      <h2>Foundations · 02</h2>
+      <h3 class="h2-title">타이포그래피</h3>
+      <p class="h2-lede">본문은 <b>Pretendard Variable</b>. UI 숫자 정렬은 tabular-nums 강제. AskAI 신규 — <b>학생 손글씨를 묘사할 때만</b> Gaegu (Google Fonts).</p>
+
+      <h3 class="sub">스케일</h3>
+      <div style="background: var(--bg-card); border: var(--border-hair); border-radius: var(--r-md); padding: 6px 24px;">
+        <div class="type-row">
+          <span class="key">--fs-hero</span>
+          <span class="sample" style="font-size: 56px; font-weight: 900; letter-spacing: -0.025em; line-height: 1;">완벽한 풀이</span>
+          <span class="props">56 / 900 / -0.025em</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--fs-title-1</span>
+          <span class="sample" style="font-size: 32px; font-weight: 900; letter-spacing: -0.02em;">표본평균의 분산</span>
+          <span class="props">32 / 900 / -0.02em</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--fs-title-2</span>
+          <span class="sample" style="font-size: 22px; font-weight: 800; letter-spacing: -0.01em;">정의 다시 적기</span>
+          <span class="props">22 / 800 / -0.01em</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--fs-body-l</span>
+          <span class="sample" style="font-size: 18px;">한 줄씩 차근차근 가보자.</span>
+          <span class="props">18 / 400</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--fs-body</span>
+          <span class="sample" style="font-size: 15px;">매번 표본을 뽑을 때마다 평균이 바뀌므로 표본평균은 확률변수다.</span>
+          <span class="props">15 / 400</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--fs-label</span>
+          <span class="sample" style="font-size: 13px; font-weight: 600;">정의 · 성질 · 계산</span>
+          <span class="props">13 / 600</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--fs-caption</span>
+          <span class="sample" style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-60);">단원지 §2.3 p.14</span>
+          <span class="props">11 / 700 / 0.6px / UC</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--font-hand</span>
+          <span class="sample" style="font-family: var(--font-hand); font-size: 22px; color: #1c2436;">① AB = AC 이다 (가정)</span>
+          <span class="props">Gaegu — only for handwriting mockup</span>
+        </div>
+        <div class="type-row">
+          <span class="key">--font-mono</span>
+          <span class="sample" style="font-family: var(--font-mono); font-size: 13px;">--bg-paper: #f7f5ee;</span>
+          <span class="props">JetBrains Mono · 토큰 코드</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="space">
+      <h2>Foundations · 03</h2>
+      <h3 class="h2-title">간격 · 라디우스</h3>
+      <p class="h2-lede">4의 배수 (sp-1=4 → sp-10=40). 라디우스는 5단계. AskAI에서 자주 쓰는 라디우스는 <code>r-md (12)</code> 와 <code>r-lg (16)</code>.</p>
+
+      <h3 class="sub">간격</h3>
+      <div style="background: var(--bg-card); border: var(--border-hair); border-radius: var(--r-md); padding: 12px 24px;">
+        <div class="space-row"><span class="key">--sp-1</span><div class="bar" style="width: 4px"></div><span class="v">4px · 인접 간격</span></div>
+        <div class="space-row"><span class="key">--sp-2</span><div class="bar" style="width: 8px"></div><span class="v">8px · 한 글자급</span></div>
+        <div class="space-row"><span class="key">--sp-3</span><div class="bar" style="width: 12px"></div><span class="v">12px · 카드 내부</span></div>
+        <div class="space-row"><span class="key">--sp-4</span><div class="bar" style="width: 16px"></div><span class="v">16px · 기본</span></div>
+        <div class="space-row"><span class="key">--sp-5</span><div class="bar" style="width: 20px"></div><span class="v">20px · 카드 padding</span></div>
+        <div class="space-row"><span class="key">--sp-6</span><div class="bar" style="width: 24px"></div><span class="v">24px · 섹션 내부</span></div>
+        <div class="space-row"><span class="key">--sp-8</span><div class="bar" style="width: 32px"></div><span class="v">32px · 단계 사이</span></div>
+        <div class="space-row"><span class="key">--sp-10</span><div class="bar" style="width: 40px"></div><span class="v">40px · 큰 섹션</span></div>
+      </div>
+
+      <h3 class="sub">라디우스</h3>
+      <div class="radii">
+        <div class="rad" style="border-radius: 4px;">--r-xs · 4</div>
+        <div class="rad" style="border-radius: 8px;">--r-sm · 8</div>
+        <div class="rad" style="border-radius: 12px;">--r-md · 12 <span aria-hidden="true">★</span></div>
+        <div class="rad" style="border-radius: 16px;">--r-lg · 16 <span aria-hidden="true">★</span></div>
+        <div class="rad" style="border-radius: 24px;">--r-xl · 24</div>
+      </div>
+    </section>
+
+    <section class="sec" id="shadow">
+      <h2>Foundations · 04</h2>
+      <h3 class="h2-title">섀도우 · 모션</h3>
+      <p class="h2-lede">섀도우는 <b>팝오버·모달·사진 카드에만</b>. 일반 카드는 hairline 보더로만. 모션 곡선은 <code>ease-out-quart</code> 단일.</p>
+
+      <div class="specimens">
+        <div class="spec">
+          <div class="demo">
+            <div style="width: 80px; height: 80px; background: var(--bg-card); border-radius: var(--r-md); border: var(--border-hair);"></div>
+          </div>
+          <div class="meta">
+            <div class="name">none</div>
+            <div class="desc">기본 — hairline 보더만. 카드 90%는 이거.</div>
+          </div>
+        </div>
+        <div class="spec">
+          <div class="demo">
+            <div style="width: 80px; height: 80px; background: var(--bg-card); border-radius: var(--r-md); box-shadow: var(--shadow-pop);"></div>
+          </div>
+          <div class="meta">
+            <div class="name">--shadow-pop</div>
+            <div class="desc">팝오버·모달·강조 액션 카드.</div>
+          </div>
+        </div>
+        <div class="spec">
+          <div class="demo">
+            <div style="width: 100px; height: 80px; background: var(--bg-card); border-radius: var(--r-md); box-shadow: var(--shadow-photo);"></div>
+          </div>
+          <div class="meta">
+            <div class="name">--shadow-photo</div>
+            <div class="desc">AskAI 신규 — 학생 사진 카드. 종이가 떠 있는 느낌.</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="sub">모션</h3>
+      <div style="font-family: var(--font-mono); font-size: 13px; line-height: 1.8; color: var(--ink-72); background: var(--bg-card); border: var(--border-hair); border-radius: var(--r-md); padding: 18px 24px;">
+        <div><span style="color: var(--type-water);">--ease</span>:&nbsp;&nbsp;cubic-bezier(0.25, 1, 0.5, 1) <span style="color: var(--ink-40);">/* 자연 감속 — 유일한 곡선 */</span></div>
+        <div><span style="color: var(--type-water);">--dur-fast</span>: 150ms <span style="color: var(--ink-40);">/* hover, focus, active state */</span></div>
+        <div><span style="color: var(--type-water);">--dur-base</span>: 220ms <span style="color: var(--ink-40);">/* enter/exit 기본 */</span></div>
+        <div><span style="color: var(--type-water);">--dur-slow</span>: 320ms <span style="color: var(--ink-40);">/* 큰 페이지 전환 */</span></div>
+        <br>
+        <div style="color: var(--ink-60);">금지: bounce, elastic, easing 다양화. 모션은 transform/opacity 만.</div>
+      </div>
+    </section>
+
+    <!-- ─── ATOMS ─── -->
+
+    <section class="sec" id="buttons">
+      <h2>Atoms · 01</h2>
+      <h3 class="h2-title">Button</h3>
+      <p class="h2-lede">5종 변형. 한 화면에 primary 하나만. 학생 화면은 <code>btn-ink</code>가 발신, 강사 화면은 <code>btn-success</code>가 OK 처리.</p>
+
+      <div class="specimens">
+        <div class="spec"><div class="demo"><button class="btn btn-primary">코멘트 보내기</button></div>
+          <div class="meta"><div class="name">&lt;Button variant="primary"/&gt;</div><div class="desc">CTA · 강사 발신.</div><div class="file">components/askAI/Button.tsx</div></div></div>
+
+        <div class="spec"><div class="demo"><button class="btn btn-ink">물어보기</button></div>
+          <div class="meta"><div class="name">&lt;Button variant="ink"/&gt;</div><div class="desc">학생 발신 · 채팅 send.</div></div></div>
+
+        <div class="spec"><div class="demo"><button class="btn btn-ghost">아니, 다시</button></div>
+          <div class="meta"><div class="name">&lt;Button variant="ghost"/&gt;</div><div class="desc">보조 액션 · 거절/되돌리기.</div></div></div>
+
+        <div class="spec"><div class="demo"><button class="btn btn-success">✓ OK 처리</button></div>
+          <div class="meta"><div class="name">&lt;Button variant="success"/&gt;</div><div class="desc">강사 큐 — OK 분류.</div></div></div>
+
+        <div class="spec"><div class="demo"><button class="btn btn-danger-outline">⚠ AI 답 틀림</button></div>
+          <div class="meta"><div class="name">&lt;Button variant="dangerOutline"/&gt;</div><div class="desc">파괴적 액션 — 학생에게 경고 트리거.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="chips">
+      <h2>Atoms · 02</h2>
+      <h3 class="h2-title">Chip · Tag · Badge</h3>
+      <p class="h2-lede">Chip은 필터, ContextChip은 단원, Tag는 학생 슬립 내 과목, Badge는 큐 상태.</p>
+
+      <div class="specimens">
+        <div class="spec"><div class="demo"><button class="chip">고2 <span class="ct">4</span></button></div>
+          <div class="meta"><div class="name">&lt;FilterChip/&gt;</div><div class="desc">강사 큐 필터 — count 옵션.</div></div></div>
+
+        <div class="spec"><div class="demo"><button class="chip on">미코멘트 먼저 <span class="ct">5</span></button></div>
+          <div class="meta"><div class="name">&lt;FilterChip active/&gt;</div><div class="desc">활성 상태 — 잉크 채움.</div></div></div>
+
+        <div class="spec"><div class="demo">
+          <span class="ctx-chip"><span class="swatch">증</span>확통 III-1 표본분포</span>
+        </div>
+          <div class="meta"><div class="name">&lt;ContextChip type="grass"/&gt;</div><div class="desc">단원/과목 컨텍스트 · type별 surface 컬러.</div></div></div>
+
+        <div class="spec"><div class="demo" style="display: flex; gap: 8px;">
+          <span class="badge needs">미코멘트</span>
+          <span class="badge ok">OK 처리됨</span>
+          <span class="badge commented">코멘트 1</span>
+          <span class="badge wrong">AI 답 틀림</span>
+        </div>
+          <div class="meta"><div class="name">&lt;StatusBadge state="needs|ok|commented|wrong"/&gt;</div><div class="desc">강사 큐 슬립 · 한 슬립당 1개.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="inputs">
+      <h2>Atoms · 03</h2>
+      <h3 class="h2-title">Input · Textarea</h3>
+      <p class="h2-lede">학생 composer textarea, 강사 코멘트 textarea. 둘 다 같은 바탕(canvas) → focus 시 카드(white)로 부상.</p>
+
+      <div class="specimens wide">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <textarea aria-label="Textarea 컴포넌트 미리보기" style="width: 100%; resize: none; border: 1px solid var(--ink-09); border-radius: var(--r-md); padding: 10px 14px; font-family: inherit; font-size: 14.5px; line-height: 1.5; color: var(--ink); background: var(--bg-canvas); min-height: 60px;" placeholder="문제 사진 찍거나, 한 줄로 물어봐.">루다, 4단계 빈칸 답해서 다시 보내봐.</textarea>
+        </div>
+          <div class="meta"><div class="name">&lt;Textarea/&gt;</div><div class="desc">기본 — auto-grow 60px ~ 160px.</div><div class="file">components/askAI/Textarea.tsx</div></div></div>
+
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <textarea aria-label="Textarea 컴포넌트 미리보기" style="width: 100%; resize: none; border: 1px solid var(--primary); border-radius: var(--r-md); padding: 10px 14px; font-family: inherit; font-size: 14.5px; line-height: 1.5; color: var(--ink); background: var(--bg-card); min-height: 60px; outline: none;">표본평균의 분산이 왜 σ²/n 인지…</textarea>
+        </div>
+          <div class="meta"><div class="name">&lt;Textarea isFocused/&gt;</div><div class="desc">focus — primary 보더 + 흰 바탕.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="avatar">
+      <h2>Atoms · 04</h2>
+      <h3 class="h2-title">Avatar · StepNum</h3>
+      <p class="h2-lede">Avatar는 학생 이니셜 1자. StepNum은 풀이 워크북 번호 — primary 패턴 시그니처.</p>
+
+      <div class="specimens">
+        <div class="spec"><div class="demo" style="display: flex; gap: 12px;">
+          <div class="avatar" style="background: var(--primary)">루</div>
+          <div class="avatar" style="background: var(--type-grass)">시</div>
+          <div class="avatar" style="background: var(--type-dragon)">동</div>
+          <div class="avatar" style="background: var(--type-psychic)">하</div>
+        </div>
+          <div class="meta"><div class="name">&lt;Avatar name="이루다" type="grass"/&gt;</div><div class="desc">한글 이니셜 1자 (마지막 글자) · type 컬러로 채움.</div></div></div>
+
+        <div class="spec"><div class="demo" style="display: flex; gap: 16px;">
+          <div class="step-num">1</div>
+          <div class="step-num">2</div>
+          <div class="step-num">3</div>
+        </div>
+          <div class="meta"><div class="name">&lt;StepNum n={1}/&gt;</div><div class="desc">잉크 사각 + tabular-nums. AskAI 시그니처 모티프.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="confidence">
+      <h2>Atoms · 05</h2>
+      <h3 class="h2-title">ConfidenceBar</h3>
+      <p class="h2-lede">강사 큐 · 슬립에서 AI 응답 확신도를 3-segment 막대로 표시. 색이 곧 등급 신호.</p>
+
+      <div class="specimens">
+        <div class="spec"><div class="demo">
+          <span class="conf high"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 높음</span>
+        </div>
+          <div class="meta"><div class="name">&lt;Confidence level="high"/&gt;</div><div class="desc">3/3 success — 학원 자료에서 정확한 인용 가능.</div></div></div>
+
+        <div class="spec"><div class="demo">
+          <span class="conf medium"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 보통</span>
+        </div>
+          <div class="meta"><div class="name">&lt;Confidence level="medium"/&gt;</div><div class="desc">2/3 warning — 검토 권장.</div></div></div>
+
+        <div class="spec"><div class="demo">
+          <span class="conf low"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 낮음</span>
+        </div>
+          <div class="meta"><div class="name">&lt;Confidence level="low"/&gt;</div><div class="desc">1/3 danger — 자동으로 needs_teacher = true.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="photochip">
+      <h2>Atoms · 06</h2>
+      <h3 class="h2-title">PhotoChip</h3>
+      <p class="h2-lede">composer dropzone 안의 64×64 썸네일. 우상단 X 제거 버튼 + 하단 파일명 그라데이션.</p>
+
+      <div class="specimens">
+        <div class="spec"><div class="demo" style="display: flex; gap: 8px;">
+          <div class="photo-chip" title="textbook.jpg">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 64 64"><rect width="64" height="64" fill="#faf6ee"/>
+              <rect x="6" y="20" width="18" height="6" rx="1" fill="#1c4ea8"/>
+              <text x="15" y="25" text-anchor="middle" font-family="Pretendard Variable" font-size="4.5" font-weight="700" fill="white">증명1.4</text>
+              <polygon points="50,38 42,52 58,52" fill="none" stroke="#11141a" stroke-width="0.6"/>
+            </svg>
+            <button class="x">×</button>
+            <span class="name">textbook.jpg</span>
+          </div>
+          <div class="photo-chip" title="my-proof.jpg">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 64 64"><rect width="64" height="64" fill="#efece4"/>
+              <line x1="0" y1="14" x2="64" y2="14" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <line x1="0" y1="26" x2="64" y2="26" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <g font-family="Gaegu, sans-serif" fill="#1c2436">
+                <text x="6" y="12" font-size="6" font-weight="700">[증명]</text>
+                <text x="6" y="24" font-size="5">①AB=AC</text>
+              </g>
+            </svg>
+            <button class="x">×</button>
+            <span class="name">my-proof.jpg</span>
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;PhotoChip src="..." onRemove/&gt;</div><div class="desc">composer dropzone 내부 — 5장 한도.</div></div></div>
+      </div>
+    </section>
+
+    <!-- ─── MOLECULES ─── -->
+
+    <section class="sec" id="step-block">
+      <h2>Molecules · 01</h2>
+      <h3 class="h2-title">StepBlock</h3>
+      <p class="h2-lede">AskAI <b>대화의 시그니처 단위</b>. 채팅 버블이 아니라 워크북 페이지 한 항목처럼 보이게. left 64px 들여쓰기 + 잉크 step 번호 + 점선 연결자.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo left" style="padding: 32px 40px;">
+          <div class="step-block-mini">
+            <div class="step-num">1</div>
+            <span class="tag">정의 다시 적기</span>
+            <h4>표본평균은 그냥 평균이 아니라 '확률변수'다</h4>
+            <p>매번 표본을 뽑을 때마다 평균값이 바뀌니까, 표본평균 자체가 변수야: $\bar X = \frac{1}{n}(X_1 + \cdots + X_n)$</p>
+          </div>
+        </div>
+          <div class="meta">
+            <div class="name">&lt;StepBlock n={1} tag="정의" title="..." body={...}/&gt;</div>
+            <div class="desc">슬롯: tag · title · body (텍스트 + KaTeX + InlineCite + Figure + AnnotatedPhoto 가능). 마지막에 CheckpointCard 붙임.</div>
+            <div class="file">components/askAI/StepBlock.tsx</div>
+          </div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="checkpoint">
+      <h2>Molecules · 02</h2>
+      <h3 class="h2-title">CheckpointCard</h3>
+      <p class="h2-lede">단계 끝에 강제 멈춤. 학생이 "응" 하기 전엔 다음 StepBlock이 잠겨있음. 시스템이 보장하는 한 줄씩 학습.</p>
+
+      <div class="specimens wide">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="ck-mini">
+            <span class="q">정의 OK?</span>
+            <button>응, 다음</button>
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;CheckpointCard question="..." onYes onNo/&gt;</div><div class="desc">기본 상태 — 점선 보더 + primary tint.</div></div></div>
+
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="ck-mini" style="background: var(--bg-card); border: 1px solid var(--success); opacity: 0.7;">
+            <span class="q" style="color: var(--success);">✓ 정의 OK?</span>
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--success); text-transform: uppercase;">넘어감</span>
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;CheckpointCard isPassed/&gt;</div><div class="desc">통과 후 상태 — 흐려지고 success 색으로.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="ocr">
+      <h2>Molecules · 03</h2>
+      <h3 class="h2-title">OcrPasteCard</h3>
+      <p class="h2-lede">학생이 사진 보냈을 때 AI가 가장 먼저 띄우는 게이트 — "내가 이렇게 읽었어, 맞아?". 잘못된 인식이 풀이 망치는 것 방지.</p>
+
+      <div class="specimens wide">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="ocr-mini">
+            <div class="src"><span aria-hidden="true">📷</span> <b>증명1-4-textbook.jpg</b> 에서 읽은 문제</div>
+            <div class="stmt"><b>주어진:</b> $\triangle ABC$ 에서 $\overline{AB} = \overline{AC}$.<br><b>증명할 것:</b> $\angle B = \angle C$.</div>
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;OcrPasteCard src="textbook" parsed={...} confidence/&gt;</div><div class="desc">paper bg + 신뢰도 뱃지 + "응 맞아 / 직접 고칠래" 버튼.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="cite">
+      <h2>Molecules · 04</h2>
+      <h3 class="h2-title">InlineCite</h3>
+      <p class="h2-lede">본문 사이에 들어가는 학원 자료 인용. 종이톤 bg + grass 좌측 보더.</p>
+
+      <div class="specimens">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="cite-mini">
+            <span class="src">단원지 §2.1 · p.11</span>
+            "확률변수가 모분포를 따르고 서로 독립일 때, 이를 크기 n인 확률표본이라 한다."
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;InlineCite src="..." page={11}&gt;...&lt;/InlineCite&gt;</div><div class="desc">학원 단원지 정의 인용 시.</div><div class="file">components/askAI/InlineCite.tsx</div></div></div>
+
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="cite-mini" style="border-left-color: var(--type-water);">
+            <span class="src" style="color: var(--type-water);">학생 메모 · 이루다</span>
+            "근의 위치·경계값에서 그림 안 그리는 습관." — 이번 풀이에 그래프 보강 권장.
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;InlineCite variant="student-meta"&gt;</div><div class="desc">학생 _meta.json 인용 시 — water 색.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="annotated">
+      <h2>Molecules · 05</h2>
+      <h3 class="h2-title">AnnotatedPhoto</h3>
+      <p class="h2-lede">학생 손글씨/사진 위에 SVG 오버레이 (빨간 박스·빗금·주석). 토글 가능 + 범례. AskAI <b>킬러 모먼트</b> 컴포넌트.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo plain" style="padding: 24px;">
+          <div class="annot-mini">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 320 120" style="width: 100%;">
+              <line x1="0" y1="20" x2="320" y2="20" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <line x1="0" y1="50" x2="320" y2="50" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <line x1="0" y1="80" x2="320" y2="80" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <line x1="32" y1="0" x2="32" y2="120" stroke="#d99a9a" stroke-width="0.6" opacity="0.5"/>
+              <g font-family="Gaegu, sans-serif" fill="#1c2436">
+                <text x="40" y="16" font-size="13">① AB = AC 이다</text>
+                <text x="240" y="17" font-size="14" fill="#3FA129" font-weight="700">✓</text>
+                <rect x="36" y="32" width="220" height="22" rx="3" fill="rgba(217,46,46,0.10)"
+                      stroke="#d92e2e" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <text x="40" y="48" font-size="13">② ∠B = ∠C  (이등변이니까)</text>
+                <text x="40" y="78" font-size="13">③ 따라서…</text>
+                <line x1="40" y1="76" x2="180" y2="78" stroke="#d92e2e" stroke-width="1.5"/>
+              </g>
+              <g font-family="Gaegu, sans-serif" fill="#d92e2e" font-weight="700">
+                <text x="265" y="48" font-size="11">↑ 여기!</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+          <div class="meta">
+            <div class="name">&lt;AnnotatedPhoto src="..." annotations={[...]} /&gt;</div>
+            <div class="desc">SVG 오버레이 layer. annotations: <code>[{type:'box'|'strike'|'check'|'note', x,y,w,h,text,color}]</code>. 헤더에 토글 + 범례.</div>
+            <div class="file">components/askAI/AnnotatedPhoto.tsx</div>
+          </div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="dropzone">
+      <h2>Molecules · 06</h2>
+      <h3 class="h2-title">DropzoneSlot</h3>
+      <p class="h2-lede">composer 사진 첨부 영역. 페이지 어디든 드래그하면 활성화. 첨부된 PhotoChip 들 + "+추가" 빈 칩.</p>
+
+      <div class="specimens wide">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="drop-mini">
+            <div class="head"><span aria-hidden="true">📎</span> <b>첨부된 사진</b> · 2 / 5</div>
+            <div class="row">
+              <div class="photo-chip"><svg aria-hidden="true" focusable="false" viewBox="0 0 64 64"><rect width="64" height="64" fill="#faf6ee"/></svg></div>
+              <div class="photo-chip"><svg aria-hidden="true" focusable="false" viewBox="0 0 64 64"><rect width="64" height="64" fill="#efece4"/></svg></div>
+              <button class="add">+</button>
+            </div>
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;DropzoneSlot photos={...} max={5}/&gt;</div><div class="desc">react-dropzone 기반. drag-over 상태에서 primary 보더 + tint.</div><div class="file">components/askAI/DropzoneSlot.tsx</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="sources">
+      <h2>Molecules · 07</h2>
+      <h3 class="h2-title">SourceButtonRow</h3>
+      <p class="h2-lede">사진 입력 4채널 — 파일·카메라·붙여넣기·내노트. 모두 동등한 비중으로.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="src-row">
+            <button class="src-btn"><span aria-hidden="true">📁</span> 파일 선택</button>
+            <button class="src-btn"><span aria-hidden="true">📷</span> 카메라</button>
+            <button class="src-btn"><span aria-hidden="true">📋</span> 붙여넣기 <kbd>⌘V</kbd></button>
+            <button class="src-btn"><span aria-hidden="true">📝</span> 내 노트에서</button>
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;SourceButtonRow onPick={...}/&gt;</div><div class="desc">학생이 어디서 사진을 가져올지 4채널 동시 노출. mobile에선 카메라가 primary.</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="slip">
+      <h2>Molecules · 08</h2>
+      <h3 class="h2-title">ConversationSlip</h3>
+      <p class="h2-lede">강사 큐 좌측 리스트의 한 항목. 종이 슬립 비유 — 4px 타입 컬러 stripe + 학생/시간/과목/미리보기/confidence/badge.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div class="slip-card">
+            <div class="stripe"></div>
+            <div class="body">
+              <div style="display: flex; align-items: center;">
+                <span class="name">이루다</span>
+                <span style="margin-left: auto; font-size: 11px; color: var(--ink-60); font-feature-settings: 'tnum' 1;">14:02</span>
+              </div>
+              <div style="margin: 4px 0; font-size: 11px;">
+                <span class="tag">증명</span>
+                <span style="color: var(--ink-60); font-weight: 600;">확통 III-1 · 표본분포</span>
+              </div>
+              <p class="preview">표본평균의 분산이 왜 σ²/n 인가요? 단원지에 그냥 그렇다고만…</p>
+              <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px;">
+                <span class="conf high"><span class="bar"><i></i><i></i><i></i></span></span>
+                <span class="badge needs" style="margin-left: auto;">미코멘트</span>
+              </div>
+            </div>
+          </div>
+        </div>
+          <div class="meta"><div class="name">&lt;ConversationSlip data={...} selected onClick/&gt;</div><div class="desc">type 컬러는 자동 (단원 → type 매핑 테이블). selected 시 우측 잉크 보더 표시.</div><div class="file">components/askAI/ConversationSlip.tsx</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="actions">
+      <h2>Molecules · 09</h2>
+      <h3 class="h2-title">TeacherActionRow</h3>
+      <p class="h2-lede">강사 큐 detail 하단의 3-액션 그리드. 키보드 단축키 표기 — 50건 처리 동선 핵심.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo plain" style="padding: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; max-width: 480px;">
+            <button class="action-btn ok">✓ OK 처리 <span class="k">k</span></button>
+            <button class="action-btn comment">✏ 코멘트 보내기 <span class="k">⌘↵</span></button>
+            <button class="action-btn wrong">⚠ AI 답 틀림 <span class="k">x</span></button>
+          </div>
+        </div>
+          <div class="meta">
+            <div class="name">&lt;TeacherActionRow onOK onComment onMarkWrong/&gt;</div>
+            <div class="desc">단축키: <code>k</code>=OK · <code>⌘↵</code>=코멘트 · <code>x</code>=AI틀림 · <code>j</code>=다음 슬립.</div>
+            <div class="file">components/askAI/TeacherActionRow.tsx</div>
+          </div></div>
+      </div>
+    </section>
+
+    <!-- ─── PATTERNS ─── -->
+
+    <section class="sec" id="pat-conv">
+      <h2>Patterns · 01</h2>
+      <h3 class="h2-title">대화 스레드 (학생)</h3>
+      <p class="h2-lede">3컬럼 grid: <code>56px sidebar | 1fr conversation | 320px rail</code>. mobile에서 rail 숨김 + sidebar 숨김.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo" style="padding: 0; min-height: 240px;">
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 800 240" style="width: 100%; height: auto; background: var(--bg-canvas);">
+            <!-- sidebar -->
+            <rect x="0" y="0" width="56" height="240" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <rect x="14" y="14" width="28" height="28" rx="6" fill="rgba(17,20,26,0.05)"/>
+            <rect x="16" y="200" width="24" height="24" rx="6" fill="#2d3a8c"/>
+            <!-- topbar -->
+            <rect x="56" y="0" width="424" height="48" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <text x="72" y="29" font-family="Pretendard Variable" font-size="11" font-weight="700" fill="#11141a">설명 AI / 와와</text>
+            <rect x="170" y="14" width="160" height="20" rx="10" fill="rgba(63,161,41,0.08)"/>
+            <text x="178" y="28" font-family="Pretendard Variable" font-size="9" font-weight="600" fill="#3FA129">증 확통 III-1 표본분포</text>
+            <!-- conversation main -->
+            <rect x="56" y="48" width="424" height="148" fill="transparent"/>
+            <rect x="100" y="62" width="320" height="32" rx="8" fill="#f1f3f9" stroke="rgba(45,58,140,0.08)"/>
+            <text x="112" y="82" font-family="Pretendard Variable" font-size="10" fill="#11141a">왜 σ²/n 인지 모르겠어요…</text>
+            <!-- step blocks -->
+            <rect x="100" y="106" width="22" height="22" rx="6" fill="#11141a"/>
+            <text x="111" y="121" text-anchor="middle" font-family="Pretendard Variable" font-size="11" font-weight="900" fill="#fafbfc">1</text>
+            <rect x="130" y="108" width="290" height="34" rx="4" fill="rgba(0,0,0,0.025)"/>
+            <text x="138" y="124" font-family="Pretendard Variable" font-size="9" font-weight="700" fill="#11141a">표본평균은 확률변수다</text>
+            <text x="138" y="135" font-family="Pretendard Variable" font-size="8" fill="rgba(17,20,26,0.6)">정의 다시 적기 · KaTeX · InlineCite</text>
+            <line x1="111" y1="128" x2="111" y2="160" stroke="rgba(17,20,26,0.09)"/>
+            <rect x="100" y="158" width="22" height="22" rx="6" fill="#11141a"/>
+            <text x="111" y="173" text-anchor="middle" font-family="Pretendard Variable" font-size="11" font-weight="900" fill="#fafbfc">2</text>
+            <rect x="130" y="160" width="290" height="34" rx="4" fill="rgba(0,0,0,0.025)"/>
+            <text x="138" y="176" font-family="Pretendard Variable" font-size="9" font-weight="700" fill="#11141a">분산의 두 성질</text>
+            <text x="138" y="187" font-family="Pretendard Variable" font-size="8" fill="rgba(17,20,26,0.6)">가법성 · 상수배 — Figure 포함</text>
+            <!-- composer -->
+            <rect x="56" y="196" width="424" height="44" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <rect x="68" y="206" width="24" height="24" rx="6" fill="rgba(0,0,0,0.04)"/>
+            <rect x="100" y="206" width="320" height="24" rx="6" fill="rgba(0,0,0,0.04)"/>
+            <rect x="430" y="206" width="40" height="24" rx="6" fill="#11141a"/>
+            <!-- rail -->
+            <rect x="480" y="0" width="320" height="240" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <text x="500" y="32" font-family="Pretendard Variable" font-size="9" font-weight="700" letter-spacing="0.6" fill="rgba(17,20,26,0.6)">인용된 자료</text>
+            <rect x="500" y="44" width="280" height="60" rx="8" fill="#f7f5ee"/>
+            <text x="512" y="62" font-family="Pretendard Variable" font-size="9" font-weight="800" fill="#3FA129">학원 단원지</text>
+            <text x="512" y="76" font-family="Pretendard Variable" font-size="10" font-weight="700" fill="#11141a">확통 III-1 / §2.1 표본과 모집단</text>
+            <text x="512" y="90" font-family="Pretendard Variable" font-size="9" fill="rgba(17,20,26,0.6)">p.11 · 정의 11–14</text>
+            <rect x="500" y="116" width="280" height="60" rx="8" fill="#f7f5ee"/>
+            <text x="512" y="134" font-family="Pretendard Variable" font-size="9" font-weight="800" fill="#3FA129">학원 단원지</text>
+            <text x="512" y="148" font-family="Pretendard Variable" font-size="10" font-weight="700" fill="#11141a">확통 II-3 / §1.4 분산의 성질</text>
+            <text x="512" y="162" font-family="Pretendard Variable" font-size="9" fill="rgba(17,20,26,0.6)">p.7 · 성질 1.4.2</text>
+          </svg>
+        </div>
+          <div class="meta"><div class="name">student-chat.html · &lt;AskAIChatPage/&gt;</div><div class="desc">컨테이너 grid + StepBlock 반복 + 우측 CitationCard 리스트.</div><div class="file">apps/student/src/pages/AskAIPage.tsx</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="pat-queue">
+      <h2>Patterns · 02</h2>
+      <h3 class="h2-title">강사 큐</h3>
+      <p class="h2-lede">2컬럼 master-detail: <code>380px slip list | 1fr detail</code>. 단축키 우선 동선.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo" style="padding: 0; min-height: 240px;">
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 800 240" style="width: 100%; height: auto; background: var(--bg-canvas);">
+            <rect x="0" y="0" width="56" height="240" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <rect x="56" y="0" width="744" height="48" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <text x="72" y="29" font-family="Pretendard Variable" font-size="11" font-weight="800" fill="#11141a">설명 AI · 강사 큐</text>
+            <text x="600" y="22" font-family="Pretendard Variable" font-size="9" letter-spacing="0.6" fill="rgba(17,20,26,0.6)">미코멘트</text>
+            <text x="600" y="38" font-family="Pretendard Variable" font-size="14" font-weight="900" fill="#11141a">5</text>
+            <text x="660" y="22" font-family="Pretendard Variable" font-size="9" letter-spacing="0.6" fill="rgba(17,20,26,0.6)">경고</text>
+            <text x="660" y="38" font-family="Pretendard Variable" font-size="14" font-weight="900" fill="#E62829">2</text>
+            <!-- filter strip -->
+            <rect x="56" y="48" width="384" height="40" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <rect x="68" y="60" width="40" height="18" rx="5" fill="#11141a"/>
+            <text x="88" y="73" text-anchor="middle" font-family="Pretendard Variable" font-size="8" font-weight="700" fill="#fff">전체</text>
+            <rect x="116" y="60" width="60" height="18" rx="5" fill="rgba(0,0,0,0.04)"/>
+            <text x="146" y="73" text-anchor="middle" font-family="Pretendard Variable" font-size="8" font-weight="600" fill="#666">미코멘트</text>
+            <!-- detail bar -->
+            <rect x="440" y="48" width="360" height="40" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <text x="456" y="73" font-family="Pretendard Variable" font-size="10" fill="rgba(17,20,26,0.6)"><tspan font-weight="700" fill="#11141a">이루다</tspan> · 확통 표본분포 · 14:02</text>
+            <!-- list -->
+            <rect x="56" y="88" width="384" height="152" fill="rgba(0,0,0,0.005)"/>
+            <g><rect x="56" y="92" width="384" height="44" fill="rgba(45,58,140,0.06)"/>
+               <rect x="56" y="92" width="4" height="44" fill="#3FA129"/>
+               <text x="68" y="106" font-family="Pretendard Variable" font-size="10" font-weight="800" fill="#11141a">이루다 · 14:02</text>
+               <text x="68" y="120" font-family="Pretendard Variable" font-size="9" fill="rgba(17,20,26,0.7)">확통 III-1 표본분포</text>
+               <rect x="380" y="116" width="50" height="14" rx="7" fill="rgba(230,40,41,0.10)"/>
+               <text x="405" y="126" text-anchor="middle" font-family="Pretendard Variable" font-size="7" font-weight="800" fill="#E62829">미코멘트</text>
+            </g>
+            <g><rect x="56" y="136" width="384" height="40" fill="#fff"/>
+               <rect x="56" y="136" width="4" height="40" fill="#5060E1"/>
+               <text x="68" y="150" font-family="Pretendard Variable" font-size="10" font-weight="800" fill="#11141a">박동진 · 13:45</text>
+               <text x="68" y="164" font-family="Pretendard Variable" font-size="9" fill="rgba(17,20,26,0.7)">수II 함수의 극한</text>
+            </g>
+            <g><rect x="56" y="176" width="384" height="40" fill="#fff"/>
+               <rect x="56" y="176" width="4" height="40" fill="#F584A8"/>
+               <text x="68" y="190" font-family="Pretendard Variable" font-size="10" font-weight="800" fill="#11141a">오하람 · 11:20</text>
+               <text x="68" y="204" font-family="Pretendard Variable" font-size="9" fill="rgba(17,20,26,0.7)">서울대 논술 · 조건부확률</text>
+            </g>
+            <g><rect x="56" y="216" width="384" height="24" fill="#fff"/>
+               <rect x="56" y="216" width="4" height="24" fill="#3FA129"/>
+               <text x="68" y="230" font-family="Pretendard Variable" font-size="10" font-weight="800" fill="#11141a">김시우 · 10:15</text>
+            </g>
+            <!-- detail -->
+            <rect x="440" y="88" width="360" height="152" fill="transparent"/>
+            <rect x="460" y="100" width="320" height="60" rx="10" fill="#fff" stroke="rgba(17,20,26,0.09)"/>
+            <circle cx="478" cy="118" r="9" fill="#3FA129"/>
+            <text x="478" y="121" text-anchor="middle" font-family="Pretendard Variable" font-size="8" font-weight="800" fill="#fff">루</text>
+            <text x="496" y="116" font-family="Pretendard Variable" font-size="9" font-weight="700" fill="#11141a">이루다의 질문 · 14:02</text>
+            <text x="496" y="135" font-family="Pretendard Variable" font-size="9" fill="rgba(17,20,26,0.7)">표본평균의 분산이 왜 σ²/n…</text>
+            <rect x="460" y="172" width="100" height="32" rx="8" fill="#3FA129"/>
+            <text x="510" y="192" text-anchor="middle" font-family="Pretendard Variable" font-size="9" font-weight="700" fill="#fff">✓ OK 처리</text>
+            <rect x="568" y="172" width="100" height="32" rx="8" fill="#2d3a8c"/>
+            <text x="618" y="192" text-anchor="middle" font-family="Pretendard Variable" font-size="9" font-weight="700" fill="#fff">✏ 코멘트</text>
+            <rect x="676" y="172" width="100" height="32" rx="8" fill="#fff" stroke="#E62829"/>
+            <text x="726" y="192" text-anchor="middle" font-family="Pretendard Variable" font-size="9" font-weight="700" fill="#E62829">⚠ 틀림</text>
+          </svg>
+        </div>
+          <div class="meta"><div class="name">teacher-queue.html · &lt;AskAIQueuePage/&gt;</div><div class="desc">ConversationSlip 리스트 + 우측 detail (질문 + AI 단계 요약 + 인용 + ActionRow).</div><div class="file">apps/desktop/src/pages/AskAIQueuePage.tsx</div></div></div>
+      </div>
+    </section>
+
+    <section class="sec" id="pat-photo">
+      <h2>Patterns · 03</h2>
+      <h3 class="h2-title">사진 업로드 → AI 채점</h3>
+      <p class="h2-lede">학생이 사진 보내면 AI가 OCR 게이트(OcrPasteCard) → 진단(AnnotatedPhoto) → 정답 풀이(StepBlock + Figure) 순으로 응답. 채팅 thread는 기본 Pattern 1과 동일.</p>
+
+      <div class="specimens full">
+        <div class="spec"><div class="demo" style="padding: 24px;">
+          <div style="display: grid; gap: 12px; max-width: 600px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--ink-60); letter-spacing: 0.6px; text-transform: uppercase;">→ 사진 도착</div>
+            <div style="padding: 10px 14px; background: var(--bg-question); border-radius: 8px; border: 1px solid rgba(45,58,140,0.08); font-size: 13px;">
+              사진 2장 + "어디가 틀렸는지 봐주세요"
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--ink-60); letter-spacing: 0.6px; text-transform: uppercase; margin-top: 8px;">→ Step 1: OCR 게이트</div>
+            <div style="padding: 10px 14px; background: var(--bg-paper); border-radius: 8px; font-size: 13px; color: var(--ink-72);">
+              "사진에서 이렇게 읽었어, 맞아?" — 학생 확인 후 다음 단계.
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--ink-60); letter-spacing: 0.6px; text-transform: uppercase; margin-top: 8px;">→ Step 2: 빨간펜 채점</div>
+            <div style="padding: 10px 14px; background: var(--bg-photo); border-left: 3px solid var(--pen-red); border-radius: 0 8px 8px 0; font-size: 13px; color: var(--ink-72);">
+              학생 손글씨 사진 위에 SVG 오버레이로 어디가 무너졌는지 표시.
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--ink-60); letter-spacing: 0.6px; text-transform: uppercase; margin-top: 8px;">→ Step 3: 정답 풀이</div>
+            <div style="padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--ink-09); border-radius: 8px; font-size: 13px; color: var(--ink-72);">
+              보조선/정의/SSS 등 — Figure 포함된 새 풀이 (StepBlock 동일).
+            </div>
+          </div>
+        </div>
+          <div class="meta"><div class="name">student-photo.html · &lt;AskAIPhotoFlow/&gt;</div><div class="desc">flow는 orchestrator(Worker)가 결정 — 학생은 그냥 사진 보낼 뿐. UI는 도착하는 응답 단계 그대로 렌더.</div></div></div>
+      </div>
+    </section>
+
+    <!-- ─── IMPLEMENTATION ─── -->
+
+    <section class="sec" id="tokens-add">
+      <h2>Implementation · 01</h2>
+      <h3 class="h2-title">신규 토큰 (CSS)</h3>
+      <p class="h2-lede">기존 <code>apps/student/src/styles/tokens.css</code> 끝에 추가. 다른 학생 앱 페이지에 영향 없음.</p>
+
+      <div class="token-add">
+<span class="c">/* === AskAI 추가 토큰 === */</span><br>
+  <br>
+<br>
+<span class="c">/* index.html &lt;head&gt; 에 추가 */</span><br>
+&lt;link rel="stylesheet"<br>
+&nbsp;&nbsp;href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap"&gt;
+      </div>
+    </section>
+
+    <section class="sec" id="filemap">
+      <h2>Implementation · 02</h2>
+      <h3 class="h2-title">파일 매핑 (React)</h3>
+      <p class="h2-lede">신규 컴포넌트는 모두 <code>apps/{student|desktop}/src/components/askAI/</code> 아래. 페이지는 <code>pages/AskAI*</code>.</p>
+
+      <table class="impl-table">
+        <thead>
+          <tr><th style="width: 22%">컴포넌트</th><th style="width: 36%">파일 경로</th><th>비고</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" style="background: var(--ink-05); font-weight: 800; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-60);">학생 앱 (apps/student)</td></tr>
+          <tr><td class="comp">AskAIPage</td><td class="path">pages/AskAIPage.tsx</td><td class="note">/ask 라우트. 채팅 + photo 모두 통합. URL ?session=... 로 기존 대화 복원.</td></tr>
+          <tr><td class="comp">AskAIHistoryPage</td><td class="path">pages/AskAIHistoryPage.tsx</td><td class="note">내 질문 목록. ConversationSlip 재활용 (학생 버전 — 강사 액션 없이).</td></tr>
+          <tr><td class="comp">StepBlock</td><td class="path">components/askAI/StepBlock.tsx</td><td class="note">단일 단계 + 자식 슬롯 (KaTeX/InlineCite/Figure/AnnotatedPhoto/Checkpoint).</td></tr>
+          <tr><td class="comp">CheckpointCard</td><td class="path">components/askAI/CheckpointCard.tsx</td><td class="note">단계 잠금 — onYes로 다음 step state.unlocked = true.</td></tr>
+          <tr><td class="comp">OcrPasteCard</td><td class="path">components/askAI/OcrPasteCard.tsx</td><td class="note">OCR 인식 결과 확인 게이트.</td></tr>
+          <tr><td class="comp">AnnotatedPhoto</td><td class="path">components/askAI/AnnotatedPhoto.tsx</td><td class="note">사진 위 SVG 오버레이. annotations[] prop.</td></tr>
+          <tr><td class="comp">InlineCite</td><td class="path">components/askAI/InlineCite.tsx</td><td class="note">학원 자료 인용. variant=unit|student-meta.</td></tr>
+          <tr><td class="comp">Figure</td><td class="path">components/askAI/Figure.tsx</td><td class="note">function-plot/JSXGraph 라우터. spec.type 분기.</td></tr>
+          <tr><td class="comp">DropzoneSlot</td><td class="path">components/askAI/DropzoneSlot.tsx</td><td class="note">react-dropzone 래퍼.</td></tr>
+          <tr><td class="comp">PhotoChip</td><td class="path">components/askAI/PhotoChip.tsx</td><td class="note">DropzoneSlot 자식 — 64×64 thumb + remove.</td></tr>
+          <tr><td class="comp">SourceButtonRow</td><td class="path">components/askAI/SourceButtonRow.tsx</td><td class="note">파일·카메라·붙여넣기·노트 4채널.</td></tr>
+          <tr><td class="comp">CitationCard</td><td class="path">components/askAI/CitationCard.tsx</td><td class="note">우측 rail 단원지 카드.</td></tr>
+          <tr><td class="comp">KaTeX</td><td class="path">components/KaTeX.tsx <span aria-hidden="true">★</span>기존</td><td class="note">이미 존재. 재사용.</td></tr>
+
+          <tr><td colspan="3" style="background: var(--ink-05); font-weight: 800; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-60);">강사 앱 (apps/desktop)</td></tr>
+          <tr><td class="comp">AskAIQueuePage</td><td class="path">pages/AskAIQueuePage.tsx</td><td class="note">큐 master-detail. 단축키 j/k/x/⌘↵.</td></tr>
+          <tr><td class="comp">ConversationSlip</td><td class="path">components/askAI/ConversationSlip.tsx</td><td class="note">큐 리스트 한 항목.</td></tr>
+          <tr><td class="comp">TeacherActionRow</td><td class="path">components/askAI/TeacherActionRow.tsx</td><td class="note">3-액션 그리드 + 단축키.</td></tr>
+          <tr><td class="comp">QuickCommentRow</td><td class="path">components/askAI/QuickCommentRow.tsx</td><td class="note">코멘트 템플릿 +버튼들.</td></tr>
+
+          <tr><td colspan="3" style="background: var(--ink-05); font-weight: 800; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-60);">백엔드 (workers)</td></tr>
+          <tr><td class="comp">ask-ai/index.ts</td><td class="path">workers/ask-ai/index.ts</td><td class="note">라우터 — POST /ask, GET /history, GET /queue, POST /comment, POST /flag.</td></tr>
+          <tr><td class="comp">orchestrator.ts</td><td class="path">workers/ask-ai/orchestrator.ts</td><td class="note">Claude API 호출 + tool_use 루프 + JSON 스키마 강제.</td></tr>
+          <tr><td class="comp">tools/searchUnit.ts</td><td class="path">workers/ask-ai/tools/searchUnit.ts</td><td class="note">data/by-curriculum/ 검색 — 단원지 RAG.</td></tr>
+          <tr><td class="comp">tools/studentCtx.ts</td><td class="path">workers/ask-ai/tools/studentCtx.ts</td><td class="note">data/students/{name}/_meta.json 로드.</td></tr>
+          <tr><td class="comp">tools/verifyAnswer.ts</td><td class="path">workers/ask-ai/tools/verifyAnswer.ts</td><td class="note">SymPy worker 호출 — 기존 /math-verify 재활용.</td></tr>
+          <tr><td class="comp">d1/schema.sql</td><td class="path">workers/ask-ai/d1/schema.sql</td><td class="note">questions / answers / steps / comments / flags 테이블.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="sec" id="open">
+      <h2>Implementation · 03</h2>
+      <h3 class="h2-title">열린 질문 — 구현 전 결정 필요</h3>
+      <p class="h2-lede">목업으로 시각 어휘는 잡혔지만, 실제 구현 들어가기 전에 답이 필요한 것들.</p>
+
+      <div class="questions-grid">
+        <div class="q-card">
+          <div class="who">스택</div>
+          <h4>Cloudflare Workers vs Next.js API</h4>
+          <p>workers/ 이미 존재 — Worker 가는 게 자연스러움. 다만 KaTeX 서버사이드는 Workers 메모리 빠듯할 수 있음.</p>
+        </div>
+        <div class="q-card">
+          <div class="who">데이터</div>
+          <h4>D1 vs KV 선택</h4>
+          <p>대화 thread = D1 (관계형, 강사 큐 쿼리). 임시 OCR 캐시·rate limit = KV.</p>
+        </div>
+        <div class="q-card">
+          <div class="who">LLM</div>
+          <h4>Claude Sonnet 4.6 vs Haiku 4.5</h4>
+          <p>한글 수학 설명 품질이 핵심 → Sonnet. 비용 비싸지면 OCR 게이트만 Haiku로 분기.</p>
+        </div>
+        <div class="q-card">
+          <div class="who">스키마</div>
+          <h4>응답 JSON 스키마 확정</h4>
+          <p>steps[]·confidence·needs_teacher·references[] — Claude tool_use 강제. 누락 처리 어떻게.</p>
+        </div>
+        <div class="q-card">
+          <div class="who">권한</div>
+          <h4>학생 화이트리스트</h4>
+          <p>현재 ERP의 학생 인증 그대로 사용 가능? 일일 30 한도 어디서 강제 (Worker vs DB)?</p>
+        </div>
+        <div class="q-card">
+          <div class="who">사진</div>
+          <h4>이미지 저장 + 자동삭제</h4>
+          <p>R2 업로드 → 7일 후 자동삭제 cron. 강사 큐에서 봐야 하니 강사 코멘트까지 보존 옵션.</p>
+        </div>
+        <div class="q-card">
+          <div class="who">검수</div>
+          <h4>코멘트 알림 채널</h4>
+          <p>강사 코멘트 → 학생에게 어떻게? 푸시 X, 다음 로그인 시 in-app 토스트 정도.</p>
+        </div>
+        <div class="q-card">
+          <div class="who">AI 그림</div>
+          <h4>function-plot vs JSXGraph 분기 정확화</h4>
+          <p>Claude가 Figure spec 만들 때 어느 라이브러리 쓸지 결정 — system prompt에서 명시할 룰셋 필요.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$',  right: '$',  display: false}
+          ],
+          throwOnError: false
+        });"></script>
+</body>
+</html>

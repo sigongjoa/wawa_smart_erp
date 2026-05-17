@@ -10,16 +10,16 @@ test.describe('Timer System Live Tests - Correct Version', () => {
   // UC-1: 활성 세션 카드 렌더링
   test('UC-1: 활성 세션 카드 - 학생 이름 및 타이머 표시', async ({ page }) => {
     // ActiveSessionCard 찾기 (실제 클래스명)
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     
     // 활성 세션이 있으면 확인
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 학생 이름 표시 확인
-      const studentName = activeCard.locator('.rt-student-name').first();
+      const studentName = activeCard.locator('.v2-timer-card__name').first();
       await expect(studentName).toBeVisible();
       
       // 타이머 표시 확인 (HH:MM 포맷)
-      const timerDisplay = activeCard.locator('.rt-timer-display .rt-timer-value').first();
+      const timerDisplay = activeCard.locator('.v2-timer-card__time').first();
       await expect(timerDisplay).toBeVisible();
       
       const timerText = await timerDisplay.textContent();
@@ -30,7 +30,7 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-2: 세션 액션 버튼 확인
   test('UC-2: 활성 세션 버튼 - 정지, 수업추가, 완료', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 버튼 찾기 (실제 텍스트)
@@ -56,15 +56,15 @@ test.describe('Timer System Live Tests - Correct Version', () => {
   // UC-3: 정지된 세션 카드 렌더링
   test('UC-3: 정지된 세션 카드 - 정지 상태 표시', async ({ page }) => {
     // PausedSessionCard 찾기 (실제 클래스명)
-    const pausedCard = page.locator('.rt-session-card--paused').first();
+    const pausedCard = page.locator('.v2-timer-card--paused').first();
     
     if (await pausedCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 정지 상태 태그 확인
-      const pausedTag = pausedCard.locator('.rt-status-tag.paused');
+      const pausedTag = pausedCard.locator('.v2-pill--warning');
       await expect(pausedTag).toBeVisible();
       
       // 정지 시간 표시 확인 (formatSeconds: MM:SS)
-      const pauseTimer = pausedCard.locator('.rt-pause-timer');
+      const pauseTimer = pausedCard.locator('.v2-timer-card__pause-clock');
       await expect(pauseTimer).toBeVisible();
       
       const timerText = await pauseTimer.textContent();
@@ -75,15 +75,15 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-4: 진행률 표시 (Progress Track)
   test('UC-4: 진행률 표시 - 수업 시간 진도', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 진행률 바 찾기
-      const progressTrack = activeCard.locator('.rt-progress-track');
+      const progressTrack = activeCard.locator('.v2-timer-card__progress');
       await expect(progressTrack).toBeVisible();
       
       // 진행 채우기 찾기
-      const progressFill = progressTrack.locator('.rt-progress-fill');
+      const progressFill = progressTrack.locator('.v2-timer-card__progress-fill');
       await expect(progressFill).toBeVisible();
       
       // width 속성 확인 (0-100%)
@@ -94,11 +94,11 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-5: 메타 정보 (순수 시간, 예정 시간, 정지 시간)
   test('UC-5: 세션 메타 정보 - 순수/예정/정지 시간', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 메타 정보 찾기
-      const sessionMeta = activeCard.locator('.rt-session-meta');
+      const sessionMeta = activeCard.locator('.v2-timer-card__meta');
       await expect(sessionMeta).toBeVisible();
       
       const metaText = await sessionMeta.textContent();
@@ -110,7 +110,7 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-6: 수업 추가 시트 (ExtendSheet)
   test('UC-6: 수업 추가 시트 - 추가 분량 선택', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 수업추가 버튼 클릭
@@ -137,10 +137,10 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-7: 타이머 실시간 업데이트
   test('UC-7: 타이머 실시간 업데이트 - 1초 단위 증감', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const timerDisplay = activeCard.locator('.rt-timer-display .rt-timer-value');
+      const timerDisplay = activeCard.locator('.v2-timer-card__time');
       
       // 첫 번째 값
       const first = await timerDisplay.textContent();
@@ -161,19 +161,15 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-8: 경고 상태 (10분 미만)
   test('UC-8: 경고 상태 - 10분 미만 시 강조 표시', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
     
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const timerDisplay = activeCard.locator('.rt-timer-display');
-      
-      // warning 클래스가 있는지 확인 (있을 수도, 없을 수도 있음)
-      const hasWarning = await timerDisplay.evaluate(el => 
-        el.classList.contains('warning')
+      // v2: warning 은 카드 modifier class
+      const hasWarning = await activeCard.evaluate(el =>
+        el.classList.contains('v2-timer-card--warning')
       );
-      
-      // 있으면 강조 표시가 적용되어야 함
+
       if (hasWarning) {
-        // warning 스타일이 적용됨 (실제 확인은 스크린샷으로)
         console.log('✓ 경고 상태 활성화됨');
       }
     }
@@ -181,23 +177,21 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-9: 초과 상태 (음수)
   test('UC-9: 초과 상태 - 시간 초과 시 표시', async ({ page }) => {
-    const activeCard = page.locator('.rt-session-card:not(.rt-session-card--paused)').first();
-    
+    const activeCard = page.locator('.v2-timer-card:not(.v2-timer-card--paused)').first();
+
     if (await activeCard.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const timerDisplay = activeCard.locator('.rt-timer-display');
-      
-      // overtime 클래스가 있는지 확인
-      const hasOvertime = await timerDisplay.evaluate(el => 
-        el.classList.contains('overtime')
+      // v2: overtime 은 카드 modifier class
+      const hasOvertime = await activeCard.evaluate(el =>
+        el.classList.contains('v2-timer-card--overtime')
       );
-      
+
       if (hasOvertime) {
         // 타이머가 +로 시작해야 함
-        const timerText = await timerDisplay.locator('.rt-timer-value').textContent();
+        const timerText = await activeCard.locator('.v2-timer-card__time').textContent();
         expect(timerText).toMatch(/^\+/);
-        
+
         // "초과" 레이블 확인
-        const label = await timerDisplay.locator('.rt-timer-label').textContent();
+        const label = await activeCard.locator('.v2-timer-card__label').textContent();
         expect(label).toContain('초과');
       }
     }
@@ -205,7 +199,7 @@ test.describe('Timer System Live Tests - Correct Version', () => {
 
   // UC-10: 정지된 세션 재개/완료 버튼
   test('UC-10: 정지된 세션 - 재개 및 완료 버튼', async ({ page }) => {
-    const pausedCard = page.locator('.rt-session-card--paused').first();
+    const pausedCard = page.locator('.v2-timer-card--paused').first();
     
     if (await pausedCard.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 재개 버튼

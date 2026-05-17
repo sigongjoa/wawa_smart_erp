@@ -1498,6 +1498,16 @@ export const api = {
     return listRequest<VocabWord>(`/api/vocab/words${qs ? '?' + qs : ''}`);
   },
 
+  /** 학생별 단어 집계 — chip row/dropdown 정확도용 */
+  getVocabStudentStats: () =>
+    request<{ items: Array<{
+      student_id: string;
+      total: number;
+      pending: number;
+      approved: number;
+      wrong: number;
+    }> }>('/api/vocab/words/student-stats'),
+
   /** counts/total을 포함한 풀 응답이 필요한 화면용 */
   getVocabWordsPage: (params?: {
     student_id?: string;
@@ -2501,5 +2511,71 @@ export const medtermAdminApi = {
     request<{ chapter_id: string; item_count: number; attempts: MedExamAttemptAdmin[] }>(
       `/api/medterm/chapters/${chapterId}/exam`,
       { method: 'POST', body: JSON.stringify({ student_ids: studentIds, ...options }) }
+    ),
+};
+
+// ── 캘린더 ──
+
+export type CalendarCategory =
+  | 'performance'
+  | 'school_exam'
+  | 'external_exam'
+  | 'academy'
+  | 'personal';
+
+export interface CalendarEvent {
+  id: string;
+  owner_type: 'academy' | 'student';
+  owner_id: string;
+  category: CalendarCategory;
+  title: string;
+  memo: string | null;
+  link: string | null;
+  start_date: string;
+  end_date: string | null;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CalendarEventInput {
+  category: CalendarCategory;
+  title: string;
+  memo?: string | null;
+  link?: string | null;
+  start_date: string;
+  end_date?: string | null;
+}
+
+export interface CalendarWidgetEvent {
+  id: string;
+  category: CalendarCategory;
+  title: string;
+  start_date: string;
+  end_date: string | null;
+  total_students: number;
+  unconfirmed_count: number;
+}
+
+export const calendarApi = {
+  list: (from: string, to: string) =>
+    request<{ events: CalendarEvent[] }>(
+      `/api/calendar/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    ),
+  create: (input: CalendarEventInput) =>
+    request<{ id: string }>(`/api/calendar/events`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  update: (id: string, input: Partial<CalendarEventInput>) =>
+    request<{ id: string }>(`/api/calendar/events/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  remove: (id: string) =>
+    request<{ id: string }>(`/api/calendar/events/${id}`, { method: 'DELETE' }),
+  widget: (from: string, to: string) =>
+    request<{ events: CalendarWidgetEvent[] }>(
+      `/api/calendar/teacher-widget?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     ),
 };

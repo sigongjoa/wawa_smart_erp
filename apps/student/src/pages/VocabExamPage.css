@@ -237,3 +237,28 @@
   gap: 0.75rem;
   margin-top: 0.5rem;
 }
+
+/* Source chip — 공통/내 구분 */
+.vexam-source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+  align-self: flex-start;
+  white-space: nowrap;
+}
+.vexam-source-chip--textbook {
+  background: rgba(59, 130, 246, 0.15);  /* info-surface 톤 */
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.vexam-source-chip--student {
+  background: rgba(16, 185, 129, 0.15);  /* accent-surface 톤 */
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}

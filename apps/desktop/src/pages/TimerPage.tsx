@@ -10,8 +10,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { api, PauseRecord, RealtimeSession, AdhocSession, Student } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
-import HomeroomSummaryCard from '../components/HomeroomSummaryCard';
-import { PageHeader } from '../components/v2';
+import { PageHeader, SummaryBar, Panel, Pill } from '../components/v2';
 import { Icon } from '../components/icons/Icon';
 
 type Day = '월' | '화' | '수' | '목' | '금' | '토' | '일';
@@ -117,77 +116,79 @@ const ActiveSessionCard = memo(function ActiveSessionCard({
     if (diff > 0) delayLabel = `(+${diff}분)`;
   }
 
+  const cardClass = [
+    'v2-timer-card',
+    isOvertime ? 'v2-timer-card--overtime' : isWarning ? 'v2-timer-card--warning' : 'v2-timer-card--running',
+  ].join(' ');
+
   return (
-    <div className={`rt-session-card rt-grade-${gradeClass(student.grade)} ${isOvertime ? 'rt-session-card--overtime' : ''}`}>
-      <div className="rt-session-top">
-        <div className="rt-session-identity">
-          <span className="rt-student-name">{student.name}</span>
-          {student.grade && <span className={`grade-badge ${gradeClass(student.grade)}`}>{student.grade}</span>}
+    <div className={cardClass} data-testid={`active-session-${session.id}`}>
+      <div className="v2-timer-card__top">
+        <div className="v2-timer-card__id">
+          <span className="v2-timer-card__name">
+            {student.name}
+            {student.grade && <span className={`grade-badge ${gradeClass(student.grade)}`}>{student.grade}</span>}
+          </span>
+          <span className="v2-timer-card__times">
+            <span>시작 <strong>{checkInHHMM}</strong></span>
+            <span className="v2-timer-card__meta-divider">→</span>
+            <span>예정종료 <strong>{expectedEndHHMM}</strong></span>
+            {delayLabel && <span className="v2-timer-card__times-delay">{delayLabel}</span>}
+          </span>
         </div>
-        {isOvertime && <span className="rt-status-tag overtime">초과</span>}
+        {isOvertime ? (
+          <Pill tone="danger"><Icon name="AlertCircle" size={12} /> 초과</Pill>
+        ) : isWarning ? (
+          <Pill tone="warning"><Icon name="Clock" size={12} /> 임박</Pill>
+        ) : (
+          <Pill tone="primary"><Icon name="Play" size={12} /> 수업 중</Pill>
+        )}
       </div>
 
-      <div className="rt-session-times">
-        <span>시작 <strong>{checkInHHMM}</strong></span>
-        <span className="rt-meta-divider">→</span>
-        <span>예정종료 <strong>{expectedEndHHMM}</strong></span>
-        {delayLabel && <span className="rt-delay-label">{delayLabel}</span>}
-      </div>
-
-      <div className={`rt-timer-display ${isWarning ? 'warning' : ''} ${isOvertime ? 'overtime' : ''}`}>
-        <span className="rt-timer-value">
+      <div className="v2-timer-card__display">
+        <span className="v2-timer-card__time">
           {isOvertime ? '+' : ''}
           {formatTimer(remaining)}
         </span>
-        <span className="rt-timer-label">{isOvertime ? '초과' : '남음'}</span>
+        <span className="v2-timer-card__label">{isOvertime ? '초과' : '남은 시간'}</span>
       </div>
 
-      <div className="rt-progress-track">
+      <div className="v2-timer-card__progress" aria-hidden="true">
         <div
-          className={`rt-progress-fill ${isWarning ? 'warning' : ''} ${isOvertime ? 'overtime' : ''}`}
+          className="v2-timer-card__progress-fill"
           style={{ width: `${Math.min(progress * 100, 100)}%` }}
         />
       </div>
 
-      <div className="rt-session-meta">
+      <div className="v2-timer-card__meta">
         <span>순수 {netMins}분</span>
-        <span className="rt-meta-divider">/</span>
+        <span className="v2-timer-card__meta-divider">/</span>
         <span>
           예정 {totalAllotted}분
           {addedMins !== 0 && (
-            <span className="rt-meta-added"> ({session.scheduledMinutes}{addedMins >= 0 ? '+' : ''}{addedMins})</span>
+            <span className="v2-timer-card__meta-added"> ({session.scheduledMinutes}{addedMins >= 0 ? '+' : ''}{addedMins})</span>
           )}
         </span>
         {pausedMins > 0 && (
           <>
-            <span className="rt-meta-divider">|</span>
-            <span className="rt-meta-paused">정지 {pausedMins}분</span>
+            <span className="v2-timer-card__meta-divider">|</span>
+            <span className="v2-timer-card__meta-paused">정지 {pausedMins}분</span>
           </>
         )}
       </div>
 
-      <div className="rt-session-actions">
-        <button
-          className="rt-action-btn rt-action-btn--extend"
-          onClick={() => onExtend(session, 10)}
-          type="button"
-          title="10분 연장"
-        >
+      <div className="v2-timer-card__actions v2-timer-card__actions--four">
+        <button className="v2-timer-card__btn" onClick={() => onExtend(session, 10)} type="button" title="10분 연장">
           +10분
         </button>
-        <button
-          className="rt-action-btn rt-action-btn--extend"
-          onClick={() => onExtend(session, 30)}
-          type="button"
-          title="30분 연장"
-        >
+        <button className="v2-timer-card__btn" onClick={() => onExtend(session, 30)} type="button" title="30분 연장">
           +30분
         </button>
-        <button className="rt-action-btn rt-action-btn--pause" onClick={() => onPause(session)} type="button">
-          정지
+        <button className="v2-timer-card__btn" onClick={() => onPause(session)} type="button">
+          <Icon name="Pause" size={13} /> 정지
         </button>
-        <button className="rt-action-btn rt-action-btn--done" onClick={() => onCheckOut(session)} type="button">
-          완료
+        <button className="v2-timer-card__btn v2-timer-card__btn--primary" onClick={() => onCheckOut(session)} type="button">
+          <Icon name="Check" size={13} /> 완료
         </button>
       </div>
     </div>
@@ -225,35 +226,41 @@ const PausedSessionCard = memo(function PausedSessionCard({
   const expectedEndHHMM = expectedEnd.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   return (
-    <div className={`rt-session-card rt-session-card--paused rt-grade-${gradeClass(student.grade)}`}>
-      <div className="rt-session-top">
-        <div className="rt-session-identity">
-          <span className="rt-student-name">{student.name}</span>
-          {student.grade && <span className={`grade-badge ${gradeClass(student.grade)}`}>{student.grade}</span>}
+    <div className="v2-timer-card v2-timer-card--paused" data-testid={`paused-session-${session.id}`}>
+      <div className="v2-timer-card__top">
+        <div className="v2-timer-card__id">
+          <span className="v2-timer-card__name">
+            {student.name}
+            {student.grade && <span className={`grade-badge ${gradeClass(student.grade)}`}>{student.grade}</span>}
+          </span>
+          <span className="v2-timer-card__times">
+            <span>시작 <strong>{checkInHHMM}</strong></span>
+            <span className="v2-timer-card__meta-divider">→</span>
+            <span>예정종료 <strong>{expectedEndHHMM}</strong></span>
+          </span>
         </div>
-        <span className="rt-status-tag paused">정지</span>
+        <Pill tone="warning"><Icon name="Pause" size={12} /> 정지</Pill>
       </div>
 
-      <div className="rt-session-times">
-        <span>시작 <strong>{checkInHHMM}</strong></span>
-        <span className="rt-meta-divider">→</span>
-        <span>예정종료 <strong>{expectedEndHHMM}</strong></span>
-      </div>
-
-      <div className="rt-pause-info">
-        <div className="rt-pause-timer">
+      <div className="v2-timer-card__pause-info">
+        <span className="v2-timer-card__pause-clock">
           {`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`}
-          {reason && <span className="rt-pause-reason">{reason}</span>}
-        </div>
-        <div className="rt-pause-detail">총 정지 {session.pauseHistory.length}회</div>
+        </span>
+        <span className="v2-timer-card__pause-reason">
+          {reason ? `정지 중 · ${reason}` : '정지 중'}
+        </span>
       </div>
 
-      <div className="rt-session-actions">
-        <button className="rt-action-btn rt-action-btn--resume" onClick={() => onResume(session)} type="button">
-          재개
+      <div className="v2-timer-card__meta">
+        <span>총 정지 {session.pauseHistory.length}회</span>
+      </div>
+
+      <div className="v2-timer-card__actions">
+        <button className="v2-timer-card__btn" onClick={() => onResume(session)} type="button">
+          <Icon name="Play" size={13} /> 재개
         </button>
-        <button className="rt-action-btn rt-action-btn--done" onClick={() => onCheckOut(session)} type="button">
-          완료
+        <button className="v2-timer-card__btn v2-timer-card__btn--primary" onClick={() => onCheckOut(session)} type="button">
+          <Icon name="Check" size={13} /> 완료
         </button>
       </div>
     </div>
@@ -269,7 +276,6 @@ export default function TimerPage() {
   const [loading, setLoading] = useState(true);
   const [pauseTarget, setPauseTarget] = useState<RealtimeSession | null>(null);
   const [now, setNow] = useState(new Date());
-  const [waitingOpen, setWaitingOpen] = useState(true);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -509,66 +515,50 @@ export default function TimerPage() {
     }
   };
 
+  const clockStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
   return (
-    <div className="rt-root">
+    <div className="v2-app-main">
       <PageHeader
-        crumb="운영 · 출석 타이머"
-        title="실시간 수업 관리"
-        sub={`${user?.name ? `${user.name} 강사 · ` : ''}담당 학생의 체크인/체크아웃을 실시간으로 관리`}
+        crumb="운영 · 실시간 수업 타이머"
+        title="수업 타이머"
+        sub={`오늘 ${active.length}명 진행 중 · ${waiting.length}명 대기 · ${paused.length}명 정지 · ${completed}명 완료 · 1초 간격 카운트다운`}
+        actions={
+          <>
+            <span className="v2-live-pulse" aria-live="polite">
+              <span className="v2-live-pulse__dot" />
+              LIVE · {clockStr}
+            </span>
+            {isToday && (
+              <button className="v2-timer-card__btn" onClick={openAdhocModal} type="button">
+                <Icon name="Plus" size={14} /> 임시 수업
+              </button>
+            )}
+            {isToday && (
+              <button
+                className="v2-timer-card__btn v2-timer-card__btn--danger"
+                onClick={handleFinishDay}
+                type="button"
+                data-testid="finish-day-btn"
+              >
+                <Icon name="LogIn" size={14} style={{ transform: 'rotate(180deg)' }} /> 퇴근
+              </button>
+            )}
+          </>
+        }
       />
 
-      <HomeroomSummaryCard />
-
-      {/* 요일 선택 */}
-      <div className="filter-bar">
-        <div className="filter-buttons">
-          {DAYS.map((d) => (
-            <button
-              key={d}
-              className={`filter-btn ${selectedDay === d ? 'active' : ''}`}
-              onClick={() => setSelectedDay(d)}
-              type="button"
-            >
-              {d}
-              {d === todayDay && <span className="today-dot" />}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 요약 바 */}
-      <div className="rt-summary-bar">
-        <div className="rt-clock">
-          {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-        </div>
-        <div className="rt-summary-pills">
-          <span className="rt-pill waiting">대기 <strong>{waiting.length}</strong></span>
-          <span className="rt-pill active">수업 <strong>{active.length}</strong></span>
-          {paused.length > 0 && <span className="rt-pill paused">정지 <strong>{paused.length}</strong></span>}
-          <span className="rt-pill completed">완료 <strong>{completed}</strong></span>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {isToday && (
-            <button
-              className="btn btn-sm btn-secondary"
-              onClick={openAdhocModal}
-              type="button"
-            >
-              <Icon name="Plus" size={14} /> 임시 수업
-            </button>
-          )}
-          {isToday && (
-            <button
-              className="rt-finish-day-btn"
-              onClick={handleFinishDay}
-              type="button"
-              data-testid="finish-day-btn"
-            >
-              <Icon name="LogIn" size={14} style={{ transform: 'rotate(180deg)' }} /> 퇴근
-            </button>
-          )}
-        </div>
-      </div>
+      {/* 요약 strip — mockup 05 와 동일한 가로 스트립 */}
+      <SummaryBar
+        cells={[
+          { label: '진행 중', value: active.length, hint: '체크인 후 수업 중인 학생' },
+          { label: '대기', value: waiting.length, hint: '오늘 수업 예정인데 아직 미체크인' },
+          { label: '정지', value: paused.length, alert: paused.length > 0, hint: '일시정지 상태' },
+          { label: '완료', value: completed, hint: '오늘 체크아웃 완료' },
+          { label: '보강 대기', value: waiting.reduce((acc, s) => acc + (s.makeups?.filter(m => m.status === 'scheduled').length || 0), 0), hint: '보강 체크인 가능' },
+          { label: '임시 수업', value: waiting.reduce((acc, s) => acc + (s.adhocs?.length || 0), 0), hint: '임시 수업 체크인 가능' },
+        ]}
+      />
 
       {loading ? (
         <div className="rpt-loading" role="status">
@@ -576,20 +566,122 @@ export default function TimerPage() {
           <span>로딩 중...</span>
         </div>
       ) : (
-        <div className="rt-columns">
-          {/* 수업 진행 — 모바일에서 먼저 보임 */}
-          <div className="rt-column rt-column--active">
-            <div className="rt-column-label">
-              <span>수업 진행</span>
-              <span className="rt-column-count">{active.length + paused.length}</span>
-            </div>
-            <div className="rt-column-body">
-              {active.length + paused.length === 0 ? (
-                <div className="rt-empty">
-                  <span>수업 중인 학생이 없습니다</span>
+        <div className="v2-timer-shell">
+
+          {/* LEFT: 대기 학생 (mockup pending panel) */}
+          <Panel
+            title="대기 학생"
+            titleMeta={`총 ${waiting.length}명`}
+            headerActions={
+              <select
+                className="v2-timer-day-select"
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value as Day)}
+                aria-label="요일 선택"
+              >
+                {DAYS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}요일{d === todayDay ? ' (오늘)' : ''}
+                  </option>
+                ))}
+              </select>
+            }
+            flush
+          >
+            {waiting.length === 0 ? (
+              <div className="v2-timer-empty">
+                {isToday ? '모든 학생이 수업 중입니다' : '학생이 없습니다'}
+              </div>
+            ) : (
+                <div className="v2-pending-list">
+                  {waiting.map((s) => {
+                    const e = s.enrollments[0];
+                    const pendingMakeups = (s.makeups || []).filter(m => m.status === 'scheduled');
+                    const hasMakeup = pendingMakeups.length > 0;
+                    const pendingAdhocs = (s.adhocs || []);
+                    const hasAdhoc = pendingAdhocs.length > 0;
+                    const rowClass = [
+                      'v2-pending-row',
+                      hasMakeup ? 'v2-pending-row--makeup' : '',
+                      hasAdhoc ? 'v2-pending-row--adhoc' : '',
+                    ].filter(Boolean).join(' ');
+                    return (
+                      <div key={s.id} className={rowClass} data-testid={`waiting-card-${s.id}`}>
+                        <button
+                          className="v2-pending-row__main"
+                          onClick={isToday ? () => handleCheckIn(s) : undefined}
+                          disabled={!isToday}
+                          type="button"
+                        >
+                          <span className="v2-pending-row__name">
+                            {s.name}
+                            {s.grade && <span className={`grade-badge ${gradeClass(s.grade)}`}>{s.grade}</span>}
+                            {hasMakeup && <Pill tone="info">보강 {pendingMakeups.length}</Pill>}
+                            {hasAdhoc && <Pill tone="warning">임시</Pill>}
+                          </span>
+                          {e ? (
+                            <span className="v2-pending-row__meta">
+                              {e.startTime} — {e.endTime}
+                              {e.subject && ` · ${e.subject}`}
+                            </span>
+                          ) : hasAdhoc ? (
+                            <span className="v2-pending-row__meta">
+                              {pendingAdhocs[0].startTime} — {pendingAdhocs[0].endTime}
+                              {pendingAdhocs[0].subject && ` · ${pendingAdhocs[0].subject}`}
+                              {pendingAdhocs[0].reason && ` · ${pendingAdhocs[0].reason}`}
+                            </span>
+                          ) : (
+                            <span className="v2-pending-row__meta v2-pending-row__meta--empty">
+                              수강일정 없음 (기본 90분)
+                            </span>
+                          )}
+                        </button>
+                        {hasAdhoc && pendingAdhocs.map(ad => (
+                          <button
+                            key={ad.id}
+                            className="v2-pending-row__sub-btn v2-pending-row__sub-btn--adhoc"
+                            onClick={isToday ? () => handleAdhocCheckIn(s, ad.id, ad.subject) : undefined}
+                            disabled={!isToday}
+                            type="button"
+                          >
+                            {isToday ? '▶ 임시 수업 체크인' : '· 임시 수업 예정'} · {ad.startTime}~{ad.endTime}
+                            {ad.reason && ` (${ad.reason})`}
+                          </button>
+                        ))}
+                        {hasMakeup && pendingMakeups.map(mk => {
+                          const timeRange = mk.scheduledStartTime && mk.scheduledEndTime
+                            ? `${mk.scheduledStartTime}~${mk.scheduledEndTime}`
+                            : '기본 90분';
+                          return (
+                            <button
+                              key={mk.id}
+                              className="v2-pending-row__sub-btn v2-pending-row__sub-btn--makeup"
+                              onClick={isToday ? () => handleMakeupCheckIn(s, mk.id, mk.className) : undefined}
+                              disabled={!isToday}
+                              type="button"
+                              aria-label={`${s.name} 보강 체크인 원결석 ${mk.originalDate}`}
+                            >
+                              {isToday ? '▶ 보강 체크인' : '· 보강 예정'} · {mk.className} {timeRange} (원결석 {mk.originalDate})
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
+            )}
+          </Panel>
+
+          {/* RIGHT: 수업 진행 + modal-hint */}
+          <div className="v2-timer-right">
+            <Panel
+              title="수업 진행"
+              titleMeta={`${active.length + paused.length}명`}
+            >
+              {active.length + paused.length === 0 ? (
+                <div className="v2-timer-empty">수업 중인 학생이 없습니다</div>
               ) : (
-                <>
+                <div className="v2-timer-cards">
                   {paused.map((s) => (
                     <PausedSessionCard
                       key={s.id}
@@ -611,105 +703,18 @@ export default function TimerPage() {
                       onExtend={handleExtend}
                     />
                   ))}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* 대기 학생 — 모바일에서 접이식, 데스크탑에서는 좌측 */}
-          <div className="rt-column rt-column--waiting">
-            <button
-              className="rt-column-label rt-column-toggle"
-              type="button"
-              onClick={() => setWaitingOpen((v) => !v)}
-              aria-expanded={waitingOpen}
-            >
-              <span>{isToday ? '대기 중' : `${selectedDay}요일`}</span>
-              <span className="rt-column-count">{waiting.length}</span>
-              <span className={`rt-toggle-arrow ${waitingOpen ? 'rt-toggle-arrow--open' : ''}`} aria-hidden="true" />
-            </button>
-            <div className={`rt-column-body rt-column-collapsible ${waitingOpen ? 'rt-column-collapsible--open' : ''}`}>
-              {waiting.length === 0 ? (
-                <div className="rt-empty">
-                  <span>{isToday ? '모든 학생이 수업 중입니다' : '학생이 없습니다'}</span>
                 </div>
-              ) : (
-                waiting.map((s) => {
-                  const e = s.enrollments[0];
-                  const pendingMakeups = (s.makeups || []).filter(m => m.status === 'scheduled');
-                  const hasMakeup = pendingMakeups.length > 0;
-                  const pendingAdhocs = (s.adhocs || []);
-                  const hasAdhoc = pendingAdhocs.length > 0;
-                  return (
-                    <div
-                      key={s.id}
-                      className={`rt-waiting-card rt-grade-${gradeClass(s.grade)} ${!isToday ? 'rt-waiting-card--disabled' : ''} ${hasMakeup ? 'rt-waiting-card--makeup' : ''} ${hasAdhoc ? 'rt-waiting-card--adhoc' : ''}`}
-                      data-testid={`waiting-card-${s.id}`}
-                    >
-                      <button
-                        className="rt-waiting-card-main"
-                        onClick={isToday ? () => handleCheckIn(s) : undefined}
-                        disabled={!isToday}
-                        type="button"
-                      >
-                        <div className="rt-waiting-card-top">
-                          <span className="rt-student-name">{s.name}</span>
-                          {s.grade && <span className={`grade-badge ${gradeClass(s.grade)}`}>{s.grade}</span>}
-                          {hasMakeup && <span className="rt-makeup-badge">보강 {pendingMakeups.length}</span>}
-                          {hasAdhoc && <span className="rt-adhoc-badge">임시</span>}
-                        </div>
-                        {e ? (
-                          <div className="rt-waiting-card-time">
-                            {e.startTime} — {e.endTime}
-                            {e.subject && <span className="rt-waiting-card-subject">({e.subject})</span>}
-                          </div>
-                        ) : hasAdhoc ? (
-                          <div className="rt-waiting-card-time">
-                            {pendingAdhocs[0].startTime} — {pendingAdhocs[0].endTime}
-                            {pendingAdhocs[0].subject && <span className="rt-waiting-card-subject">({pendingAdhocs[0].subject})</span>}
-                            <span className="rt-waiting-card-reason">{pendingAdhocs[0].reason}</span>
-                          </div>
-                        ) : (
-                          <div className="rt-waiting-card-time rt-waiting-card-time--empty">
-                            수강일정 없음 (기본 90분)
-                          </div>
-                        )}
-                      </button>
-                      {hasAdhoc && pendingAdhocs.map(ad => (
-                        <button
-                          key={ad.id}
-                          className="rt-adhoc-checkin-btn"
-                          onClick={isToday ? () => handleAdhocCheckIn(s, ad.id, ad.subject) : undefined}
-                          disabled={!isToday}
-                          type="button"
-                        >
-                          <span aria-hidden="true">{isToday ? '▶ ' : '· '}</span>
-                          {isToday ? '임시 수업 체크인' : '임시 수업 예정'} · {ad.startTime}~{ad.endTime}
-                          {ad.reason && ` (${ad.reason})`}
-                        </button>
-                      ))}
-                      {hasMakeup && pendingMakeups.map(mk => {
-                        const timeRange = mk.scheduledStartTime && mk.scheduledEndTime
-                          ? `${mk.scheduledStartTime}~${mk.scheduledEndTime}`
-                          : '기본 90분';
-                        return (
-                          <button
-                            key={mk.id}
-                            className="rt-makeup-checkin-btn"
-                            onClick={isToday ? () => handleMakeupCheckIn(s, mk.id, mk.className) : undefined}
-                            disabled={!isToday}
-                            type="button"
-                            aria-label={`${s.name} 보강 체크인 원결석 ${mk.originalDate}`}
-                          >
-                            <span aria-hidden="true">{isToday ? '▶ ' : '· '}</span>
-                            {isToday ? '보강 체크인' : '보강 예정'} · {mk.className} {timeRange} (원결석 {mk.originalDate})
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })
               )}
+            </Panel>
+
+            {/* mockup 의 modal-hint 카드 */}
+            <div className="v2-modal-hint">
+              <div className="v2-modal-hint__title">
+                <Icon name="Info" size={14} />
+                정지 모달
+              </div>
+              정지 버튼 클릭 시 사유 바텀시트가 표시됩니다 — <strong>외출</strong> · <strong>휴식</strong> · <strong>화장실</strong> · <strong>기타</strong>.
+              누적 정지 시간은 카드 메타에 자동 기록되며, 남은 시간 계산에서 차감됩니다.
             </div>
           </div>
         </div>

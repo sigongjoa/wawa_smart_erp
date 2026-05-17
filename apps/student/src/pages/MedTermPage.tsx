@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import { medtermApi, MedTermCard, MedTermAnswerResult, MedTermDetail, MedTermFigureLabel } from '../api';
-import TtsButton from '../components/TtsButton';
 import './MedTermPage.css';
 
 type CardState = 'idle' | 'submitting' | 'graded';
@@ -19,6 +18,8 @@ export default function MedTermPage() {
   const navigate = useNavigate();
   const [cards, setCards] = useState<MedTermCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessChecking, setAccessChecking] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [response, setResponse] = useState<string>('');
@@ -29,6 +30,30 @@ export default function MedTermPage() {
   // figure 모드 상태
   const [figureClick, setFigureClick] = useState<{ x: number; y: number } | null>(null);
   const [figureLabels, setFigureLabels] = useState<MedTermFigureLabel[]>([]);
+
+  // 권한 확인 — 의학용어 미배정 학생은 홈으로 리다이렉트
+  useEffect(() => {
+    let cancelled = false;
+    medtermApi
+      .access()
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.has_access) {
+          navigate('/', { replace: true });
+          return;
+        }
+        setHasAccess(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // access endpoint 실패 시 보수적으로 차단
+        navigate('/', { replace: true });
+      })
+      .finally(() => {
+        if (!cancelled) setAccessChecking(false);
+      });
+    return () => { cancelled = true; };
+  }, [navigate]);
 
   const loadCards = useCallback(async () => {
     setLoading(true);
@@ -46,8 +71,9 @@ export default function MedTermPage() {
   }, []);
 
   useEffect(() => {
+    if (!hasAccess) return;
     loadCards();
-  }, [loadCards]);
+  }, [hasAccess, loadCards]);
 
   const card = cards[activeIdx];
 
@@ -132,6 +158,10 @@ export default function MedTermPage() {
     }
   }
 
+  if (accessChecking || !hasAccess) {
+    return <div className="medterm-page" data-testid="medterm-access-checking">권한 확인 중...</div>;
+  }
+
   if (loading) {
     return <div className="medterm-page" data-testid="medterm-loading">불러오는 중...</div>;
   }
@@ -180,10 +210,7 @@ export default function MedTermPage() {
 
         {card.study_mode === 'meaning' && (
           <>
-            <div className="medterm-term" data-testid="medterm-term-text">
-              {card.term}
-              <TtsButton text={card.term} size={20} />
-            </div>
+            <div className="medterm-term" data-testid="medterm-term-text">{card.term}</div>
             <div className="medterm-prompt">한국어 의미를 입력하세요.</div>
             <input
               type="text"
@@ -200,10 +227,7 @@ export default function MedTermPage() {
 
         {card.study_mode === 'decompose' && (
           <>
-            <div className="medterm-term" data-testid="medterm-term-text">
-              {card.term}
-              <TtsButton text={card.term} size={20} />
-            </div>
+            <div className="medterm-term" data-testid="medterm-term-text">{card.term}</div>
             <div className="medterm-prompt">
               단어를 요소로 분리하세요 ({expectedSlots}개 슬롯)
             </div>
@@ -249,9 +273,7 @@ export default function MedTermPage() {
         {card.study_mode === 'figure' && (
           <>
             <div className="medterm-prompt">
-              <b>{card.term}</b>
-              <TtsButton text={card.term} size={16} />
-              {' '}에 해당하는 위치를 그림에서 클릭하세요.
+              <b>{card.term}</b> 에 해당하는 위치를 그림에서 클릭하세요.
             </div>
             <div className="medterm-figure-wrap" data-testid="medterm-figure-wrap">
               {figureLabels.length > 0 && (
@@ -273,10 +295,7 @@ export default function MedTermPage() {
         {card.study_mode === 'plural' && (
           <>
             <div className="medterm-prompt">복수형을 입력하세요.</div>
-            <div className="medterm-term" data-testid="medterm-term-text">
-              {card.term}
-              <TtsButton text={card.term} size={20} />
-            </div>
+            <div className="medterm-term" data-testid="medterm-term-text">{card.term}</div>
             <input
               type="text"
               className="medterm-input"

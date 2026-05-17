@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Absence Management Redesign | WAWA Smart ERP</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --primary: #2d3a8c;
+      --primary-hover: #252f73;
+      --primary-surface: #eef0f8;
+      --bg-primary: #f8f9fb;
+      --bg-secondary: #ffffff;
+      --text-primary: #1a1e2e;
+      --text-secondary: #5e6478;
+      --text-tertiary: #9098ad;
+      --border-primary: #e3e6ed;
+      --success: #10b981;
+      --success-surface: #dcfce7;
+      --warning: #f59e0b;
+      --warning-surface: #fffbeb;
+      --danger: #ef4444;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --sp-2: 8px;
+      --sp-3: 12px;
+      --sp-4: 16px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .app-header { background: var(--bg-secondary); padding: var(--sp-4); border-bottom: 1px solid var(--border-primary); flex-shrink: 0; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .page-title { font-size: 20px; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+
+    /* Filters */
+    .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-btn { padding: 8px 14px; border-radius: 99px; font-size: 13px; font-weight: 700; background: var(--bg-primary); border: 1px solid var(--border-primary); color: var(--text-secondary); white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .filter-count { font-size: 11px; opacity: 0.8; }
+
+    /* Main Grid Area */
+    .content-area { flex: 1; overflow-y: auto; padding: var(--sp-4); display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-content: start; }
+    @media (max-width: 600px) { .content-area { grid-template-columns: 1fr; padding: var(--sp-3); } }
+
+    /* Redesigned Card */
+    .absence-card { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 12px; transition: border-color 0.2s; }
+    .absence-card:hover { border-color: var(--primary); }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .student-name { font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 6px; }
+    .status-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; border: 1px solid transparent; }
+    .status--pending { background: var(--warning-surface); color: var(--warning); border-color: rgba(245,158,11,0.2); }
+    .status--scheduled { background: var(--primary-surface); color: var(--primary); border-color: rgba(45,58,140,0.2); }
+    .status--completed { background: var(--success-surface); color: var(--success); border-color: rgba(16,185,129,0.2); }
+
+    .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-primary); padding: 12px; border-radius: var(--radius-sm); }
+    .info-item { display: flex; flex-direction: column; gap: 2px; }
+    .info-label { font-size: 11px; color: var(--text-tertiary); font-weight: 600; }
+    .info-value { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+    .card-reason { font-size: 13px; color: var(--text-secondary); padding: 0 4px; border-left: 3px solid var(--border-primary); min-height: 1.2em; }
+
+    /* Action Area */
+    .card-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .action-main { flex: 1; display: flex; gap: 8px; }
+    .date-picker-mini { flex: 1; padding: 8px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 12px; font-family: inherit; background: white; }
+
+    .btn { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; transition: background 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-secondary { background: var(--bg-primary); color: var(--text-secondary); border: 1px solid var(--border-primary); }
+    .more-btn { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--border-primary); color: var(--text-tertiary); }
+
+    .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(45, 58, 140, 0.4); border: none; z-index: 100; cursor: pointer; }
+
+    /* Modals & Toast */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 20px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: pop 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-label { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+    .form-input { padding: 12px; border: 1px solid var(--border-primary); border-radius: 8px; font-size: 14px; font-family: inherit; }
+
+    .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 2000; pointer-events: none; }
+    .toast { background: #1a1e2e; color: white; padding: 12px 20px; border-radius: 99px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); animation: slide-down 0.3s ease; }
+    @keyframes slide-down { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  </style>
+</head>
+<body>
+
+<div id="toast-root" class="toast-container"></div>
+
+<header class="app-header">
+  <div class="header-top">
+    <h1 class="page-title">보강 관리</h1>
+    <button class="btn btn-secondary" id="scope-toggle" style="font-size: 12px; padding: 6px 12px;">내 학생만 보기</button>
+  </div>
+  
+  <div class="filter-bar" id="filter-bar">
+    <div class="filter-btn active" data-filter="">전체</div>
+    <div class="filter-btn" data-filter="pending">미보강 <span class="filter-count" id="count-pending">0</span></div>
+    <div class="filter-btn" data-filter="scheduled">보강예정 <span class="filter-count" id="count-scheduled">0</span></div>
+    <div class="filter-btn" data-filter="completed">완료</div>
+  </div>
+</header>
+
+<main class="content-area" id="absence-grid"></main>
+
+<button class="fab" onclick="openAddModal()">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+</button>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal-content">
+    <div class="modal-title">결석 등록</div>
+    <div class="form-group"><label class="form-label">학생 이름</label><input type="text" id="add-name" class="form-input" placeholder="이름 입력"></div>
+    <div class="form-group"><label class="form-label">결석 날짜</label><input type="date" id="add-date" class="form-input"></div>
+    <div class="form-group"><label class="form-label">해당 수업</label><input type="text" id="add-class" class="form-input" placeholder="예: 영단어 1500"></div>
+    <div class="form-group"><label class="form-label">결석 사유</label><input type="text" id="add-reason" class="form-input" placeholder="예: 개인 사정"></div>
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 12px;">
+      <button class="btn btn-secondary" onclick="closeModal('add-modal')">취소</button>
+      <button class="btn btn-primary" onclick="handleAdd()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let state = {
+    absences: [
+      { id: 1, name: '김철수', grade: '고2', date: '2026-05-07', className: '영단어 1500', reason: '감기 몸살', status: 'pending', scheduledDate: null, isMine: true },
+      { id: 2, name: '이영희', grade: '중3', date: '2026-05-04', className: '수학 상', reason: '가족 행사', status: 'scheduled', scheduledDate: '2026-05-09', isMine: true },
+      { id: 3, name: '박지민', grade: '고1', date: '2026-04-28', className: '영문법', reason: '학교 행사', status: 'completed', scheduledDate: '2026-05-02', isMine: false },
+      { id: 4, name: '최수지', grade: '고3', date: '2026-05-01', className: '수능대비', reason: '무단 결석', status: 'pending', scheduledDate: null, isMine: false }
+    ],
+    filter: '',
+    scope: 'all'
+  };
+
+  const toast = {
+    show(msg, type='info') {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = (type === 'success' ? '✓ ' : 'i ') + msg;
+      document.getElementById('toast-root').appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    },
+    success(msg) { this.show(msg, 'success'); },
+    info(msg) { this.show(msg, 'info'); }
+  };
+
+  function render() {
+    const grid = document.getElementById('absence-grid');
+    const filtered = state.absences.filter(a => {
+      const matchScope = state.scope === 'all' || a.isMine;
+      const matchStatus = !state.filter || a.status === state.filter;
+      return matchScope && matchStatus;
+    });
+
+    const currentScopeData = state.absences.filter(a => state.scope === 'all' || a.isMine);
+    document.getElementById('count-pending').textContent = currentScopeData.filter(a => a.status === 'pending').length;
+    document.getElementById('count-scheduled').textContent = currentScopeData.filter(a => a.status === 'scheduled').length;
+
+    const scopeBtn = document.getElementById('scope-toggle');
+    if (state.scope === 'mine') {
+      scopeBtn.textContent = '모든 학생 보기';
+      scopeBtn.style.background = 'var(--primary-surface)';
+      scopeBtn.style.color = 'var(--primary)';
+      scopeBtn.style.borderColor = 'var(--primary)';
+    } else {
+      scopeBtn.textContent = '내 학생만 보기';
+      scopeBtn.style.background = 'var(--bg-primary)';
+      scopeBtn.style.color = 'var(--text-secondary)';
+      scopeBtn.style.borderColor = 'var(--border-primary)';
+    }
+
+    grid.innerHTML = filtered.map(a => `
+      <div class="absence-card" style="${a.status === 'completed' ? 'opacity: 0.8' : ''}">
+        <div class="card-header">
+          <div class="student-name">${a.name} <small style="color: var(--text-tertiary); font-weight: 500;">${a.grade}</small> ${a.isMine ? '<span style="font-size: 10px; background: var(--primary-surface); color: var(--primary); padding: 2px 6px; border-radius: 4px;">My</span>' : ''}</div>
+          <span class="status-badge ${a.status === 'pending' ? 'status--pending' : a.status === 'scheduled' ? 'status--scheduled' : 'status--completed'}">
+            ${a.status === 'pending' ? '미보강' : a.status === 'scheduled' ? '보강예정' : '완료'}
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="info-item"><span class="info-label">결석일</span><span class="info-value">${a.date}</span></div>
+          <div class="info-item"><span class="info-label">${a.status === 'completed' ? '완료일' : (a.status === 'scheduled' ? '보강 확정일' : '해당 수업')}</span><span class="info-value" style="${a.status === 'scheduled' ? 'color: var(--primary)' : ''}">${a.status === 'pending' ? a.className : (a.scheduledDate || '-')}</span></div>
+        </div>
+        <div class="card-reason">${a.reason || '-'}</div>
+        <div class="card-actions">
+          <div class="action-main">
+            ${a.status === 'pending' ? `<input type="date" class="date-picker-mini" id="date-${a.id}"><button class="btn btn-primary" onclick="schedule(${a.id})">지정</button>` : a.status === 'scheduled' ? `<button class="btn btn-success" style="width: 100%" onclick="complete(${a.id})">✓ 보강 완료 처리</button>` : `<button class="btn btn-secondary" style="width: 100%" onclick="toast.info('기록을 조회합니다.')">기록 보기</button>`}
+          </div>
+          <div class="more-btn" onclick="toast.info('${a.name} 학생 관리')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+          </div>
+        </div>
+      </div>
+    `).reverse().join('');
+  }
+
+  function schedule(id) {
+    const d = document.getElementById(`date-${id}`);
+    if (!d.value) return;
+    const a = state.absences.find(x => x.id === id);
+    a.status = 'scheduled'; a.scheduledDate = d.value;
+    toast.success(`${a.name} 보강 지정 완료`); render();
+  }
+
+  function complete(id) {
+    const a = state.absences.find(x => x.id === id);
+    a.status = 'completed'; toast.success(`${a.name} 보강 완료`); render();
+  }
+
+  function openAddModal() {
+    document.getElementById('add-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('add-modal').style.display = 'flex';
+  }
+
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+  function handleAdd() {
+    const name = document.getElementById('add-name').value;
+    if (!name) return;
+    state.absences.push({ id: Date.now(), name, grade: '기타', date: document.getElementById('add-date').value, className: document.getElementById('add-class').value || '수업', reason: document.getElementById('add-reason').value, status: 'pending', scheduledDate: null, isMine: true });
+    closeModal('add-modal'); toast.success('등록 완료'); render();
+  }
+
+  document.getElementById('filter-bar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.filter = btn.dataset.filter; render();
+  });
+
+  document.getElementById('scope-toggle').addEventListener('click', () => {
+    state.scope = state.scope === 'all' ? 'mine' : 'all';
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>

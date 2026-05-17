@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>설명 AI · 이루다 — 표본분포</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<style>
+  /* ───────────────────────────── tokens (학생 앱 tokens.css에서 발췌) */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    background: var(--bg-canvas);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+
+  /* ───────────────────────────── shell layout */
+  .shell {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) 320px;
+    grid-template-rows: 64px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "side  topbar  rail"
+      "side  main    rail"
+      "side  composer rail";
+    height: 100dvh;
+  }
+  @media (max-width: 1080px) {
+    .shell { grid-template-columns: 56px 1fr; grid-template-areas: "side topbar" "side main" "side composer"; }
+    .rail { display: none; }
+  }
+  @media (max-width: 560px) {
+    .shell { grid-template-columns: 1fr; grid-template-areas: "topbar" "main" "composer"; }
+    .sidebar { display: none; }
+  }
+
+  /* ───── sidebar — 슬림 좌측 */
+  .sidebar {
+    grid-area: side;
+    background: var(--bg-card);
+    border-right: var(--border-hair);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px 0;
+    gap: 8px;
+  }
+  .sidebar .back {
+    width: 36px; height: 36px; border-radius: 10px; border: none; background: transparent;
+    color: var(--ink-60); cursor: pointer; display: grid; place-items: center;
+    transition: background var(--ease) 150ms;
+  }
+  .sidebar .back:hover { background: var(--ink-05); color: var(--ink); }
+  .sidebar .mark {
+    margin-top: auto;
+    width: 32px; height: 32px; border-radius: 10px;
+    background: var(--primary); color: white;
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 13px; letter-spacing: -0.02em;
+  }
+
+  /* ───── topbar — 학생 + 단원 컨텍스트 */
+  .topbar {
+    grid-area: topbar;
+    border-bottom: var(--border-hair);
+    background: var(--bg-card);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+  }
+  .topbar h1 {
+    font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .topbar h1 .ai { color: var(--ink-40); font-weight: 500; margin-left: 6px; }
+  .ctx-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 8px;
+    background: var(--type-grass-surface);
+    border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+    color: var(--type-grass);
+  }
+  .ctx-chip .swatch {
+    width: 16px; height: 16px; border-radius: 5px;
+    background: var(--type-grass);
+    color: white; display: grid; place-items: center;
+    font-size: 10px; font-weight: 800;
+  }
+  .topbar .spacer { flex: 1; }
+  .topbar .session-meta {
+    font-size: 12px; color: var(--ink-60);
+    font-feature-settings: 'tnum' 1;
+  }
+  .topbar .session-meta b { color: var(--ink); font-weight: 700; margin-right: 4px; }
+
+  /* ───── main — 대화 영역 (스크롤) */
+  .main {
+    grid-area: main;
+    overflow-y: auto;
+    padding: 32px clamp(16px, 4vw, 48px) 48px;
+  }
+  .conversation {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+    gap: 32px;
+  }
+
+  /* ── 학생 질문 — '문제 박스' 스타일 (말풍선이 아니라 '인용된 문제') */
+  .question {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--bg-question);
+    border-radius: var(--r-lg);
+    border: 1px solid rgba(45, 58, 140, 0.12);
+  }
+  .question .who {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--primary); color: white;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 13px;
+    letter-spacing: -0.02em;
+  }
+  .question .body {
+    padding-top: 4px;
+  }
+  .question .meta {
+    display: flex; gap: 8px; align-items: baseline;
+    font-size: 11px; color: var(--ink-60);
+    letter-spacing: 0.4px; text-transform: uppercase; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .question .meta b { color: var(--ink); letter-spacing: -0.01em; text-transform: none; font-size: 13px; font-weight: 700; }
+  .question p { font-size: 16px; line-height: 1.55; color: var(--ink); }
+  .question .photo-thumb {
+    margin-top: 12px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 8px;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: 8px;
+    font-size: 12px; color: var(--ink-60);
+  }
+  .question .photo-thumb svg { width: 14px; height: 14px; }
+
+  /* ── AI 단계 — 워크북 페이지 entry */
+  .step {
+    position: relative;
+    padding-left: 64px;
+  }
+  .step .num {
+    position: absolute; left: 0; top: 4px;
+    width: 44px; height: 44px;
+    background: var(--ink);
+    color: var(--bg-canvas);
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 900;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .step .num::after {
+    content: ""; position: absolute; left: 50%; top: 100%;
+    width: 1px; height: calc(100% + 16px);
+    background: var(--ink-09);
+    transform: translateX(-0.5px);
+  }
+  .step:last-child .num::after { display: none; }
+
+  .step h3 {
+    font-size: 19px; font-weight: 800; letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .step .step-tag {
+    display: inline-block;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 8px;
+  }
+  .step .body { font-size: 15.5px; line-height: 1.7; color: var(--ink-72); }
+  .step .body p + p { margin-top: 12px; }
+  .step .body .katex-display { margin: 18px 0; }
+
+  /* 인용 (학원 단원지 reference) — 본문 사이 인라인으로 한 번 더 띄움 */
+  .inline-cite {
+    margin: 16px 0;
+    padding: 12px 16px;
+    background: var(--bg-paper);
+    border-left: 3px solid var(--type-grass);
+    border-radius: 0 8px 8px 0;
+    font-size: 13.5px;
+    color: var(--ink-72);
+    line-height: 1.55;
+  }
+  .inline-cite .src {
+    display: block; font-size: 11px; font-weight: 700;
+    color: var(--type-grass); letter-spacing: 0.4px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  /* figure */
+  .figure {
+    margin: 20px 0;
+    padding: 16px;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: var(--r-md);
+  }
+  .figure .caption {
+    font-size: 12px; color: var(--ink-60);
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--ink-09);
+  }
+  .figure .caption b { color: var(--ink); font-weight: 700; margin-right: 4px; }
+  .figure svg { display: block; max-width: 100%; height: auto; }
+
+  /* checkpoint — 다음 단계로 가기 전 멈춤 카드 */
+  .ck {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, transparent 0%, var(--primary-surface) 100%);
+    border: 1px dashed rgba(45, 58, 140, 0.35);
+    border-radius: var(--r-md);
+    display: flex; gap: 12px; align-items: center;
+    flex-wrap: wrap;
+  }
+  .ck .ck-q {
+    font-size: 14px; font-weight: 600; color: var(--primary);
+    flex: 1 1 200px;
+  }
+  .ck .ck-q::before {
+    content: "✦";
+    margin-right: 6px;
+    color: var(--type-grass);
+  }
+  .ck button {
+    height: 36px; padding: 0 14px;
+    border-radius: 9px; border: 1px solid transparent;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: all 150ms var(--ease);
+  }
+  .ck .yes { background: var(--primary); color: white; }
+  .ck .yes:hover { background: var(--primary-hover); }
+  .ck .no  { background: transparent; color: var(--ink-72); border-color: var(--ink-20); }
+  .ck .no:hover { background: var(--ink-05); color: var(--ink); }
+
+  /* completed step (faded checkpoint) */
+  .step.done .ck {
+    background: var(--bg-card); border-style: solid; border-color: var(--success);
+    opacity: 0.7;
+  }
+  .step.done .ck .ck-q { color: var(--success); }
+  .step.done .ck .ck-q::before { content: "✓"; color: var(--success); }
+  .step.done .ck button { display: none; }
+  .step.done .ck::after {
+    content: "넘어감"; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.6px; color: var(--success);
+    text-transform: uppercase;
+  }
+
+  /* hidden steps (revealed after checkpoint) */
+  .step.locked { display: none; }
+
+  /* AI thinking placeholder */
+  .thinking {
+    display: flex; gap: 8px; align-items: center;
+    margin-left: 64px;
+    color: var(--ink-60); font-size: 13px;
+    padding: 16px 0;
+  }
+  .thinking .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink-40);
+    animation: pulse 1.4s var(--ease) infinite;
+  }
+  .thinking .dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-2px); }
+  }
+
+  /* finished marker */
+  .finish {
+    margin-top: 16px;
+    padding: 20px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--ink-09);
+    border-radius: var(--r-lg);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: center;
+  }
+  .finish h4 { font-size: 14px; font-weight: 800; }
+  .finish p { font-size: 12.5px; color: var(--ink-60); margin-top: 4px; }
+  .finish .actions { display: flex; gap: 8px; }
+  .finish button {
+    height: 36px; padding: 0 14px;
+    border-radius: 9px; border: 1px solid var(--ink-09);
+    background: var(--bg-card); color: var(--ink);
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  .finish button:hover { border-color: var(--ink-40); }
+  .finish button.flag-teacher { color: var(--type-water); border-color: rgba(41, 128, 239, 0.3); }
+  .finish button.flag-teacher:hover { background: rgba(41, 128, 239, 0.06); }
+
+  /* ───── composer */
+  .composer {
+    grid-area: composer;
+    border-top: var(--border-hair);
+    background: var(--bg-card);
+    padding: 14px clamp(16px, 4vw, 48px);
+  }
+  .composer-inner {
+    max-width: 720px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: end;
+  }
+  .composer textarea {
+    resize: none;
+    border: 1px solid var(--ink-09);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    font-family: inherit; font-size: 14.5px; line-height: 1.5;
+    color: var(--ink);
+    background: var(--bg-canvas);
+    min-height: 44px; max-height: 160px;
+    transition: border-color 150ms var(--ease);
+  }
+  .composer textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--bg-card);
+  }
+  .composer textarea::placeholder { color: var(--ink-60); }
+  .composer .photo {
+    width: 44px; height: 44px;
+    border-radius: var(--r-md);
+    background: var(--bg-canvas);
+    border: 1px solid var(--ink-09);
+    color: var(--ink-60);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: all 150ms var(--ease);
+  }
+  .composer .photo:hover { color: var(--ink); border-color: var(--ink-40); }
+  .composer .send {
+    height: 44px; padding: 0 18px;
+    border-radius: var(--r-md);
+    background: var(--ink); color: var(--bg-canvas);
+    border: none;
+    font-family: inherit; font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms var(--ease);
+  }
+  .composer .send:hover { background: var(--primary); }
+  .composer .send:disabled { background: var(--ink-20); cursor: not-allowed; }
+  .composer .hint {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    font-size: 11px; color: var(--ink-60);
+    display: flex; gap: 12px;
+  }
+  .composer .hint kbd {
+    font-family: var(--font-mono); font-size: 10px;
+    padding: 1px 5px; border-radius: 4px;
+    background: var(--ink-05); color: var(--ink-60);
+    border: 1px solid var(--ink-09);
+  }
+
+  /* ───── rail — 인용 자료 */
+  .rail {
+    grid-area: rail;
+    border-left: var(--border-hair);
+    background: var(--bg-card);
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .rail h2 {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 16px;
+  }
+  .rail-card {
+    padding: 14px;
+    background: var(--bg-paper);
+    border-radius: var(--r-md);
+    margin-bottom: 12px;
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 220ms var(--ease);
+  }
+  .rail-card:hover { transform: translateX(-2px); border-color: var(--type-grass); }
+  .rail-card .src-tag {
+    font-size: 10px; font-weight: 800;
+    color: var(--type-grass); letter-spacing: 0.6px; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .rail-card h3 { font-size: 14px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
+  .rail-card .ref { font-size: 11.5px; color: var(--ink-60); font-feature-settings: 'tnum' 1; }
+  .rail-card .preview {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px dashed var(--ink-09);
+    font-size: 12.5px; line-height: 1.55; color: var(--ink-72);
+  }
+
+  .rail-meter {
+    margin-top: 24px; padding-top: 24px;
+    border-top: var(--border-hair);
+  }
+  .rail-meter .label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-60); margin-bottom: 8px; }
+  .rail-meter .num { font-size: 32px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; font-feature-settings: 'tnum' 1, 'lnum' 1; }
+  .rail-meter .num small { font-size: 14px; font-weight: 600; color: var(--ink-60); margin-left: 4px; }
+  .rail-meter .sub { font-size: 12px; color: var(--ink-60); margin-top: 6px; line-height: 1.45; }
+
+  /* katex tweaks */
+  .katex { font-size: 1.05em; }
+  .katex-display { overflow-x: auto; overflow-y: hidden; }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<div class="shell">
+
+  <!-- ─── sidebar ─── -->
+  <aside class="sidebar">
+    <button class="back" title="뒤로" aria-label="뒤로">
+      <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="mark" title="와와 학원">와</div>
+  </aside>
+
+  <!-- ─── topbar ─── -->
+  <header class="topbar">
+    <h1>설명 AI<span class="ai">/ 와와</span></h1>
+    <span class="ctx-chip" title="현재 단원">
+      <span class="swatch">증</span>
+      확통 III-1 표본분포
+    </span>
+    <span class="spacer"></span>
+    <span class="session-meta"><b>이루다</b>· 오늘 14:02 시작 · 단계 3/4</span>
+  </header>
+
+  <!-- ─── conversation ─── -->
+  <main class="main" id="main">
+    <div class="conversation" id="convo">
+
+      <!-- 학생 질문 -->
+      <article class="question">
+        <div class="who">루</div>
+        <div class="body">
+          <div class="meta"><b>이루다</b><span>· 14:02</span></div>
+          <p>표본평균의 분산이 왜 $\sigma^2/n$ 인지 모르겠어요. 단원지 §2.3 보면 그냥 그렇다고 나오는데… 외워야 되나요?</p>
+          <span class="photo-thumb">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            problem-2026-05-15.jpg
+          </span>
+        </div>
+      </article>
+
+      <!-- step 1 -->
+      <article class="step done" data-step="1">
+        <div class="num">1</div>
+        <span class="step-tag">정의 다시 적기</span>
+        <h3>표본평균은 그냥 평균이 아니라 '확률변수'다</h3>
+        <div class="body">
+          <p>매번 표본을 뽑을 때마다 평균값이 바뀌잖아? 그래서 <b>표본평균 자체</b>가 변수야:</p>
+          <p>$$\bar X = \frac{1}{n}\bigl(X_1 + X_2 + \cdots + X_n\bigr)$$</p>
+          <p>여기서 $X_i$ 들은 같은 분포를 가지는 <b>독립</b>인 확률변수. 이 두 단어가 다음 단계 핵심이야.</p>
+
+          <div class="inline-cite">
+            <span class="src">단원지 §2.1 · p.11</span>
+            "확률변수 $X_1, \ldots, X_n$ 이 모분포를 따르고 서로 독립일 때, 이를 <b>크기 $n$인 확률표본</b>이라 한다."
+          </div>
+        </div>
+        <div class="ck"><span class="ck-q">정의 OK?</span></div>
+      </article>
+
+      <!-- step 2 -->
+      <article class="step done" data-step="2">
+        <div class="num">2</div>
+        <span class="step-tag">분산의 두 가지 성질</span>
+        <h3>독립이면 분산이 더해진다</h3>
+        <div class="body">
+          <p>분산에 대해 우리가 쓸 두 성질:</p>
+          <p>$$V(aX) = a^2 V(X) \qquad V(X+Y) = V(X) + V(Y) \;\text{(독립일 때)}$$</p>
+          <p>왼쪽은 상수배, 오른쪽은 독립인 경우 가법성. 이 두 줄만 들고 다음 단계로 가자.</p>
+        </div>
+        <div class="ck"><span class="ck-q">두 성질 기억나?</span></div>
+      </article>
+
+      <!-- step 3 — current, with figure -->
+      <article class="step" data-step="3">
+        <div class="num">3</div>
+        <span class="step-tag">계산 — 한 줄씩</span>
+        <h3>이제 $V(\bar X)$ 를 직접 풀어보자</h3>
+        <div class="body">
+          <p>표본평균에 분산을 씌워:</p>
+          <p>$$V(\bar X) = V\!\left(\tfrac{1}{n}\sum X_i\right) = \tfrac{1}{n^2}\,V\!\left(\sum X_i\right)$$</p>
+          <p>독립이니까 합의 분산은 분산의 합:</p>
+          <p>$$= \tfrac{1}{n^2}\bigl(V(X_1) + V(X_2) + \cdots + V(X_n)\bigr) = \tfrac{1}{n^2}\cdot n\sigma^2 = \tfrac{\sigma^2}{n}$$</p>
+
+          <div class="figure">
+            <svg viewBox="0 0 560 220" role="img" aria-label="표본 크기에 따른 표본평균 분산 감소">
+              <defs>
+                <pattern id="g" width="56" height="22" patternUnits="userSpaceOnUse">
+                  <path d="M 56 0 L 0 0 0 22" fill="none" stroke="rgba(17,20,26,0.06)" stroke-width="1"/>
+                </pattern>
+              </defs>
+              <rect width="560" height="220" fill="url(#g)"/>
+              <!-- axes -->
+              <line x1="48" y1="180" x2="540" y2="180" stroke="rgba(17,20,26,0.35)" stroke-width="1"/>
+              <line x1="48" y1="20"  x2="48"  y2="180" stroke="rgba(17,20,26,0.35)" stroke-width="1"/>
+              <!-- y label -->
+              <text x="14" y="24" font-family="Pretendard Variable" font-size="11" fill="rgba(17,20,26,0.6)">σ²/n</text>
+              <text x="500" y="196" font-family="Pretendard Variable" font-size="11" fill="rgba(17,20,26,0.6)">표본 크기 n</text>
+              <!-- curve sigma^2 / n with sigma^2 = 100 -->
+              <path d="M 60 30 Q 100 95 160 130 T 320 165 T 530 175"
+                    fill="none" stroke="#3FA129" stroke-width="2.5"/>
+              <!-- markers -->
+              <g font-family="Pretendard Variable" font-size="11" fill="#11141a">
+                <circle cx="80"  cy="58"  r="4" fill="#3FA129"/>
+                <text x="88"  y="55">n=2 · σ²/2</text>
+                <circle cx="160" cy="120" r="4" fill="#3FA129"/>
+                <text x="168" y="118">n=10 · σ²/10</text>
+                <circle cx="320" cy="160" r="4" fill="#3FA129"/>
+                <text x="328" y="158">n=50 · σ²/50</text>
+                <circle cx="500" cy="173" r="4" fill="#3FA129"/>
+                <text x="408" y="170" text-anchor="end">n=100 · σ²/100</text>
+              </g>
+              <!-- baseline σ² -->
+              <line x1="48" y1="34" x2="540" y2="34" stroke="#E62829" stroke-dasharray="4 4" stroke-width="1"/>
+              <text x="535" y="30" text-anchor="end" font-family="Pretendard Variable" font-size="11" fill="#E62829">σ² (모분산)</text>
+            </svg>
+            <div class="caption"><b>그림 3</b>표본 크기 $n$이 커질수록 $V(\bar X)$ 가 모분산 $\sigma^2$ 보다 빠르게 작아진다. <i>"평균을 더 많이 모을수록 흔들림이 줄어든다"</i> 가 직관.</div>
+          </div>
+
+          <p>그러니까 $V(\bar X) = \sigma^2/n$ 은 <b>외울 게 아니라 한 줄씩 굴러 나오는 결과</b>야. 다음에 같은 게 또 나오면 이 3단계 그대로 적어보면 돼.</p>
+
+          <div class="inline-cite">
+            <span class="src">학원 메모 · 이루다</span>
+            루다, 이런 식의 "정의 → 성질 → 계산" 순서로 적는 습관 들이자. <b>경계값에서 그림 안 그리는 습관</b> 잡으려면 이 패턴이 약이야.
+          </div>
+        </div>
+        <div class="ck">
+          <span class="ck-q">3단계까지 따라왔어?</span>
+          <button class="yes" onclick="advance(this)">응, 마무리로</button>
+          <button class="no">아니, 다시 설명</button>
+        </div>
+      </article>
+
+      <!-- step 4 — locked until checkpoint -->
+      <article class="step locked" data-step="4">
+        <div class="num">4</div>
+        <span class="step-tag">너만의 한 줄 정리</span>
+        <h3>지금 배운 거 한 문장으로 적기</h3>
+        <div class="body">
+          <p>이번 풀이를 너 입으로 정리하면 어떻게 될까? 두 단어로 답해봐:</p>
+          <p>"독립이라서 ___ 가 더해지고, $1/n^2$ 때문에 ___ 가 작아진다."</p>
+        </div>
+        <div class="ck">
+          <span class="ck-q">빈칸 둘 채워서 보내봐</span>
+        </div>
+      </article>
+
+      <!-- finish marker -->
+      <div class="finish">
+        <div>
+          <h4>이 풀이가 도움이 됐어?</h4>
+          <p>강사 선생님께 보내면 사후에 보충 코멘트가 달릴 수 있어요.</p>
+        </div>
+        <div class="actions">
+          <button><span aria-hidden="true">📌</span> 내 노트에 저장</button>
+          <button class="flag-teacher">선생님께 보내기</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ─── composer ─── -->
+  <footer class="composer">
+    <div class="composer-inner">
+      <button class="photo" title="문제 사진" aria-label="사진 첨부">
+        <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </button>
+      <label class="sr-only" for="ta-studentchat">문제를 입력하거나 사진을 첨부하세요</label>
+      <textarea id="ta-studentchat" aria-label="문제를 입력하거나 사진을 첨부하세요" placeholder="문제 사진 찍거나, 한 줄로 물어봐. (예: '경우의 수에서 중복조합이 헷갈려요')"></textarea>
+      <button class="send">물어보기</button>
+      <div class="hint">
+        <span><kbd>Enter</kbd> 보내기 · <kbd>Shift</kbd>+<kbd>Enter</kbd> 줄바꿈</span>
+        <span style="margin-left: auto">오늘 남은 질문 <b style="color:var(--ink)">22</b>/30</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ─── rail ─── -->
+  <aside class="rail">
+    <h2>이 대화에서 인용된 자료</h2>
+
+    <div class="rail-card" role="button" tabindex="0">
+      <div class="src-tag">학원 단원지</div>
+      <h3>확통 III-1 / §2.1 표본과 모집단</h3>
+      <div class="ref">p.11 · 정의 11–14</div>
+      <div class="preview">"확률변수들이 모분포를 따르고 서로 독립일 때, 이를 크기 n인 확률표본이라 한다."</div>
+    </div>
+
+    <div class="rail-card" role="button" tabindex="0">
+      <div class="src-tag">학원 단원지</div>
+      <h3>확통 II-3 / §1.4 분산의 성질</h3>
+      <div class="ref">p.7 · 성질 1.4.2</div>
+      <div class="preview">"독립인 두 확률변수의 합의 분산은 각 분산의 합과 같다."</div>
+    </div>
+
+    <div class="rail-card" role="button" tabindex="0">
+      <div class="src-tag">학원 노트</div>
+      <h3>이루다 · 약점 메모</h3>
+      <div class="ref">_meta.json · 2026-05-08</div>
+      <div class="preview">"근의 위치·경계값에서 그림을 안 그리는 습관이 병목." — 분산 풀이 때도 그래프로 직관 보강 권장.</div>
+    </div>
+
+    <div class="rail-meter">
+      <div class="label">이번 주 설명 AI 사용</div>
+      <div class="num">8<small>회</small></div>
+      <div class="sub">평균보다 조금 적게 쓰고 있어요. 모르는 건 바로 물어봐도 돼요.</div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- katex auto-render -->
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$',  right: '$',  display: false}
+          ],
+          throwOnError: false
+        });"></script>
+
+<script>
+  // 체크포인트 → 다음 단계 unlock
+  function advance(btn) {
+    const step = btn.closest('.step');
+    step.classList.add('done');
+    const next = step.nextElementSibling;
+    if (next && next.classList.contains('step') && next.classList.contains('locked')) {
+      next.classList.remove('locked');
+      requestAnimationFrame(() => next.scrollIntoView({behavior: 'smooth', block: 'start'}));
+    }
+    // session-meta 업데이트 (목업이라 단순)
+    const meta = document.querySelector('.session-meta');
+    const done = document.querySelectorAll('.step.done').length;
+    const total = document.querySelectorAll('.step').length;
+    meta.innerHTML = `<b>이루다</b>· 오늘 14:02 시작 · 단계 ${done}/${total}`;
+  }
+
+  // textarea auto-grow + send 활성화
+  const ta = document.querySelector('.composer textarea');
+  const send = document.querySelector('.composer .send');
+  send.disabled = true;
+
+  // rail-card 키보드/클릭 — mockup 시연용
+  document.querySelectorAll('.rail-card[role="button"]').forEach(card => {
+    const open = () => {
+      const title = card.querySelector('h3')?.textContent || '자료';
+      const t = document.createElement('div');
+      t.textContent = `📖 "${title}" 열기 (실제 앱에선 단원지 PDF 패널)`;
+      t.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+        background:var(--ink);color:white;padding:10px 16px;border-radius:10px;
+        font-size:13px;font-weight:600;z-index:9999;
+        box-shadow:0 8px 24px rgba(0,0,0,0.15);`;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 250ms'; }, 1600);
+      setTimeout(() => t.remove(), 1900);
+    };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+    });
+  });
+
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+    const empty = ta.value.trim().length === 0;
+    send.disabled = empty;
+    send.setAttribute('aria-disabled', String(empty));
+    send.title = empty ? '내용을 입력하세요' : '질문 보내기';
+  });
+  // 초기 상태에도 aria-disabled
+  send.setAttribute('aria-disabled', 'true');
+  send.title = '내용을 입력하세요';
+</script>
+</body>
+</html>

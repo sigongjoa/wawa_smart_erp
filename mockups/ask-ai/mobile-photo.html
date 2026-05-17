@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#fafbfc" />
+<title>설명 AI · 사진 채점 — 모바일</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body { background: var(--ink-05); min-height: 100dvh; }
+  .viewport {
+    max-width: 430px; margin: 0 auto;
+    background: var(--bg-canvas);
+    min-height: 100dvh;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  @media (min-width: 480px) {
+    body { padding: 32px 0; }
+    .viewport {
+      min-height: calc(100dvh - 64px); height: calc(100dvh - 64px);
+      border-radius: 36px; overflow: hidden;
+      box-shadow: var(--shadow-frame);
+      border: 1px solid var(--ink-09);
+    }
+  }
+
+  /* sticky header */
+  header.app {
+    flex-shrink: 0;
+    padding: calc(var(--safe-top) + 8px) 12px 8px;
+    background: rgba(250, 251, 252, 0.92);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: var(--border-hair);
+    display: flex; align-items: center; gap: 8px;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: none; background: transparent;
+    color: var(--ink-72); cursor: pointer;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .icon-btn:active { background: var(--ink-05); color: var(--ink); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  header .title { flex: 1; min-width: 0; }
+  header .title .ctx {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 700;
+    color: var(--ink); letter-spacing: -0.01em;
+  }
+  header .title .ctx .swatch {
+    width: 16px; height: 16px; border-radius: 5px;
+    background: var(--type-grass); color: white;
+    display: grid; place-items: center;
+    font-size: 9px; font-weight: 800;
+  }
+  header .title .sub {
+    font-size: 11px; color: var(--ink-60);
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  header .title .sub .pen {
+    color: var(--pen-red); font-weight: 800;
+  }
+
+  /* main scroll */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(var(--composer-h) + var(--safe-bottom) + 24px);
+  }
+
+  /* student question with photos */
+  .question {
+    margin: 20px 18px 0;
+    background: var(--bg-question);
+    border: 1px solid rgba(45,58,140,0.10);
+    border-radius: var(--r-lg);
+    padding: 16px 18px 18px;
+  }
+  .question .meta {
+    display: flex; align-items: baseline; gap: 6px;
+    font-size: 10.5px; color: var(--ink-60);
+    letter-spacing: 0.4px; text-transform: uppercase; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .question .meta b { color: var(--ink); font-size: 12.5px; text-transform: none; letter-spacing: -0.01em; }
+  .question .meta .when {
+    margin-left: auto; font-feature-settings: 'tnum' 1; font-weight: 600;
+  }
+  .question p {
+    font-size: 15px; line-height: 1.7; color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  /* horizontal photo strip — scroll snap */
+  .photo-strip {
+    display: flex; gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 18px;
+    -webkit-overflow-scrolling: touch;
+    margin: 4px -18px 0;
+    padding: 8px 18px 12px;
+  }
+  .photo-strip::-webkit-scrollbar { display: none; }
+  .photo {
+    flex: 0 0 240px;
+    background: var(--bg-card);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-photo);
+    overflow: hidden;
+    position: relative;
+    scroll-snap-align: start;
+  }
+  .photo .lab {
+    position: absolute; top: 8px; left: 8px;
+    padding: 3px 8px;
+    background: rgba(17,20,26,0.85); color: white;
+    border-radius: 5px;
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.3px;
+    z-index: 2;
+  }
+  .photo .meta {
+    padding: 6px 10px;
+    border-top: var(--border-hair);
+    font-size: 10.5px;
+    color: var(--ink-60);
+    background: var(--bg-card);
+    display: flex; justify-content: space-between;
+  }
+  .photo .meta b { color: var(--ink); font-weight: 700; }
+  .photo svg { display: block; width: 100%; height: auto; }
+  .photo.textbook svg { background: #faf6ee; }
+  .photo.notebook svg { background: var(--bg-photo); }
+
+  /* swipe hint */
+  .swipe-hint {
+    text-align: center;
+    font-size: 10.5px; color: var(--ink-40);
+    letter-spacing: 0.5px; text-transform: uppercase; font-weight: 700;
+    margin-top: 4px;
+  }
+  .swipe-hint::before, .swipe-hint::after {
+    content: "·"; margin: 0 8px; color: var(--ink-09);
+  }
+
+  /* step blocks — mobile compact */
+  .step {
+    margin: 36px 18px 0;
+    padding-left: 52px;
+    position: relative;
+  }
+  .step .num {
+    position: absolute; left: 0; top: 2px;
+    width: 36px; height: 36px;
+    background: var(--ink); color: var(--bg-canvas);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 17px; font-weight: 900;
+    line-height: 1; letter-spacing: -0.04em;
+    font-feature-settings: 'tnum' 1;
+  }
+  .step .num::after {
+    content: ""; position: absolute;
+    left: 50%; top: 100%;
+    width: 1px; height: calc(100% + 8px);
+    background: var(--ink-09);
+    transform: translateX(-0.5px);
+  }
+  .step:last-of-type .num::after { display: none; }
+  .step .step-tag {
+    display: inline-block;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--ink-60); margin-bottom: 4px;
+  }
+  .step h2 {
+    font-size: 16px; font-weight: 800;
+    letter-spacing: -0.01em; line-height: 1.35;
+    margin-bottom: 12px;
+  }
+  .step .body { font-size: 14.5px; line-height: 1.75; color: var(--ink-72); }
+  .step .body p + p { margin-top: 14px; }
+  .step .body .katex-display { margin: 18px 0; overflow-x: auto; overflow-y: hidden; }
+
+  /* OCR paste card — mobile */
+  .ocr {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: var(--bg-paper);
+    border: 1px solid rgba(0,0,0,0.04);
+    border-radius: var(--r-md);
+  }
+  .ocr + .ocr { margin-top: 12px; }
+  .ocr .src {
+    display: flex; gap: 6px; align-items: center;
+    font-size: 10px; font-weight: 800;
+    color: var(--ink-60); letter-spacing: 0.4px; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .ocr .src b {
+    color: var(--ink); font-weight: 700; font-size: 11px;
+    text-transform: none; letter-spacing: -0.01em;
+  }
+  .ocr .src .badge {
+    margin-left: auto;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: none;
+  }
+  .ocr .src .badge.ok { background: var(--success); color: white; }
+  .ocr .src .badge.warn { background: var(--warning); color: var(--ink); }
+  .ocr .stmt {
+    font-size: 13.5px; color: var(--ink); line-height: 1.7;
+  }
+  .ocr .stmt i { font-style: italic; color: var(--ink-60); }
+  .ocr .row {
+    display: flex; gap: 8px;
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px dashed var(--ink-09);
+  }
+  .ocr .row span {
+    align-self: center; font-size: 12px; color: var(--ink-60);
+    margin-right: auto;
+  }
+  .ocr .row button {
+    height: 32px; padding: 0 12px;
+    border-radius: 8px; border: 1px solid var(--ink-09);
+    background: var(--bg-card); color: var(--ink);
+    font-family: inherit; font-size: 12px; font-weight: 700;
+    cursor: pointer;
+  }
+  .ocr .row button.yes { background: var(--ink); color: white; border-color: var(--ink); }
+  .ocr .row .link-fix {
+    background: none; border: none;
+    color: var(--ink-60); font-family: inherit;
+    font-size: 12px; font-weight: 600;
+    padding: 0 4px; cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--ink-20);
+  }
+
+  /* checkpoint */
+  .ck {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: linear-gradient(180deg, transparent, var(--primary-surface));
+    border: 1px dashed rgba(45, 58, 140, 0.35);
+    border-radius: var(--r-md);
+  }
+  .ck .q {
+    display: block; font-size: 13.5px; font-weight: 700;
+    color: var(--primary); margin-bottom: 12px; line-height: 1.5;
+  }
+  .ck .q::before { content: "✦"; margin-right: 6px; color: var(--type-grass); }
+  .ck .row { display: flex; gap: 8px; }
+  .ck button {
+    flex: 1; height: 44px; padding: 0 14px;
+    border-radius: 10px;
+    font-family: inherit; font-size: 13.5px; font-weight: 700;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .ck .yes { background: var(--primary); color: white; }
+  .ck .no { background: var(--bg-card); color: var(--ink-72); border-color: var(--ink-09); flex: 0 0 auto; padding: 0 16px; }
+
+  /* annotated photo — FULL BLEED on mobile (escape padding) */
+  .annotated {
+    margin: 20px -18px 0;     /* break out of padding */
+    background: var(--bg-card);
+    border-top: var(--border-hair);
+    border-bottom: var(--border-hair);
+    overflow: hidden;
+  }
+  .annot-head {
+    padding: 12px 18px;
+    border-bottom: var(--border-hair);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--ink-72);
+  }
+  .annot-head .pen {
+    width: 16px; height: 16px;
+    border-radius: 5px; background: var(--pen-red);
+    display: grid; place-items: center;
+    color: white; font-size: 10px; font-weight: 800;
+  }
+  .annot-head b { color: var(--ink); font-weight: 700; }
+  .annot-head .toggle {
+    margin-left: auto;
+    font-size: 11px; color: var(--primary); font-weight: 700;
+    background: none; border: none; cursor: pointer;
+    padding: 6px 10px;
+    min-height: 32px;
+    border-radius: 6px;
+  }
+  .annot-head .toggle:active { background: var(--ink-05); }
+  .annotated svg { display: block; width: 100%; height: auto; background: var(--bg-photo); }
+  .annot-legend {
+    padding: 12px 18px;
+    border-top: var(--border-hair);
+    background: var(--bg-card);
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--ink-72);
+  }
+  .annot-legend .item { display: inline-flex; align-items: center; gap: 5px; }
+  .annot-legend .swatch {
+    width: 11px; height: 11px; border-radius: 3px;
+    border: 2px solid var(--pen-red);
+    background: var(--pen-red-soft);
+  }
+  .annot-legend .swatch.under { border: none; height: 3px; background: var(--pen-red); }
+  .annot-legend .swatch.fix { background: var(--type-grass); border-color: var(--type-grass); }
+
+  /* re-pad children after annotated full-bleed */
+  .step > .body > * + .annotated + p,
+  .step > .body > .annotated + p { margin-top: 16px; }
+
+  /* inline cite */
+  .inline-cite {
+    margin: 18px 0;
+    padding: 12px 16px;
+    background: var(--bg-paper);
+    border-left: 3px solid var(--type-grass);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    font-size: 13px; line-height: 1.65;
+    color: var(--ink-72);
+  }
+  .inline-cite .src {
+    display: block; font-size: 10px; font-weight: 800;
+    color: var(--type-grass); letter-spacing: 0.4px; text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  /* composer (sticky bottom) */
+  .composer {
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border-top: var(--border-hair);
+    padding: 8px 12px calc(8px + var(--safe-bottom));
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 6px;
+    align-items: end;
+  }
+  @media (min-width: 480px) { .composer { border-radius: 0 0 36px 36px; } }
+  .composer .ico-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: var(--bg-canvas);
+    border: var(--border-hair);
+    color: var(--ink-72);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .composer .ico-btn:active { color: var(--ink); background: var(--ink-05); }
+  .composer .ico-btn svg { width: 20px; height: 20px; }
+  .composer textarea {
+    resize: none;
+    border: 1px solid var(--ink-09);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-family: inherit; font-size: 14.5px; line-height: 1.4;
+    color: var(--ink);
+    background: var(--bg-canvas);
+    min-height: 44px; max-height: 120px;
+    width: 100%;
+  }
+  .composer textarea:focus { outline: none; border-color: var(--primary); background: var(--bg-card); }
+  .composer textarea::placeholder { color: var(--ink-60); }
+  .composer .send {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: var(--ink); color: var(--bg-canvas);
+    border: none; cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .composer .send:active { background: var(--primary); }
+  .composer .send:disabled { background: var(--ink-09); color: var(--ink-40); }
+  .composer .send svg { width: 20px; height: 20px; }
+
+  .katex { font-size: 1em; }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+<div class="viewport">
+
+  <header class="app">
+    <button class="icon-btn" aria-label="뒤로" onclick="history.back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="title">
+      <span class="ctx">
+        <span class="swatch" aria-hidden="true">증</span>
+        김시우 · 이등변삼각형
+      </span>
+      <div class="sub"><span class="pen" aria-hidden="true">✎</span> AI 빨간펜 채점 · 사진 2장</div>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <article class="question">
+      <div class="meta"><b>김시우</b><span class="when">10:15</span></div>
+      <p>이 문제 풀었는데 쌤이 틀렸대요… 어디가 틀렸는지 모르겠어요.</p>
+
+      <div class="photo-strip" aria-label="첨부된 사진 2장">
+        <figure class="photo textbook">
+          <span class="lab">교과서 문제</span>
+          <svg viewBox="0 0 240 200" role="img" aria-label="교과서 페이지 — 이등변삼각형 증명 문제">
+            <text x="14" y="22" font-family="Pretendard Variable" font-size="9" fill="#888" letter-spacing="1.5">2-3 도형의 닮음</text>
+            <text x="226" y="22" text-anchor="end" font-family="Pretendard Variable" font-size="9" fill="#888">14</text>
+            <rect x="14" y="36" width="50" height="16" rx="3" fill="#1c4ea8"/>
+            <text x="39" y="47" text-anchor="middle" font-family="Pretendard Variable"
+                  font-size="10" font-weight="700" fill="white">증명 1.4</text>
+            <text x="72" y="48" font-family="Pretendard Variable" font-size="11" font-weight="700" fill="#11141a">이등변 두 밑각 같음</text>
+            <text x="14" y="76" font-family="Pretendard Variable" font-size="10" fill="#333">△ABC에서 AB = AC 일 때,</text>
+            <text x="14" y="92" font-family="Pretendard Variable" font-size="10" fill="#333">∠B = ∠C 임을 증명하시오.</text>
+            <g transform="translate(170, 130)">
+              <polygon points="0,-30 -34,30 34,30" fill="none" stroke="#11141a" stroke-width="1.4"/>
+              <text x="0" y="-36" text-anchor="middle" font-family="Pretendard Variable" font-size="10" font-weight="600">A</text>
+              <text x="-42" y="38" text-anchor="middle" font-family="Pretendard Variable" font-size="10" font-weight="600">B</text>
+              <text x="42" y="38" text-anchor="middle" font-family="Pretendard Variable" font-size="10" font-weight="600">C</text>
+              <line x1="-19" y1="-3" x2="-15" y2="3" stroke="#11141a" stroke-width="1.2"/>
+              <line x1="15" y1="-3" x2="19" y2="3" stroke="#11141a" stroke-width="1.2"/>
+            </g>
+          </svg>
+          <div class="meta"><span><b>textbook.jpg</b></span><span>10:15</span></div>
+        </figure>
+
+        <figure class="photo notebook">
+          <span class="lab">내 풀이</span>
+          <svg viewBox="0 0 240 200" role="img" aria-label="학생 손글씨 풀이">
+            <g stroke="#c8b89a" stroke-width="0.5" opacity="0.55">
+              <line x1="0"  y1="32"  x2="240" y2="32"/>
+              <line x1="0"  y1="62"  x2="240" y2="62"/>
+              <line x1="0"  y1="92"  x2="240" y2="92"/>
+              <line x1="0"  y1="122" x2="240" y2="122"/>
+              <line x1="0"  y1="152" x2="240" y2="152"/>
+              <line x1="0"  y1="182" x2="240" y2="182"/>
+            </g>
+            <line x1="26" y1="0" x2="26" y2="200" stroke="#d99a9a" stroke-width="0.7" opacity="0.6"/>
+            <g font-family="Gaegu, sans-serif" fill="#1c2436">
+              <text x="34" y="26" font-size="13" font-weight="700">[증명]</text>
+              <text x="34" y="56" font-size="12">① AB = AC (가정)</text>
+              <text x="34" y="86" font-size="12">② ∠B = ∠C (이등변)</text>
+              <text x="34" y="116" font-size="12">③ 따라서 ∠B = ∠C 임</text>
+              <text x="34" y="146" font-size="12">  ∴  증명 끝.  ☆</text>
+            </g>
+          </svg>
+          <div class="meta"><span><b>my-proof.jpg</b></span><span>10:15</span></div>
+        </figure>
+      </div>
+    </article>
+
+    <!-- step 1: OCR -->
+    <article class="step">
+      <div class="num">1</div>
+      <span class="sr-only">단계 1 — 사진 읽기</span>
+      <h2>네 사진에서 이렇게 읽었어 — 맞아?</h2>
+      <div class="body">
+        <p>잘못 읽었으면 한 번에 고쳐줘. 그래야 풀이도 맞아.</p>
+
+        <div class="ocr">
+          <div class="src"><span aria-hidden="true">📷</span> <b>textbook.jpg</b><span class="badge ok">자신 있음</span></div>
+          <div class="stmt">
+            <b>주어진:</b> △ABC, $\overline{AB} = \overline{AC}$<br>
+            <b>증명할 것:</b> $\angle B = \angle C$
+          </div>
+          <div class="row">
+            <span>이 문제 맞아?</span>
+            <button class="yes">맞아</button>
+            <button class="link-fix" aria-label="문제 직접 고치기">고치기</button>
+          </div>
+        </div>
+
+        <div class="ocr">
+          <div class="src"><span aria-hidden="true">✍</span><span aria-hidden="true">️</span> <b>my-proof.jpg</b><span class="badge warn">한 줄 모호</span></div>
+          <div class="stmt">
+            ① $\overline{AB} = \overline{AC}$ <i>(가정)</i><br>
+            ② $\angle B = \angle C$ <i>(이등변)</i><br>
+            ③ 따라서 $\angle B = \angle C$
+          </div>
+          <div class="row">
+            <span>네 풀이 맞아?</span>
+            <button class="yes">맞아</button>
+            <button class="link-fix" aria-label="②번 직접 고치기">②번 고치기</button>
+          </div>
+        </div>
+      </div>
+      <div class="ck">
+        <span class="q">두 인식 결과 OK?</span>
+        <div class="row">
+          <button class="yes" onclick="next(this)">응, 채점받자</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- step 2: 빨간펜 -->
+    <article class="step">
+      <div class="num">2</div>
+      <span class="sr-only">단계 2 — 어디가 무너졌나</span>
+      <h2>네 풀이에 빨간펜으로 표시했어</h2>
+      <div class="body">
+        <p>핵심은 <b>②번 한 줄</b>이야. 정답 자체를 이유로 들었어. 이걸 <i>순환논리</i>라고 불러.</p>
+
+        <div class="annotated">
+          <div class="annot-head">
+            <span class="pen" aria-hidden="true">✎</span>
+            <b>my-proof.jpg</b> · AI 채점
+            <button class="toggle" id="toggleAnnot">원본만</button>
+          </div>
+          <svg viewBox="0 0 380 220" role="img" aria-label="학생 풀이에 빨간펜 채점 오버레이">
+            <g stroke="#c8b89a" stroke-width="0.6" opacity="0.55">
+              <line x1="0" y1="34" x2="380" y2="34"/>
+              <line x1="0" y1="66" x2="380" y2="66"/>
+              <line x1="0" y1="98" x2="380" y2="98"/>
+              <line x1="0" y1="130" x2="380" y2="130"/>
+              <line x1="0" y1="162" x2="380" y2="162"/>
+              <line x1="0" y1="194" x2="380" y2="194"/>
+            </g>
+            <line x1="32" y1="0" x2="32" y2="220" stroke="#d99a9a" stroke-width="0.8" opacity="0.6"/>
+
+            <g font-family="Gaegu, sans-serif" fill="#1c2436" id="annot-handwriting">
+              <text x="40" y="28" font-size="14" font-weight="700">[증명]</text>
+              <text x="40" y="58" font-size="13">① AB = AC 이다 (가정)</text>
+              <text x="40" y="90" font-size="13">② ∠B = ∠C  (이등변이니까)</text>
+              <text x="40" y="122" font-size="13">③ 따라서 ∠B = ∠C 이다.</text>
+              <text x="40" y="154" font-size="13">      ∴  증명 끝.  ☆</text>
+            </g>
+
+            <g id="annot-overlay">
+              <text x="335" y="60" font-size="16" fill="#3FA129" font-weight="700">✓</text>
+              <rect x="36" y="74" width="290" height="22" rx="3"
+                    fill="rgba(217,46,46,0.10)"
+                    stroke="#d92e2e" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <line x1="40" y1="119" x2="280" y2="125" stroke="#d92e2e" stroke-width="1.5"/>
+              <line x1="80" y1="151" x2="220" y2="155" stroke="#d92e2e" stroke-width="1.5"/>
+
+              <g font-family="Gaegu, sans-serif" fill="#d92e2e" font-weight="700">
+                <path d="M 335 90 Q 350 90 350 105" fill="none" stroke="#d92e2e" stroke-width="1.5"/>
+                <text x="345" y="118" font-size="12">↑ 여기!</text>
+                <g transform="translate(170, 175)">
+                  <rect x="0" y="0" width="200" height="36" rx="6" fill="#fff5f5" stroke="#d92e2e" stroke-width="1"/>
+                  <text x="10" y="14" font-size="11" font-weight="700">"이등변이니까" 가</text>
+                  <text x="10" y="29" font-size="11" font-weight="700">곧 ∠B=∠C 라는 뜻이야.</text>
+                </g>
+              </g>
+            </g>
+          </svg>
+          <div class="annot-legend">
+            <span class="item"><span class="swatch" aria-hidden="true"></span> 의심 구간</span>
+            <span class="item"><span class="swatch fix" aria-hidden="true"></span> 통과</span>
+          </div>
+        </div>
+
+        <p>'이등변이니까 두 밑각이 같다'는 결국 <b>"두 밑각이 같으니까 두 밑각이 같다"</b>를 적은 거야. 이유가 비어있는 거지.</p>
+      </div>
+      <div class="ck">
+        <span class="q">왜 ②번이 안 되는지 감이 잡혀?</span>
+        <div class="row">
+          <button class="yes">응, 다음으로</button>
+          <button class="no" aria-label="다시 설명">다시</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- step 3: 정답 풀이 -->
+    <article class="step">
+      <div class="num">3</div>
+      <span class="sr-only">단계 3 — 바로 잡는 길</span>
+      <h2>보조선 한 줄로 무너지지 않아</h2>
+      <div class="body">
+        <p>꼭짓점 $A$에서 밑변 $BC$의 중점 $M$ 으로 보조선 $\overline{AM}$ 을 그어.</p>
+
+        <div class="annotated">
+          <div class="annot-head">
+            <span class="pen" style="background: var(--type-grass);" aria-hidden="true">✦</span>
+            <b>제대로 된 풀이</b> · AI 그림
+          </div>
+          <svg viewBox="0 0 380 200" role="img" aria-label="보조선 AM이 들어간 이등변삼각형">
+            <g transform="translate(190, 170)">
+              <polygon points="0,-130 -90,0 90,0" fill="none" stroke="#11141a" stroke-width="1.5"/>
+              <line x1="0" y1="-130" x2="0" y2="0" stroke="#3FA129" stroke-width="1.8" stroke-dasharray="5 3"/>
+              <polyline points="-7,-7 -7,0 0,0" fill="none" stroke="#3FA129" stroke-width="1"/>
+              <text x="0" y="-138" text-anchor="middle" font-family="Pretendard Variable" font-size="12" font-weight="700">A</text>
+              <text x="-98" y="14" font-family="Pretendard Variable" font-size="12" font-weight="700">B</text>
+              <text x="92" y="14" font-family="Pretendard Variable" font-size="12" font-weight="700">C</text>
+              <text x="0" y="14" text-anchor="middle" font-family="Pretendard Variable" font-size="12" font-weight="700" fill="#3FA129">M</text>
+              <line x1="-49" y1="-67" x2="-44" y2="-62" stroke="#11141a" stroke-width="1.4"/>
+              <line x1="44" y1="-67" x2="49" y2="-62" stroke="#11141a" stroke-width="1.4"/>
+              <line x1="-47" y1="-3" x2="-43" y2="3" stroke="#11141a" stroke-width="1.4"/>
+              <line x1="43" y1="-3" x2="47" y2="3" stroke="#11141a" stroke-width="1.4"/>
+            </g>
+            <text x="190" y="194" text-anchor="middle" font-family="Pretendard Variable"
+                  font-size="11" fill="rgba(17,20,26,0.6)">$M$ = $BC$의 중점, $\overline{AM}$ = 보조선</text>
+          </svg>
+        </div>
+
+        <p>두 삼각형 △ABM 과 △ACM 에서:</p>
+        <p>$$\overline{AB} = \overline{AC},\;\; \overline{BM} = \overline{CM},\;\; \overline{AM}\;\text{공통}$$</p>
+        <p>세 변이 같으니 <b>SSS 합동</b>. 합동인 두 삼각형의 대응각은 같으니까 결국 $\angle B = \angle C$.</p>
+
+        <div class="inline-cite">
+          <span class="src">학원 메모 · 김시우</span>
+          시우야, 증명에서 막히면 일단 보조선 그릴 수 있는지부터 보자. 중1 이등변 = "중점 보조선" 이 약속.
+        </div>
+      </div>
+      <div class="ck">
+        <span class="q">보조선 아이디어 익혔어?</span>
+        <div class="row">
+          <button class="yes">응, 마무리</button>
+          <button class="no" aria-label="합동 조건 다시 설명">합동 다시</button>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <form class="composer" onsubmit="event.preventDefault();">
+    <button type="button" class="ico-btn" aria-label="사진 추가">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/></svg>
+    </button>
+    <label class="sr-only" for="ta-mobilephoto">이어서 질문하기</label>
+      <textarea id="ta-mobilephoto"
+      aria-label="이어서 질문하기"
+      placeholder="궁금한 거 있으면 더 물어봐"
+      rows="1"></textarea>
+    <button type="submit" class="send" aria-label="보내기" disabled aria-disabled="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </form>
+
+</div>
+
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+          delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}],
+          throwOnError: false
+        });"></script>
+
+<script>
+  // annotation toggle
+  const toggle = document.getElementById('toggleAnnot');
+  const overlay = document.getElementById('annot-overlay');
+  let hidden = false;
+  toggle?.addEventListener('click', () => {
+    hidden = !hidden;
+    overlay.style.display = hidden ? 'none' : '';
+    toggle.textContent = hidden ? '채점 보기' : '원본만';
+  });
+
+  // composer auto-grow + send enable
+  const ta = document.querySelector('.composer textarea');
+  const send = document.querySelector('.composer .send');
+  ta?.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+    const empty = ta.value.trim().length === 0;
+    send.disabled = empty;
+    send.setAttribute('aria-disabled', String(empty));
+  });
+
+  function next(btn) {
+    btn.closest('.step').nextElementSibling?.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+</script>
+</body>
+</html>

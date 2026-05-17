@@ -2529,6 +2529,8 @@
     font: inherit;
     transition: transform .1s var(--e-out);
   }
+  /* HTML hidden 속성을 살리기 — display:flex 가 user-agent [hidden]{display:none} 을 덮어버리는 specificity tie 문제 */
+  .mywords-exam-btn[hidden] { display: none !important; }
   .mywords-exam-btn:active {
     transform: translate(2px, 2px);
     box-shadow: 1px 1px 0 var(--ink);
@@ -2691,7 +2693,7 @@
     color: var(--ink-2);
     margin-bottom: 8px;
   }
-  .csat-tier-btn, .csat-size-btn {
+  .csat-tier-btn, .csat-size-btn, .mywords-size-btn {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 12px;
     margin: 0 6px 6px 0;
@@ -2708,7 +2710,12 @@
     background: linear-gradient(90deg, #c2410c, #ea580c);
     color: #fff;
   }
-  .csat-tier-btn:active, .csat-size-btn:active {
+  /* 내 단어 시험은 primary 컬러로 (CSAT 와 시각적 구분) */
+  .mywords-size-btn[aria-pressed="true"] {
+    background: linear-gradient(90deg, var(--pri), #3a4aae);
+    color: #fff;
+  }
+  .csat-tier-btn:active, .csat-size-btn:active, .mywords-size-btn:active {
     transform: translate(1px, 1px);
     box-shadow: 1px 1px 0 var(--ink);
   }
@@ -2816,7 +2823,35 @@
     background: var(--pri);
     transition: width .2s ease-out;
   }
+  /* Source chip — 카드 상단 우측 코너 배지 (absolute) */
+  .print-take-source-chip {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 11px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    z-index: 1;
+  }
+  .print-take-source-chip.is-textbook {
+    background: rgba(59, 130, 246, 0.18);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+  }
+  .print-take-source-chip.is-student {
+    background: rgba(16, 185, 129, 0.18);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+  }
+
   .print-take-stage {
+    position: relative;  /* chip 의 absolute anchor */
     background: #f7fafc;
     border: 2px solid var(--ink);
     border-radius: 14px;
@@ -3592,6 +3627,29 @@
           </button>
         </div>
 
+        <!-- 내 단어 시험 옵션 시트 -->
+        <div class="csat-sheet-backdrop" id="mywords-sheet" aria-hidden="true" role="dialog" aria-labelledby="mywords-sheet-title">
+          <div class="csat-sheet">
+            <h3 id="mywords-sheet-title">📝 내 단어 시험</h3>
+            <p class="csat-sub">내 단어장에서 출제 · 학습 진도(Box) 기반 가중 샘플링</p>
+
+            <div class="csat-group">
+              <span class="csat-label">문항수</span>
+              <button type="button" class="mywords-size-btn" data-size="5" aria-pressed="false">5문제</button>
+              <button type="button" class="mywords-size-btn" data-size="10" aria-pressed="true">10문제</button>
+              <button type="button" class="mywords-size-btn" data-size="20" aria-pressed="false">20문제</button>
+              <button type="button" class="mywords-size-btn" data-size="30" aria-pressed="false">30문제</button>
+            </div>
+
+            <p class="csat-meta">Box 1·2 (신규/학습중) 단어가 더 자주 출제되고, Box 5 (외움) 은 제외돼요.</p>
+
+            <div class="csat-actions">
+              <button type="button" class="csat-cancel" id="mywords-cancel">취소</button>
+              <button type="button" class="csat-go" id="mywords-go">시험 시작 →</button>
+            </div>
+          </div>
+        </div>
+
         <!-- 수능 시험 옵션 시트 -->
         <div class="csat-sheet-backdrop" id="csat-sheet" aria-hidden="true" role="dialog" aria-labelledby="csat-sheet-title">
           <div class="csat-sheet">
@@ -4003,6 +4061,7 @@
       <div class="print-take-bar" aria-hidden="true"><i id="print-take-bar-fill" style="--p:0%"></i></div>
 
       <div class="print-take-stage" id="print-take-stage">
+        <span class="print-take-source-chip" id="print-take-source-chip" hidden></span>
         <div class="print-take-prompt" id="print-take-prompt">—</div>
       </div>
 
@@ -5634,6 +5693,8 @@
       printState.questions = (data.questions || []).map(q => ({
         wordId: q.wordId, prompt: q.prompt,
         choices: q.choices || [], selectedIndex: q.selectedIndex,
+        source: q.source || 'student',
+        textbookTitle: q.textbookTitle || null,
       }));
       printState.idx = 0;
       document.getElementById('print-take-result').hidden = true;
@@ -5650,52 +5711,81 @@
   });
 
   // 내 단어장 상단 "시험 치기" — self-start
-  document.getElementById('btn-self-exam')?.addEventListener('click', async () => {
+  // 내 단어 시험 — 시트 열기 + 옵션 선택 → self-start (source=mywords)
+  (function setupMywordsExam() {
     const btn = document.getElementById('btn-self-exam');
-    if (!btn) return;
-    const origHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="lbl">생성 중…</span>';
-    try {
-      const res = await selfStartPrintJob(10);
-      if (res.error) {
-        // 서버 상세 메시지를 긴 지속시간 토스트로 표시 (6s)
-        toast(res.error, 6000);
-        return;
-      }
-      const data = res.data;
-      if (!data?.id || !data?.questions?.length) {
-        toast('시험지 생성 실패 · 잠시 후 다시 시도해 주세요.', 5000);
-        return;
-      }
-      // 기존 진행 중 시험 이어서 풀기 / 오늘 N번째 시험 안내
-      if (data.resumed) {
-        toast('진행 중이던 시험을 이어서 풀어요', 3500);
-      } else if (data.todayIndex && data.todayIndex > 1) {
-        toast(`오늘 ${data.todayIndex}번째 시험 — 다시 도전!`, 3000);
-      }
-      printState.jobId = data.id;
-      printState.questions = (data.questions || []).map(q => ({
-        wordId: q.wordId,
-        prompt: q.prompt,
-        choices: q.choices || [],
-        selectedIndex: q.selectedIndex,
-      }));
-      printState.idx = 0;
-      document.getElementById('print-take-result').hidden = true;
-      document.body.dataset.screen = 'print';
-      // 단어가 많아 단어장이 스크롤된 상태에서 진입하면 시험지 첫 문항이 화면 밖에 가려짐 → 강제 스크롤 리셋
-      document.querySelector('main.app')?.scrollTo({ top: 0, behavior: 'instant' });
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      renderPrintTake();
-    } catch (e) {
-      console.warn('[self-exam] failed', e);
-      toast('시험지 생성 실패');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = origHtml;
+    const sheet = document.getElementById('mywords-sheet');
+    const cancel = document.getElementById('mywords-cancel');
+    const go = document.getElementById('mywords-go');
+    if (!btn || !sheet || !go) return;
+
+    // 모달을 body 직속으로 이동 (다른 화면 진입 시 display:none 영향 회피)
+    if (sheet.parentElement !== document.body) document.body.appendChild(sheet);
+
+    function openSheet() { sheet.setAttribute('aria-hidden', 'false'); }
+    function closeSheet() { sheet.setAttribute('aria-hidden', 'true'); }
+    btn.addEventListener('click', openSheet);
+    cancel?.addEventListener('click', closeSheet);
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
+
+    // 토글 그룹 (문항수 단일 선택)
+    const sizeBtns = sheet.querySelectorAll('.mywords-size-btn');
+    sizeBtns.forEach((el) => {
+      el.addEventListener('click', () => {
+        sizeBtns.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+        el.setAttribute('aria-pressed', 'true');
+      });
+    });
+
+    function getSelectedSize() {
+      const el = sheet.querySelector('.mywords-size-btn[aria-pressed="true"]');
+      return el ? Number(el.getAttribute('data-size')) : 10;
     }
-  });
+
+    go.addEventListener('click', async () => {
+      const size = getSelectedSize();
+      go.disabled = true;
+      const origText = go.textContent;
+      go.textContent = '생성 중…';
+      try {
+        const res = await selfStartPrintJob(size);
+        if (res.error) {
+          toast(res.error, 6000);
+          return;
+        }
+        const data = res.data;
+        if (!data?.id || !data?.questions?.length) {
+          toast('시험지 생성 실패 · 잠시 후 다시 시도해 주세요.', 5000);
+          return;
+        }
+        if (data.resumed) toast('진행 중이던 시험을 이어서 풀어요', 3500);
+        else if (data.todayIndex && data.todayIndex > 1) toast(`오늘 ${data.todayIndex}번째 시험 — 다시 도전!`, 3000);
+
+        printState.jobId = data.id;
+        printState.questions = (data.questions || []).map(q => ({
+          wordId: q.wordId,
+          prompt: q.prompt,
+          choices: q.choices || [],
+          selectedIndex: q.selectedIndex,
+          source: q.source || 'student',
+          textbookTitle: q.textbookTitle || null,
+        }));
+        printState.idx = 0;
+        document.getElementById('print-take-result').hidden = true;
+        closeSheet();
+        document.body.dataset.screen = 'print';
+        document.querySelector('main.app')?.scrollTo({ top: 0, behavior: 'instant' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        renderPrintTake();
+      } catch (e) {
+        console.warn('[self-exam] failed', e);
+        toast('시험지 생성 실패');
+      } finally {
+        go.disabled = false;
+        go.textContent = origText;
+      }
+    });
+  })();
 
   // 수능 영단어 시험 — 시트 열기 + 옵션 선택 → self-start (source=csat)
   (function setupCsatExam() {
@@ -5805,6 +5895,8 @@
       printState.questions = (data.questions || []).map(q => ({
         wordId: q.wordId, prompt: q.prompt,
         choices: q.choices || [], selectedIndex: q.selectedIndex,
+        source: q.source || 'student',
+        textbookTitle: q.textbookTitle || null,
       }));
       printState.idx = 0;
       printState.isMedical = true;
@@ -5885,12 +5977,18 @@
     });
   })();
 
-  // 카탈로그 가시성 — 의학용어 카탈로그가 본인에게 배정돼 있으면 버튼 노출
+  // 의학용어 시험 버튼 visibility — 보건계열 catalog 권한 가진 학생에게만 노출
+  // (장혜연·장혜정 등). 그 외 학생은 hidden 유지.
   (async function applyCatalogVisibility() {
     try {
       const list = await getMyCatalogs();
       if (!Array.isArray(list)) return;
-      const hasMedical = list.some((c) => typeof c?.id === 'string' && c.id.startsWith('medical-'));
+      // kind='medterm' 인 catalog 가 권한에 있으면 의학용어 학생
+      // (옛 코드는 id prefix 로 체크 — 더 robust 하게 kind 우선, fallback prefix)
+      const hasMedical = list.some((c) =>
+        c?.kind === 'medterm'
+        || (typeof c?.id === 'string' && c.id.startsWith('medical-'))
+      );
       const btn = document.getElementById('btn-medical-exam');
       if (btn && hasMedical) btn.hidden = false;
     } catch (e) {
@@ -5910,6 +6008,8 @@
         prompt: q.prompt,
         choices: q.choices || [],
         selectedIndex: q.selectedIndex,
+        source: q.source || 'student',
+        textbookTitle: q.textbookTitle || null,
       }));
       printState.idx = 0;
       document.getElementById('print-take-result').hidden = true;
@@ -5948,6 +6048,17 @@
 
     document.getElementById('print-take-prompt').textContent = q.prompt;
     document.getElementById('print-take-progress').textContent = `${printState.idx + 1} / ${total}`;
+
+    // source chip — 공통어휘(textbook) / 내 단어(student) 구분 표시
+    const chip = document.getElementById('print-take-source-chip');
+    if (chip) {
+      const isTextbook = q.source === 'textbook';
+      chip.hidden = false;
+      chip.className = 'print-take-source-chip ' + (isTextbook ? 'is-textbook' : 'is-student');
+      chip.textContent = isTextbook
+        ? `📘 공통${q.textbookTitle ? ' · ' + q.textbookTitle : ''}`
+        : '⭐ 내 단어';
+    }
     const pct = total > 0 ? Math.round((printState.idx / total) * 100) : 0;
     document.getElementById('print-take-bar-fill').style.setProperty('--p', pct + '%');
 

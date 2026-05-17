@@ -119,6 +119,15 @@ export default function VocabExamPage() {
 
       <main className="vexam-main">
         <div className="vexam-prompt">
+          {cur.source === 'textbook' ? (
+            <span className="vexam-source-chip vexam-source-chip--textbook">
+              📘 공통{cur.textbookTitle ? ` · ${cur.textbookTitle}` : ''}
+            </span>
+          ) : (
+            <span className="vexam-source-chip vexam-source-chip--student">
+              ⭐ 내 단어
+            </span>
+          )}
           <span className="vexam-en">
             {cur.prompt}
             <TtsButton text={cur.prompt} size={22} />

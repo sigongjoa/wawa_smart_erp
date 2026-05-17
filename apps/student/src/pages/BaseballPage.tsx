@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type BaseballWord, type BaseballWordsResponse } from '../api';
-import TtsButton from '../components/TtsButton';
 import './BaseballPage.css';
 
 type Tier = 1 | 2 | 3 | 4;
@@ -12,7 +11,7 @@ const TIER_LABEL: Record<Tier, string> = {
   4: '고3·수능 심화',
 };
 
-const THROW_MS = 2800;
+const THROW_MS = 5600;
 const MAX_INNING = 4;
 const MAX_PITCHES_PER_HALF = 7;
 const BEST_KEY = 'wb_best_v1';
@@ -940,10 +939,7 @@ export default function BaseballPage() {
             <span className="q-hint">
               {isOffense ? '⚾ 공이 날아온다 — 뜻 맞혀 쳐라!' : '🧢 공을 던져라 — 빠를수록 스트라이크!'}
             </span>
-            <span className="q-word">
-              {current?.prompt ?? '—'}
-              {isOffense && current?.prompt && <TtsButton text={current.prompt} size={18} />}
-            </span>
+            <span className="q-word">{current?.prompt ?? '—'}</span>
             <div className="timer-bar">
               <div
                 className="timer-bar-fill"

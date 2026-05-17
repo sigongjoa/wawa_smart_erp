@@ -6,13 +6,40 @@ export function MedTermExamsListPage() {
   const navigate = useNavigate();
   const [attempts, setAttempts] = useState<MedTermExamAttempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessChecking, setAccessChecking] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    medtermApi.access()
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.has_access) {
+          navigate('/', { replace: true });
+          return;
+        }
+        setHasAccess(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        navigate('/', { replace: true });
+      })
+      .finally(() => {
+        if (!cancelled) setAccessChecking(false);
+      });
+    return () => { cancelled = true; };
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!hasAccess) return;
     medtermApi.listExamAttempts()
       .then((r) => setAttempts(r.items))
       .finally(() => setLoading(false));
-  }, []);
+  }, [hasAccess]);
 
+  if (accessChecking || !hasAccess) {
+    return <div className="medterm-page" data-testid="medterm-access-checking">권한 확인 중...</div>;
+  }
   if (loading) return <div className="medterm-page">불러오는 중...</div>;
 
   return (
@@ -63,8 +90,32 @@ export function MedTermExamAttemptPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accessChecking, setAccessChecking] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    medtermApi.access()
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.has_access) {
+          navigate('/', { replace: true });
+          return;
+        }
+        setHasAccess(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        navigate('/', { replace: true });
+      })
+      .finally(() => {
+        if (!cancelled) setAccessChecking(false);
+      });
+    return () => { cancelled = true; };
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!hasAccess) return;
     if (!attemptId) return;
     medtermApi.getExamAttempt(attemptId).then((r) => {
       setAttempt(r.attempt);
@@ -78,7 +129,7 @@ export function MedTermExamAttemptPage() {
       setResponses(respMap);
       setResults(resultMap);
     }).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }, [attemptId]);
+  }, [hasAccess, attemptId]);
 
   async function saveResponse(itemId: string, response: unknown) {
     if (!attemptId) return;
@@ -110,6 +161,9 @@ export function MedTermExamAttemptPage() {
     }
   }
 
+  if (accessChecking || !hasAccess) {
+    return <div className="medterm-page" data-testid="medterm-access-checking">권한 확인 중...</div>;
+  }
   if (loading) return <div className="medterm-page">불러오는 중...</div>;
   if (!attempt) return <div className="medterm-page" data-testid="medterm-attempt-error">평가를 찾을 수 없습니다.</div>;
 

@@ -482,3 +482,20 @@ a[role="button"] {
   .ordering-step { padding: 12px 10px; }
   .fillblank-input { min-width: 72px; }
 }
+
+/* ─ a11y 글로벌 (mockup _shared.css 에서 머지) ────────────── */
+.skip-link {
+  position: absolute; top: -48px; left: 8px;
+  background: var(--primary); color: white;
+  padding: 10px 16px; border-radius: 0 0 8px 8px;
+  text-decoration: none; font-weight: 700; font-size: 13px;
+  z-index: 10000;
+  transition: top 150ms var(--ease, ease);
+}
+.skip-link:focus { top: 0; outline: 2px solid white; outline-offset: -4px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

@@ -463,7 +463,7 @@ export async function handleExamMgmt(
     if (!paper) return errorResponse('시험지를 찾을 수 없습니다', 404);
     const rows = await executeQuery<any>(
       db,
-      `SELECT id, question_no, prompt, choices, correct_choice, points
+      `SELECT id, question_no, prompt, choices, correct_choice, points, category
          FROM exam_questions WHERE exam_paper_id = ? ORDER BY question_no`,
       [paperId]
     );
@@ -474,6 +474,7 @@ export async function handleExamMgmt(
       choices: safeParseChoices(r.choices),
       correctChoice: r.correct_choice,
       points: r.points,
+      category: r.category ?? null,
     })));
   }
 
@@ -517,8 +518,8 @@ export async function handleExamMgmt(
       await executeInsert(
         db,
         `INSERT INTO exam_questions
-           (id, exam_paper_id, question_no, prompt, choices, correct_choice, points)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (id, exam_paper_id, question_no, prompt, choices, correct_choice, points, category)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           paperId,
@@ -527,6 +528,7 @@ export async function handleExamMgmt(
           JSON.stringify(q.choices.map((c: string) => c.trim())),
           q.correctChoice,
           Number.isFinite(Number(q.points)) ? Number(q.points) : 1,
+          typeof q.category === 'string' && q.category.trim() ? q.category.trim() : null,
         ]
       );
     }

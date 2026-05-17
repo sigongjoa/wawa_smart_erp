@@ -3,9 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { api, VocabExamAvailability } from '../api';
 import './VocabExamCard.css';
 
+type CatalogOption = { id: string; title: string; word_count: number; is_default: boolean };
+type ExamSource = 'mywords' | 'mixed' | string;  // 'mywords' | 'mixed' | catalog_id
+
 export default function VocabExamCard() {
   const navigate = useNavigate();
   const [avail, setAvail] = useState<VocabExamAvailability | null>(null);
+  const [catalogs, setCatalogs] = useState<CatalogOption[]>([]);
+  const [source, setSource] = useState<ExamSource>('mywords');
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,6 +18,10 @@ export default function VocabExamCard() {
 
   useEffect(() => {
     refresh();
+    // 카탈로그 한번만 로드
+    api.getMyVocabCatalogs()
+      .then((r) => setCatalogs(r.catalogs || []))
+      .catch(() => setCatalogs([]));
   }, []);
 
   // 쿨다운 카운트다운용 1초 틱
@@ -49,7 +58,12 @@ export default function VocabExamCard() {
     setStarting(true);
     setError(null);
     try {
-      const res = await api.startVocabSelfExam();
+      const opts = source === 'mywords'
+        ? {}
+        : source === 'mixed'
+        ? { source: 'mixed' as const }
+        : { source: 'csat' as const, catalog_id: source };
+      const res = await api.startVocabSelfExam(opts);
       navigate(`/vocab/exam/${res.id}`);
     } catch (e: any) {
       setError(e.message ?? '시험을 시작할 수 없어요');
@@ -75,6 +89,9 @@ export default function VocabExamCard() {
 
   const inProgress = !!avail.inProgressId;
 
+  // 기본(csat-megastudy-2025) 제외하고 어휘끝 (vtb_) 카탈로그만 우선 노출
+  const userCatalogs = catalogs.filter((c) => c.id.startsWith('vtb_'));
+
   return (
     <div className="vcard">
       <div className="vcard-head">
@@ -92,6 +109,30 @@ export default function VocabExamCard() {
           <span>· 제한 {Math.floor(avail.policy.time_limit_sec / 60)}분</span>
         )}
       </div>
+
+      {/* 출제 범위 선택 */}
+      {!inProgress && userCatalogs.length > 0 && (
+        <div className="vcard-source">
+          <label className="vcard-source-label" htmlFor="vcard-source-select">
+            출제 범위
+          </label>
+          <select
+            id="vcard-source-select"
+            className="vcard-source-select"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            disabled={starting}
+          >
+            <option value="mywords">⭐ 내 단어 (학생 단어장)</option>
+            <option value="mixed">🎯 내 단어 + 공통어휘 (섞어서)</option>
+            {userCatalogs.map((c) => (
+              <option key={c.id} value={c.id}>
+                📘 {c.title} ({c.word_count.toLocaleString()})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {error && <div className="vcard-error">{error}</div>}
 

@@ -44,6 +44,7 @@ const ParentHomeworkPage = lazy(() => import('./pages/ParentHomeworkPage'));
 const StudentLessonsPage = lazy(() => import('./pages/StudentLessonsPage'));
 const ParentLessonsPage = lazy(() => import('./pages/ParentLessonsPage'));
 const CurriculumPage = lazy(() => import('./pages/CurriculumPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -122,6 +123,7 @@ export default function App() {
             <Route path="/homeroom/follow-ups" element={<HomeroomFollowUpsPage />} />
             <Route path="/homeroom/exams" element={<HomeroomExamsPage />} />
             <Route path="/medterm" element={<MedTermAdminPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/timer" replace />} />
         </Routes>

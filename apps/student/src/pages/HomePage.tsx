@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, Session, ProofListItem, AssignmentListItem, ExamListItem } from '../api';
+import { api, calendarApi, Session, ProofListItem, AssignmentListItem, ExamListItem, CalendarEvent } from '../api';
 import { useAuthStore } from '../store';
 import { useVisiblePolling } from '../lib/useVisiblePolling';
 import './HomePage.css';
+import { BookOpenText, Function, ClipboardText, Exam, Baseball, ChatCircleDots, Cards, CalendarDots } from '@phosphor-icons/react';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -12,22 +13,28 @@ export default function HomePage() {
   const [proofs, setProofs] = useState<ProofListItem[]>([]);
   const [assignments, setAssignments] = useState<AssignmentListItem[]>([]);
   const [exams, setExams] = useState<ExamListItem[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [examChecking, setExamChecking] = useState(true);
   const [examMsg, setExamMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    const today = new Date();
+    const sevenDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+    const toYmd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     Promise.all([
       api.getSession().catch(() => null),
       api.getProofs().catch(() => []),
       api.getAssignments().catch(() => []),
       api.listExams().catch(() => []),
-    ]).then(([sess, prfs, asns, exs]) => {
+      calendarApi.list(toYmd(today), toYmd(sevenDaysLater)).catch(() => ({ events: [] })),
+    ]).then(([sess, prfs, asns, exs, cal]) => {
       setSession(sess);
       // 서버 응답 변경(paginated 객체 등)에도 견고하게 — 배열 강제 정규화
       setProofs(Array.isArray(prfs) ? prfs : []);
       setAssignments(Array.isArray(asns) ? asns : []);
       setExams(Array.isArray(exs) ? exs : []);
+      setUpcomingEvents(Array.isArray(cal?.events) ? cal.events : []);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -77,9 +84,9 @@ export default function HomePage() {
   const progressPct = totalTarget > 0 ? Math.min(100, Math.round((totalDone / totalTarget) * 100)) : 0;
   const isCompleted = totalDone >= totalTarget;
 
-  // 가장 급한 학습: 영단어 → 증명 → 과제 순
+  // 급한 학습만 Hero CTA로: 재제출 → 증명 → 과제. 없으면 CTA 자체 X (영단어는 타일이 책임)
   const goWordGacha = () => { window.location.href = '/word-gacha/'; };
-  const primaryAction = (() => {
+  const primaryAction: { label: string; go: () => void } | null = (() => {
     if (pendingAssignments.some((a) => a.status === 'needs_resubmit')) {
       const urgent = pendingAssignments.find((a) => a.status === 'needs_resubmit')!;
       return { label: '재제출 과제 확인', go: () => navigate(`/assignments/${urgent.target_id}`) };
@@ -90,17 +97,22 @@ export default function HomePage() {
     if (pendingAssignments.length > 0) {
       return { label: '과제 확인하기', go: () => navigate(`/assignments/${pendingAssignments[0].target_id}`) };
     }
-    return { label: '영단어 하러 가기', go: goWordGacha };
+    return null;
   })();
 
   return (
     <div className="hp" style={{ ['--hp-pct' as string]: `${progressPct}%` }}>
       {/* 1. 상단 인사 */}
       <header className="hp-greet">
-        <div className="hp-greet-hi">
-          안녕, <strong>{studentName}</strong>
+        <div className="hp-greet-avatar" aria-hidden="true">
+          {studentName ? studentName.slice(-1) : '와'}
         </div>
-        <span className="hp-greet-date">{todayLabel}</span>
+        <div className="hp-greet-text">
+          <div className="hp-greet-hi">
+            안녕, <strong>{studentName}</strong>
+          </div>
+          <span className="hp-greet-date">{todayLabel}</span>
+        </div>
       </header>
 
       {/* 2. 오늘의 학습 CTA 카드 */}
@@ -117,10 +129,16 @@ export default function HomePage() {
         <div className="hp-today-bar" aria-hidden="true">
           <div className="hp-today-bar-fill" />
         </div>
-        <button type="button" className="hp-today-cta" onClick={primaryAction.go}>
-          {isCompleted ? '오늘치 완료 — 더 하기' : primaryAction.label}
-          <span className="hp-today-cta-arrow" aria-hidden="true">→</span>
-        </button>
+        {(primaryAction || isCompleted) && (
+          <button
+            type="button"
+            className="hp-today-cta"
+            onClick={primaryAction ? primaryAction.go : goWordGacha}
+          >
+            {isCompleted ? '오늘치 완료 — 더 하기' : primaryAction!.label}
+            <span className="hp-today-cta-arrow" aria-hidden="true">→</span>
+          </button>
+        )}
       </section>
 
       {/* 3. 2×2 타일 (빠른 진입) */}
@@ -131,12 +149,14 @@ export default function HomePage() {
           onClick={goWordGacha}
           aria-label="영단어 학습으로 이동"
         >
+          <BookOpenText className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
             <span className="hp-tile-label">영단어</span>
           </div>
           <div className="hp-tile-value">
-            <span className="hp-tile-value-sub">하러 가기 →</span>
+            <span className="hp-tile-value-num">{session?.cards_drawn ?? 0}</span>
+            <span className="hp-tile-value-sub">/ {session?.cards_target ?? 10}</span>
           </div>
         </button>
 
@@ -147,6 +167,7 @@ export default function HomePage() {
           onClick={() => proofs.length > 0 && navigate(`/proof/${proofs[0].id}/ordering`)}
           aria-label={`증명 ${session?.proofs_done ?? 0}/${session?.proofs_target ?? 5}`}
         >
+          <Function className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
             <span className="hp-tile-label">증명</span>
@@ -163,6 +184,7 @@ export default function HomePage() {
           onClick={() => navigate('/assignments')}
           aria-label={`과제 ${pendingAssignments.length}건`}
         >
+          <ClipboardText className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
             <span className="hp-tile-label">과제</span>
@@ -190,6 +212,7 @@ export default function HomePage() {
             else setExamMsg('시험지가 아직 준비되지 않았어요. 선생님께 문의해주세요.');
           }}
         >
+          <Exam className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
             <span className="hp-tile-label">시험</span>
@@ -205,16 +228,72 @@ export default function HomePage() {
 
         <button
           type="button"
-          className="hp-tile hp-tile--fire hp-tile--full"
+          className="hp-tile hp-tile--fire"
           onClick={() => navigate('/baseball')}
           aria-label="단어 야구 게임"
         >
+          <Baseball className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
             <span className="hp-tile-label">⚾ 야구</span>
           </div>
           <div className="hp-tile-value">
             <span className="hp-tile-value-sub">단어 시합 →</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="hp-tile hp-tile--dragon"
+          onClick={() => navigate('/ask-ai')}
+          aria-label="설명 AI에 물어보기"
+        >
+          <ChatCircleDots className="hp-tile-icon" weight="duotone" aria-hidden />
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">💬 설명 AI</span>
+          </div>
+          <div className="hp-tile-value">
+            <span className="hp-tile-value-sub">모르는 거 물어보기 →</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="hp-tile hp-tile--psychic"
+          onClick={() => navigate('/drill')}
+          aria-label="오늘 복습 카드 풀기"
+        >
+          <Cards className="hp-tile-icon" weight="duotone" aria-hidden />
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">🔥 오늘 복습</span>
+          </div>
+          <div className="hp-tile-value">
+            <span className="hp-tile-value-sub">막혔던 단계 다시 →</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="hp-tile hp-tile--dragon hp-tile--full"
+          onClick={() => navigate('/calendar')}
+          aria-label={`캘린더 다가오는 일정 ${upcomingEvents.length}건`}
+        >
+          <CalendarDots className="hp-tile-icon" weight="duotone" aria-hidden />
+          <div className="hp-tile-head">
+            <span className="hp-tile-dot" aria-hidden="true" />
+            <span className="hp-tile-label">📅 캘린더</span>
+          </div>
+          <div className="hp-tile-value">
+            {upcomingEvents.length > 0 ? (
+              <>
+                <span className="hp-tile-value-num">{upcomingEvents.length}</span>
+                <span className="hp-tile-value-sub">건 / 7일 →</span>
+              </>
+            ) : (
+              <span className="hp-tile-value-sub">일정 등록하기 →</span>
+            )}
           </div>
         </button>
       </section>

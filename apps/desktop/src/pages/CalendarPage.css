@@ -1,0 +1,575 @@
+.dcal-page {
+  padding: var(--sp-6) var(--sp-6) var(--sp-10);
+  max-width: var(--content-max, 1200px);
+  margin: 0 auto;
+  color: var(--text-primary);
+}
+
+.dcal-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+
+.dcal-page-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.dcal-page-sub {
+  margin: var(--sp-1) 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.dcal-error {
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-4);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dcal-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--sp-6);
+  align-items: flex-start;
+}
+
+@media (max-width: 1024px) {
+  .dcal-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dcal-main {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5);
+}
+
+.dcal-month-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.dcal-month-label {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 0 var(--sp-2);
+  min-width: 110px;
+}
+
+.dcal-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) var(--ease-out);
+}
+.dcal-nav-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.dcal-nav-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.dcal-today-btn {
+  margin-left: auto;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast, 150ms) var(--ease-out);
+}
+.dcal-today-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.dcal-today-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.dcal-legend {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dcal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dcal-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+}
+
+.dcal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--border-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.dcal-weekday {
+  background: var(--bg-tertiary);
+  text-align: center;
+  padding: var(--sp-2) 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.dcal-weekday--sun { color: var(--danger); }
+.dcal-weekday--sat { color: var(--info); }
+
+.dcal-cell {
+  background: var(--bg-secondary);
+  border: 0;
+  padding: var(--sp-2);
+  min-height: 96px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  text-align: left;
+  transition: background var(--duration-fast, 150ms) var(--ease-out);
+}
+.dcal-cell:hover { background: var(--bg-tertiary); }
+.dcal-cell:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+.dcal-cell--dim .dcal-cell-num { color: var(--text-tertiary); }
+.dcal-cell--today .dcal-cell-num {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.dcal-cell--selected {
+  background: var(--primary-surface);
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.dcal-cell-num {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.dcal-cell-num--sun { color: var(--danger); }
+.dcal-cell-num--sat { color: var(--info); }
+
+.dcal-cell-events {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.dcal-cell-event {
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 4px 2px 6px;
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--border-primary);
+  border-radius: 3px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dcal-cell-more {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  padding-left: 4px;
+}
+
+.dcal-day {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.dcal-day-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--sp-3);
+}
+
+.dcal-day-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.dcal-day-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dcal-empty {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.dcal-day-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.dcal-event-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-left: 4px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+}
+
+.dcal-event-row-main { flex: 1; min-width: 0; }
+
+.dcal-event-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.dcal-event-row-tag {
+  display: inline-block;
+  padding: 2px var(--sp-2);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-on-primary);
+  letter-spacing: 0.3px;
+}
+
+.dcal-event-row-date {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dcal-event-row-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 9999px;
+}
+
+.dcal-event-row-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.dcal-event-row-memo {
+  margin: var(--sp-1) 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.dcal-event-row-link {
+  display: inline-block;
+  margin-top: var(--sp-1);
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.dcal-event-row-link:hover { text-decoration: underline; }
+
+.dcal-event-row-actions {
+  display: flex;
+  gap: var(--sp-1);
+  flex-shrink: 0;
+}
+
+.dcal-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) var(--ease-out);
+}
+.dcal-icon-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.dcal-icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.dcal-icon-btn--danger:hover { color: var(--danger); border-color: var(--danger); background: color-mix(in srgb, var(--danger) 6%, transparent); }
+
+/* Widget */
+
+.dcal-widget {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+  position: sticky;
+  top: var(--sp-4);
+}
+
+.dcal-widget-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 var(--sp-3);
+  color: var(--text-primary);
+}
+
+.dcal-widget-section + .dcal-widget-section {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.dcal-widget-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--sp-2);
+}
+
+.dcal-widget-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.dcal-widget-section-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dcal-widget-empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: var(--sp-2) 0;
+}
+
+.dcal-widget-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.dcal-widget-row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--border-primary);
+  border-radius: var(--radius-xs);
+}
+
+.dcal-widget-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dcal-widget-row-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.dcal-widget-row-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.dcal-widget-row-date {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dcal-widget-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px var(--sp-2);
+  border-radius: 9999px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+.dcal-widget-badge--warn {
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
+}
+.dcal-widget-badge--ok {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+/* Buttons */
+
+.dcal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--duration-fast, 150ms) var(--ease-out);
+  min-height: 36px;
+}
+.dcal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.dcal-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.dcal-btn--primary {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+.dcal-btn--primary:hover:not(:disabled) { background: var(--primary-hover, var(--primary)); }
+.dcal-btn--ghost {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border-primary);
+}
+.dcal-btn--ghost:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Form */
+
+.dcal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.dcal-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.dcal-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.dcal-form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.dcal-input,
+.dcal-select,
+.dcal-textarea {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out);
+  box-sizing: border-box;
+}
+.dcal-input:focus,
+.dcal-select:focus,
+.dcal-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-surface);
+}
+.dcal-textarea { resize: vertical; min-height: 70px; }

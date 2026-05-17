@@ -1,0 +1,1972 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1400" />
+<title>와와 EduTech Stack — Pitch Deck (Overview)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<link rel="stylesheet" href="deck.css" />
+<style>
+  /* Overview deck = brand indigo (same as AskAI default) */
+  /* Slide-specific layouts below */
+  .s-cover .lockup { flex: 1; display: grid; grid-template-rows: 1fr auto; gap: 20px; }
+  .s-cover .title { font-size: 102px; font-weight: 800; line-height: 0.95; letter-spacing: -0.035em; max-width: 1080px; }
+  .s-cover .title .acc { color: var(--sys-dark); }
+  .s-cover .sub { margin-top: 28px; font-size: 26px; line-height: 1.4; font-weight: 500; color: var(--ink); max-width: 900px; letter-spacing: -0.015em; }
+  .s-cover .sub .acc { color: var(--sys-dark); }
+  .s-cover .footline { align-self: end; font-size: 17px; color: var(--ink); font-weight: 500; letter-spacing: -0.005em; }
+  .s-cover .footline .acc { color: var(--sys-dark); font-weight: 600; }
+  .s-cover .mark { position: absolute; top: 110px; right: 64px; width: 340px; height: 340px; display: grid; place-items: center; z-index: 2; }
+  .s-cover .mark svg { width: 100%; height: 100%; }
+
+  .s-highlights .title { font-size: 60px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; margin-bottom: 44px; }
+  .s-highlights .title .acc { color: var(--sys-dark); }
+  .s-highlights .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px 52px; flex: 1; }
+  .s-highlights .cell h3 { font-size: 26px; font-weight: 800; color: var(--sys-dark); letter-spacing: -0.02em; margin: 0 0 12px; line-height: 1.1; }
+  .s-highlights .cell p { margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink); font-weight: 500; }
+  .s-highlights .cell p .acc { color: var(--sys-dark); font-weight: 600; }
+
+  .s-problem .chrome-top { margin-bottom: 18px; }
+  .s-problem .title { font-size: 48px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin: 0 0 28px; max-width: 1100px; }
+  .s-problem .title .acc { color: var(--sys-dark); }
+  .s-problem .title s { color: var(--ink-3); text-decoration-thickness: 2px; text-decoration-color: var(--ink-3); }
+  .s-problem .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; }
+  .s-problem .col { display: flex; flex-direction: column; }
+  .s-problem .col-body { flex: 1; }
+  .s-problem .col-head { background: var(--sys-dark); color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; padding: 14px 20px 16px; display: flex; align-items: center; gap: 12px; }
+  .s-problem .col-head em { font-style: normal; font-size: 13px; font-weight: 600; opacity: 0.78; letter-spacing: -0.005em; margin-left: auto; align-self: center; }
+  .s-problem .col-head .role-tag { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.4); font-size: 13px; font-weight: 800; letter-spacing: 0; }
+  .s-problem .col-body { background: var(--sys-fill); padding: 20px 24px 20px; display: flex; flex-direction: column; }
+  .s-problem .col-body .head-line { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 14px; }
+  .s-problem .col-body .head-line .acc { color: var(--sys-dark); }
+  .s-problem .col-body ul { list-style: none; margin: 0 0 18px; padding: 0; }
+  .s-problem .col-body li { font-size: 15px; line-height: 1.45; color: var(--ink); padding: 5px 0; font-weight: 500; }
+  .s-problem .col-body li::before { content: "› "; color: var(--sys-dark); font-weight: 700; }
+  .s-problem .col-body li .acc { color: var(--sys-dark); font-weight: 700; }
+  .s-problem .pain-bar { border-top: 1px solid var(--sys-rule); padding-top: 12px; margin-top: auto; display: flex; align-items: baseline; gap: 10px; }
+  .s-problem .pain-bar span { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--sys-dark); text-transform: uppercase; flex-shrink: 0; }
+  .s-problem .pain-bar b { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.35; letter-spacing: -0.01em; }
+  .s-problem .pain-bar b em { font-style: normal; color: var(--sys-dark); font-weight: 800; }
+  .s-problem .problem-foot { margin-top: 12px; padding: 14px 22px; background: var(--ink); color: #fff; display: flex; align-items: baseline; gap: 16px; }
+  .s-problem .problem-foot .lhs { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sys-soft); flex-shrink: 0; }
+  .s-problem .problem-foot b { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.3; }
+  .s-problem .problem-foot b .acc { color: var(--sys-soft); font-weight: 800; }
+
+  .s-solution .chrome-top { margin-bottom: 18px; }
+  .s-solution .title { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin: 0 0 18px; max-width: 1100px; }
+  .s-solution .title .acc { color: var(--sys-dark); }
+  .s-solution .stack { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .s-solution .group { display: flex; flex-direction: column; gap: 4px; }
+  .s-solution .group-head { display: flex; align-items: baseline; gap: 12px; padding: 0 0 6px 4px; border-bottom: 1px solid var(--sys-rule); margin-bottom: 4px; }
+  .s-solution .group-head .gn { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--sys-dark); text-transform: uppercase; flex-shrink: 0; }
+  .s-solution .group-head .gt { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .s-solution .group-head .gt b { color: var(--sys-dark); }
+  .s-solution .group-head .gtag { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--ink-3); letter-spacing: -0.005em; }
+  .s-solution .row { display: grid; grid-template-columns: 140px 1fr; gap: 0; align-items: stretch; min-height: 44px; }
+  .s-solution .tag { background: var(--sys-dark); color: #fff; font-size: 15px; font-weight: 800; letter-spacing: -0.015em; padding: 10px 14px; display: flex; align-items: center; position: relative; }
+  .s-solution .tag::after { content: ""; position: absolute; top: 0; right: -16px; width: 0; height: 0; border: 22px solid transparent; border-left: 16px solid var(--sys-dark); border-right: 0; }
+  .s-solution .row-body { background: var(--sys-fill); padding: 8px 22px 8px 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: center; }
+  .s-solution .row-body .item .label { font-size: 12.5px; font-weight: 700; color: var(--sys-dark); margin-bottom: 1px; letter-spacing: -0.005em; }
+  .s-solution .row-body .item .label .sig { display: inline-block; margin-right: 4px; color: var(--sys-dark); }
+  .s-solution .row-body .item .desc { font-size: 13px; color: var(--ink); font-weight: 500; line-height: 1.4; letter-spacing: -0.005em; }
+  .s-solution .row.signature .tag { background: var(--sys-ink); }
+  .s-solution .row.signature .tag::after { border-left-color: var(--sys-ink); }
+  .s-solution .row.future .tag { background: var(--sys-fill); color: var(--sys-dark); }
+  .s-solution .row.future .tag::after { border-left-color: var(--sys-fill); }
+  .s-solution .row.future .row-body { background: var(--sys-fill); }
+  .s-solution .row.future .row-body .label { color: var(--sys-dark); }
+  .s-solution .qchip { display: inline-block; margin-left: 6px; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; padding: 2px 5px; background: var(--sys-dark); color: #fff; vertical-align: 2px; }
+
+  .s-stake .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 1; }
+  .s-stake .col { background: var(--sys-fill); display: flex; flex-direction: column; }
+  .s-stake .col .head { background: var(--sys-dark); color: #fff; padding: 11px 16px 13px; font-size: 21px; font-weight: 800; letter-spacing: -0.015em; }
+  .s-stake .col .head .role { display: block; font-size: 10px; color: var(--sys-soft); font-weight: 600; opacity: 0.9; margin-top: 2px; letter-spacing: -0.005em; }
+  .s-stake .col .body { padding: 12px 16px 14px; flex: 1; display: flex; flex-direction: column; }
+  .s-stake .col .pain-l { font-size: 11px; font-weight: 700; color: var(--sys-dark); margin-bottom: 4px; letter-spacing: -0.005em; }
+  .s-stake .col .pain { font-size: 12.5px; font-weight: 700; color: var(--ink); line-height: 1.35; margin-bottom: 12px; letter-spacing: -0.005em; }
+  .s-stake .col .item { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 6px 0; border-bottom: 1px solid #ebe9f6; align-items: baseline; }
+  .s-stake .col .item:last-child { border-bottom: none; }
+  .s-stake .col .item .t { font-size: 12px; line-height: 1.4; color: var(--ink); font-weight: 500; }
+  .s-stake .col .item .t b { font-weight: 800; }
+  .s-stake .col .item .tag { font-size: 9.5px; font-weight: 700; color: var(--sys-dark); letter-spacing: 0.04em; white-space: nowrap; padding-top: 2px; }
+
+  .s-moat .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 0; flex: 1; }
+  .s-moat .vs .col { padding: 22px 26px; display: flex; flex-direction: column; }
+  .s-moat .vs .col.them { background: #fafafd; border-right: 1px solid var(--rule); }
+  .s-moat .vs .col.us { background: var(--sys-fill); }
+  .s-moat .vs .col .l { font-size: 13px; font-weight: 700; color: var(--ink-3); margin-bottom: 6px; letter-spacing: -0.005em; }
+  .s-moat .vs .col.us .l { color: var(--sys-dark); }
+  .s-moat .vs .col h3 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; margin: 0 0 18px; }
+  .s-moat .vs .col.us h3 .acc { color: var(--sys-dark); }
+  .s-moat .vs .col ul { list-style: none; padding: 0; margin: 0; flex: 1; }
+  .s-moat .vs .col li { padding: 10px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 22px 1fr; gap: 10px; font-size: 14px; line-height: 1.5; color: var(--ink); font-weight: 500; }
+  .s-moat .vs .col li:last-child { border-bottom: none; }
+  .s-moat .vs .col li .i { font-size: 13px; font-weight: 700; color: var(--ink-3); padding-top: 2px; }
+  .s-moat .vs .col.us li .i { color: var(--sys-dark); }
+  .s-moat .vs .col li .acc { color: var(--sys-dark); font-weight: 700; }
+  .s-moat .vs .col li b { font-weight: 800; }
+
+  .s-close .big { font-size: 70px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.0; margin-bottom: 16px; max-width: 1100px; }
+  .s-close .big .acc { color: var(--sys-dark); }
+  .s-close .sub { font-size: 20px; color: var(--ink); font-weight: 500; line-height: 1.45; max-width: 1020px; margin-bottom: 28px; letter-spacing: -0.005em; }
+  .s-close .sub .acc { color: var(--sys-dark); font-weight: 700; }
+  .s-close .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .s-close .q { background: var(--sys-fill); padding: 14px 18px 16px; }
+  .s-close .q.now { background: var(--sys-soft); }
+  .s-close .q .when { font-size: 12px; font-weight: 700; color: var(--sys-dark); letter-spacing: -0.005em; }
+  .s-close .q .what { font-size: 17px; font-weight: 800; letter-spacing: -0.015em; margin-top: 5px; line-height: 1.2; }
+  .s-close .q .why { font-size: 12.5px; color: var(--ink-2); margin-top: 7px; line-height: 1.5; font-weight: 500; }
+  .s-close .sign { margin-top: auto; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 24px; padding-top: 18px; border-top: 1px solid var(--rule); }
+  .s-close .sign .mark { font-size: 34px; font-weight: 800; color: var(--sys-dark); letter-spacing: -0.025em; }
+  .s-close .sign .meta { font-size: 13px; color: var(--ink-2); text-align: right; line-height: 1.7; font-weight: 500; }
+  .s-close .sign .meta b { color: var(--ink); font-weight: 800; display: block; font-size: 14px; }
+
+  /* Overview slides don't need the system color bar */
+  .slide.no-bar::before { display: none; }
+
+  /* 09·B · Feature spotlight (AI 그림·문제 자동 생성) */
+  .s-feature .chrome-top { margin-bottom: 14px; }
+  .s-feature .chrome-top .section-label .sys { color: var(--sys-dark); font-weight: 700; }
+  .s-feature .slide-head.tight { margin-bottom: 18px; }
+  .s-feature .slide-head h2 { margin: 0 0 6px; font-size: 38px; letter-spacing: -0.025em; line-height: 1.12; font-weight: 800; }
+  .s-feature .slide-head h2 .acc { color: var(--sys-dark); }
+  .s-feature .slide-head .subtitle { font-size: 14px; color: var(--ink-3); font-weight: 500; letter-spacing: -0.005em; }
+  .s-feature .feature-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; align-items: stretch; }
+  .s-feature .feature-left { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .s-feature .pain-block, .s-feature .solve-block { background: var(--sys-fill); padding: 14px 18px 16px; display: flex; flex-direction: column; flex: 1; }
+  .s-feature .solve-block { background: var(--sys-soft); }
+  .s-feature .block-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--sys-rule); }
+  .s-feature .block-head .t { font-size: 14px; font-weight: 800; letter-spacing: 0.04em; color: var(--sys-dark); text-transform: uppercase; }
+  .s-feature .block-head .d { font-size: 11px; font-weight: 600; color: var(--ink-3); letter-spacing: -0.005em; }
+  .s-feature ul { list-style: none; margin: 0; padding: 0; }
+  .s-feature li { font-size: 13.5px; line-height: 1.45; color: var(--ink); padding: 5px 0; font-weight: 500; letter-spacing: -0.005em; }
+  .s-feature li::before { content: "› "; color: var(--sys-dark); font-weight: 700; }
+  .s-feature li b { color: var(--sys-dark); font-weight: 700; }
+  .s-feature .feature-right { display: flex; flex-direction: column; min-height: 0; position: relative; }
+  .s-feature .phone-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; color: var(--sys-dark); text-transform: uppercase; margin-bottom: 6px; }
+  .s-feature .phone { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--sys-fill); padding: 14px; overflow: hidden; }
+  .s-feature .phone img { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; border: 2px solid var(--sys-dark); border-radius: 22px; box-shadow: 0 16px 40px -16px rgba(15,15,31,0.22); display: block; }
+  .s-feature .feature-foot { margin-top: 14px; padding: 12px 22px; background: var(--ink); color: #fff; display: flex; align-items: baseline; gap: 14px; }
+  .s-feature .feature-foot .lhs { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sys-soft); flex-shrink: 0; }
+  .s-feature .feature-foot b { font-size: 15px; font-weight: 600; line-height: 1.4; letter-spacing: -0.005em; }
+  .s-feature .feature-foot b .acc { color: var(--sys-soft); font-weight: 800; }
+
+  /* 10·B desktop variant — wide landscape screenshot */
+  .s-feature.desktop .desktop-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; color: var(--sys-dark); text-transform: uppercase; margin-bottom: 6px; }
+  .s-feature.desktop .desktop { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--sys-fill); padding: 14px; overflow: hidden; }
+  .s-feature.desktop .desktop img { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; border: 1.5px solid var(--ink); border-radius: 6px; box-shadow: 0 16px 40px -16px rgba(15,15,31,0.22); display: block; }
+
+  /* 10·C/D mock card variants (no real screenshot) */
+  .s-feature.mock .desktop-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; color: var(--sys-dark); text-transform: uppercase; margin-bottom: 6px; }
+  .s-feature.mock .mock-card { flex: 1; min-height: 0; background: #fff; border: 1.5px solid var(--ink); display: flex; flex-direction: column; overflow: hidden; }
+
+  /* 10·C · AI report card */
+  .s-feature .report-card .mc-head { background: var(--ink); color: #fff; padding: 10px 16px; display: flex; justify-content: space-between; align-items: baseline; }
+  .s-feature .report-card .mc-id { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; }
+  .s-feature .report-card .mc-status { font-size: 11px; font-weight: 700; color: var(--sys-soft); }
+  .s-feature .report-card .mc-body { padding: 12px 16px 14px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .s-feature .report-card .mc-row { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; align-items: baseline; font-size: 12.5px; line-height: 1.4; }
+  .s-feature .report-card .mc-row .k { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--ink-3); text-transform: uppercase; }
+  .s-feature .report-card .mc-row b { font-weight: 800; color: var(--ink); }
+  .s-feature .report-card .mc-row b.acc { color: var(--sys-dark); }
+  .s-feature .report-card .mc-row .dim { font-size: 11px; color: var(--ink-3); font-weight: 500; }
+  .s-feature .report-card .mc-divider { height: 1px; background: var(--sys-rule); margin: 6px 0 4px; }
+  .s-feature .report-card .mc-block { padding: 4px 0; }
+  .s-feature .report-card .mc-label { font-size: 10px; font-weight: 800; color: var(--sys-dark); letter-spacing: 0.04em; margin-bottom: 2px; }
+  .s-feature .report-card .mc-value { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.4; }
+  .s-feature .report-card .mc-value .acc { color: var(--sys-dark); }
+  .s-feature .report-card .mc-foot { background: var(--sys-fill); padding: 8px 16px; font-size: 11px; color: var(--ink-2); font-weight: 700; border-top: 1px solid var(--sys-rule); }
+
+  /* 10·D · KakaoTalk card */
+  .s-feature .kakao-card { background: #FAE100; border-color: #8C7400; }
+  .s-feature .kakao-card .kk-head { background: #FAE100; padding: 10px 14px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.12); }
+  .s-feature .kakao-card .kk-talk { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: #3C1E1E; color: #FAE100; font-size: 13px; font-weight: 800; border-radius: 6px; }
+  .s-feature .kakao-card .kk-name { font-size: 12px; font-weight: 800; color: #3C1E1E; letter-spacing: -0.01em; }
+  .s-feature .kakao-card .kk-time { font-size: 10px; color: #6b5a00; font-weight: 600; }
+  .s-feature .kakao-card .kk-body { background: #fff; flex: 1; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.45; color: var(--ink); font-weight: 500; }
+  .s-feature .kakao-card .kk-greet { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .s-feature .kakao-card .kk-greet b { font-weight: 800; }
+  .s-feature .kakao-card .kk-section { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-top: 1px dashed var(--sys-rule); }
+  .s-feature .kakao-card .kk-section:first-of-type { border-top: none; padding-top: 0; }
+  .s-feature .kakao-card .kk-label { font-size: 10px; font-weight: 800; color: var(--ink-3); letter-spacing: 0.02em; }
+  .s-feature .kakao-card .kk-section b { font-weight: 800; color: var(--sys-dark); }
+  .s-feature .kakao-card .kk-section .dim { color: var(--ink-3); font-size: 11px; }
+  .s-feature .kakao-card .kk-cta { margin-top: auto; padding: 9px 12px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 800; text-align: center; letter-spacing: -0.005em; }
+
+  /* PerfEval upcoming chip */
+  .upcoming-chip { display: inline-block; margin-left: 8px; padding: 2px 7px; background: var(--sys-soft); color: var(--sys-dark); font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; vertical-align: 2px; }
+  .s-feature .slide-head h2 s { color: var(--ink-3); text-decoration-thickness: 2px; text-decoration-color: var(--ink-3); }
+
+  /* 11·A · Compare card (ChatGPT vs PerfEval) */
+  .s-feature .compare-card { padding: 0; }
+  .s-feature .compare-card .cmp-row { display: grid; grid-template-columns: 90px 1fr; gap: 14px; padding: 14px 16px; }
+  .s-feature .compare-card .cmp-row.them { background: var(--sys-fill); }
+  .s-feature .compare-card .cmp-row.us { background: var(--sys-soft); }
+  .s-feature .compare-card .cmp-l { font-size: 13px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; padding-top: 2px; }
+  .s-feature .compare-card .cmp-row.us .cmp-l { color: var(--sys-dark); }
+  .s-feature .compare-card .cmp-quote { font-size: 12.5px; line-height: 1.5; color: var(--ink-2); font-weight: 500; margin-bottom: 8px; }
+  .s-feature .compare-card .cmp-quote b { color: var(--sys-dark); font-weight: 800; }
+  .s-feature .compare-card .cmp-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .s-feature .compare-card .cmp-tags span { font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; padding: 2px 6px; }
+  .s-feature .compare-card .cmp-tags span.x { background: #fff; color: var(--ink-3); border: 1px solid var(--sys-rule); }
+  .s-feature .compare-card .cmp-tags span.o { background: var(--sys-dark); color: #fff; }
+  .s-feature .compare-card .cmp-divider { height: 1px; background: var(--ink); }
+
+  /* 11·B · Flow card (학원 자산 → AI) */
+  .s-feature .flow-card { padding: 14px 16px 14px; }
+  .s-feature .flow-card .flow-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--ink-3); text-transform: uppercase; margin-bottom: 8px; }
+  .s-feature .flow-card .flow-stack { display: flex; flex-direction: column; gap: 6px; }
+  .s-feature .flow-card .asset { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 7px 10px; background: var(--sys-fill); border-left: 3px solid var(--sys-dark); align-items: center; }
+  .s-feature .flow-card .asset .ic { font-size: 18px; line-height: 1; }
+  .s-feature .flow-card .asset b { font-size: 12.5px; font-weight: 800; color: var(--ink); display: block; }
+  .s-feature .flow-card .asset span { font-size: 10.5px; color: var(--ink-3); font-weight: 600; display: block; margin-top: 1px; }
+  .s-feature .flow-card .flow-arrow { text-align: center; padding: 8px 0; font-size: 11px; font-weight: 700; color: var(--sys-dark); letter-spacing: -0.005em; }
+  .s-feature .flow-card .flow-out { background: var(--ink); color: #fff; padding: 10px 14px; }
+  .s-feature .flow-card .flow-out .out-label { font-size: 13px; font-weight: 800; letter-spacing: -0.01em; }
+  .s-feature .flow-card .flow-out .out-meta { font-size: 10.5px; color: var(--sys-soft); margin-top: 3px; font-weight: 600; }
+  .s-feature .flow-card .flow-out .out-meta b { color: #fff; font-weight: 800; }
+
+  /* 11·C · Skill grid */
+  .s-feature .skill-grid { display: grid; grid-template-rows: repeat(6, 1fr); gap: 0; padding: 0; }
+  .s-feature .skill-grid .sk-row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; padding: 8px 14px; align-items: center; border-bottom: 1px solid var(--sys-rule); }
+  .s-feature .skill-grid .sk-row:last-child { border-bottom: none; }
+  .s-feature .skill-grid .sk-row.sig { background: var(--sys-soft); }
+  .s-feature .skill-grid .sk-cmd { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 12px; font-weight: 700; color: var(--sys-dark); letter-spacing: -0.005em; }
+  .s-feature .skill-grid .sk-row.sig .sk-cmd { color: var(--sys-ink); font-weight: 800; }
+  .s-feature .skill-grid .sk-d { font-size: 12px; color: var(--ink); font-weight: 500; line-height: 1.35; }
+  .s-feature .skill-grid .sk-row.sig .sk-d { font-weight: 700; }
+
+  /* 11·D · Saeteuk preview */
+  .s-feature .saeteuk-card { padding: 0; }
+  .s-feature .saeteuk-card .st-head { background: var(--ink); color: #fff; padding: 9px 16px; display: flex; justify-content: space-between; align-items: baseline; }
+  .s-feature .saeteuk-card .st-id { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; }
+  .s-feature .saeteuk-card .st-status { font-size: 10px; font-weight: 700; color: var(--sys-soft); }
+  .s-feature .saeteuk-card .st-body { padding: 12px 16px 8px; flex: 1; overflow: hidden; }
+  .s-feature .saeteuk-card .st-body p { font-size: 11.5px; line-height: 1.55; color: var(--ink); font-weight: 500; margin: 0 0 8px; letter-spacing: -0.005em; }
+  .s-feature .saeteuk-card .st-body p:last-child { margin-bottom: 0; }
+  .s-feature .saeteuk-card .st-body p b { font-weight: 800; color: var(--sys-dark); }
+  .s-feature .saeteuk-card .st-foot { background: var(--sys-fill); padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--sys-rule); }
+  .s-feature .saeteuk-card .st-tag { font-size: 9.5px; font-weight: 800; color: var(--sys-dark); letter-spacing: 0.04em; padding: 2px 7px; background: #fff; border: 1px solid var(--sys-rule); }
+
+  /* 11·D · Artifact gallery (3-column real outputs) */
+  .s-feature.gallery .artifact-gallery { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; }
+  .s-feature.gallery .artifact { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .s-feature.gallery .art-tag { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; color: var(--sys-dark); text-transform: uppercase; margin-bottom: 6px; padding-left: 2px; }
+  .s-feature.gallery .art-preview { flex: 1; min-height: 0; background: var(--sys-fill); padding: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .s-feature.gallery .art-preview.wide { background: #f6f3e8; }
+  .s-feature.gallery .art-preview img { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; box-shadow: 0 12px 28px -14px rgba(15,15,31,0.32); border: 1px solid var(--ink); display: block; }
+  .s-feature.gallery .art-meta { padding: 10px 2px 0; }
+  .s-feature.gallery .art-title { font-size: 14px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.25; color: var(--ink); }
+  .s-feature.gallery .art-title .acc { color: var(--sys-dark); }
+  .s-feature.gallery .art-desc { font-size: 11.5px; line-height: 1.4; color: var(--ink-2); font-weight: 500; margin-top: 4px; letter-spacing: -0.005em; }
+  .s-feature.gallery .art-desc b { color: var(--sys-dark); font-weight: 700; }
+
+  /* 12 · 영어 독해 AI · workbook mockup */
+  .s-feature.workbook .wb-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 0.85fr 1.85fr; gap: 18px; }
+  .s-feature.workbook .wb-side { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .s-feature.workbook .wb-side .pain-block, .s-feature.workbook .wb-side .solve-block { padding: 12px 14px 12px; }
+  .s-feature.workbook .wb-side .pain-block li, .s-feature.workbook .wb-side .solve-block li { font-size: 12px; padding: 4px 0; line-height: 1.4; }
+  .s-feature.workbook .wb-side .block-head { margin-bottom: 6px; padding-bottom: 6px; }
+  .s-feature.workbook .wb-side .block-head .t { font-size: 11px; }
+  .s-feature.workbook .wb-side .block-head .d { font-size: 10px; }
+  .s-feature.workbook .cmd-strip { background: var(--ink); color: #fff; padding: 10px 14px; display: flex; align-items: baseline; gap: 10px; }
+  .s-feature.workbook .cmd-strip .cmd { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 800; color: var(--sys-soft); }
+  .s-feature.workbook .cmd-strip .cmd-d { font-size: 11px; color: #fff; font-weight: 600; letter-spacing: -0.005em; }
+
+  /* Workbook paper · 종이 질감 */
+  .s-feature.workbook .wb-page { display: flex; min-height: 0; }
+  .s-feature.workbook .wb-paper { flex: 1; min-height: 0; background: #fdfcf7; border: 1.5px solid var(--ink); padding: 14px 18px 14px; display: flex; flex-direction: column; gap: 9px; overflow: hidden; box-shadow: 0 18px 44px -16px rgba(15,15,31,0.22); font-family: 'Pretendard Variable', Pretendard, sans-serif; }
+  .s-feature.workbook .wb-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 7px; border-bottom: 1.5px solid var(--ink); }
+  .s-feature.workbook .wb-head .wb-brand { font-size: 11.5px; font-weight: 800; color: var(--ink); letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-head .wb-brand .dim { color: var(--sys-dark); font-weight: 700; }
+  .s-feature.workbook .wb-head .wb-tag { font-size: 10px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .s-feature.workbook .wb-label { font-size: 10.5px; font-weight: 800; color: var(--sys-dark); letter-spacing: 0.02em; margin-bottom: 4px; }
+  .s-feature.workbook .wb-label .dim { color: var(--ink-3); font-weight: 600; letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-passage p { font-size: 11px; line-height: 1.55; color: var(--ink); font-weight: 500; margin: 0; letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-passage mark { background: #FFF59C; color: var(--ink); padding: 0 2px; font-weight: 700; }
+  .s-feature.workbook .wb-row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .s-feature.workbook .wb-block { display: flex; flex-direction: column; }
+  .s-feature.workbook .wb-gist { font-size: 11px; line-height: 1.45; color: var(--ink); font-weight: 500; padding: 7px 10px; background: var(--sys-fill); border-left: 3px solid var(--sys-dark); letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-gist b { color: var(--sys-dark); font-weight: 800; }
+  .s-feature.workbook .wb-vocab { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  .s-feature.workbook .wb-vocab td { padding: 2.5px 4px; border-bottom: 1px dotted rgba(15,15,31,0.16); vertical-align: baseline; letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-vocab td:first-child { width: 65px; }
+  .s-feature.workbook .wb-vocab td.pos { width: 22px; color: var(--sys-dark); font-style: italic; font-size: 9.5px; }
+  .s-feature.workbook .wb-vocab td b { font-weight: 800; color: var(--ink); }
+  .s-feature.workbook .wb-vocab .syn { color: var(--ink-3); font-size: 9.5px; }
+  .s-feature.workbook .wb-q { font-size: 11px; font-weight: 700; color: var(--ink); line-height: 1.4; margin-bottom: 5px; letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-q b { font-weight: 800; }
+  .s-feature.workbook .wb-choices { display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; color: var(--ink-2); font-weight: 500; line-height: 1.4; letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-choices span.ans { color: var(--sys-dark); font-weight: 700; background: rgba(79,70,229,0.08); padding-left: 2px; }
+  .s-feature.workbook .wb-choices b { font-weight: 800; }
+  .s-feature.workbook .wb-block.summary .wb-cloze { font-size: 11px; line-height: 1.55; color: var(--ink); padding: 7px 10px; background: rgba(15,15,31,0.04); letter-spacing: -0.005em; }
+  .s-feature.workbook .wb-block.summary .wb-cloze .blank { color: var(--sys-dark); text-decoration: none; border-bottom: 1.5px solid var(--sys-dark); font-weight: 700; padding: 0 2px; }
+  .s-feature.workbook .wb-block.summary .wb-ans { font-size: 10px; color: var(--sys-dark); font-weight: 700; margin-top: 4px; letter-spacing: -0.005em; }
+
+  /* 13·C · dual-phone variant (2 screens side-by-side) */
+  .s-feature.dual .dual-phones { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--sys-fill); padding: 12px; overflow: hidden; }
+  .s-feature.dual .dual-phone { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; min-width: 0; gap: 6px; }
+  .s-feature.dual .dual-phone img { max-height: calc(100% - 22px); max-width: 100%; width: auto; height: auto; object-fit: contain; border: 2px solid var(--sys-dark); border-radius: 18px; box-shadow: 0 12px 28px -14px rgba(15,15,31,0.22); display: block; }
+  .s-feature.dual .dp-label { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--sys-dark); text-transform: uppercase; }
+
+
+  /* Use Case 1 · 3-cut storyboard (overrides .s-usecase .layout when .story present) */
+  .s-usecase.story .chrome-top { margin-bottom: 14px; }
+  .s-usecase.story .slide-head.tight { margin-bottom: 18px; }
+  .s-usecase.story .slide-head h2 { margin: 0 0 4px; font-size: 36px; letter-spacing: -0.025em; line-height: 1.1; }
+  .s-usecase.story .slide-head .subtitle { font-size: 14px; color: var(--ink-3); font-weight: 500; letter-spacing: -0.005em; }
+  .s-usecase.story .storyboard { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 26px 1fr 26px 1fr; gap: 10px; align-items: stretch; }
+  .s-usecase.story .storyboard.four { grid-template-columns: 1fr 22px 1fr 22px 1fr 22px 1fr; gap: 8px; }
+  .s-usecase.story .step { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .s-usecase.story .num-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--sys-dark); color: #fff; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; align-self: flex-start; max-width: 100%; }
+  .s-usecase.story .num-pill .num { font-size: 13px; font-weight: 800; opacity: 0.85; letter-spacing: 0; }
+  .s-usecase.story .phone { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--sys-fill); padding: 14px; margin-top: 8px; overflow: hidden; }
+  .s-usecase.story .phone img { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; border: 2px solid var(--sys-dark); border-radius: 20px; box-shadow: 0 14px 36px -16px rgba(15,15,31,0.22); display: block; }
+  .s-usecase.story .cap { margin-top: 10px; font-size: 13px; line-height: 1.45; color: var(--ink); font-weight: 500; letter-spacing: -0.005em; min-height: 38px; }
+  .s-usecase.story .cap b { color: var(--sys-dark); font-weight: 700; }
+  .s-usecase.story .arrow { display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 600; color: var(--sys-mid); line-height: 1; }
+  .s-usecase.story .story-foot { margin-top: 16px; padding: 12px 22px; background: var(--ink); color: #fff; display: flex; align-items: baseline; gap: 14px; }
+  .s-usecase.story .story-foot .lhs { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sys-soft); flex-shrink: 0; display: inline-flex; align-items: baseline; gap: 6px; }
+  .s-usecase.story .story-foot .lhs .num { font-size: 13px; font-weight: 800; color: #fff; }
+  .s-usecase.story .story-foot b { font-size: 14px; font-weight: 600; line-height: 1.45; letter-spacing: -0.005em; }
+  .s-usecase.story .story-foot b .acc { color: var(--sys-soft); font-weight: 800; }
+</style>
+</head>
+<body>
+
+<!-- SVG defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="curves" viewBox="0 0 480 480" fill="none" stroke="currentColor">
+      <path d="M 480 100 Q 360 220, 480 360" />
+      <path d="M 480 140 Q 320 240, 480 380" />
+      <path d="M 480 180 Q 280 260, 480 400" />
+      <path d="M 480 220 Q 240 280, 480 420" />
+      <path d="M 480 260 Q 200 300, 480 440" />
+      <path d="M 480 300 Q 160 320, 460 460" />
+      <path d="M 480 340 Q 140 360, 420 470" />
+    </symbol>
+  </defs>
+</svg>
+
+<!-- Top navigation -->
+<nav class="topnav" aria-label="시스템 탐색">
+  <div class="topnav-inner">
+    <a class="nav-brand" href="index.html">와와<em> · EduTech</em></a>
+    <div class="nav-links">
+      <a href="index.html" class="active"><span class="dot" aria-hidden="true" style="background:#0f0f1f"></span>Overview</a>
+      <a href="erp.html"><span class="dot" aria-hidden="true" style="background:#475569"></span>01 ERP</a>
+      <a href="askai.html"><span class="dot" aria-hidden="true" style="background:#4f46e5"></span>02 AskAI</a>
+      <a href="proof.html"><span class="dot" aria-hidden="true" style="background:#059669"></span>03 Proof</a>
+      <a href="english.html"><span class="dot" aria-hidden="true" style="background:#d97706"></span>04 English</a>
+      <a href="vocab.html"><span class="dot" aria-hidden="true" style="background:#dc2626"></span>05 Vocab</a>
+      <a href="tutorflow.html"><span class="dot" aria-hidden="true" style="background:#0891b2"></span>06 TutorFlow</a>
+      <a href="perfeval.html"><span class="dot" aria-hidden="true" style="background:#7c3aed"></span>07 PerfEval</a>
+    </div>
+    <span class="nav-meta">10 min · 2026.05</span>
+  </div>
+</nav>
+
+<main class="canvas">
+
+  <header class="canvas-header">
+    <h1 class="canvas-title">와와 EduTech Stack<em> · Overview</em></h1>
+    <span class="canvas-tag">3-부 구성 · 문제 → 해결 → 사용 예시 · 12 frames · 16:9</span>
+    <div class="canvas-meta">
+      <div><b>12 Frames</b> · 1280×720</div>
+      <div>2026 · Vine Academy</div>
+    </div>
+  </header>
+
+  <section class="slide-row">
+
+    <!-- 01 Cover -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">01</span><span>Cover</span><span class="dim">— 표지</span></div>
+      <div class="slide s-cover no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label">Cover</div>
+            <div class="brand">와와<span class="mute"> · Vine Academy</span></div>
+          </div>
+          <div class="mark">
+            <svg viewBox="0 0 360 360" fill="none">
+              <rect x="40"  y="220" width="36" height="100" fill="#4f46e5"/>
+              <rect x="92"  y="170" width="36" height="150" fill="#4f46e5"/>
+              <rect x="144" y="120" width="36" height="200" fill="#4f46e5"/>
+              <rect x="196" y="80"  width="36" height="240" fill="#4f46e5"/>
+              <rect x="248" y="50"  width="36" height="270" fill="#4f46e5"/>
+              <rect x="300" y="20"  width="36" height="300" fill="none" stroke="#4f46e5" stroke-width="2" stroke-dasharray="6 4"/>
+              <text x="318" y="14" font-family="Pretendard Variable" font-weight="700" font-size="14" fill="#4f46e5" text-anchor="middle">07</text>
+            </svg>
+          </div>
+          <div class="lockup">
+            <div>
+              <div class="title">강사 시간의<br/><span class="acc">60%</span>는<br/>수업 사이·수업 후에<br/>사라진다.</div>
+              <div class="sub">그걸 자동화한 한 회사의 <span class="acc">7 시스템 풀스택</span> —<br/>학원 운영부터 세특 자동화까지, 한 회사가 다 들고 있다.</div>
+            </div>
+            <div class="footline"><span class="acc">EduTech Stack v1</span> · 10 분 발표 · 2026.05</div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">01</div></div>
+      </div>
+    </div>
+
+    <!-- 02 DIVIDER · Part 1 · 문제점 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">02</span><span>Part 1 · 문제점</span><span class="dim">— 학원의 진짜 비용</span></div>
+      <div class="slide s-divider no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Part 1 of 3</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="col">
+            <div class="big-num">1.</div>
+            <div class="right">
+              <div class="part-label">— 첫 번째 파트</div>
+              <h2 class="title">문제점.</h2>
+              <p class="sub">학원의 <span class="acc">진짜 비용</span>은 수업이 아니라,<br/>수업 사이·수업 후에 있다.</p>
+              <div class="progress"><span class="seg active"></span><span class="seg"></span><span class="seg"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">02</div></div>
+      </div>
+    </div>
+
+    <!-- 03 Problem · 코치 / 학원 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">03</span><span>Problem</span><span class="dim">— 코치 · 학원</span></div>
+      <div class="slide s-problem no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Problem · 코치 · 학원</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <h2 class="title">AI로 일은 <s>빨라졌다</s>.<br/>그런데 <span class="acc">학원에 남는 건 없다</span>.</h2>
+          <div class="cols">
+            <div class="col">
+              <div class="col-head"><span class="role-tag">A</span>코치 · <em>세특·리포트의 역설</em></div>
+              <div class="col-body">
+                <div class="head-line">ChatGPT로 <span class="acc">세특 5 분 컷</span>.<br/>그런데 다음 학기엔 <span class="acc">또 처음부터</span>.</div>
+                <ul>
+                  <li>외부 AI에 학생 정보 넣으면 → <span class="acc">학원 노하우가 OpenAI 서버로</span></li>
+                  <li>학생별 누적 평가가 <span class="acc">코치 머릿속·메신저 DM</span>에만 존재</li>
+                  <li>코치가 그만두면 그 학생 <span class="acc">데이터·맥락 0</span> 부터 다시</li>
+                  <li>다음 학기·다음 학년에 <span class="acc">쌓이는 자산 없음</span></li>
+                </ul>
+                <div class="pain-bar"><span>핵심 통증</span><b>일은 했는데 <em>학원이 강해지지 않는다</em></b></div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="col-head"><span class="role-tag">B</span>학원 · <em>학생 관리의 분산</em></div>
+              <div class="col-body">
+                <div class="head-line">한 학생의 정보가 <span class="acc">엑셀·카톡·노션·종이</span>에 흩어져 있다.</div>
+                <ul>
+                  <li>코치마다 관리 방식 다름 → <span class="acc">사내 표준 없음</span></li>
+                  <li>학생 진도·약점·결석·숙제가 <span class="acc">한 화면에 안 모임</span></li>
+                  <li>강사 바뀌면 인수인계 → <span class="acc">학부모 신뢰 깨짐</span></li>
+                  <li>"다지점 확장"이 아니라 <span class="acc">한 회사 안의 표준화</span>부터 막혀 있음</li>
+                </ul>
+                <div class="pain-bar"><span>핵심 통증</span><b>강사가 사라지면 <em>학생도 같이 사라진다</em></b></div>
+              </div>
+            </div>
+          </div>
+          <div class="problem-foot">
+            <span class="lhs">두 통증의 공통 뿌리.</span>
+            <b>학원이 <span class="acc">자기 데이터·자기 표준</span>을 갖지 못한 채 외부 AI 위에 얹혀 있다.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · A</div><div class="page">03 · A</div></div>
+      </div>
+    </div>
+
+    <!-- 03b Problem · 학생 / 학부모 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">03 · B</span><span>Problem</span><span class="dim">— 학생 · 학부모</span></div>
+      <div class="slide s-problem no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Problem · 학생 · 학부모</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <h2 class="title">학원은 다닌다.<br/>그런데 <span class="acc">자기 자신이 안 보인다</span>.</h2>
+          <div class="cols">
+            <div class="col">
+              <div class="col-head"><span class="role-tag">C</span>학생 · <em>모르는데 물어볼 데가 없다</em></div>
+              <div class="col-body">
+                <div class="head-line">학원 시간엔 <span class="acc">코치 앞에 줄</span>,<br/>집에선 <span class="acc">콴다가 답만</span> 던진다.</div>
+                <ul>
+                  <li>부재 시간 질문 → <span class="acc">답이 늦거나 묻힘</span></li>
+                  <li>학원 자료가 종이·카톡에 흩어져서 <span class="acc">못 찾음</span></li>
+                  <li>콴다·ChatGPT는 답만, <span class="acc">풀이 사고는 안 길러짐</span></li>
+                  <li>본인이 뭐가 약한지 <span class="acc">시험 망쳐야 안다</span></li>
+                </ul>
+                <div class="pain-bar"><span>핵심 통증</span><b>학원 다니는데 <em>실력 느는지 본인이 체감 안 됨</em></b></div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="col-head"><span class="role-tag">D</span>학부모 · <em>돈 내는데 안 보인다</em></div>
+              <div class="col-body">
+                <div class="head-line">학원비는 매달,<br/>우리 애가 한 건 <span class="acc">카톡 단톡방 한 줄</span>.</div>
+                <ul>
+                  <li>결석·숙제 안 한 걸 <span class="acc">늦게</span> 알게 됨</li>
+                  <li>"잘 하고 있어요" 말뿐, <span class="acc">근거 데이터 없음</span></li>
+                  <li>코치 바뀌면 우리 애 맥락 <span class="acc">0 부터 다시</span></li>
+                  <li>시험 직전 약점 통보 → <span class="acc">미리 못 대비</span></li>
+                </ul>
+                <div class="pain-bar"><span>핵심 통증</span><b>돈 내는 만큼 <em>보이지 않으면 신뢰가 빠진다</em></b></div>
+              </div>
+            </div>
+          </div>
+          <div class="problem-foot">
+            <span class="lhs">앞 페이지와 같은 뿌리.</span>
+            <b>코치·학원이 <span class="acc">학생 데이터</span>를 못 가지면, 학생·학부모도 <span class="acc">자기 자신이 안 보인다</span>.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · B</div><div class="page">03 · B</div></div>
+      </div>
+    </div>
+
+    <!-- 04 DIVIDER · Part 2 · 해결방안 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">04</span><span>Part 2 · 해결방안</span><span class="dim">— 하루를 정렬하는 7 시스템</span></div>
+      <div class="slide s-divider no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Part 2 of 3</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="col">
+            <div class="big-num">2.</div>
+            <div class="right">
+              <div class="part-label">— 두 번째 파트</div>
+              <h2 class="title">해결방안.</h2>
+              <p class="sub">한 학원의 <span class="acc">하루</span>를 정렬하는 7 시스템.<br/>강사·학생·학부모·회사 각자의 시간을 해방한다.</p>
+              <div class="progress"><span class="seg done"></span><span class="seg active"></span><span class="seg"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">04</div></div>
+      </div>
+    </div>
+
+    <!-- 05 Solution -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">05</span><span>Solution</span><span class="dim">— 7 시스템 · 3 묶음</span></div>
+      <div class="slide s-solution no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Solution</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <h2 class="title"><span class="acc">한 학원의 하루</span>를 정렬하는 7 시스템 · 3 묶음.</h2>
+          <div class="stack">
+            <div class="group">
+              <div class="group-head">
+                <span class="gn">A · 운영 인프라</span>
+                <span class="gt">학원이 굴러가는 <b>뼈대</b> — 사람·돈·시간을 한 화면에</span>
+              </div>
+              <div class="row">
+                <div class="tag">01 · ERP</div>
+                <div class="row-body">
+                  <div class="item"><div class="label">학원 운영</div><div class="desc">학생·담임·출결·숙제·시험</div></div>
+                  <div class="item"><div class="label">학부모 페이지</div><div class="desc">숙제·결석 실시간 가시화</div></div>
+                  <div class="item"><div class="label">가챠 보상</div><div class="desc">학습 → 카드 → 도감</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="group">
+              <div class="group-head">
+                <span class="gn">B · AI 학습 엔진</span>
+                <span class="gt">학생이 <b>사고하게</b> 만드는 4 엔진 — 답이 아니라 과정</span>
+                <span class="gtag">시그너처 차별점</span>
+              </div>
+              <div class="row signature">
+                <div class="tag">02 · AskAI</div>
+                <div class="row-body">
+                  <div class="item"><div class="label">9 모듈 엔진</div><div class="desc">학원 자료 검색 + 자동 복습</div></div>
+                  <div class="item"><div class="label"><span class="sig">★</span>강사 검수 사이클</div><div class="desc">강사 교정 → 학원 데이터 누적</div></div>
+                  <div class="item"><div class="label">자동 약점 카드</div><div class="desc">4 신호 → 복습큐</div></div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="tag">03 · Proof</div>
+                <div class="row-body">
+                  <div class="item"><div class="label">FillBlank · Ordering</div><div class="desc">증명을 빈칸·순서로</div></div>
+                  <div class="item"><div class="label">단계 강제 채점</div><div class="desc">풀이 사고 흐름</div></div>
+                  <div class="item"><div class="label">콴다 미진입</div><div class="desc">증명 전용 카테고리</div></div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="tag">04 · English</div>
+                <div class="row-body">
+                  <div class="item"><div class="label">Writing 3-step</div><div class="desc">Draft → Meta → Review</div></div>
+                  <div class="item"><div class="label">어근 추론 시험</div><div class="desc">암기 X · 추론 평가</div></div>
+                  <div class="item"><div class="label">독해 워크북 자동</div><div class="desc">한 단락 paste → 6 블록</div></div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="tag">05 · Vocab</div>
+                <div class="row-body">
+                  <div class="item"><div class="label">단어장 + 시험</div><div class="desc">자동 채점 · 오답 누적</div></div>
+                  <div class="item"><div class="label">야구 + TTS</div><div class="desc">게이미피케이션 + 발음</div></div>
+                  <div class="item"><div class="label">가챠 + Dex</div><div class="desc">독립 매각 가능 product</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="group">
+              <div class="group-head">
+                <span class="gn">C · 실시간 · 미래</span>
+                <span class="gt">사람의 <b>시간을 해방</b> — 수업 사이·후</span>
+              </div>
+              <div class="row">
+                <div class="tag">06 · TutorFlow</div>
+                <div class="row-body">
+                  <div class="item"><div class="label">실시간 화상 수업</div><div class="desc">풀이 위 빨간펜 첨삭</div></div>
+                  <div class="item"><div class="label">AI 자동 리포트</div><div class="desc">녹화 → 음성문자 → AI 요약</div></div>
+                  <div class="item"><div class="label">카톡 알림톡</div><div class="desc">학부모 자동 발송</div></div>
+                </div>
+              </div>
+              <div class="row future">
+                <div class="tag">07 · PerfEval</div>
+                <div class="row-body">
+                  <div class="item"><div class="label">세특 자동화 <span class="qchip">2026 Q3</span></div><div class="desc">학원 결과물 위에서 생성</div></div>
+                  <div class="item"><div class="label">Skill 패키징</div><div class="desc">학원 PC 로컬 배포</div></div>
+                  <div class="item"><div class="label">Cold-start 0</div><div class="desc">자체 결과물 자산</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">05</div></div>
+      </div>
+    </div>
+
+    <!-- 06 Highlights (Solution detail) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">06</span><span>Highlights</span><span class="dim">— 차별점 6 가지</span></div>
+      <div class="slide s-highlights no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">해결방안 · 차별점</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <h2 class="title">우리가 들고 있는 것 <span class="acc">여섯 가지</span>.</h2>
+          <div class="grid">
+            <div class="cell"><h3>실 운영 6 시스템</h3><p>ERP · AskAI · Proof · English · Vocab · TutorFlow가 <span class="acc">한 학원에서 매일 돌고 있다</span>.</p></div>
+            <div class="cell"><h3>학습 AI 엔진 9 모듈</h3><p>AI 응답 컨트롤러 · 학원 자료 검색 · 자동 복습 · 약점 드릴 · 강사 검수. <span class="acc">3,063 줄 + 테스트 동반</span>.</p></div>
+            <div class="cell"><h3>End-to-end 자동화</h3><p>녹화 → 음성문자 변환 → AI 요약 → 카톡 알림까지 <span class="acc">강사 작업 시간 약 90 분/수업 절감</span>.</p></div>
+            <div class="cell"><h3>학원 자료 기반 AI</h3><p>학원 단원지 위에서 답하는 AI <span class="gloss wrap">RAG</span>. <span class="acc">"학원이 가르친 대로" 답</span>한다.</p></div>
+            <div class="cell"><h3>지점·프랜차이즈 분리 인프라</h3><p>학원별 데이터 자동 격리 <span class="gloss wrap">multi-tenant</span>. <span class="acc">새 지점 추가 = 코드 수정 0</span>.</p></div>
+            <div class="cell"><h3>수행평가 AI 예정</h3><p>학원 자체 결과물 자산 위에 구축 — <span class="acc">처음부터 만들 필요 0</span>. 2026 Q3 MVP.</p></div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">06</div></div>
+      </div>
+    </div>
+
+    <!-- 09 Stakeholder -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">09</span><span>Stakeholder × System</span><span class="dim">— 누구를 위한 시스템</span></div>
+      <div class="slide s-stake no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome" style="padding-left:64px;">
+          <div class="chrome-top"><div class="section-label">Stakeholder × System</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <h2 style="font-size:48px; font-weight:800; letter-spacing:-0.03em; line-height:1.05; margin:0 0 6px; max-width:1100px;">네 명의 사람, <span class="acc">네 가지의 다른 시간</span>을 해방한다.</h2>
+          <div style="font-size:18px; color:var(--sys-dark); font-weight:500; letter-spacing:-0.015em; margin-bottom:22px;">학생 · 학부모 · 코치 · 회사 — 각자 다른 통증, 같은 스택</div>
+
+          <div class="grid">
+            <div class="col">
+              <div class="head">학생<span class="role">STUDENT</span></div>
+              <div class="body">
+                <div class="pain-l">PAIN</div>
+                <div class="pain">강사 없을 때 막힌다. 뭘 복습할지 모른다. 외우기는 지루하다.</div>
+                <div class="item"><div class="t">강사 부재 시간 — <b>24/7 풀이</b></div><div class="tag">ASKAI</div></div>
+                <div class="item"><div class="t">약점 자동 탐지 → 매일 복습큐</div><div class="tag">자동 복습</div></div>
+                <div class="item"><div class="t">증명 빈칸·순서 단계 학습</div><div class="tag">PROOF</div></div>
+                <div class="item"><div class="t">영작 — 자기 사고 후 첨삭</div><div class="tag">WRITING</div></div>
+                <div class="item"><div class="t">단어 = 카드 수집 매일 켠다</div><div class="tag">GACHA</div></div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="head">학부모<span class="role">PARENT</span></div>
+              <div class="body">
+                <div class="pain-l">PAIN</div>
+                <div class="pain">학원에서 뭘 했는지 모른다. 자녀 약점 안 보인다.</div>
+                <div class="item"><div class="t">수업 끝 — <b>카톡 자동 리포트</b></div><div class="tag">TUTORFLOW</div></div>
+                <div class="item"><div class="t">숙제·결석·학습시간 실시간</div><div class="tag">ERP</div></div>
+                <div class="item"><div class="t">약점·정답률 시각화</div><div class="tag">ASKAI</div></div>
+                <div class="item"><div class="t">학원 방문 0 — read-only 링크</div><div class="tag">ERP</div></div>
+                <div class="item"><div class="t">수업 품질 증거로 남음</div><div class="tag">TUTORFLOW</div></div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="head">코치<span class="role">COACH</span></div>
+              <div class="body">
+                <div class="pain-l">PAIN</div>
+                <div class="pain">질문 다 못 받는다. 수업 후 작업 비싸다. 세특이 학기말 잡아먹는다.</div>
+                <div class="item"><div class="t">AI 1차 응답 — <b>어려운 질문만</b></div><div class="tag">TEACHER</div></div>
+                <div class="item"><div class="t">수업 후 리포트 자동</div><div class="tag">TUTORFLOW</div></div>
+                <div class="item"><div class="t">AI 채점 → 코멘트만</div><div class="tag">PROOF/W</div></div>
+                <div class="item"><div class="t">학생 약점 자동 누적</div><div class="tag">DRILL</div></div>
+                <div class="item"><div class="t">세특 초안 자동</div><div class="tag">PERFEVAL</div></div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="head">회사<span class="role">COMPANY</span></div>
+              <div class="body">
+                <div class="pain-l">PAIN</div>
+                <div class="pain">강사 의존도 ↑. 데이터 외부 유출. 다지점 확장 X.</div>
+                <div class="item"><div class="t">강사 1인당 <b>학생 수 ↑</b></div><div class="tag">ASKAI</div></div>
+                <div class="item"><div class="t">학원 IP <b>시스템에 쌓임</b></div><div class="tag">전 시스템</div></div>
+                <div class="item"><div class="t">지점·프랜차이즈 즉시 분리</div><div class="tag">ERP</div></div>
+                <div class="item"><div class="t">학습 데이터 = 학원 자산</div><div class="tag">자료기반 AI</div></div>
+                <div class="item"><div class="t">서버리스 클라우드 비용 ↓</div><div class="tag">INFRA</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom" style="left:64px;"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">07</div></div>
+      </div>
+    </div>
+
+    <!-- 08 DIVIDER · Part 3 · 실제 사용 예시 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">08</span><span>Part 3 · 실제 사용 예시</span><span class="dim">— 실제로 어떻게 돌아가는가</span></div>
+      <div class="slide s-divider no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Part 3 of 3</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="col">
+            <div class="big-num">3.</div>
+            <div class="right">
+              <div class="part-label">— 세 번째 파트</div>
+              <h2 class="title">실제 사용 <span class="acc">예시</span>.</h2>
+              <p class="sub">기능 설명이 아니라 <span class="acc">한 학생·한 수업·한 시간</span>이 어떻게 자동화되는지 끝까지 본다.</p>
+              <div class="progress"><span class="seg done"></span><span class="seg done"></span><span class="seg active"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">08</div></div>
+      </div>
+    </div>
+
+    <!-- 09 Use Case 1 · AskAI 학생 플로우 (실 캡처 3 컷 스토리보드) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">09</span><span>Use Case 1 · 학생이 모르는 문제</span><span class="dim">— AskAI · 실 캡처 3 컷</span></div>
+      <div class="slide s-usecase story no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 1·A · AskAI <span class="sys">학생 진입</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>학생이 <span class="acc">모르는 문제</span>를 만났을 때.</h2>
+            <div class="subtitle">실제 학생 앱 화면 4 컷 — 홈 → 질문 → AI 답변 → 숙제 발행</div>
+          </div>
+          <div class="storyboard four">
+            <div class="step">
+              <div class="num-pill"><span class="num">①</span>학생 홈 진입</div>
+              <div class="phone"><img src="img/student-home.png" alt="학생 앱 홈 화면" /></div>
+              <div class="cap">매일 들어오면 <b>오늘 할 일·시험·복습</b>이 한 화면.</div>
+            </div>
+            <div class="arrow" aria-hidden="true">→</div>
+            <div class="step">
+              <div class="num-pill"><span class="num">②</span>모르는 문제 질문</div>
+              <div class="phone"><img src="img/student-ask-ai-write.png" alt="학생이 질문 입력하는 화면" /></div>
+              <div class="cap">막힌 문제 <b>사진 한 장</b>으로 끝. 입력 부담 0.</div>
+            </div>
+            <div class="arrow" aria-hidden="true">→</div>
+            <div class="step">
+              <div class="num-pill"><span class="num">③</span>학원 자료에서 답</div>
+              <div class="phone"><img src="img/student-ask-ai-answer.png" alt="AskAI가 학원 단원지를 인용해 단계별로 답한 화면" /></div>
+              <div class="cap">단원지 페이지 <b>그대로 인용</b>하며 단계별 풀이.</div>
+            </div>
+            <div class="arrow" aria-hidden="true">→</div>
+            <div class="step">
+              <div class="num-pill"><span class="num">④</span>숙제로 자동 발행</div>
+              <div class="phone"><img src="img/student-assignments.png" alt="숙제 페이지 — 자동 발행된 복습 카드" /></div>
+              <div class="cap">오답·체크포인트 실패 = <b>다음 날 숙제</b>로 자동. 잊을 때쯤 다시.</div>
+            </div>
+          </div>
+          <div class="story-foot">
+            <span class="lhs"><span class="num">★</span>화면 밖에서</span>
+            <b>AI 자신감 낮으면 <span class="acc">강사 큐로 자동 라우팅</span> — 강사 코멘트가 다음 답변으로 환류. 강사 손 안 거치고 학생 → 답 → 숙제까지 자동 완결.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · A</div><div class="page">09 · A</div></div>
+      </div>
+    </div>
+
+    <!-- 09·B Use Case 1·B · AI가 그림·문제 자동 생성 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">09 · B</span><span>AI 그림·문제 자동 생성</span><span class="dim">— AskAI 시그너처</span></div>
+      <div class="slide s-feature no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 1·B · AskAI <span class="sys">시그너처</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>AI가 학생을 위해 <span class="acc">그림 그리고</span>,<br/><span class="acc">다음 문제</span>까지 만든다.</h2>
+            <div class="subtitle">강사 자료에 없어도, 막힌 단계에 즉시 — 학생 부담 0.</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">학생 PAIN</span><span class="d">— 지금까지</span></div>
+                <ul>
+                  <li><b>추상 개념</b>(분포 곡선·함수 모양) 은 단원지에 그림 없으면 머릿속 상상으로만</li>
+                  <li>"비슷한 유형 더 풀어보고 싶어요" 라는데 <b>강사 없으면 새 문제가 안 옴</b></li>
+                  <li>학생이 직접 그래프 도구 (Desmos·GeoGebra) 까지 배워야 함 → <b>학습 부담 폭증</b></li>
+                  <li>강사 시간의 <b>30% 이상이 칠판 그림</b>으로 소모</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">AskAI 해결</span><span class="d">— 같은 채팅창 안에서</span></div>
+                <ul>
+                  <li><b>그림 단계 (figure)</b> — AI가 즉석에서 SVG 그래프·도형 렌더</li>
+                  <li><b>다음 문제 단계 (checkpoint)</b> — 같은 단원에서 비슷한 유형 자동 생성</li>
+                  <li><b>단원지 인용 (cite)</b> — 학원이 가르친 페이지·방식 기반</li>
+                  <li>학생이 별도 앱 안 깔아도, <b>한 화면 안에서 보고 → 풀고 → 다음</b></li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="phone-tag">STUDENT · MOBILE · 실 캡처</div>
+              <div class="phone"><img src="img/student-ask-ai-figure.png" alt="AI가 정규분포 곡선을 그리고 비슷한 유형 문제를 자동 생성한 화면" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>단원지에 없는 그림도 <span class="acc">AI가 그리고</span>, 풀어볼 <span class="acc">다음 문제</span>까지 만든다 — 학원 자료를 학원 자료로 확장.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · B</div><div class="page">09 · B</div></div>
+      </div>
+    </div>
+
+    <!-- 09·C · 자동 복습 카드 (SM-2) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">09 · C</span><span>자동 복습 카드</span><span class="dim">— SM-2 spaced repetition</span></div>
+      <div class="slide s-feature no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 1·C · AskAI <span class="sys">자동 복습</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>오답·막힌 단계가 <span class="acc">잊을 때쯤</span><br/><span class="acc">자동으로 복습 카드</span>가 된다.</h2>
+            <div class="subtitle">강사가 오답노트 만들 필요 없음 — 4 종류 신호가 카드를 자동 발행</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">학생 PAIN</span><span class="d">— 지금까지</span></div>
+                <ul>
+                  <li>틀린 문제는 풀고 나면 <b>금방 잊음</b> — 다음 시험에 또 틀린다</li>
+                  <li>"이거 복습해야지" 라는 의지만으로는 <b>지속 불가</b></li>
+                  <li>강사가 학생별로 오답노트 만들 시간 <b>없음</b></li>
+                  <li>학원 외부 앱(Anki·Quizlet) 따로 쓰면 학원과 <b>단절</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">AskAI 해결</span><span class="d">— 4 신호 → 자동 카드</span></div>
+                <ul>
+                  <li><b>AskAI 막힌 단계</b> — 체크포인트에서 "모름" 누른 단계 자동 카드</li>
+                  <li><b>시험 오답</b> — 단원평가에서 틀린 문제 자동 카드</li>
+                  <li><b>숙제 감점</b> — 과제 채점 시 감점된 부분 자동 카드</li>
+                  <li><b>단원지 X 표시</b> — 강사가 X 친 부분 자동 카드</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="phone-tag">STUDENT · MOBILE · 실 캡처</div>
+              <div class="phone"><img src="img/student-drill-card.png" alt="자동 복습 카드 화면 — 정답 풀이 공개 + SM-2 등급 (쉬움/적당/어려움/모름)" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>학생이 <span class="acc">쉬움/적당/어려움/모름</span> 만 누르면, 다음 등장 시점이 자동 조절 — <span class="acc">잊을 때쯤 정확히 다시</span>.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · C</div><div class="page">09 · C</div></div>
+      </div>
+    </div>
+
+    <!-- 09·D · OCR 사진 질문 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">09 · D</span><span>OCR 사진 질문</span><span class="dim">— 학생 부담 0</span></div>
+      <div class="slide s-feature no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 1·D · AskAI <span class="sys">OCR 사진 질문</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>사진 <span class="acc">한 장</span>만 찍어도,<br/>AI가 수식까지 <span class="acc">읽어낸다</span>.</h2>
+            <div class="subtitle">손으로 한글·수식 타이핑 안 함 — 학생 진입 장벽 0</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">학생 PAIN</span><span class="d">— 지금까지</span></div>
+                <ul>
+                  <li>모르는 문제 보고도 <b>키보드로 타이핑하기 귀찮음</b> → 그냥 넘김</li>
+                  <li>수식(∫, σ², √, ⊥) 모바일 키보드로 <b>입력 불가</b></li>
+                  <li>"이런 거 어떻게 물어보지?" → <b>질문 자체를 포기</b></li>
+                  <li>학습 끊김 → 다음 수업까지 그 문제 <b>해결 못 함</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">AskAI 해결</span><span class="d">— 카메라 한 번</span></div>
+                <ul>
+                  <li><b>사진 한 장</b> → 수식·한글·도형 자동 인식 (OCR)</li>
+                  <li><b>읽은 내용 학생 확인 단계</b> — AI가 잘못 읽었을 때 "다시" 가능</li>
+                  <li><b>인식 신뢰도 표시</b> — high / medium / low 로 투명하게</li>
+                  <li>학생은 <b>찍고 → 확인 → 풀이</b> 3 탭만</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="phone-tag">STUDENT · MOBILE · 실 캡처</div>
+              <div class="phone"><img src="img/student-ask-ai-ocr.png" alt="OCR로 사진에서 수식·한글 읽어내고 학생에게 확인 받는 화면" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>"사진 한 장 = 질문 한 개" — <span class="acc">학생 부담 0</span> 으로 학습 끊김 방지. 학원 안 다니는 시간에도 학습 유지.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · D</div><div class="page">09 · D</div></div>
+      </div>
+    </div>
+
+    <!-- 10·A Use Case 2 · TutorFlow 수업 → 자동 숙제 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">10 · A</span><span>Use Case 2 · 1:1 수업 후</span><span class="dim">— TutorFlow 시나리오</span></div>
+      <div class="slide s-scenario no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 2·A · TutorFlow <span class="sys">강사 작업 0</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head">
+            <h2><span class="acc">한 번의 수업</span>이 자동 숙제와 학부모 카톡까지.</h2>
+            <div class="subtitle">가상 시나리오 · 이학생(중2) · 이차부등식 90분 수업 · 수업 종료 후 1분 안에 학부모 카톡까지</div>
+          </div>
+          <div class="cascade">
+            <div class="stage">
+              <div class="thumb"><img src="img/tutor-live-room-annotated.png" alt="라이브 룸" /><span class="badge">LIVE</span></div>
+              <div class="label">— Stage 1 · 수업</div>
+              <h4>이차부등식 풀이 · 90분</h4>
+              <div class="meta">STUDENT: <b>이학생</b> · 중2<br/>SESSION: <b>5/17 11:00–12:30</b><br/>STROKES: <b>17</b></div>
+              <div class="body">
+                <ul>
+                  <li><span class="i">1.</span><span>인수분해 → 강사 힌트 후 OK</span></li>
+                  <li><span class="i">2.</span><span><span class="acc">부등호 방향 2회 혼동</span></span></li>
+                  <li><span class="i">3.</span><span>해 자력 도출 (마지막 시도)</span></li>
+                </ul>
+              </div>
+              <div class="footer">강사 클릭: <b>"종료" ↗</b></div>
+            </div>
+            <div class="stage">
+              <div class="thumb" style="background: var(--sys-fill); display:flex; align-items:center; padding:0 14px;">
+                <div style="text-align:left;">
+                  <div style="font-size:10px; font-weight:700; color:var(--sys-text); letter-spacing:0.16em;">CLAUDE</div>
+                  <div style="font-size:14px; font-weight:800; color:var(--ink); margin-top:2px;">자동 요약 #8424</div>
+                  <div style="font-size:10.5px; color:var(--ink-3); margin-top:2px;">음성→문자 → AI 분석 · 12.3 초</div>
+                </div>
+                <span class="badge" style="background:var(--sys-text);">AI</span>
+              </div>
+              <div class="label">— Stage 2 · 요약</div>
+              <h4>핵심 막힘 + 다음 단원 추천</h4>
+              <div class="meta">자신감: <b>높음</b> 9.4/10<br/>정답률: <b>33%</b> (1/3 자력)<br/>컨디션: <b>마지막 15분 피로</b></div>
+              <div class="body">
+                <p><b>약점</b></p>
+                <ul>
+                  <li><span class="i">▸</span><span><span class="acc">부등호 방향 결정</span> · 2회 혼동</span></li>
+                </ul>
+                <p style="margin-top:6px;"><b>추천</b></p>
+                <ul>
+                  <li><span class="i">→</span><span><span class="acc">이차함수 그래프</span> · 시각 보강</span></li>
+                </ul>
+              </div>
+              <div class="footer">자동 발행: <b>숙제+카톡 ↗</b></div>
+            </div>
+            <div class="stage">
+              <div class="thumb" style="background: var(--sys-soft); display:flex; align-items:center; padding:0 14px;">
+                <div style="text-align:left;">
+                  <div style="font-size:10px; font-weight:700; color:var(--sys-text); letter-spacing:0.16em;">HOMEWORK · AUTO</div>
+                  <div style="font-size:14px; font-weight:800; color:var(--ink); margin-top:2px;">과제 #142 발행</div>
+                  <div style="font-size:10.5px; color:var(--ink-3); margin-top:2px;">due 5/19 23:59 · 36시간 마감</div>
+                </div>
+                <span class="badge">HW</span>
+              </div>
+              <div class="label">— Stage 3 · 숙제</div>
+              <h4>약점 기반 8문 + 영상 1편</h4>
+              <div class="meta">ITEMS: <b>8</b> · 예상: <b>45 min</b><br/>단원: <b>이차부등식 § 2-3</b><br/>상태: <b>학생 큐 도착 ✓</b></div>
+              <div class="body">
+                <ul>
+                  <li><span class="i">1</span><span><span class="acc">인수분해 유제 5문</span></span></li>
+                  <li><span class="i">2</span><span><span class="acc">부등호 응용 3문</span> · 약점 직격</span></li>
+                  <li><span class="i">3</span><span>이차함수 보조 영상 5:24</span></li>
+                </ul>
+              </div>
+              <div class="footer">발송: <b>학부모 카톡 ↘</b></div>
+            </div>
+          </div>
+          <div class="notification">
+            <div class="icon">톡</div>
+            <div>
+              <div class="l">— 학부모 알림 · 카톡 알림톡</div>
+              <div class="t">이학생 어머니에게 <span class="acc">요약 + 숙제 + read-only 링크</span> 자동 발송 — 강사 작업 0초</div>
+            </div>
+            <div class="status">✓ 12:31:08 발송</div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · A</div><div class="page">10 · A</div></div>
+      </div>
+    </div>
+
+    <!-- 10·B · 라이브 빨간펜 첨삭 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">10 · B</span><span>라이브 빨간펜 첨삭</span><span class="dim">— 실시간 P2P</span></div>
+      <div class="slide s-feature desktop no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 2·B · TutorFlow <span class="sys">라이브 빨간펜</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>학생 풀이 위에 <span class="acc">실시간 빨간펜</span>.<br/>화이트보드도 화면 공유도 <span class="acc">필요 없다</span>.</h2>
+            <div class="subtitle">강사 ↔ 학생 직접 연결(P2P) — 풀이 노트가 즉시 칠판이 된다</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 지금까지 1:1</span></div>
+                <ul>
+                  <li>화이트보드 들고 오기 <b>불가</b> — 외부에서 1:1 못 받음</li>
+                  <li>Zoom 화면 공유 + 그림판 = 학생 풀이 위에 <b>못 그림</b></li>
+                  <li>"여기 부등호 방향" 말로 설명만 → <b>학생이 어디인지 모름</b></li>
+                  <li>녹화·기록 따로 도구 — <b>수업 자료 흩어짐</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">TutorFlow 해결</span><span class="d">— 한 캔버스</span></div>
+                <ul>
+                  <li><b>P2P 직접 연결</b> — 서버 안 거치고 강사 ↔ 학생 (지연 50ms 이하)</li>
+                  <li><b>학생 풀이 위 빨간펜</b> — 같은 캔버스에 강사가 직접 표시</li>
+                  <li><b>5 색 펜 + 도형 + 형광</b> — 실 칠판처럼</li>
+                  <li><b>모든 stroke 자동 기록</b> — 종료 후 AI 분석 입력</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">TUTOR · DESKTOP · 실 캡처</div>
+              <div class="desktop"><img src="img/tutor-live-room-annotated.png" alt="라이브 룸에서 학생 풀이 위에 빨간펜으로 첨삭한 화면" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>같은 종이 위에 두 사람이 동시에 — <span class="acc">물리적 1:1 수업과 동일한 손맛</span>, 외부 어디서나.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · B</div><div class="page">10 · B</div></div>
+      </div>
+    </div>
+
+    <!-- 10·C · AI 자동 리포트 (음성 → 문자 → 약점 분석) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">10 · C</span><span>AI 자동 리포트</span><span class="dim">— 음성 → 약점 분석</span></div>
+      <div class="slide s-feature mock no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 2·C · TutorFlow <span class="sys">AI 자동 리포트</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>수업 끝, <span class="acc">12 초 후</span>.<br/>강사 손 안 거친 <span class="acc">약점 리포트</span>가 도착.</h2>
+            <div class="subtitle">녹화된 90분 → 음성 텍스트 → AI 분석 → 단계별 약점 + 다음 단원 추천</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">강사 PAIN</span><span class="d">— 수업 후</span></div>
+                <ul>
+                  <li>90분 수업 → <b>1~2 시간</b> 리포트 손작성 (수업의 1.5배 시간)</li>
+                  <li>어디서 막혔는지 <b>기억 안 남</b> — 종이 흩어진 메모만</li>
+                  <li>학생별 약점 정리 → <b>퇴근 못 함</b></li>
+                  <li>다음 수업·다음 학기 <b>맥락 안 남음</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">AI 리포트 해결</span><span class="d">— 4 단계 자동</span></div>
+                <ul>
+                  <li><b>음성 → 문자</b> — 수업 녹음 자동 STT (Whisper)</li>
+                  <li><b>stroke 분석</b> — 어디서 멈췄는지, 몇 번 지웠는지 좌표 추적</li>
+                  <li><b>AI 약점 추출</b> — Claude tool_use 강제 분석 (단계·횟수·자신감)</li>
+                  <li><b>다음 단원 추천</b> — 약점 기반 다음 학습 경로</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">CLAUDE · AI 분석 · 12.3 초</div>
+              <div class="mock-card report-card">
+                <div class="mc-head">
+                  <span class="mc-id">REPORT #8424</span>
+                  <span class="mc-status">자동 발행 ✓</span>
+                </div>
+                <div class="mc-body">
+                  <div class="mc-row"><span class="k">학생</span><b>이학생 · 중2</b></div>
+                  <div class="mc-row"><span class="k">단원</span><b>이차부등식 § 2-3 · 90분</b></div>
+                  <div class="mc-row"><span class="k">자신감</span><b class="acc">9.4 / 10</b> <span class="dim">높음</span></div>
+                  <div class="mc-row"><span class="k">정답률</span><b class="acc">33%</b> <span class="dim">1/3 자력</span></div>
+                  <div class="mc-row"><span class="k">컨디션</span><b>마지막 15분 피로</b></div>
+                  <div class="mc-divider"></div>
+                  <div class="mc-block">
+                    <div class="mc-label">▸ 약점</div>
+                    <div class="mc-value"><span class="acc">부등호 방향 결정</span> · 2회 혼동</div>
+                  </div>
+                  <div class="mc-block">
+                    <div class="mc-label">→ 다음 단원</div>
+                    <div class="mc-value"><span class="acc">이차함수 그래프</span> · 시각 보강</div>
+                  </div>
+                </div>
+                <div class="mc-foot">자동 → 숙제 발행 ↗ · 학부모 카톡 ↘</div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>강사가 <span class="acc">기억 안 해도 되는</span> 학생 — 학원 데이터가 <span class="acc">자기 자신을 채워간다</span>.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · C</div><div class="page">10 · C</div></div>
+      </div>
+    </div>
+
+    <!-- 10·D · 학부모 카톡 알림톡 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">10 · D</span><span>학부모 카톡 알림톡</span><span class="dim">— 강사 작업 0초</span></div>
+      <div class="slide s-feature mock no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 2·D · TutorFlow <span class="sys">학부모 카톡</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>수업 끝 <span class="acc">1 분 안</span>,<br/>학부모 카톡에 <span class="acc">요약·숙제·링크</span>까지.</h2>
+            <div class="subtitle">"잘 하고 있어요" 가 아닌 — 근거 데이터 + 다시 볼 수 있는 read-only 링크</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">학부모 PAIN</span><span class="d">— 지금까지</span></div>
+                <ul>
+                  <li>학원비 매달 내는데 우리 애가 뭘 했는지 <b>카톡 단톡방 한 줄</b></li>
+                  <li>"잘 하고 있어요" 말뿐 — <b>근거 데이터 없음</b></li>
+                  <li>오답·약점은 <b>시험 직전</b>에야 통보</li>
+                  <li>강사 바뀌면 우리 애 맥락 <b>0 부터 다시</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">알림톡 해결</span><span class="d">— 수업 종료 1분 내</span></div>
+                <ul>
+                  <li><b>요약 한 문단</b> — 무슨 단원, 어디 막혔는지, 자신감 점수</li>
+                  <li><b>발행된 숙제 미리보기</b> — 약점 직격 8문 + 영상</li>
+                  <li><b>Read-only 라이브 룸 링크</b> — 학부모가 그날 수업 직접 볼 수 있음</li>
+                  <li><b>강사 작업 0초</b> — 자동 발송, 강사는 "종료" 버튼만</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">KAKAO · 알림톡 · 12:31:08 발송</div>
+              <div class="mock-card kakao-card">
+                <div class="kk-head">
+                  <span class="kk-talk">톡</span>
+                  <div class="kk-meta">
+                    <div class="kk-name">와와 학원 알림톡</div>
+                    <div class="kk-time">오후 12:31</div>
+                  </div>
+                </div>
+                <div class="kk-body">
+                  <div class="kk-greet"><b>이학생 어머니</b>께 — 오늘 수업 마감.</div>
+                  <div class="kk-section">
+                    <div class="kk-label">📚 오늘 수업</div>
+                    <div>이차부등식 § 2-3 · 90분 (11:00–12:30)</div>
+                  </div>
+                  <div class="kk-section">
+                    <div class="kk-label">📈 결과</div>
+                    <div>자신감 <b>9.4/10</b> · 정답률 <b>33%</b> · 1/3 자력 도출</div>
+                  </div>
+                  <div class="kk-section">
+                    <div class="kk-label">🎯 약점</div>
+                    <div><b>부등호 방향 결정</b> · 2회 혼동 → 시각 보강 필요</div>
+                  </div>
+                  <div class="kk-section">
+                    <div class="kk-label">📝 자동 발행 숙제</div>
+                    <div>인수분해 5문 · 부등호 응용 3문 · 보조 영상 5분<br/><span class="dim">due 5/19 23:59</span></div>
+                  </div>
+                  <div class="kk-cta">▶ 수업 다시 보기 (read-only)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>학원이 보이지 않으면 신뢰가 빠진다 — <span class="acc">근거 데이터 자동 발송</span>으로 학부모를 학원의 편으로.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · D</div><div class="page">10 · D</div></div>
+      </div>
+    </div>
+
+    <!-- 11·A Use Case 3 · 세특 AI · 강사 학기말 PAIN -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">11 · A</span><span>Use Case 3 · 세특 AI</span><span class="dim">— 강사 학기말 PAIN</span></div>
+      <div class="slide s-feature mock no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 3·A · PerfEval <span class="sys">세특 PAIN</span> <span class="upcoming-chip">2026 Q3</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>2026 교육과정 = <span class="acc">서논술형 70%</span>.<br/>ChatGPT 쓰면 <s>들킨다</s>.</h2>
+            <div class="subtitle">서울 A고 — 국어 지필 서술형 40% + 수행 30% = 총 70%가 서논술형. 학원이 보고서 초안 만들어줘야 살아남는다.</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">강사 PAIN</span><span class="d">— 학기말 2 주</span></div>
+                <ul>
+                  <li>학생 <b>수십 명 세특을 손으로</b> — 한 명에 30분 × 30명 = 15시간</li>
+                  <li>학교마다 <b>다른 루브릭</b> — 강사가 매번 다시 읽고 맞춰야 함</li>
+                  <li>"수업 잘 들었음" 류 <b>일반론</b> 적으면 학교에서 반려</li>
+                  <li>다음 학기에 <b>처음부터 다시</b> — 누적 데이터 없음</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">왜 ChatGPT 안 됨</span><span class="d">— 일반 AI 한계</span></div>
+                <ul>
+                  <li>학교별 루브릭 <b>모름</b> → 일반 답만</li>
+                  <li>학원이 가르친 방식·톤 <b>모름</b> → 강사가 결국 다시 씀</li>
+                  <li>"AI 티 나는 톤" → 학교 <b>AI 검출기에 적발</b></li>
+                  <li>학생 정보 외부 LLM에 입력 = <b>학원 노하우 유출</b></li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">비교 · 일반 AI vs 학원 데이터 기반</div>
+              <div class="mock-card compare-card">
+                <div class="cmp-row them">
+                  <div class="cmp-l">ChatGPT</div>
+                  <div class="cmp-r">
+                    <div class="cmp-quote">"학생은 수업에 적극적으로 참여하며, 수학적 사고력이 우수하고 문제 해결 능력이…"</div>
+                    <div class="cmp-tags"><span class="x">평균형</span><span class="x">일반론</span><span class="x">검출 위험</span></div>
+                  </div>
+                </div>
+                <div class="cmp-divider"></div>
+                <div class="cmp-row us">
+                  <div class="cmp-l">PerfEval</div>
+                  <div class="cmp-r">
+                    <div class="cmp-quote">"이학생은 <b>이차부등식 단원</b>에서 부등호 방향 결정에 2회 혼동을 겪었으나, 강사 힌트 후 <b>인수분해 → 그래프 시각화</b>로 자력 도출에 성공함. <b>5월 수학신문 「부등식과 그래프」</b> 글에서…"</div>
+                    <div class="cmp-tags"><span class="o">실제 단원</span><span class="o">강사 톤</span><span class="o">학원 결과물 인용</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>일반 AI는 평균형 답만 — <span class="acc">학원이 가진 학생 데이터·결과물·강사 톤</span>이 없으면 세특은 불가능.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · A</div><div class="page">11 · A</div></div>
+      </div>
+    </div>
+
+    <!-- 11·B · 학원 결과물 자산 (Cold-start 0) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">11 · B</span><span>학원 결과물 자산</span><span class="dim">— Cold-start 0</span></div>
+      <div class="slide s-feature mock no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 3·B · PerfEval <span class="sys">학원 자산 = Moat</span> <span class="upcoming-chip">2026 Q3</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>학교에서 <span class="acc">이미 통과한</span> 결과물 위에서<br/>AI가 학습 — <span class="acc">Cold-start 0</span>.</h2>
+            <div class="subtitle">처음부터 만들 필요 없음. 학원이 이미 만든 자료가 그대로 학습 데이터</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">기존 AI 도구의 한계</span><span class="d">— 외부 SaaS</span></div>
+                <ul>
+                  <li><b>학원 데이터 0</b> 부터 시작 → 학원 색깔 안 남</li>
+                  <li>학생 평가 자료 매번 입력해야 함 → <b>강사 시간 또 듦</b></li>
+                  <li>외부 LLM API에 학생 이름·평가 정보 <b>전송 = 개인정보 위험</b></li>
+                  <li>여러 학원이 같은 도구 = <b>차별화 0</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">PerfEval 자산</span><span class="d">— 와와에만 있는 것</span></div>
+                <ul>
+                  <li><b>수학신문</b> — 매주 발행된 학생 글 (학원이 가르친 톤 그대로)</li>
+                  <li><b>탐구보고서</b> — 학교에서 통과한 보고서 5+ 유형</li>
+                  <li><b>수행평가 결과물</b> — 점수·코멘트 같이 보유</li>
+                  <li><b>학교별 루브릭 사진</b> — 시간 갈수록 누적 → 다른 학원 못 따라옴</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">자산 → AI 학습 흐름</div>
+              <div class="mock-card flow-card">
+                <div class="flow-label">와와 학원이 이미 가진 것</div>
+                <div class="flow-stack">
+                  <div class="asset"><span class="ic">📰</span><div><b>수학신문</b><span>매주 발행 · 100+ 글</span></div></div>
+                  <div class="asset"><span class="ic">📑</span><div><b>탐구보고서</b><span>5+ 유형 · 통과 검증</span></div></div>
+                  <div class="asset"><span class="ic">✏️</span><div><b>수행평가</b><span>점수 + 코멘트 페어</span></div></div>
+                  <div class="asset"><span class="ic">📋</span><div><b>학교별 루브릭</b><span>OCR 자동 구조화</span></div></div>
+                </div>
+                <div class="flow-arrow">↓ AI 학습 (예시 몇 개로 충분)</div>
+                <div class="flow-out">
+                  <div class="out-label">세특·보고서 자동 생성</div>
+                  <div class="out-meta"><b>학원 톤</b> · <b>학교 루브릭</b> · <b>학생 맥락</b> 일치</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>다른 학원은 0 부터 데이터 모아야 함 — 와와는 <span class="acc">결과물이 이미 있어서 첫 날부터 가능</span>.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · B</div><div class="page">11 · B</div></div>
+      </div>
+    </div>
+
+    <!-- 11·C · 6 Skills 패키징 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">11 · C</span><span>6 Skills 패키징</span><span class="dim">— Claude Code Native</span></div>
+      <div class="slide s-feature mock no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 3·C · PerfEval <span class="sys">6 Skills</span> <span class="upcoming-chip">2026 Q3</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>SaaS 아님. <span class="acc">코치 PC에 설치</span>되는<br/>Claude Code <span class="acc">Skill 6 종</span>.</h2>
+            <div class="subtitle">학원 데이터는 학원 컴퓨터에 — 외부 서버에 학생 정보 안 보내고도 풀파워</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">왜 SaaS 안 함</span><span class="d">— 일반 AI 도구 한계</span></div>
+                <ul>
+                  <li>학생 정보를 외부 서버에 전송 = <b>개인정보 위험</b></li>
+                  <li>학원 결과물 업로드 → <b>외부 LLM 학습 데이터 됨</b></li>
+                  <li>강사가 새 도구 사용법 배워야 함 → <b>도입 장벽</b></li>
+                  <li>여러 학원이 같은 SaaS = <b>학원 차별화 0</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">Skill 패키징 해결</span><span class="d">— 코치 PC 로컬</span></div>
+                <ul>
+                  <li>강사가 평소 쓰는 <b>Claude Code 안에서</b> 슬래시 명령으로 실행</li>
+                  <li>학원 데이터·결과물 <b>로컬에서만</b> 처리</li>
+                  <li>스킬 파일 <b>한 폴더만 설치</b> — 강사는 새 앱 안 배움</li>
+                  <li>학원마다 <b>커스텀 가능</b> — 같은 스킬도 다른 학원 톤</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">6 SKILLS · /perfeval-*</div>
+              <div class="mock-card skill-grid">
+                <div class="sk-row"><div class="sk-cmd">/perfeval-rubric</div><div class="sk-d">루브릭 사진 → 구조화 JSON</div></div>
+                <div class="sk-row"><div class="sk-cmd">/perfeval-research</div><div class="sk-d">진로 × 주제 × 루브릭 딥리서치</div></div>
+                <div class="sk-row"><div class="sk-cmd">/perfeval-draft</div><div class="sk-d">탐구보고서 5 유형 Typst 초안</div></div>
+                <div class="sk-row"><div class="sk-cmd">/perfeval-grade</div><div class="sk-d">루브릭 기반 자가 채점</div></div>
+                <div class="sk-row sig"><div class="sk-cmd">/perfeval-saeteuk</div><div class="sk-d">세특 초안 (학교·강사 톤 학습)</div></div>
+                <div class="sk-row"><div class="sk-cmd">/perfeval-newspaper</div><div class="sk-d">수학신문 figure + 레이아웃</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>"학원 데이터가 학원 컴퓨터에 남는다" — <span class="acc">로컬 + 슬래시 명령</span> 만으로 풀파워, 도입 장벽 0.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · C</div><div class="page">11 · C</div></div>
+      </div>
+    </div>
+
+    <!-- 11·D · 실제 산출물 3 컷 갤러리 (수학신문 · 탐구보고서 · 수행평가) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">11 · D</span><span>실제 산출물 갤러리</span><span class="dim">— 수학신문 · 탐구보고서 · 수행평가</span></div>
+      <div class="slide s-feature gallery no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 3·D · PerfEval <span class="sys">실 산출물 갤러리</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>이런 산출물을 <span class="acc">AI가 자동 생성</span>한다.<br/>강사 손작업 → <span class="acc">슬래시 명령 한 줄</span>.</h2>
+            <div class="subtitle">PerfEval 산출물 3 종 — 모두 실제 생성된 결과물 (학원·학생용)</div>
+          </div>
+          <div class="artifact-gallery">
+            <div class="artifact">
+              <div class="art-tag">AI 자동 생성 · 수학신문</div>
+              <div class="art-preview wide"><img src="img/perfeval-newspaper-1.png" alt="수학신보 — 켤레근 4000년의 항해" /></div>
+              <div class="art-meta">
+                <div class="art-title">수학신보 · <span class="acc">켤레근 4000년의 항해</span></div>
+                <div class="art-desc">대한고등수학사 · A3 신문 1면 · <span class="acc">/perfeval-newspaper</span> 로 자동 레이아웃 + figure + 단원 연결. 사람 손은 단원만 지정.</div>
+              </div>
+            </div>
+            <div class="artifact">
+              <div class="art-tag">AI 자동 초안 · 탐구보고서</div>
+              <div class="art-preview"><img src="img/perfeval-tamgu-cover-01.png" alt="탐구보고서 — 건물 높이와 바람, 그리고 로그" /></div>
+              <div class="art-meta">
+                <div class="art-title">건물 높이와 바람, <span class="acc">그리고 로그</span></div>
+                <div class="art-desc">건축구조공학 진로 × 로그 단원 자동 매칭. <span class="acc">/perfeval-draft</span> 가 <b>7 챕터 구조</b>(도입→한계→파고들기) 까지 생성.</div>
+              </div>
+            </div>
+            <div class="artifact">
+              <div class="art-tag">AI 자동 초안 · 수행평가</div>
+              <div class="art-preview"><img src="img/perfeval-suhang-1.png" alt="수행평가 — 지수·로그 함수의 실생활 모델링" /></div>
+              <div class="art-meta">
+                <div class="art-title">지수·로그 함수의 <span class="acc">실생활 모델링</span></div>
+                <div class="art-desc">시지고 대수 수행평가 양식 자동 적용. <span class="acc">/perfeval-research</span> 로 주제→탐구→문제풀이→<b>탐구 성찰</b> 까지 한 번에.</div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>이 퀄리티의 산출물을 <span class="acc">슬래시 명령 한 줄</span>로 — 강사 손작업 수 시간 → <span class="acc">분 단위</span>. 학원 자료가 학원 자료를 만든다.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · D</div><div class="page">11 · D</div></div>
+      </div>
+    </div>
+
+    <!-- 12 · 영어 독해 AI · 한 단락 → 워크북 자동 생성 (mockup) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">12</span><span>영어 독해 AI</span><span class="dim">— 한 단락 → 워크북 한 페이지</span></div>
+      <div class="slide s-feature workbook no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 4 · 영어 독해 AI <span class="sys">자동 워크북</span> <span class="upcoming-chip">2026 Q4</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>학생이 영어 단락을 paste,<br/><span class="acc">5 초 후 워크북 한 페이지</span>가 나온다.</h2>
+            <div class="subtitle">학원 교과서 스타일 · 어법 문제 + 독해 이해도 문제 + 단어·요지·요약 자동 생성 — 자기주도 학습 도구</div>
+          </div>
+          <div class="wb-grid">
+            <div class="wb-side">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">학생 PAIN</span><span class="d">— 자습 시</span></div>
+                <ul>
+                  <li>콴다·ChatGPT는 답만 — <b>워크북 형식 없음</b></li>
+                  <li>학원 해설본은 강사 손작업 — 1 단락 = <b>1 시간 +</b></li>
+                  <li>학생 혼자 자습 시 <b>단어만 검색</b>하고 끝</li>
+                  <li>EBS·일타 강의는 <b>강사 페이스</b> — 자기 페이스 X</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">/reading 해결</span><span class="d">— 한 줄, 5 초</span></div>
+                <ul>
+                  <li><b>학원 단어집 기반</b> 어휘 강조 + 정리</li>
+                  <li><b>어법 문제 자동</b> — 학교 시험형 (밑줄 옳/그름)</li>
+                  <li><b>독해 이해도 자동</b> — 주제·세부·추론 객관식</li>
+                  <li>학원 톤 + 학원 깊이 — <b>학원 자료 자동 확장</b></li>
+                </ul>
+              </div>
+              <div class="cmd-strip">
+                <span class="cmd">/reading</span>
+                <span class="cmd-d">단락 paste → 워크북 한 페이지</span>
+              </div>
+            </div>
+            <div class="wb-page">
+              <div class="wb-paper">
+                <div class="wb-head">
+                  <div class="wb-brand">와와 영어 워크북 · <span class="dim">Auto</span></div>
+                  <div class="wb-tag">학생 자습용 · 2026.5.17</div>
+                </div>
+                <div class="wb-passage">
+                  <div class="wb-label">📖 본문 <span class="dim">· Cognitive psychology, 75 words</span></div>
+                  <p>Many people believe that <mark>creativity</mark> is a rare gift, reserved for artists and inventors. However, research in cognitive psychology suggests otherwise. Creativity is not an <mark>inherited trait</mark> but a skill <mark>developed through deliberate practice</mark>. Studies have shown that children who are exposed to <mark>diverse experiences</mark> and encouraged to ask open-ended questions demonstrate higher creative thinking. Furthermore, environments that <mark>tolerate failure</mark> and reward experimentation foster innovation more effectively than those focused solely on correct answers.</p>
+                </div>
+                <div class="wb-row two">
+                  <div class="wb-block">
+                    <div class="wb-label">📌 핵심 요지</div>
+                    <div class="wb-gist">창의성은 타고나는 재능이 아니라 <b>다양한 경험·실패 허용·열린 질문</b>을 통해 길러지는 <b>훈련된 능력</b>이다.</div>
+                  </div>
+                  <div class="wb-block">
+                    <div class="wb-label">🔤 단어 5</div>
+                    <table class="wb-vocab">
+                      <tr><td><b>creativity</b></td><td class="pos">n.</td><td>창의성 <span class="syn">≈ originality</span></td></tr>
+                      <tr><td><b>inherited</b></td><td class="pos">a.</td><td>유전되는 <span class="syn">≈ innate</span></td></tr>
+                      <tr><td><b>deliberate</b></td><td class="pos">a.</td><td>의도적인 <span class="syn">≈ intentional</span></td></tr>
+                      <tr><td><b>foster</b></td><td class="pos">v.</td><td>육성하다 <span class="syn">≈ nurture</span></td></tr>
+                      <tr><td><b>tolerate</b></td><td class="pos">v.</td><td>용인하다 <span class="syn">≈ accept</span></td></tr>
+                    </table>
+                  </div>
+                </div>
+                <div class="wb-row two">
+                  <div class="wb-block">
+                    <div class="wb-label">📐 어법 <span class="dim">· 자동 생성</span></div>
+                    <div class="wb-q">밑줄 친 부분 중 어법상 <b>틀린</b> 것은?</div>
+                    <div class="wb-choices">
+                      <span>① reserved for</span>
+                      <span>② suggests otherwise</span>
+                      <span>③ exposed to diverse</span>
+                      <span class="ans">④ <b>encouraged to asking</b></span>
+                      <span>⑤ focused solely on</span>
+                    </div>
+                  </div>
+                  <div class="wb-block">
+                    <div class="wb-label">❓ 독해 이해도 <span class="dim">· 자동 생성</span></div>
+                    <div class="wb-q">윗글의 <b>주제</b>로 가장 적절한 것은?</div>
+                    <div class="wb-choices">
+                      <span>① the artistic gift of inventors</span>
+                      <span class="ans">② <b>creativity as a learnable skill</b></span>
+                      <span>③ open-ended questions for children</span>
+                      <span>④ the role of innate talent</span>
+                      <span>⑤ environments without failure</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="wb-block summary">
+                  <div class="wb-label">✏️ 요약 빈칸 <span class="dim">· cloze</span></div>
+                  <div class="wb-cloze">Creativity is not an <u class="blank">①&nbsp;________</u> trait but a skill that can be developed through <u class="blank">②&nbsp;________</u> practice. Diverse experiences, open-ended questions, and environments that <u class="blank">③&nbsp;________</u> failure foster creativity more than rigid focus on correct answers.</div>
+                  <div class="wb-ans">정답 ① inherited &nbsp;·&nbsp; ② deliberate &nbsp;·&nbsp; ③ tolerate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>강사 손작업 <span class="acc">1 시간 → 5 초</span>. 학생은 학원 외부 시간에도 학원 톤으로 자기 페이스 학습.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">12</div></div>
+      </div>
+    </div>
+
+    <!-- 13·A · Vocab · 야구 + TTS 게이미피케이션 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">13 · A</span><span>Vocab · 야구 + TTS</span><span class="dim">— 게이미피케이션</span></div>
+      <div class="slide s-feature no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 5·A · Vocab <span class="sys">야구 + TTS</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>단어 외우러 오는 게 아니라<br/><span class="acc">야구 하러 온다</span>.</h2>
+            <div class="subtitle">매 단어가 한 타석 — 3진·홈런 + TTS 발음 + 학원 단어집 직접 연동</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">학생 PAIN</span><span class="d">— Anki·Quizlet</span></div>
+                <ul>
+                  <li>Flash card 가 너무 <b>건조함</b> — 학생 자발성에만 기댐</li>
+                  <li>외부 앱은 <b>학원 단어집과 단절</b> — 시중 단어장만</li>
+                  <li>단어 <b>발음 못 들음</b> — 보기만 함, 듣기 영역 대비 X</li>
+                  <li>한 번 끊기면 <b>다시 시작 어려움</b> — 동기 유지 실패</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">야구 + TTS 해결</span><span class="d">— 게임이 된다</span></div>
+                <ul>
+                  <li><b>야구 게임</b> — 매 단어가 한 타석. 맞히면 안타·홈런, 틀리면 스트라이크</li>
+                  <li><b>TTS 발음</b> — 카드 탭하면 원어민 발음. 보기 + 듣기 동시</li>
+                  <li><b>학원 단어집 push</b> — 강사가 정한 진도·시험 범위로 자동</li>
+                  <li><b>일일 미션</b> — 매일 들어와야 게임 진행 → 자연스러운 지속</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="phone-tag">STUDENT · 야구 게임 진행 중 · 실 캡처</div>
+              <div class="phone"><img src="img/student-baseball-real.png" alt="단어 야구 게임 진행 중 — 의도적인 / 4 choices" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>"오늘 야구 안 해?" — 학생이 <span class="acc">단어 학습을 게임으로</span> 인식. 강사 잔소리 0.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · A</div><div class="page">13 · A</div></div>
+      </div>
+    </div>
+
+    <!-- 13·B · Vocab · 자동 채점 + 오답 누적 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">13 · B</span><span>Vocab · 자동 채점</span><span class="dim">— 오답 자동 누적</span></div>
+      <div class="slide s-feature dual no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 5·B · Vocab <span class="sys">시스템이 끌고 감</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>강사·학생 <span class="acc">의지 없이도</span><br/>틀린 단어가 <span class="acc">계속 따라온다</span>.</h2>
+            <div class="subtitle">자동 채점 + 오답 자동 누적 + 다음 시험·야구·가챠에 자동 재등장</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 단어 시험 후</span></div>
+                <ul>
+                  <li>강사가 단어 시험 <b>채점에 시간 소모</b> (반 30명 × 50문항)</li>
+                  <li>틀린 단어 정리는 <b>학생 의지</b>에만 — 안 함</li>
+                  <li>오답노트 만들어도 <b>다음에 다시 안 봄</b> — 한 번 보고 끝</li>
+                  <li>같은 단어 또 틀려도 <b>학원이 모름</b> — 누적 데이터 X</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">자동 채점 해결</span><span class="d">— 학생이 칠 때마다</span></div>
+                <ul>
+                  <li>학생이 답 입력 → <b>즉시 채점</b> + 즉시 피드백</li>
+                  <li>틀린 단어 = <b>자동 오답 누적</b> (학생별 · 학원 KV)</li>
+                  <li>다음 시험·다음 야구 게임·다음 가챠에 <b>자동 재등장</b></li>
+                  <li>강사 대시보드에 <b>학생별 약점 단어</b> 자동 표시</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="phone-tag">STUDENT · 시험 진행 → 자동 채점 · 실 캡처</div>
+              <div class="dual-phones">
+                <div class="dual-phone"><img src="img/student-vocab-exam-real.png" alt="단어 시험 진행 중 — creativity / 4 choices" /><span class="dp-label">시험 진행</span></div>
+                <div class="dual-phone"><img src="img/student-vocab-result-real.png" alt="자동 채점 결과 — 3/5 + O/X breakdown" /><span class="dp-label">자동 채점 결과</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>학생이 답 입력 → <span class="acc">즉시 채점 + O/X + 정답·내답 비교</span>. 틀린 단어는 어디로도 도망 못 감.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · B</div><div class="page">13 · B</div></div>
+      </div>
+    </div>
+
+    <!-- 13·C · Vocab · 가챠 + 도감 (장기 동기) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">13 · C</span><span>Vocab · 가챠 + 도감</span><span class="dim">— 6 개월 + 장기 동기</span></div>
+      <div class="slide s-feature dual no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 5·C · Vocab <span class="sys">가챠 + 도감</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>단어 시험 통과 → 가챠 → 카드.<br/>학생이 단어를 <span class="acc">모은다고 느낀다</span>.</h2>
+            <div class="subtitle">학습 → 보상 → 수집 사이클 — collector instinct 로 6 개월 + 장기 동기</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 단어 학습 6 개월차</span></div>
+                <ul>
+                  <li>"오늘은 그냥 쉴래" — <b>동기 떨어짐</b>이 누적</li>
+                  <li>외부 단어 앱은 끊겨도 <b>잃을 게 없음</b> — 진도 외 자산 0</li>
+                  <li>학생 사이 비교·자랑할 <b>가시 자산 없음</b></li>
+                  <li>학습 자체가 <b>측정 가능한 목표</b>로 안 보임</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">가챠 + 도감 해결</span><span class="d">— 수집 게임화</span></div>
+                <ul>
+                  <li>단어 시험 통과 → <b>가챠 1 회</b> → 카드 (R·SR·SSR 등급)</li>
+                  <li>카드 모이면 <b>도감 빈칸</b>이 채워짐 — visible progress</li>
+                  <li>학생 사이 <b>도감 자랑·교환</b> 가능</li>
+                  <li>학원 떠나면 <b>도감 자산 잃음</b> — switching cost 발생</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="phone-tag">STUDENT · 가챠 + 도감 · 실 캡처</div>
+              <div class="dual-phones">
+                <div class="dual-phone"><img src="img/student-gacha.png" alt="가챠 화면" /><span class="dp-label">가챠</span></div>
+                <div class="dual-phone"><img src="img/student-dex.png" alt="도감 화면" /><span class="dp-label">도감</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>학생이 학원을 <span class="acc">못 끊는 진짜 이유</span> — 도감을 두고 갈 수 없다.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · C</div><div class="page">13 · C</div></div>
+      </div>
+    </div>
+
+    <!-- 13·D · Vocab · 학원 단어 관리 (강사 admin · 단어 풀 22k+) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">13 · D</span><span>Vocab · 학원 단어 관리</span><span class="dim">— 단어 풀 22k+ · niche 확장</span></div>
+      <div class="slide s-feature desktop no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 5·D · Vocab <span class="sys">학원 단어 관리</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>학원이 <span class="acc">22,645 단어</span>를 가졌고,<br/>학생별로 <span class="acc">자동 push</span>한다.</h2>
+            <div class="subtitle">강사 admin — 단어 추가 · 학년·진도 큐레이션 · 의학용어 같은 niche 확장 가능</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 단어 관리</span></div>
+                <ul>
+                  <li>시중 단어장(능률 VOCA·Word Master)은 <b>학원 진도와 단절</b></li>
+                  <li>학생별 단어집은 <b>엑셀로 강사 손작업</b> — 진도마다 다시</li>
+                  <li>학원 누적 단어 자산이 <b>한 곳에 안 모임</b></li>
+                  <li>오답·약점 단어는 <b>학생 기억에만</b> 존재</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">단어 관리 해결</span><span class="d">— 한 admin 화면</span></div>
+                <ul>
+                  <li><b>"단어 추가" 한 클릭</b> — 영어/한글/품사/예문 입력</li>
+                  <li>학생별 <b>단어 풀 + Box(level) + 오답 현황 한 화면</b></li>
+                  <li><b>22,645 단어</b> 학원 자산 — 시간 갈수록 큐레이션 강해짐</li>
+                  <li>같은 시스템 위에 <b>의학용어·화학·한자</b> niche 단어집 확장 가능</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">TUTOR · DESKTOP · 학습 (영단어) 단어 관리 · 실 캡처</div>
+              <div class="desktop"><img src="img/desktop-vocab-admin.png" alt="강사 admin — 학습 (영단어) 단어 관리 화면, 22,645 단어 풀" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>학원이 <span class="acc">자기 단어집</span>을 가진다 — 그게 학원의 자산이 되고, <span class="acc">새 시장(의학용어 등)</span>으로 확장하는 발판이 된다.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · D</div><div class="page">13 · D</div></div>
+      </div>
+    </div>
+
+    <!-- 14·A · ERP · 담임 대시보드 (운영 통합) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">14 · A</span><span>ERP · 담임 대시보드</span><span class="dim">— 운영 통합</span></div>
+      <div class="slide s-feature desktop no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 6·A · ERP <span class="sys">담임 대시보드</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>한 학생의 운영이<br/><span class="acc">한 화면에 다 보인다</span>.</h2>
+            <div class="subtitle">상담 매트릭스 · 교과 메모 · 후속 상담 · 시험 전후 — 담임이 한 학생을 잡는 한 페이지</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 학원 운영 흩어짐</span></div>
+                <ul>
+                  <li>학생 정보가 <b>엑셀·카톡·노션·종이</b>에 분산</li>
+                  <li>담임이 학생 상담 시 <b>5 개 도구 왔다갔다</b></li>
+                  <li>월별 상담 누적이 <b>강사 머릿속에만</b> 존재</li>
+                  <li>강사 바뀌면 <b>인수인계 1 주</b> — 데이터 휘발</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">담임 대시보드 해결</span><span class="d">— 한 페이지</span></div>
+                <ul>
+                  <li><b>월별 상담 매트릭스</b> — 학부모/후속/시험 전후 한 표</li>
+                  <li><b>교과 메모 종합</b> — 학생별 수업·약점 누적 메모</li>
+                  <li>이번 달 <b>상담 완료 / 7일 내 후속 / 14일 내 시험</b> 자동 카운팅</li>
+                  <li>학생 단위로 <b>모든 도메인 (학습·시험·결석·상담) 통합</b></li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">TUTOR · DESKTOP · 운영·담임 · 실 캡처</div>
+              <div class="desktop"><img src="img/desktop-homeroom.png" alt="담임 대시보드 — 월별 상담 매트릭스 + 교과 메모" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>"이 학생 지금 어떻게 돼?" 질문에 <span class="acc">3 초 답변 가능</span> — 강사 바뀌어도 학원 자산 0 부터 안 시작.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · A</div><div class="page">14 · A</div></div>
+      </div>
+    </div>
+
+    <!-- 14·B · ERP · 결석 → 보강 자동 추적 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">14 · B</span><span>ERP · 결석·보강</span><span class="dim">— 자동 추적</span></div>
+      <div class="slide s-feature desktop no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 6·B · ERP <span class="sys">결석 → 보강 추적</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>결석 학생이 <span class="acc">자동으로 보강 큐</span>에<br/>들어가고, 미보강은 <span class="acc">빨간색</span>으로.</h2>
+            <div class="subtitle">결석 사유 + 보강 일정 + 상태 한 화면 — 강사가 놓치는 학생 0</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 결석 follow-up</span></div>
+                <ul>
+                  <li>결석 학생 follow-up = <b>강사 손작업 / 기억</b></li>
+                  <li>"보강 언제 해드릴까요?" 카톡 <b>일일이</b> 보내기</li>
+                  <li>미보강 누적되면 학부모 컴플레인 <b>늦게 도착</b></li>
+                  <li>학원 차원에서 <b>미보강 통계 안 보임</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">보강 관리 해결</span><span class="d">— 결석 = 자동 큐</span></div>
+                <ul>
+                  <li>결석 → <b>보강 큐 자동 등록</b> · 사유 기록</li>
+                  <li>탭: <b>전체 / 미보강 / 보강예정 / 완료</b> 한눈에</li>
+                  <li>"미보강 25건" 등 <b>학원 단위 통계</b></li>
+                  <li>액션: <b>지정 · 회차 · 수정 · 삭제</b> 인라인</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">TUTOR · DESKTOP · 보강 관리 · 실 캡처</div>
+              <div class="desktop"><img src="img/desktop-absence.png" alt="보강 관리 — 결석 → 보강 일정 추적" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>결석한 학생이 <span class="acc">어디로도 빠지지 않는다</span> — 학부모 컴플레인 전에 학원이 먼저 캐치.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · B</div><div class="page">14 · B</div></div>
+      </div>
+    </div>
+
+    <!-- 14·C · ERP · 숙제 회수·첨삭 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">14 · C</span><span>ERP · 숙제 회수·첨삭</span><span class="dim">— 강사 채점 자동화</span></div>
+      <div class="slide s-feature desktop no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 6·C · ERP <span class="sys">숙제 회수·첨삭</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>발행 → 회수 → <span class="acc">첨삭</span>이<br/>한 화면에서 끝난다.</h2>
+            <div class="subtitle">회신 대기 · 재제출 · 미제출 · 완료 — 강사가 잡아야 할 다음 액션 한눈에</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 숙제 채점</span></div>
+                <ul>
+                  <li>숙제 종이 <b>학생별로 나눠줌·걷음</b> — 분실</li>
+                  <li>"이 학생 숙제 냈나?" 강사가 <b>매번 확인</b></li>
+                  <li>미제출 학생 <b>학부모 알림 따로</b> 보내기</li>
+                  <li>첨삭 결과를 <b>학원 데이터로 누적 안 됨</b></li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">회수·첨삭 해결</span><span class="d">— 발행부터 완료까지</span></div>
+                <ul>
+                  <li><b>+ 새 과제 발행</b> 한 클릭 → 학생 전체에 push</li>
+                  <li>제출물이 <b>회신 대기 큐</b>에 자동 도착 → 첨삭</li>
+                  <li><b>미제출 3 · 재제출 0 · 완료 2</b> 자동 카운팅</li>
+                  <li>첨삭 결과 = <b>학원 누적 데이터</b> (다음 학생에 도움)</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">TUTOR · DESKTOP · 과제 회수·첨삭 · 실 캡처</div>
+              <div class="desktop"><img src="img/desktop-assignments.png" alt="과제 회수·첨삭 화면" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>강사가 "다음 뭐 할까?" 안 생각해도 됨 — <span class="acc">시스템이 다음 액션을 큐로</span> 보여줌.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · C</div><div class="page">14 · C</div></div>
+      </div>
+    </div>
+
+    <!-- 14·D · ERP · 학습 학생 관리 (가챠 보상 통합) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">14 · D</span><span>ERP · 학습 학생 관리</span><span class="dim">— 가챠 보상 통합</span></div>
+      <div class="slide s-feature desktop no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">사용 예시 6·D · ERP <span class="sys">학습 + 가챠 보상</span></div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head tight">
+            <h2>학습이 곧장 <span class="acc">보상</span>으로.<br/>강사가 한 화면에서 둘 다 본다.</h2>
+            <div class="subtitle">강사가 학생 학습 ↔ 보상 시스템을 한 화면에서 관리 — 학습 → 가챠 → 도감 사이클 운영</div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-left">
+              <div class="pain-block">
+                <div class="block-head"><span class="t">PAIN</span><span class="d">— 학생 동기 유지</span></div>
+                <ul>
+                  <li>학원 학습 결과가 <b>학생에게 보상으로 안 돌아옴</b></li>
+                  <li>학생 동기 부여 = 강사 <b>구두 칭찬·잔소리</b>에만 의존</li>
+                  <li>잘하는 학생/못하는 학생 <b>한눈에 비교 어려움</b></li>
+                  <li>학습 → 보상 연결 <b>도구가 따로 따로</b> (Quizlet·게임 별개)</li>
+                </ul>
+              </div>
+              <div class="solve-block">
+                <div class="block-head"><span class="t">학습 + 가챠 해결</span><span class="d">— ERP 안에서</span></div>
+                <ul>
+                  <li>학생별 <b>카드 N장 · 증명 M개</b> — 한눈에 비교 가능</li>
+                  <li>학습 통과 → <b>자동 가챠 권한</b> → 카드 발급</li>
+                  <li>강사 admin에서 <b>학생 활성화 · PIN 발급 · 보상 push</b></li>
+                  <li>학원 단위 <b>학년별 진도 + 보상 통계</b> 자동</li>
+                </ul>
+              </div>
+            </div>
+            <div class="feature-right">
+              <div class="desktop-tag">TUTOR · DESKTOP · 학습 학생 관리 · 실 캡처</div>
+              <div class="desktop"><img src="img/desktop-gacha-dash.png" alt="학습 학생 관리 — 학생별 카드·증명 카운트" /></div>
+            </div>
+          </div>
+          <div class="feature-foot">
+            <span class="lhs">한 줄 결론</span>
+            <b>학습과 보상이 <span class="acc">같은 ERP 안에서</span> — 강사 잔소리 없이도 학생이 달려가는 사이클.</b>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2 · D</div><div class="page">14 · D</div></div>
+      </div>
+    </div>
+
+    <!-- 15 Moat -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">15</span><span>Moat</span><span class="dim">— 카피가 어려운 이유</span></div>
+      <div class="slide s-moat no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Moat</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <div class="slide-head">
+            <h2>기능은 카피된다. <span class="acc">동시성</span>은 카피되지 않는다.</h2>
+            <div class="subtitle">데이터 + 학습이론 + 운영 사이클 + 인프라 — 네 가지의 비대칭</div>
+          </div>
+          <div class="vs">
+            <div class="col them">
+              <div class="l">경쟁사 — 콴다 · 매스프레소 · 일반 AI 챗봇</div>
+              <h3>1 회성 QA.</h3>
+              <ul>
+                <li><span class="i">×</span><span>학원 자료를 <b>모름</b> → 일반·평균형 답변</span></li>
+                <li><span class="i">×</span><span>학생 약점 누적·복습 <b>루프 없음</b></span></li>
+                <li><span class="i">×</span><span>증명·메타 영작 같은 <b>구조화된 학습</b> 미진입</span></li>
+                <li><span class="i">×</span><span>수업 후 리포트·세특 <b>자동화 없음</b></span></li>
+                <li><span class="i">×</span><span>학원 데이터가 <b>외부 회사에 귀속</b></span></li>
+              </ul>
+            </div>
+            <div class="col us">
+              <div class="l">와와 EduTech Stack</div>
+              <h3>운영 <span class="acc">사이클</span>.</h3>
+              <ul>
+                <li><span class="i">✓</span><span><span class="acc">학원 자료 기반 AI 답</span> <span class="gloss wrap">RAG</span></span></li>
+                <li><span class="i">✓</span><span>학생 약점이 <span class="acc">자동으로 매일 복습큐</span>로</span></li>
+                <li><span class="i">✓</span><span>증명 빈칸·순서 + 영작 3 단계 = <span class="acc">학습이론 기반</span></span></li>
+                <li><span class="i">✓</span><span>녹화 → 음성문자 → AI 요약 → 카톡 <span class="acc">한 번에 자동</span></span></li>
+                <li><span class="i">✓</span><span>학교 통과 수행평가 결과물 = <span class="acc">처음부터 만들 필요 0</span></span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">15</div></div>
+      </div>
+    </div>
+
+    <!-- 16 Close -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">16</span><span>Roadmap + Close</span><span class="dim">— 다음 분기 + 연락처</span></div>
+      <div class="slide s-close no-bar">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top"><div class="section-label">Roadmap</div><div class="brand">와와<span class="mute"> · Vine Academy</span></div></div>
+          <h2 class="big">한 학원의 사이클을<br/><span class="acc">여러 학원의 SaaS</span>로.</h2>
+          <p class="sub">한 학원에서 검증된 운영 사이클을, 학원별 자동 분리 인프라 위에 얹어 다른 학원에 그대로 배포한다.<br/><span class="acc">현재</span> 자체 학원 운영 → <span class="acc">다음</span> 파일럿 1~3 학원 → <span class="acc">이후</span> 프랜차이즈·EdTech 파트너십.</p>
+          <div class="timeline">
+            <div class="q now"><div class="when">Q2 · NOW</div><div class="what">EduTech Stack v1</div><div class="why">6 시스템 운영 중 · ERP · AskAI · Proof · English · Vocab · TutorFlow</div></div>
+            <div class="q"><div class="when">Q3 · 2026</div><div class="what">PerfEval MVP</div><div class="why">서논술형 평가 훈련 · skill 6 종 · 파일럿 코치 3 명</div></div>
+            <div class="q"><div class="when">Q4 · 2026</div><div class="what">다학원 SaaS</div><div class="why">파일럿 학원 1~3 곳 · 학원별 자료 검색 자동 셋업</div></div>
+            <div class="q"><div class="when">Q1 · 2027</div><div class="what">파트너십 검토</div><div class="why">EdTech 회사와 모듈별 협업 / 인수 옵션</div></div>
+          </div>
+          <div class="sign">
+            <div class="mark">와와.</div>
+            <div class="meta"><b>Vine Academy · 와와 학원</b>CONTACT — ssalmeoking@gmail.com<br/>2026.05 · Internal Pitch · 10 min</div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Pitch Deck · 2026 Q2</div><div class="page">16</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="canvas-footer">
+    <h2>End of overview<em> · 11 frames</em></h2>
+    <span></span>
+    <div class="meta"><div>Indigo <b>#4f46e5</b> · Pretendard · deck.css shared</div></div>
+  </footer>
+
+</main>
+</body>
+</html>

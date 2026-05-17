@@ -1,9 +1,21 @@
+/**
+ * VocabGradeTab — mockup v2/09b-vocab-grade.html 톤으로 전면 재작성.
+ *
+ * 구조:
+ *   - metric chip row (전체/대기/응시중/제출됨)
+ *   - .v2-panel: filter-bar (학생 select + 초기화) + data-table (상태·학생·문항·점수·시각·작업) + pager
+ *   - score-cell: 정답/총 + 비율 pill (high/mid/low)
+ *   - DetailModal — 응시 상세 (문항별 정답/오답)
+ *
+ * 비즈니스 로직 유지: listVocabPrintJobsPage, voidVocabPrintJob, deleteVocabPrintJob, getVocabPrintJobAnswers
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { api, type VocabPrintJobSummary, type VocabPrintJobAnswerRow } from '../../api';
 import { toast, useConfirm } from '../../components/Toast';
 import Modal from '../../components/Modal';
 import type { VocabOutletContext } from '../VocabAdminPage';
+import { Icon } from '../../components/icons/Icon';
 
 type StatusFilter = 'all' | 'pending' | 'in_progress' | 'submitted' | 'voided';
 
@@ -14,11 +26,11 @@ const STATUS_LABEL: Record<string, string> = {
   voided: '무효',
 };
 
-const STATUS_PILL_CLASS: Record<string, string> = {
-  pending: 'pill--warning',
-  in_progress: 'pill--primary',
-  submitted: 'pill--success',
-  voided: 'pill--danger',
+const STATUS_TO_ATT: Record<string, 'ready' | 'running' | 'submitted' | 'voided'> = {
+  pending: 'ready',
+  in_progress: 'running',
+  submitted: 'submitted',
+  voided: 'voided',
 };
 
 const PAGE_SIZE = 50;
@@ -30,6 +42,19 @@ function fmtTime(iso: string | null): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function avatarChars(name: string): string {
+  return name.slice(0, 2);
+}
+
+function gradeClass(grade?: string | null): string {
+  if (!grade) return '';
+  const m: Record<string, string> = {
+    중1: 'm1', 중2: 'm2', 중3: 'm3',
+    고1: 'h1', 고2: 'h2', 고3: 'h3',
+  };
+  return m[grade] || '';
 }
 
 export default function VocabGradeTab() {
@@ -47,19 +72,17 @@ export default function VocabGradeTab() {
   const [offset, setOffset] = useState(0);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
 
-  const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+  const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
 
-  // 헤더 액션
   useEffect(() => {
     setHeaderAction(
-      <Link to="/vocab/policy" className="btn btn-secondary">
-        정책 설정
+      <Link to="/vocab/policy" className="v2-btn v2-btn--secondary">
+        <Icon name="Settings2" size={14} /> 정책 설정
       </Link>
     );
     return () => setHeaderAction(null);
   }, [setHeaderAction]);
 
-  // 필터 변경 시 페이지 리셋
   useEffect(() => { setOffset(0); }, [filter, filterStudent]);
 
   const loadStudents = useCallback(async () => {
@@ -96,7 +119,6 @@ export default function VocabGradeTab() {
   useEffect(() => { loadStudents(); }, [loadStudents]);
   useEffect(() => { loadJobs(); }, [loadJobs]);
 
-  // 마지막 페이지 정리
   useEffect(() => {
     if (!loading && jobs.length === 0 && offset > 0 && total > 0) {
       setOffset(Math.max(0, offset - PAGE_SIZE));
@@ -105,24 +127,14 @@ export default function VocabGradeTab() {
 
   const handleVoid = useCallback(async (job: VocabPrintJobSummary) => {
     if (!(await confirm(`${job.student_name}의 시험지를 무효화할까요?\n학생 앱에서 더 이상 보이지 않아요.`))) return;
-    try {
-      await api.voidVocabPrintJob(job.job_id);
-      toast.success('무효 처리됨');
-      loadJobs();
-    } catch (e: any) {
-      toast.error(e?.message || '처리 실패');
-    }
+    try { await api.voidVocabPrintJob(job.job_id); toast.success('무효 처리됨'); loadJobs(); }
+    catch (e: any) { toast.error(e?.message || '처리 실패'); }
   }, [loadJobs, confirm]);
 
   const handleDelete = useCallback(async (job: VocabPrintJobSummary) => {
     if (!(await confirm(`${job.student_name}의 시험지를 삭제할까요?\n채점 기록은 남지만 응시 내역이 사라집니다.`))) return;
-    try {
-      await api.deleteVocabPrintJob(job.job_id);
-      toast.success('삭제됨');
-      loadJobs();
-    } catch (e: any) {
-      toast.error(e?.message || '삭제 실패');
-    }
+    try { await api.deleteVocabPrintJob(job.job_id); toast.success('삭제됨'); loadJobs(); }
+    catch (e: any) { toast.error(e?.message || '삭제 실패'); }
   }, [loadJobs, confirm]);
 
   const clearFilters = useCallback(() => {
@@ -138,154 +150,162 @@ export default function VocabGradeTab() {
   const rangeEnd = Math.min(offset + PAGE_SIZE, total);
 
   if (loading && jobs.length === 0 && counts.all === 0) {
-    return <div className="vocab-empty">시험지 목록을 불러오고 있어요</div>;
+    return <div className="v2-empty">시험지 목록을 불러오고 있어요</div>;
   }
 
   return (
     <>
-      {/* 메트릭 (counts 기반 — 학생 필터 적용, 상태 필터 무시) */}
-      <div className="vocab-metrics" role="tablist" aria-label="상태 필터">
+      {/* metric chips */}
+      <div className="v2-metric-row" role="tablist">
         <button
-          type="button" role="tab"
-          aria-selected={filter === 'all'}
-          className={`vocab-metric ${filter === 'all' ? 'vocab-metric--active' : ''}`}
+          type="button"
+          className={`v2-metric-chip${filter === 'all' ? ' is-active' : ''}`}
           onClick={() => setFilter('all')}
-        >
-          <span className="vocab-metric-value">{counts.all}</span>
-          <span className="vocab-metric-label">전체</span>
-        </button>
+        >전체 <strong>{counts.all}</strong></button>
         <button
-          type="button" role="tab"
-          aria-selected={filter === 'pending'}
-          className={`vocab-metric vocab-metric--warning ${filter === 'pending' ? 'vocab-metric--active' : ''}`}
+          type="button"
+          className={`v2-metric-chip${filter === 'pending' ? ' is-active' : ''}`}
           onClick={() => setFilter('pending')}
           disabled={counts.pending === 0 && filter !== 'pending'}
-        >
-          <span className="vocab-metric-value">{counts.pending}</span>
-          <span className="vocab-metric-label">대기</span>
-        </button>
+        >대기 <strong>{counts.pending}</strong></button>
         <button
-          type="button" role="tab"
-          aria-selected={filter === 'in_progress'}
-          className={`vocab-metric ${filter === 'in_progress' ? 'vocab-metric--active' : ''}`}
+          type="button"
+          className={`v2-metric-chip${filter === 'in_progress' ? ' is-active' : ''}`}
           onClick={() => setFilter('in_progress')}
           disabled={counts.in_progress === 0 && filter !== 'in_progress'}
-        >
-          <span className="vocab-metric-value">{counts.in_progress}</span>
-          <span className="vocab-metric-label">응시중</span>
-        </button>
+        >응시중 <strong>{counts.in_progress}</strong></button>
         <button
-          type="button" role="tab"
-          aria-selected={filter === 'submitted'}
-          className={`vocab-metric ${filter === 'submitted' ? 'vocab-metric--active' : ''}`}
+          type="button"
+          className={`v2-metric-chip${filter === 'submitted' ? ' is-active' : ''}`}
           onClick={() => setFilter('submitted')}
-        >
-          <span className="vocab-metric-value">{counts.submitted}</span>
-          <span className="vocab-metric-label">제출됨</span>
-        </button>
+        >제출됨 <strong>{counts.submitted}</strong></button>
       </div>
 
-      {/* 필터 바: 학생 + 초기화 + 범위 표시 */}
-      <div className="vocab-filter-bar">
-        <label className="filter-group">
-          <span className="filter-label">학생</span>
+      <div className="v2-panel">
+        {/* filter-bar */}
+        <div className="v2-filter-row">
           <select
-            className="filter-select"
+            className="v2-select"
             value={filterStudent}
-            onChange={e => setFilterStudent(e.target.value)}
+            onChange={(e) => setFilterStudent(e.target.value)}
+            style={{ width: 200 }}
           >
-            <option value="">전체</option>
-            {students.map(s => (
-              <option key={s.id} value={s.id}>{s.name}{s.grade ? ` · ${s.grade}` : ''}</option>
+            <option value="">전체 학생</option>
+            {students.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}{s.grade ? ` · ${s.grade}` : ''}
+              </option>
             ))}
           </select>
-        </label>
-        {hasFilter && (
-          <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-            필터 초기화
-          </button>
-        )}
-        <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-secondary)' }}>
-          {total > 0 ? `${total.toLocaleString()}건 중 ${rangeStart}-${rangeEnd}` : ''}
-        </div>
-      </div>
-
-      {jobs.length === 0 ? (
-        <div className="vocab-empty-state" style={{ padding: 48 }}>
-          <div className="vocab-empty-state__title">
-            {hasFilter ? '조건에 맞는 시험지가 없어요' : '아직 응시 기록이 없어요'}
-          </div>
-          <p className="vocab-empty-state__hint">
-            {hasFilter
-              ? '필터를 바꾸거나 초기화해보세요.'
-              : '학생들이 학생 앱에서 직접 시험을 시작하면 여기에 결과가 쌓입니다.'}
-          </p>
-          {hasFilter ? (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-              필터 초기화
+          {hasFilter && (
+            <button type="button" className="v2-btn v2-btn--sm" onClick={clearFilters}>
+              <Icon name="X" size={12} /> 필터 초기화
             </button>
-          ) : (
-            <Link to="/vocab/policy" className="btn btn-secondary btn-sm">
-              정책 설정 →
-            </Link>
           )}
+          <div style={{ flex: 1 }} />
+          <span className="v2-text-mute" style={{ fontSize: 13 }}>
+            {total > 0 ? `${total.toLocaleString()}건 · ${rangeStart}-${rangeEnd}` : ''}
+          </span>
         </div>
-      ) : (
-        <div className="vocab-table-wrap">
-          <table className="vocab-table">
+
+        {jobs.length === 0 ? (
+          <div className="v2-empty">
+            <Icon name="ClipboardList" size={28} />
+            <div>{hasFilter ? '조건에 맞는 시험지가 없어요' : '아직 응시 기록이 없어요'}</div>
+            {hasFilter ? (
+              <button type="button" className="v2-btn v2-btn--secondary v2-btn--sm" onClick={clearFilters}>
+                필터 초기화
+              </button>
+            ) : (
+              <Link to="/vocab/policy" className="v2-btn v2-btn--secondary v2-btn--sm">
+                <Icon name="Settings2" size={12} /> 정책 설정
+              </Link>
+            )}
+          </div>
+        ) : (
+          <table className="v2-data-table">
             <thead>
               <tr>
-                <th>상태</th>
+                <th style={{ width: 92 }}>상태</th>
                 <th>학생</th>
-                <th className="vocab-th-num">문항</th>
-                <th>점수</th>
-                <th>제출 시각</th>
-                <th className="vocab-th-actions">작업</th>
+                <th style={{ width: 70 }} className="v2-tabular">문항</th>
+                <th style={{ width: 160 }} className="v2-tabular">점수</th>
+                <th style={{ width: 140 }} className="v2-tabular">제출 시각</th>
+                <th style={{ width: 160 }}>작업</th>
               </tr>
             </thead>
             <tbody>
-              {jobs.map(j => {
+              {jobs.map((j) => {
                 const pct = j.auto_total && j.auto_correct !== null
                   ? Math.round((j.auto_correct / j.auto_total) * 100)
                   : null;
-                const sName = j.student_name || studentMap.get(j.student_id)?.name || '—';
+                const sMeta = studentMap.get(j.student_id);
+                const sName = j.student_name || sMeta?.name || '—';
+                const att = STATUS_TO_ATT[j.status] || 'ready';
                 return (
                   <tr key={j.job_id}>
                     <td>
-                      <span className={`pill ${STATUS_PILL_CLASS[j.status] || ''}`}>
+                      <span className={`v2-att v2-att--${att}`}>
+                        <Icon
+                          name={att === 'submitted' ? 'Check' : att === 'running' ? 'Play' : att === 'voided' ? 'X' : 'Clock'}
+                          size={12}
+                        />
                         {STATUS_LABEL[j.status] || j.status}
                       </span>
                     </td>
-                    <td><strong>{sName}</strong></td>
-                    <td className="vocab-cell-num">{j.word_count}</td>
+                    <td>
+                      <div className="v2-cluster">
+                        <div className="v2-avatar">{avatarChars(sName)}</div>
+                        <div className="v2-cell-stack">
+                          <span className="v2-cell-stack__primary">{sName}</span>
+                          {sMeta?.grade && (
+                            <span className="v2-cell-stack__meta">
+                              <span className={`grade-badge ${gradeClass(sMeta.grade)}`}>{sMeta.grade}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="v2-tabular">{j.word_count}</td>
                     <td>
                       {j.status === 'submitted' && j.auto_total ? (
-                        <span className="vocab-score-inline">
-                          <strong>{j.auto_correct}</strong>/{j.auto_total}
+                        <span className="v2-score-cell">
+                          <span className="v2-score-cell__main">{j.auto_correct} / {j.auto_total}</span>
                           {pct !== null && (
-                            <span className={`vocab-score-pct vocab-score-pct--${pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low'}`}>
+                            <span className={`v2-score-cell__pct v2-score-cell__pct--${pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low'}`}>
                               {pct}%
                             </span>
                           )}
                         </span>
-                      ) : <span className="muted">—</span>}
+                      ) : (
+                        <span className="v2-text-mute">—</span>
+                      )}
                     </td>
-                    <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                    <td className="v2-tabular v2-text-mute" style={{ fontSize: 12 }}>
                       {fmtTime(j.submitted_at || j.started_at || j.created_at)}
                     </td>
                     <td>
-                      <div className="vocab-row-actions">
+                      <div className="v2-action-cell">
                         {j.status === 'submitted' && (
-                          <button className="btn btn-secondary btn-sm" onClick={() => setDetailJobId(j.job_id)}>
+                          <button className="v2-btn v2-btn--secondary v2-btn--sm" onClick={() => setDetailJobId(j.job_id)}>
                             상세
                           </button>
                         )}
                         {j.status !== 'submitted' && j.status !== 'voided' && (
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleVoid(j)}>
+                          <button className="v2-btn v2-btn--sm" onClick={() => handleVoid(j)}>
                             무효
                           </button>
                         )}
-                        <button className="btn-icon-danger" onClick={() => handleDelete(j)} title="삭제" aria-label="삭제">×</button>
+                        {j.status === 'voided' && (
+                          <span className="v2-text-mute" style={{ fontSize: 12 }}>무효</span>
+                        )}
+                        <button
+                          className="v2-btn-icon v2-btn-icon--danger"
+                          onClick={() => handleDelete(j)}
+                          title="삭제"
+                        >
+                          <Icon name="Trash2" size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -293,41 +313,34 @@ export default function VocabGradeTab() {
               })}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
 
-      {/* 페이지바 */}
-      {total > PAGE_SIZE && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            padding: '12px 0',
-            fontSize: 13,
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={offset === 0 || loading}
-            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-          >
-            ‹ 이전
-          </button>
-          <span>{page} / {lastPage}</span>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={offset + PAGE_SIZE >= total || loading}
-            onClick={() => setOffset(offset + PAGE_SIZE)}
-          >
-            다음 ›
-          </button>
-        </div>
-      )}
+        {/* pager */}
+        {total > PAGE_SIZE && (
+          <div className="v2-pager">
+            <span className="v2-text-mute">{total.toLocaleString()}건 · {rangeStart}–{rangeEnd}</span>
+            <div className="v2-pager__nav">
+              <button
+                className="v2-btn v2-btn--sm"
+                disabled={offset === 0 || loading}
+                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              >
+                <Icon name="ChevronLeft" size={12} /> 이전
+              </button>
+              <span className="v2-tabular" style={{ fontWeight: 700, padding: '0 8px' }}>
+                {page} / {lastPage}
+              </span>
+              <button
+                className="v2-btn v2-btn--sm"
+                disabled={offset + PAGE_SIZE >= total || loading}
+                onClick={() => setOffset(offset + PAGE_SIZE)}
+              >
+                다음 <Icon name="ChevronRight" size={12} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {detailJobId && (
         <DetailModal
@@ -340,7 +353,7 @@ export default function VocabGradeTab() {
   );
 }
 
-// ── 상세 모달 (문항별 breakdown) ─────────────────────────
+// ── 응시 상세 모달 ──
 function DetailModal({ jobId, onClose }: { jobId: string; onClose: () => void; }) {
   const [detail, setDetail] = useState<{ job: any; answers: VocabPrintJobAnswerRow[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -361,7 +374,7 @@ function DetailModal({ jobId, onClose }: { jobId: string; onClose: () => void; }
 
   if (loading || !detail) {
     return (
-      <Modal onClose={onClose} className="vocab-grade-detail-modal">
+      <Modal onClose={onClose}>
         <Modal.Header>응시 상세</Modal.Header>
         <Modal.Body>불러오는 중…</Modal.Body>
       </Modal>
@@ -369,39 +382,41 @@ function DetailModal({ jobId, onClose }: { jobId: string; onClose: () => void; }
   }
 
   const { job, answers } = detail;
-  const correct = answers.filter(a => a.correct).length;
+  const correct = answers.filter((a) => a.correct).length;
   const total = answers.length;
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
 
   return (
-    <Modal onClose={onClose} className="vocab-grade-detail-modal">
+    <Modal onClose={onClose} className="modal-content--wide">
       <Modal.Header>{job.student_name} · 응시 상세</Modal.Header>
       <Modal.Body>
-        <div className="vocab-detail-head">
-          <div className="vocab-detail-score">
-            <span className="vocab-detail-num">{correct}</span>/<span>{total}</span>
-            <span className={`vocab-score-pct vocab-score-pct--${pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low'}`} style={{ marginLeft: 10 }}>{pct}%</span>
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+        <div className="v2-detail-head">
+          <span className="v2-detail-head__score">{correct} / {total}</span>
+          <span className={`v2-score-cell__pct v2-score-cell__pct--${pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low'}`}>
+            {pct}%
+          </span>
+          <span className="v2-text-mute" style={{ marginLeft: 'auto', fontSize: 12 }}>
             제출 · {fmtTime(job.submitted_at)}
-          </div>
+          </span>
         </div>
-        <ol className="vocab-detail-list">
+        <ol className="v2-detail-list">
           {answers.map((a, i) => {
             const selectedText = a.selected_index !== null && a.choices[a.selected_index]
               ? a.choices[a.selected_index] : '미응답';
             const correctText = a.choices[a.correct_index] || '';
             return (
-              <li key={a.word_id} className={`vocab-detail-item ${a.correct ? 'is-ok' : 'is-ng'}`}>
-                <span className="vocab-detail-num">{i + 1}</span>
-                <div className="vocab-detail-body">
-                  <div className="vocab-detail-english">{a.english}</div>
-                  <div className="vocab-detail-meta">
+              <li key={a.word_id} className={`v2-detail-item ${a.correct ? 'is-ok' : 'is-ng'}`}>
+                <span className="v2-detail-num">{i + 1}</span>
+                <div className="v2-detail-body">
+                  <span className="v2-word">{a.english}</span>
+                  <div className="v2-detail-meta">
                     <span>선택: <strong>{selectedText}</strong></span>
-                    {!a.correct && <span className="vocab-detail-correct-ans">정답: {correctText}</span>}
+                    {!a.correct && (
+                      <span className="v2-detail-correct">정답: {correctText}</span>
+                    )}
                   </div>
                 </div>
-                <span className={`vocab-detail-mark ${a.correct ? 'is-ok' : 'is-ng'}`}>
+                <span className={`v2-detail-mark${a.correct ? ' is-ok' : ' is-ng'}`}>
                   {a.correct ? '○' : '✕'}
                 </span>
               </li>
@@ -410,7 +425,7 @@ function DetailModal({ jobId, onClose }: { jobId: string; onClose: () => void; }
         </ol>
       </Modal.Body>
       <Modal.Footer>
-        <button className="btn btn-primary" onClick={onClose}>닫기</button>
+        <button className="v2-btn v2-btn--secondary" onClick={onClose}>닫기</button>
       </Modal.Footer>
     </Modal>
   );

@@ -18,14 +18,16 @@ export interface Env {
   LOG_LEVEL: string;
 }
 
-// 인증 페이로드
+// 인증 페이로드 — JWT 또는 play_token 모두 이 형태로 정규화
+// JWT 경로: email/iat/exp 채움
+// play 경로: email/iat/exp 비어있음 (학생 PIN 로그인은 JWT claim 없음)
 export interface AuthPayload {
   userId: string;
-  email: string;
+  email?: string;
   role: 'admin' | 'instructor' | 'student';
   academyId: string;
-  iat: number;
-  exp: number;
+  iat?: number;
+  exp?: number;
 }
 
 // 사용자 정보

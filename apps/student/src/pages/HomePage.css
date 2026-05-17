@@ -1,116 +1,177 @@
 /* ═════════════════════════════════════════════════════════
-   HomePage — "오늘 대시보드"
-   Toss-grade 실용성. 큰 CTA · 한눈에 스캔 · 손쉬운 탭.
-   Reference: Toss · Kakao T · Samsung Health 홈
+   HomePage — "Cozy Game-like Wellness"
+   레퍼런스: Pokemon Sleep cards · Apple Fitness rings · Streaks
+   타입 컬러 surface tints + 큰 숫자 + 부드러운 lift
    ═════════════════════════════════════════════════════════ */
 
 .hp {
   max-width: 520px;
   margin: 0 auto;
-  padding: 16px 16px calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px);
+  padding: 18px 18px calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 32px);
   min-height: 100dvh;
   background: var(--bg-canvas);
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ─ 상단 인사 ───────────────────────────────────────── */
+/* ─ 1. 인사 (avatar + greeting) ──────────────────────── */
 .hp-greet {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 14px;
+  align-items: center;
   padding: 4px 4px 0;
+}
+
+.hp-greet-avatar {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: var(--type-grass);
+  color: white;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  box-shadow: 0 3px 8px rgba(63, 161, 41, 0.22);
+  position: relative;
+}
+/* 작은 활성 dot (Pokemon Sleep cozy 느낌) */
+.hp-greet-avatar::after {
+  content: "";
+  position: absolute;
+  bottom: -2px; right: -2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--type-electric);
+  border: 3px solid var(--bg-canvas);
+}
+
+.hp-greet-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .hp-greet-hi {
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: var(--fw-bold);
+  font-size: 19px;
+  font-weight: 800;
   color: var(--ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.018em;
+  line-height: 1.2;
 }
-
 .hp-greet-hi strong {
-  font-weight: var(--fw-black);
+  font-weight: 900;
+  background: linear-gradient(180deg, transparent 60%, rgba(63, 161, 41, 0.28) 60%);
+  padding: 0 2px;
 }
 
 .hp-greet-date {
   font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: var(--fw-bold);
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--ink-40);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   font-variant-numeric: tabular-nums;
 }
 
-/* ─ 오늘 학습 CTA 카드 (영웅 카드) ──────────────────── */
+/* ─ 2. 오늘의 학습 — Apple Fitness ring 정신 ──────────── */
 .hp-today {
   background: var(--bg-card);
-  border: 1.5px solid var(--ink-09);
-  border-radius: 16px;
-  padding: 20px 22px 18px;
+  border: 1px solid var(--ink-09);
+  border-radius: 18px;
+  padding: 22px 22px 18px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  position: relative;
+  overflow: hidden;
 }
+/* 우상단 옅은 그라디언트 워시 (Pokemon Sleep cards) */
+.hp-today::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 100% 0%,
+    var(--primary-surface) 0%,
+    transparent 55%);
+  pointer-events: none;
+}
+.hp-today > * { position: relative; }
 
 .hp-today-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
 }
 
 .hp-today-label {
-  font-size: 14px;
-  font-weight: var(--fw-bold);
+  font-size: 12px;
+  font-weight: 800;
   color: var(--ink-60);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
 .hp-today-pct {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: var(--fw-bold);
-  color: var(--ink);
-  letter-spacing: 0.3px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--primary);
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+  background: var(--primary-surface);
+  padding: 4px 10px;
+  border-radius: 999px;
 }
 
 .hp-today-score {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 6px;
   font-family: var(--font-display);
-  font-weight: var(--fw-black);
+  font-weight: 900;
   color: var(--ink);
   font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
 }
 
-.hp-today-score-done { font-size: 44px; }
-.hp-today-score-sep { color: var(--ink-20); font-size: 28px; margin: 0 2px; }
-.hp-today-score-total { color: var(--ink-40); font-size: 28px; }
+.hp-today-score-done { font-size: 56px; }
+.hp-today-score-sep {
+  color: var(--ink-20);
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 -2px;
+}
+.hp-today-score-total {
+  color: var(--ink-40);
+  font-size: 28px;
+  font-weight: 800;
+}
 
 .hp-today-bar {
-  height: 6px;
+  height: 8px;
   background: var(--ink-09);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
   position: relative;
 }
-
 .hp-today-bar-fill {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  inset: 0;
   width: var(--hp-pct, 0%);
-  background: var(--primary);
-  border-radius: 3px;
+  background: linear-gradient(90deg,
+    var(--type-grass) 0%,
+    var(--primary) 100%);
+  border-radius: 4px;
   transition: width var(--dur-slow) var(--ease-out-quart);
 }
 
@@ -118,28 +179,36 @@
   width: 100%;
   padding: 14px 18px;
   min-height: 52px;
-  background: var(--primary);
+  background: var(--ink);
   border: 0;
-  border-radius: 10px;
-  color: var(--text-on-primary);
+  border-radius: 12px;
+  color: var(--bg-canvas);
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: var(--fw-black);
+  font-size: 15.5px;
+  font-weight: 800;
   letter-spacing: -0.01em;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background var(--dur-fast) var(--ease-out-quart);
+  transition: background var(--dur-fast) var(--ease-out-quart),
+              transform var(--dur-fast) var(--ease-out-quart);
 }
-
-.hp-today-cta:hover { background: var(--primary-hover); }
+.hp-today-cta:hover { background: var(--primary); }
 .hp-today-cta:active { transform: scale(0.99); }
-.hp-today-cta:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
-.hp-today-cta-arrow { font-family: var(--font-mono); font-size: 16px; font-weight: var(--fw-bold); }
+.hp-today-cta:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.hp-today-cta-arrow {
+  font-size: 16px;
+  font-weight: 700;
+  transition: transform var(--dur-fast) var(--ease-out-quart);
+}
+.hp-today-cta:hover .hp-today-cta-arrow { transform: translateX(3px); }
 
-/* ─ 2×2 타일 ───────────────────────────────────────── */
+/* ─ 3. 2×2 + 풀폭 타일 — type-color surface tints ─────── */
 .hp-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -147,11 +216,11 @@
 }
 
 .hp-tile {
-  min-height: 84px;
-  padding: 14px 16px;
-  background: var(--bg-card);
-  border: 1.5px solid var(--ink-09);
-  border-radius: 14px;
+  min-height: 124px;
+  padding: 16px 18px 22px;
+  background: var(--hp-surface, var(--bg-card));
+  border: 1px solid var(--hp-c, var(--ink-09));
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -160,17 +229,82 @@
   text-align: left;
   font-family: inherit;
   color: var(--ink);
-  transition: border-color var(--dur-fast) var(--ease-out-quart),
-              transform var(--dur-fast) var(--ease-out-quart);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--dur-fast) var(--ease-out-quart),
+              box-shadow var(--dur-fast) var(--ease-out-quart),
+              border-color var(--dur-fast) var(--ease-out-quart);
 }
 
-.hp-tile:not(:disabled):hover { border-color: var(--ink); }
-.hp-tile:not(:disabled):active { transform: scale(0.98); }
-.hp-tile:disabled { cursor: default; opacity: 0.5; }
-.hp-tile[data-empty="true"] { background: var(--ink-09); border-style: dashed; }
-.hp-tile[data-empty="true"] .hp-tile-label { color: var(--ink-60); }
-.hp-tile[data-empty="true"] .hp-tile-value-sub { color: var(--ink-60); font-size: 12px; font-weight: var(--fw-bold); }
-.hp-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.hp-tile::before {
+  /* 우하단 옅은 type-color wash (Pokemon Sleep cards) */
+  content: "";
+  position: absolute;
+  right: -30%;
+  bottom: -30%;
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(circle at center,
+    var(--hp-c, transparent) 0%,
+    transparent 70%);
+  opacity: 0.10;
+  pointer-events: none;
+}
+
+.hp-tile > * { position: relative; }
+
+.hp-tile:not(:disabled):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(17, 20, 26, 0.08),
+              0 2px 4px rgba(17, 20, 26, 0.04);
+  border-color: var(--hp-c, var(--ink-40));
+}
+.hp-tile:not(:disabled):active { transform: translateY(-1px) scale(0.99); }
+.hp-tile:disabled { cursor: default; opacity: 0.55; }
+.hp-tile[data-empty="true"] {
+  background: var(--ink-05, rgba(17, 20, 26, 0.04));
+  border-style: dashed;
+  border-color: var(--ink-20);
+}
+.hp-tile[data-empty="true"]::before { display: none; }
+.hp-tile[data-empty="true"] .hp-tile-label,
+.hp-tile[data-empty="true"] .hp-tile-value-sub { color: var(--ink-60); }
+.hp-tile:focus-visible {
+  outline: 2px solid var(--hp-c, var(--primary));
+  outline-offset: 2px;
+}
+
+/* type 변형 — surface tint + dot color 연동 */
+.hp-tile--water {
+  --hp-c: var(--type-water);
+  --hp-surface: var(--type-water-surface);
+}
+.hp-tile--grass {
+  --hp-c: var(--type-grass);
+  --hp-surface: var(--type-grass-surface);
+}
+.hp-tile--electric {
+  --hp-c: var(--type-electric);
+  --hp-surface: var(--type-electric-surface);
+}
+.hp-tile--ground {
+  --hp-c: var(--type-ground);
+  --hp-surface: var(--type-ground-surface);
+}
+.hp-tile--fire {
+  --hp-c: #E25822;
+  --hp-surface: rgba(226, 88, 34, 0.08);
+}
+.hp-tile--dragon {
+  --hp-c: #5060E1;
+  --hp-surface: rgba(80, 96, 225, 0.08);
+}
+.hp-tile--psychic {
+  --hp-c: #F584A8;
+  --hp-surface: rgba(245, 132, 168, 0.10);
+}
+
+.hp-tile--full { grid-column: 1 / -1; }
 
 .hp-tile-head {
   display: flex;
@@ -179,80 +313,156 @@
 }
 
 .hp-tile-dot {
-  width: 8px;
-  height: 8px;
+  width: 12px; height: 12px;
   border-radius: 50%;
+  background: var(--hp-c, var(--ink-40));
   flex-shrink: 0;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hp-c) 22%, transparent);
 }
-.hp-tile--water .hp-tile-dot    { background: var(--type-water); }
-.hp-tile--grass .hp-tile-dot    { background: var(--type-grass); }
-.hp-tile--electric .hp-tile-dot { background: var(--type-electric); }
-.hp-tile--ground .hp-tile-dot   { background: var(--type-ground); }
-.hp-tile--fire .hp-tile-dot     { background: #E25822; }
-.hp-tile--full                  { grid-column: 1 / -1; }
 
 .hp-tile-label {
   font-size: 15px;
-  font-weight: var(--fw-bold);
+  font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.01em;
 }
 
 .hp-tile-value {
   font-family: var(--font-display);
-  font-weight: var(--fw-black);
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums lining-nums;
   display: flex;
-  align-items: baseline;
-  gap: 2px;
+  align-items: flex-end;     /* 텍스트만 있는 타일도 바닥 고정 */
+  gap: 4px;
+  /* 모든 타일 value 영역 동일 높이 reserve → Y 일치 (큰 숫자 기준) */
+  min-height: 48px;
   line-height: 1;
 }
-
-.hp-tile-value-num { font-size: 28px; color: var(--ink); }
-.hp-tile-value-sub {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: var(--fw-bold);
-  color: var(--ink-40);
-  margin-left: 2px;
+/* num + sub 조합은 baseline 정렬 (typography 정확) */
+.hp-tile-value:has(.hp-tile-value-num) {
+  align-items: baseline;
 }
 
-/* ─ Section (과제·증명) ──────────────────────────────── */
+.hp-tile-value-num {
+  font-size: 48px;
+  color: var(--hp-c, var(--ink));     /* 타입 컬러로 — Apple Fitness ring 정신 */
+  letter-spacing: -0.04em;
+}
+
+.hp-tile-value-sub {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--hp-c) 70%, var(--ink-40));
+  margin-left: 2px;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 텍스트만 있는 entry 타일 (영단어 X — 야구·AI·시험 등)은 sub-text 더 굵고 크게 */
+.hp-tile-value:not(:has(.hp-tile-value-num)) .hp-tile-value-sub {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  margin-left: 0;
+}
+
+/* 타입 컬러 시그니처 라인 — stat 타일 바닥 (num이 있는 경우만) */
+.hp-tile:has(.hp-tile-value-num)::after {
+  content: "";
+  position: absolute;
+  left: 18px; right: 18px; bottom: 10px;
+  height: 3px;
+  background: color-mix(in srgb, var(--hp-c) 30%, transparent);
+  border-radius: 2px;
+}
+
+/* ─ Silhouette 아이콘 (우하단 watermark) — type 컬러로 자동 ─ */
+.hp-tile-icon {
+  position: absolute;
+  right: 10px;
+  bottom: 18px;
+  width: 76px;
+  height: 76px;
+  color: var(--hp-c, var(--ink-40));   /* Phosphor SVG primary fill */
+  opacity: 0.30;                        /* duotone 자체가 secondary 0.2 → 합산 호감 watermark */
+  pointer-events: none;
+  flex-shrink: 0;
+  transition: transform 320ms var(--ease-out-quart),
+              opacity 320ms var(--ease-out-quart);
+}
+.hp-tile:hover .hp-tile-icon {
+  opacity: 0.24;
+  transform: scale(1.06) rotate(-3deg);
+}
+
+/* per-type SVG silhouettes — 직접 그린 bold path */
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-tile-icon { transition: none; }
+  .hp-tile:hover .hp-tile-icon { transform: none; }
+}
+
+/* 풀폭 타일은 가로 layout (label + sub on right) */
+.hp-tile--full .hp-tile-head { gap: 10px; }
+.hp-tile--full .hp-tile-label { font-size: 16px; }
+.hp-tile--full {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 16px 20px;
+}
+.hp-tile--full .hp-tile-value-sub {
+  font-size: 14px;
+  font-weight: 700;
+}
+.hp-tile--full .hp-tile-value-sub::after {
+  content: "";
+}
+
+/* ─ 4. 섹션 (과제·증명) ──────────────────────────────── */
 .hp-section-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding: 8px 4px 4px;
+  padding: 14px 4px 6px;
 }
 
 .hp-section-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: var(--fw-black);
+  font-size: 15px;
+  font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.015em;
 }
 
 .hp-section-title span {
-  font-weight: var(--fw-medium);
+  font-weight: 700;
   color: var(--ink-40);
-  margin-left: 4px;
+  margin-left: 6px;
+  font-feature-settings: 'tnum' 1;
 }
 
 .hp-section-all {
   font-size: 13px;
-  font-weight: var(--fw-semi);
+  font-weight: 700;
   color: var(--ink-60);
   background: none;
   border: 0;
-  padding: 6px 2px;
+  padding: 6px 8px;
   cursor: pointer;
   font-family: inherit;
+  border-radius: 6px;
+  transition: color var(--dur-fast) var(--ease-out-quart),
+              background var(--dur-fast) var(--ease-out-quart);
 }
 
-.hp-section-all:hover { color: var(--primary); }
+.hp-section-all:hover { color: var(--primary); background: var(--primary-surface); }
 
 .hp-cards {
   display: flex;
@@ -268,7 +478,7 @@
   gap: 12px;
   padding: 14px 16px;
   background: var(--bg-card);
-  border: 1.5px solid var(--ink-09);
+  border: 1px solid var(--ink-09);
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
@@ -299,7 +509,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: var(--fw-bold);
+  font-weight: 700;
   color: var(--ink-60);
   letter-spacing: -0.005em;
 }
@@ -318,7 +528,7 @@
 
 .hp-task-title {
   font-size: 15px;
-  font-weight: var(--fw-bold);
+  font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -331,14 +541,14 @@
 .hp-task-due {
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: var(--fw-medium);
+  font-weight: 500;
   color: var(--ink-60);
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .hp-task-due strong {
-  font-weight: var(--fw-bold);
+  font-weight: 700;
   color: var(--ink);
 }
 
@@ -351,14 +561,14 @@
   color: var(--ink-40);
   font-family: var(--font-mono);
   font-size: 18px;
-  font-weight: var(--fw-bold);
+  font-weight: 700;
 }
 
 /* ─ 증명 카드 ────────────────────────────────────────── */
 .hp-proof {
   padding: 14px 16px;
   background: var(--bg-card);
-  border: 1.5px solid var(--ink-09);
+  border: 1px solid var(--ink-09);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -367,7 +577,7 @@
 
 .hp-proof-title {
   font-size: 15px;
-  font-weight: var(--fw-bold);
+  font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -376,7 +586,7 @@
 .hp-proof-meta {
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: var(--fw-medium);
+  font-weight: 500;
   color: var(--ink-60);
   display: flex;
   gap: 10px;
@@ -398,7 +608,7 @@
   border-radius: 8px;
   color: var(--ink);
   font-size: 13px;
-  font-weight: var(--fw-bold);
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out-quart);
@@ -416,11 +626,11 @@
 .hp-empty {
   padding: 24px 16px;
   background: var(--bg-card);
-  border: 1.5px dashed var(--ink-20);
+  border: 1px dashed var(--ink-20);
   border-radius: 12px;
   text-align: center;
   font-size: 13px;
-  font-weight: var(--fw-medium);
+  font-weight: 500;
   color: var(--ink-40);
 }
 
@@ -429,21 +639,21 @@
   text-align: center;
   font-size: 13px;
   color: var(--ink-40);
-  font-weight: var(--fw-medium);
+  font-weight: 500;
 }
 
 /* ─ 진입 reveal (절제) ───────────────────────────── */
 .hp > * {
   opacity: 0;
-  transform: translateY(6px);
-  animation: hp-in 320ms var(--ease-out-quart) forwards;
+  transform: translateY(8px);
+  animation: hp-in 360ms var(--ease-out-quart) forwards;
 }
 .hp > *:nth-child(1) { animation-delay: 0ms; }
-.hp > *:nth-child(2) { animation-delay: 40ms; }
-.hp > *:nth-child(3) { animation-delay: 80ms; }
-.hp > *:nth-child(4) { animation-delay: 120ms; }
-.hp > *:nth-child(5) { animation-delay: 160ms; }
-.hp > *:nth-child(6) { animation-delay: 200ms; }
+.hp > *:nth-child(2) { animation-delay: 50ms; }
+.hp > *:nth-child(3) { animation-delay: 100ms; }
+.hp > *:nth-child(4) { animation-delay: 150ms; }
+.hp > *:nth-child(5) { animation-delay: 200ms; }
+.hp > *:nth-child(6) { animation-delay: 250ms; }
 
 @keyframes hp-in {
   to { opacity: 1; transform: translateY(0); }
@@ -452,18 +662,28 @@
 @media (prefers-reduced-motion: reduce) {
   .hp > * { opacity: 1; transform: none; animation: none; }
   .hp-today-bar-fill { transition: none; }
+  .hp-tile, .hp-today-cta, .hp-today-cta-arrow { transition: none; }
 }
 
-/* ─ 시험 안내 배너 (alert() 대체) ───────────── */
+/* ─ 시험 안내 배너 ───────────────────────────────── */
 .hp-banner {
-  margin: var(--sp-3) 0;
-  padding: var(--sp-3) var(--sp-4);
+  margin: 8px 0;
+  padding: 12px 16px;
   background: var(--type-electric-surface);
-  border: var(--border-hairline);
-  border-radius: var(--r-md);
-  font-size: var(--fs-body);
+  border: 1px solid rgba(250, 192, 0, 0.30);
+  border-radius: 10px;
+  font-size: 13.5px;
   color: var(--ink);
   cursor: pointer;
   line-height: 1.5;
+  font-weight: 500;
 }
-.hp-banner:hover { background: var(--warning-surface); }
+
+/* ─ 좁은 화면 ──────────────────────────────────────── */
+@media (max-width: 360px) {
+  .hp { padding: 16px 14px calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px); }
+  .hp-today { padding: 18px 18px 16px; }
+  .hp-today-score-done { font-size: 48px; }
+  .hp-tile { padding: 14px 16px; }
+  .hp-tile-value-num { font-size: 28px; }
+}

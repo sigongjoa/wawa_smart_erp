@@ -241,10 +241,27 @@ export const api = {
   // ── Vocab Exam (셀프-서브 시험) ──
   getVocabExamAvailability: () =>
     request<VocabExamAvailability>('/api/play/vocab/exam/availability'),
-  startVocabSelfExam: (max_words?: number) =>
+
+  /** 학생에게 노출되는 vocab catalog 목록 (어휘끝 4종 + csat 기본 등) */
+  getMyVocabCatalogs: () =>
+    request<{ catalogs: Array<{ id: string; title: string; word_count: number; is_default: boolean }> }>(
+      '/api/play/vocab/my-catalogs'
+    ),
+
+  /**
+   * 시험 시작. opts.source:
+   *   - 'mywords' (기본): 학생 본인 단어 풀에서
+   *   - 'csat': catalog_id 의 단어 풀에서 (어휘끝 등)
+   */
+  startVocabSelfExam: (opts?: {
+    max_words?: number;
+    source?: 'mywords' | 'csat' | 'mixed';
+    catalog_id?: string;
+    tier?: 1 | 2 | 3;
+  }) =>
     request<VocabSelfStartResponse>('/api/play/vocab/print/self-start', {
       method: 'POST',
-      body: JSON.stringify(max_words ? { max_words } : {}),
+      body: JSON.stringify(opts || {}),
     }),
   getVocabExam: (jobId: string) =>
     request<VocabExamDetail>(`/api/play/vocab/print/${jobId}`),
@@ -543,6 +560,10 @@ export interface VocabExamQuestion {
   prompt: string;
   choices: string[];
   selectedIndex: number | null;
+  /** 'textbook' = 공통어휘 (catalog), 'student' = 내 단어. 서버가 채우지 않으면 'student' 로 간주. */
+  source?: 'textbook' | 'student';
+  /** textbook 인 경우 catalog title (예: "어휘끝 고교기본") */
+  textbookTitle?: string | null;
 }
 
 export interface VocabExamDetail {
@@ -672,6 +693,14 @@ export interface MedTermExamItem {
 }
 
 export const medtermApi = {
+  /**
+   * 의학용어 접근 권한 확인. has_access=false 면 학생에게 medterm UI 노출 금지.
+   * 학생에게 배정된 어휘(med_student_terms) 또는 단원평가 attempt 가 있어야 access 허용.
+   */
+  access: () =>
+    request<{ has_access: boolean; term_count: number; attempt_count: number }>(
+      '/api/play/medterm/access'
+    ),
   today: (limit = 20, chapterId?: string) =>
     request<{ items: MedTermCard[]; count: number; server_time: string }>(
       `/api/play/medterm/today?limit=${limit}${chapterId ? `&chapter_id=${chapterId}` : ''}`
@@ -710,5 +739,64 @@ export const medtermApi = {
     request<{ status: string; total: number; correct_cnt: number; score: number } | { already_submitted: true; status: string; score: number; total: number; correct_cnt: number }>(
       `/api/play/medterm/exam-attempts/${attemptId}/submit`,
       { method: 'POST' }
+    ),
+};
+
+// ── 캘린더 ──
+
+export type EventCategory =
+  | 'performance'
+  | 'school_exam'
+  | 'external_exam'
+  | 'academy'
+  | 'personal';
+
+export interface CalendarEvent {
+  id: string;
+  owner_type: 'academy' | 'student';
+  owner_id: string;
+  category: EventCategory;
+  title: string;
+  memo: string | null;
+  link: string | null;
+  start_date: string;
+  end_date: string | null;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+  read_at?: number | null;
+  completed_at?: number | null;
+}
+
+export interface CalendarEventInput {
+  category: EventCategory;
+  title: string;
+  memo?: string | null;
+  link?: string | null;
+  start_date: string;
+  end_date?: string | null;
+}
+
+export const calendarApi = {
+  list: (from: string, to: string) =>
+    request<{ events: CalendarEvent[] }>(
+      `/api/play/calendar/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    ),
+  create: (input: CalendarEventInput) =>
+    request<{ id: string }>(`/api/play/calendar/events`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  update: (id: string, input: Partial<CalendarEventInput>) =>
+    request<{ id: string }>(`/api/play/calendar/events/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  remove: (id: string) =>
+    request<{ id: string }>(`/api/play/calendar/events/${id}`, { method: 'DELETE' }),
+  ack: (id: string, completed: boolean) =>
+    request<{ id: string; completed_at: number | null }>(
+      `/api/play/calendar/events/${id}/ack`,
+      { method: 'POST', body: JSON.stringify({ completed }) },
     ),
 };

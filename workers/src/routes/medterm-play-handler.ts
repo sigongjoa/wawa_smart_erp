@@ -60,6 +60,35 @@ async function getPlayAuth(context: RequestContext): Promise<PlayAuth | null> {
   return (await context.env.KV.get(`play:${token}`, 'json')) as PlayAuth | null;
 }
 
+// ── 접근 권한 확인 ──
+//
+// 의학용어는 academy 옵션 기능 — 모든 학생이 접근 가능한 게 아니라,
+// 학생에게 어휘(med_student_terms) 가 1개라도 배정되어 있거나 단원평가 attempt 가
+// 있어야 UI를 보여줘야 함. 프론트는 라우트 진입 시 이 endpoint 로 게이팅.
+async function handleAccess(context: RequestContext, auth: PlayAuth): Promise<Response> {
+  const termRow = await executeFirst<{ cnt: number }>(
+    context.env.DB,
+    `SELECT COUNT(*) AS cnt FROM med_student_terms
+     WHERE academy_id = ? AND student_id = ?`,
+    [auth.academyId, auth.studentId]
+  );
+  const attemptRow = await executeFirst<{ cnt: number }>(
+    context.env.DB,
+    `SELECT COUNT(*) AS cnt FROM med_exam_attempts
+     WHERE academy_id = ? AND student_id = ?`,
+    [auth.academyId, auth.studentId]
+  ).catch(() => ({ cnt: 0 } as { cnt: number }));
+
+  const termCount = termRow?.cnt ?? 0;
+  const attemptCount = attemptRow?.cnt ?? 0;
+
+  return successResponse({
+    has_access: termCount > 0 || attemptCount > 0,
+    term_count: termCount,
+    attempt_count: attemptCount,
+  });
+}
+
 // ── 오늘의 카드 (UC-MS-01) ─────────────────────────────────────────
 
 async function handleTodayCards(request: Request, context: RequestContext, auth: PlayAuth): Promise<Response> {
@@ -326,6 +355,9 @@ export async function handleMedTermPlay(
     const auth = await getPlayAuth(context);
     if (!auth) return unauthorizedResponse();
 
+    if (pathname === '/api/play/medterm/access' && method === 'GET') {
+      return handleAccess(context, auth);
+    }
     if (pathname === '/api/play/medterm/today' && method === 'GET') {
       return handleTodayCards(request, context, auth);
     }

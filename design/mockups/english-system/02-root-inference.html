@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>어근 추론 퀴즈 · prospectus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+.ri-root{
+  --ri-prefix:#b45309; --ri-prefix-tile:#fde7b8; --ri-prefix-edge:#e8a13a;
+  --ri-root-c:#2d3a8c; --ri-root-tile:#d8dcf2; --ri-root-edge:#4f5cb3;
+  --ri-suffix:#006e5a; --ri-suffix-tile:#c4eee2;
+  --ri-paper:#f6f4ee; --ri-paper-2:#ebe7dc; --ri-ink:#1a1e2e; --ri-ink-soft:#5e6478;
+  --ri-rule:#d8d3c4; --ri-mark:#d97706; --ri-stage:#fffdf5;
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 35%, var(--ri-stage), transparent 70%),
+    radial-gradient(circle at 8% 92%, rgba(45,58,140,0.06), transparent 50%),
+    radial-gradient(circle at 92% 8%, rgba(217,119,6,0.05), transparent 45%),
+    var(--ri-paper);
+  color:var(--ri-ink); font-family:'Pretendard Variable',system-ui,sans-serif;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:clamp(14px,3.5vw,24px) clamp(14px,4vw,28px) 40px;
+}
+.ri-root *,.ri-root *::before,.ri-root *::after{box-sizing:border-box;}
+.ri-root::before{
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background-image:radial-gradient(circle at 1px 1px, rgba(26,30,46,0.02) 1px, transparent 0);
+  background-size:3px 3px;
+}
+.ri-inner{
+  position:relative; max-width:640px; margin:0 auto;
+  display:flex; flex-direction:column; gap:clamp(20px,4vw,28px);
+  min-height:100%;
+}
+.ri-hud{
+  display:grid; grid-template-columns:1fr auto 1fr;
+  align-items:center; gap:16px; padding:4px 0 8px;
+}
+.ri-exit{
+  justify-self:start; background:none; border:none;
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.16em; text-transform:uppercase;
+  color:var(--ri-ink-soft); font-weight:500; cursor:pointer;
+  padding:6px 8px 6px 0; text-decoration:none;
+}
+.ri-exit:hover{ color:var(--ri-ink);}
+.ri-exit::before{ content:'✕  '; opacity:0.6;}
+.ri-progress{display:flex; gap:5px; align-items:center; justify-self:center;}
+.ri-progress .pip{ width:18px; height:5px; background:var(--ri-rule); border-radius:999px;}
+.ri-progress .pip.done{ background:var(--ri-mark);}
+.ri-progress .pip.current{ background:var(--ri-root-c); width:28px;}
+.ri-timer{
+  justify-self:end; display:flex; align-items:center; gap:8px;
+  font-family:'JetBrains Mono',monospace; font-weight:700;
+  font-size:13px; color:var(--ri-ink); letter-spacing:0.04em;
+}
+.ri-timer-ring{ position:relative; width:28px; height:28px;}
+.ri-timer-ring svg{ width:100%; height:100%; transform:rotate(-90deg);}
+.ri-timer-ring circle{ fill:none; stroke-width:3; stroke-linecap:round;}
+.ri-timer-ring .track{ stroke:var(--ri-rule);}
+.ri-timer-ring .fill{ stroke:var(--ri-root-c); transition:stroke-dasharray 1s linear;}
+.ri-eyebrow{
+  text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.28em; text-transform:uppercase;
+  color:var(--ri-mark); font-weight:700;
+  display:flex; align-items:center; gap:14px; margin-top:4px;
+}
+.ri-eyebrow::before,.ri-eyebrow::after{
+  content:''; flex:1; height:1px; background:var(--ri-rule);
+}
+.ri-stage{
+  text-align:center; display:flex; flex-direction:column; align-items:center;
+  gap:14px; padding:8px 0 4px;
+}
+.ri-stage-label{ font-size:13px; color:var(--ri-ink-soft); font-weight:500; letter-spacing:0.04em;}
+.ri-stage-label b{
+  color:var(--ri-ink); font-weight:700;
+  font-family:'Fraunces',Georgia,serif; font-style:italic;
+  font-variation-settings:'opsz' 14,'wght' 600;
+}
+.ri-word{
+  font-family:'Fraunces','Iowan Old Style',Georgia,serif;
+  font-variation-settings:'opsz' 144,'wght' 600;
+  font-size:clamp(54px,13vw,96px); line-height:1;
+  letter-spacing:-0.025em;
+  display:inline-flex; align-items:baseline; position:relative;
+  padding:12px 6px 20px;
+}
+.ri-word .hint{ color:var(--ri-prefix); position:relative;}
+.ri-word .hint::after{
+  content:''; position:absolute; left:4%; right:4%; bottom:-6px;
+  height:3px; background:var(--ri-prefix-edge); border-radius:2px;
+}
+.ri-word .veil{
+  color:var(--ri-ink-soft); opacity:0.4;
+  font-variation-settings:'opsz' 144,'wght' 400;
+}
+.ri-word .veil .ch{ display:inline-block;}
+.ri-word .veil::after{
+  content:''; display:block; height:1px; margin-top:-2px;
+  background:repeating-linear-gradient(90deg, var(--ri-ink-soft) 0 4px, transparent 4px 8px);
+  opacity:0.5;
+}
+.ri-pronounce{
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  color:var(--ri-ink-soft); letter-spacing:0.04em;
+}
+.ri-hint-card{
+  background:#fff; border:1px solid var(--ri-rule);
+  border-left:4px solid var(--ri-root-c);
+  border-radius:0 14px 14px 0; padding:18px 20px;
+  display:flex; flex-direction:column; gap:10px;
+  box-shadow:0 14px 32px -22px rgba(45,58,140,0.22);
+}
+.ri-hint-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;}
+.ri-hint-head .label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--ri-ink-soft); font-weight:700;
+}
+.ri-hint-head .root{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 48,'wght' 600;
+  font-size:30px; color:var(--ri-root-c); line-height:1; letter-spacing:-0.01em;
+}
+.ri-hint-head .root small{
+  font-size:14px; font-style:italic;
+  font-variation-settings:'opsz' 14,'wght' 400;
+  color:var(--ri-mark); margin-left:2px;
+}
+.ri-hint-meaning{ font-size:16px; font-weight:600; color:var(--ri-ink);}
+.ri-hint-meaning::before{
+  content:'뜻 / '; font-family:'JetBrains Mono',monospace;
+  font-size:11px; font-weight:500; color:var(--ri-ink-soft);
+  letter-spacing:0.08em; margin-right:4px;
+}
+.ri-hint-meaning .en-gloss{
+  color:var(--ri-ink-soft); font-weight:400; margin-left:6px;
+  font-style:italic; font-family:'Fraunces',Georgia,serif;
+}
+.ri-hint-examples{display:flex; flex-wrap:wrap; gap:6px; margin-top:2px;}
+.ri-hint-examples .ex{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 14,'wght' 500;
+  font-style:italic; font-size:13px;
+  padding:4px 10px; background:var(--ri-root-tile);
+  color:var(--ri-root-c); border-radius:999px;
+}
+.ri-hint-examples .ex small{
+  font-family:'Pretendard Variable',sans-serif; font-style:normal;
+  font-size:10px; font-weight:600; color:var(--ri-ink-soft); margin-left:4px;
+}
+.ri-choices{ display:grid; grid-template-columns:1fr; gap:10px;}
+@media (min-width:560px){ .ri-choices{grid-template-columns:1fr 1fr;} }
+.ri-choice{
+  position:relative; background:#fff; border:1.5px solid var(--ri-rule);
+  border-radius:12px; padding:16px 18px 16px 52px; text-align:left;
+  font-family:inherit; font-size:15px; font-weight:600; line-height:1.4;
+  color:var(--ri-ink); letter-spacing:-0.005em; cursor:pointer;
+  transition: transform 120ms cubic-bezier(0.16,1,0.3,1),
+              border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  box-shadow:0 1px 0 rgba(26,30,46,0.04);
+}
+.ri-choice::before{
+  content:attr(data-letter); position:absolute; left:14px; top:50%;
+  transform:translateY(-50%); width:28px; height:28px; border-radius:8px;
+  background:var(--ri-paper-2); color:var(--ri-ink-soft);
+  font-family:'Fraunces',Georgia,serif; font-style:italic;
+  font-variation-settings:'opsz' 18,'wght' 600; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  transition: background 180ms ease, color 180ms ease;
+}
+.ri-choice:hover{
+  border-color:var(--ri-root-edge); transform:translateY(-1px);
+  box-shadow:0 12px 24px -16px rgba(45,58,140,0.28);
+}
+.ri-choice:hover::before{ background:var(--ri-root-tile); color:var(--ri-root-c);}
+.ri-choice.selected{
+  border-color:var(--ri-root-c);
+  background:linear-gradient(180deg, var(--ri-root-tile), #fff 90%);
+  box-shadow:0 0 0 3px rgba(45,58,140,0.12), 0 14px 28px -16px rgba(45,58,140,0.3);
+}
+.ri-choice.selected::before{ background:var(--ri-root-c); color:#fff;}
+.ri-choice .micro{
+  display:block; margin-top:4px; font-family:'JetBrains Mono',monospace;
+  font-size:10px; font-weight:500; letter-spacing:0.08em;
+  color:var(--ri-ink-soft); opacity:0; transition:opacity 200ms ease;
+}
+.ri-choice.selected .micro{ opacity:1;}
+.ri-footer{
+  display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center;
+  margin-top:auto; padding-top:14px; border-top:1px dashed var(--ri-rule);
+}
+.ri-skip{
+  border:1px solid var(--ri-rule); background:transparent; border-radius:10px;
+  padding:12px 16px; font-family:inherit; font-size:13px; font-weight:600;
+  letter-spacing:-0.005em; color:var(--ri-ink-soft); cursor:pointer;
+}
+.ri-skip small{
+  display:block; margin-top:2px; font-family:'JetBrains Mono',monospace;
+  font-size:10px; font-weight:500; letter-spacing:0.08em;
+  opacity:0.7; text-transform:uppercase;
+}
+.ri-submit{
+  position:relative; background:var(--ri-root-c); color:#fff;
+  border:none; border-radius:10px; padding:16px 28px;
+  font-family:inherit; font-size:15px; font-weight:700;
+  letter-spacing:-0.005em; cursor:pointer;
+  box-shadow:0 6px 0 #1f285f, 0 14px 28px -8px rgba(45,58,140,0.45);
+}
+.ri-submit::after{
+  content:'→'; margin-left:10px; font-family:'Fraunces',serif;
+}
+.ri-submit:disabled{
+  background:var(--ri-rule); color:var(--ri-ink-soft); box-shadow:none; cursor:not-allowed;
+}
+.ri-submit:not(:disabled):active{
+  transform:translateY(3px);
+  box-shadow:0 3px 0 #1f285f, 0 6px 12px -4px rgba(45,58,140,0.4);
+}
+@keyframes ri-word-in{ 0%{opacity:0; transform:translateY(20px) rotateX(-30deg);} 100%{opacity:1; transform:translateY(0) rotateX(0);} }
+@keyframes ri-fade-up{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+.ri-word{ animation: ri-word-in 800ms cubic-bezier(0.16,1,0.3,1) both; transform-origin:50% 100%;}
+.ri-eyebrow,.ri-stage-label,.ri-pronounce,.ri-hint-card,.ri-choice,.ri-footer{
+  animation: ri-fade-up 500ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.ri-eyebrow{ animation-delay:60ms;}
+.ri-stage-label{ animation-delay:160ms;}
+.ri-pronounce{ animation-delay:700ms;}
+.ri-hint-card{ animation-delay:780ms;}
+.ri-choice:nth-of-type(1){animation-delay:880ms;}
+.ri-choice:nth-of-type(2){animation-delay:940ms;}
+.ri-choice:nth-of-type(3){animation-delay:1000ms;}
+.ri-choice:nth-of-type(4){animation-delay:1060ms;}
+.ri-footer{ animation-delay:1180ms;}
+@media (max-width:480px){
+  .ri-hint-head{ flex-direction:column; align-items:flex-start; gap:4px;}
+  .ri-hint-card{ padding:14px 16px;}
+  .ri-choice{ padding:14px 16px 14px 48px; font-size:14px;}
+  .ri-footer{ grid-template-columns:1fr;}
+  .ri-skip{ order:2; text-align:center;}
+  .ri-submit{ order:1; padding:14px 24px;}
+}
+body{margin:0;}
+</style>
+</head>
+<body>
+<div class="ri-root">
+  <div class="ri-inner">
+    <div class="ri-hud">
+      <a class="ri-exit" href="./index.html">나가기</a>
+      <div class="ri-progress">
+        <span class="pip done"></span>
+        <span class="pip done"></span>
+        <span class="pip current"></span>
+        <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+        <span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span>
+      </div>
+      <div class="ri-timer">
+        <span class="ri-timer-ring">
+          <svg viewBox="0 0 28 28">
+            <circle class="track" cx="14" cy="14" r="11"></circle>
+            <circle class="fill" cx="14" cy="14" r="11" stroke-dasharray="62 69.1" id="timer-fill"></circle>
+          </svg>
+        </span>
+        <span id="timer-text">0:45</span>
+      </div>
+    </div>
+
+    <div class="ri-eyebrow"><span>Inference Quiz · 3 of 10</span></div>
+
+    <section class="ri-stage">
+      <span class="ri-stage-label">처음 보는 단어입니다. 어근을 단서로 <b>의미를 추론</b>해 보세요.</span>
+      <h1 class="ri-word">
+        <span class="hint">pro</span><span class="veil"><span class="ch">s</span><span class="ch">p</span><span class="ch">e</span><span class="ch">c</span><span class="ch">t</span><span class="ch">u</span><span class="ch">s</span></span>
+      </h1>
+      <span class="ri-pronounce">/prəˈspɛktəs/</span>
+    </section>
+
+    <aside class="ri-hint-card">
+      <div class="ri-hint-head">
+        <span class="label">단어 속 어근</span>
+        <span class="root">spec<small>·</small></span>
+      </div>
+      <div class="ri-hint-meaning">
+        보다 · 살피다 <span class="en-gloss">— to look forward</span>
+      </div>
+      <div class="ri-hint-examples">
+        <span class="ex">inspect<small>점검하다</small></span>
+        <span class="ex">spectator<small>관중</small></span>
+        <span class="ex">perspective<small>관점</small></span>
+      </div>
+    </aside>
+
+    <div class="ri-choices" id="choices">
+      <button class="ri-choice" data-letter="a" data-correct="true">사전 안내서 · 모집 요강
+        <small class="micro">→ pro(앞으로) + spec(보다) → 앞을 내다보는 글</small>
+      </button>
+      <button class="ri-choice" data-letter="b">과거 회상록
+        <small class="micro">→ 과거 = retro·re-</small>
+      </button>
+      <button class="ri-choice" data-letter="c">진단 보고서
+        <small class="micro">→ 진단 = diagnos-</small>
+      </button>
+      <button class="ri-choice" data-letter="d">추모 기록
+        <small class="micro">→ 추모 = memor·commemor-</small>
+      </button>
+    </div>
+
+    <footer class="ri-footer">
+      <button class="ri-skip" type="button">확신 없음
+        <small>Skip · 점수 없음</small>
+      </button>
+      <button class="ri-submit" type="button" id="submit" disabled>답 선택 후 진행</button>
+    </footer>
+  </div>
+</div>
+<script>
+  const choices = document.querySelectorAll('.ri-choice');
+  const submit = document.getElementById('submit');
+  let selected = null;
+  choices.forEach(c => {
+    c.addEventListener('click', () => {
+      choices.forEach(x => x.classList.remove('selected'));
+      c.classList.add('selected');
+      selected = c.dataset.letter;
+      submit.disabled = false;
+      submit.textContent = selected.toUpperCase() + ' 선택 확정';
+    });
+  });
+
+  // timer countdown
+  let seconds = 45;
+  const ring = document.getElementById('timer-fill');
+  const text = document.getElementById('timer-text');
+  const circ = 2 * Math.PI * 11;
+  function tick(){
+    if (seconds <= 0) return;
+    seconds--;
+    const fill = (seconds / 45) * circ;
+    ring.setAttribute('stroke-dasharray', fill + ' ' + circ);
+    text.textContent = '0:' + String(seconds).padStart(2,'0');
+  }
+  setInterval(tick, 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>어근 학습 · spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+.rs-root {
+  --rs-prefix:#b45309; --rs-prefix-tile:#fde7b8; --rs-prefix-edge:#e8a13a;
+  --rs-root-c:#2d3a8c; --rs-root-tile:#d8dcf2; --rs-root-edge:#4f5cb3;
+  --rs-suffix:#006e5a; --rs-suffix-tile:#c4eee2; --rs-suffix-edge:#00c4a3;
+  --rs-paper:#f6f4ee; --rs-paper-2:#ebe7dc; --rs-ink:#1a1e2e; --rs-ink-soft:#5e6478;
+  --rs-rule:#d8d3c4; --rs-mark:#d97706;
+  position:fixed; inset:0;
+  background:
+    radial-gradient(circle at 18% 12%, #fffefa, transparent 50%),
+    radial-gradient(circle at 92% 88%, #efece1, transparent 55%),
+    var(--rs-paper);
+  color:var(--rs-ink);
+  font-family:'Pretendard Variable',system-ui,sans-serif;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:clamp(16px,4vw,32px) clamp(14px,4vw,28px) 96px;
+}
+.rs-root *,.rs-root *::before,.rs-root *::after{box-sizing:border-box;}
+.rs-root::before{
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background-image: radial-gradient(circle at 1px 1px, rgba(26,30,46,0.025) 1px, transparent 0);
+  background-size: 3px 3px; opacity:0.6;
+}
+.rs-inner{ position:relative; max-width:720px; margin:0 auto;
+  display:flex; flex-direction:column; gap:clamp(20px,4vw,32px);}
+.rs-topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  font-size:12px; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--rs-ink-soft); font-weight:700;
+}
+.rs-back{
+  border:none; background:transparent; color:var(--rs-ink-soft);
+  font-family:inherit; font-weight:700; letter-spacing:0.12em;
+  text-transform:uppercase; font-size:12px; padding:8px 0; cursor:pointer;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.rs-back:hover{ color:var(--rs-ink);}
+.rs-back::before{ content:''; width:18px; height:1px; background:currentColor; display:inline-block;}
+.rs-crumb{ font-family:'JetBrains Mono',monospace; font-weight:500; letter-spacing:0.08em;}
+.rs-crumb b{ color:var(--rs-ink); font-weight:700;}
+.rs-masthead{
+  position:relative; display:grid; grid-template-columns:1fr;
+  gap:12px; padding:28px 4px 32px;
+  border-top:1px solid var(--rs-rule); border-bottom:1px solid var(--rs-rule);
+}
+.rs-masthead-eyebrow{
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.24em;
+  text-transform:uppercase; color:var(--rs-mark); font-weight:700;
+  display:flex; align-items:center; gap:10px;
+}
+.rs-masthead-eyebrow::after{ content:''; flex:1; height:1px; background:var(--rs-rule);}
+.rs-masthead-display{
+  font-family:'Fraunces','Iowan Old Style',Georgia,serif;
+  font-variation-settings:'opsz' 144,'wght' 600;
+  font-size:clamp(64px,16vw,132px); line-height:0.92;
+  letter-spacing:-0.03em; color:var(--rs-root-c); margin:0;
+}
+.rs-masthead-display em{
+  font-style:italic; font-variation-settings:'opsz' 144,'wght' 400;
+  color:var(--rs-mark);
+}
+.rs-masthead-meta{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+  gap:16px 28px; margin-top:8px; padding-top:16px;
+  border-top:1px dashed var(--rs-rule);
+}
+.rs-meta-cell{display:flex; flex-direction:column; gap:2px;}
+.rs-meta-cell .k{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--rs-ink-soft);
+}
+.rs-meta-cell .v{ font-size:16px; font-weight:600; color:var(--rs-ink); line-height:1.3;}
+.rs-meta-cell .v.it{
+  font-family:'Fraunces',Georgia,serif; font-style:italic;
+  font-variation-settings:'opsz' 16,'wght' 500;
+}
+.rs-section-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+  padding:0 2px;
+}
+.rs-section-head h2{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 48,'wght' 500;
+  font-size:clamp(22px,4.5vw,28px); letter-spacing:-0.01em;
+  margin:0; color:var(--rs-ink);
+}
+.rs-section-head h2 em{
+  font-style:italic; color:var(--rs-mark);
+  font-variation-settings:'opsz' 48,'wght' 400;
+}
+.rs-section-head .count{
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  letter-spacing:0.12em; color:var(--rs-ink-soft); font-weight:500;
+}
+.rs-derived{display:flex; flex-direction:column; gap:14px;}
+.rs-word{
+  background:#fff; border:1px solid var(--rs-rule); border-radius:14px;
+  padding:22px 22px 20px;
+  box-shadow:0 1px 0 rgba(26,30,46,0.04), 0 14px 32px -22px rgba(45,58,140,0.18);
+  transition: transform 250ms cubic-bezier(0.16,1,0.3,1),
+              box-shadow 250ms cubic-bezier(0.16,1,0.3,1),
+              border-color 200ms ease;
+  cursor:pointer;
+}
+.rs-word:hover{
+  border-color:var(--rs-root-edge);
+  box-shadow:0 1px 0 rgba(26,30,46,0.04), 0 22px 44px -22px rgba(45,58,140,0.28);
+  transform:translateY(-1px);
+}
+.rs-blocks{
+  display:flex; align-items:flex-end; gap:6px; flex-wrap:wrap;
+  font-family:'Fraunces',Georgia,serif;
+}
+.rs-block{
+  position:relative; padding:6px 14px 12px; border-radius:10px;
+  font-size:clamp(28px,6vw,40px);
+  font-variation-settings:'opsz' 72,'wght' 600;
+  line-height:1; letter-spacing:-0.01em;
+  display:inline-flex; flex-direction:column; align-items:flex-start;
+  transition: transform 180ms cubic-bezier(0.16,1,0.3,1);
+}
+.rs-block .gloss{
+  display:block; font-family:'Pretendard Variable',sans-serif;
+  font-size:10px; font-weight:700; letter-spacing:0.06em;
+  margin-bottom:4px; opacity:0.78;
+}
+.rs-block.prefix{ background:var(--rs-prefix-tile); color:var(--rs-prefix); box-shadow:inset 0 -3px 0 var(--rs-prefix-edge);}
+.rs-block.root{ background:var(--rs-root-tile); color:var(--rs-root-c); box-shadow:inset 0 -3px 0 var(--rs-root-edge);}
+.rs-block.suffix{ background:var(--rs-suffix-tile); color:var(--rs-suffix); box-shadow:inset 0 -3px 0 var(--rs-suffix-edge);}
+.rs-word:hover .rs-block.prefix{ transform:translateY(-2px) rotate(-1.5deg);}
+.rs-word:hover .rs-block.root{ transform:translateY(-3px);}
+.rs-word:hover .rs-block.suffix{ transform:translateY(-2px) rotate(1.5deg);}
+.rs-word-caption{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:12px; margin-top:14px; padding-top:14px;
+  border-top:1px dashed var(--rs-rule);
+}
+.rs-word-ko{ font-size:17px; font-weight:700; color:var(--rs-ink); letter-spacing:-0.005em;}
+.rs-word-ko::before{
+  content:'→ '; color:var(--rs-mark);
+  font-family:'JetBrains Mono',monospace; font-weight:500; margin-right:2px;
+}
+.rs-word-toggle{
+  background:none; border:none; font-family:'JetBrains Mono',monospace;
+  font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--rs-ink-soft); font-weight:500; cursor:pointer; padding:4px 0;
+}
+.rs-word-toggle:hover{ color:var(--rs-ink);}
+.rs-word-detail{
+  display:grid; grid-template-rows:0fr;
+  transition: grid-template-rows 320ms cubic-bezier(0.16,1,0.3,1);
+}
+.rs-word-detail > .inner{ overflow:hidden; min-height:0;}
+.rs-word.open .rs-word-detail{ grid-template-rows:1fr;}
+.rs-word-detail .inner{
+  padding-top:14px; margin-top:14px; border-top:1px solid var(--rs-rule);
+  display:flex; flex-direction:column; gap:10px;
+}
+.rs-decompose{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--rs-ink-soft); line-height:1.5;}
+.rs-decompose b{ color:var(--rs-ink); font-weight:700;}
+.rs-example{
+  background:var(--rs-paper-2); border-left:3px solid var(--rs-mark);
+  padding:12px 14px; border-radius:0 8px 8px 0;
+  font-size:14px; line-height:1.6;
+}
+.rs-example .en{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 14,'wght' 500;
+  font-style:italic; color:var(--rs-ink); display:block; margin-bottom:4px;
+}
+.rs-example .ko{ font-size:13px; color:var(--rs-ink-soft);}
+.rs-footer{
+  position:sticky; bottom:16px; margin-top:12px;
+  padding:14px 18px;
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--rs-rule); border-radius:16px;
+  box-shadow:0 24px 48px -24px rgba(26,30,46,0.18);
+  display:grid; grid-template-columns:1fr auto; gap:18px; align-items:center;
+}
+.rs-progress{display:flex; flex-direction:column; gap:6px;}
+.rs-progress-label{
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--rs-ink-soft);
+}
+.rs-progress-label b{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 18,'wght' 600;
+  font-style:italic; font-size:15px; text-transform:none;
+  letter-spacing:-0.005em; color:var(--rs-root-c);
+}
+.rs-progress-dots{display:flex; gap:6px;}
+.rs-progress-dots .dot{
+  flex:1; height:6px; background:var(--rs-rule); border-radius:999px;
+  position:relative; overflow:hidden;
+}
+.rs-progress-dots .dot.on{ background:linear-gradient(90deg, var(--rs-mark), var(--rs-root-c));}
+.rs-progress-dots .dot.current{ background:var(--rs-root-c); box-shadow:0 0 0 3px rgba(45,58,140,0.12);}
+.rs-cta-group{ display:flex; gap:8px; align-items:center;}
+.rs-cta{
+  font-family:'Pretendard Variable',sans-serif; font-weight:700;
+  font-size:14px; letter-spacing:-0.005em;
+  padding:12px 18px; border-radius:10px; cursor:pointer;
+  transition: transform 100ms ease, background 180ms ease, color 180ms ease;
+  border:1px solid transparent;
+}
+.rs-cta.secondary{
+  background:transparent; color:var(--rs-ink-soft);
+  border-color:var(--rs-rule);
+}
+.rs-cta.secondary:hover{ color:var(--rs-ink); border-color:var(--rs-ink-soft);}
+.rs-cta.primary{
+  background:var(--rs-root-c); color:#fff; position:relative;
+  box-shadow:0 6px 0 #1f285f, 0 12px 24px -8px rgba(45,58,140,0.45);
+  padding-right:36px;
+}
+.rs-cta.primary::after{
+  content:'→'; position:absolute; right:16px; top:50%;
+  transform:translateY(-50%); font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 18,'wght' 400;
+}
+.rs-cta.primary:active{
+  transform:translateY(3px);
+  box-shadow:0 3px 0 #1f285f, 0 6px 12px -4px rgba(45,58,140,0.4);
+}
+@keyframes rs-fade-up { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+.rs-masthead-eyebrow,.rs-masthead-display,.rs-masthead-meta,.rs-section-head,.rs-word,.rs-footer{
+  animation: rs-fade-up 600ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.rs-masthead-eyebrow{animation-delay:40ms;}
+.rs-masthead-display{animation-delay:120ms;}
+.rs-masthead-meta{animation-delay:220ms;}
+.rs-section-head{animation-delay:320ms;}
+.rs-word:nth-of-type(1){animation-delay:380ms;}
+.rs-word:nth-of-type(2){animation-delay:440ms;}
+.rs-word:nth-of-type(3){animation-delay:500ms;}
+.rs-word:nth-of-type(4){animation-delay:560ms;}
+.rs-word:nth-of-type(5){animation-delay:620ms;}
+.rs-footer{animation-delay:700ms;}
+@media (max-width:480px){
+  .rs-masthead{padding:22px 0 24px;}
+  .rs-word{padding:18px 16px 16px;}
+  .rs-block{padding:4px 10px 9px;}
+  .rs-footer{ grid-template-columns:1fr; gap:12px; padding:12px 14px;}
+  .rs-cta-group{width:100%;}
+  .rs-cta{flex:1; text-align:center;}
+}
+body{margin:0;}
+</style>
+</head>
+<body>
+<div class="rs-root">
+  <div class="rs-inner">
+    <div class="rs-topbar">
+      <a class="rs-back" href="./index.html">목록으로</a>
+      <span class="rs-crumb">ROOT STUDY · <b>Tier 1</b> · 23 / 100</span>
+    </div>
+
+    <header class="rs-masthead">
+      <div class="rs-masthead-eyebrow"><span>Root No. 17 · Latin</span></div>
+      <h1 class="rs-masthead-display">spec<em>·</em></h1>
+      <div class="rs-masthead-meta">
+        <div class="rs-meta-cell"><span class="k">Korean</span><span class="v">보다 · 살피다</span></div>
+        <div class="rs-meta-cell"><span class="k">English</span><span class="v it">to look, to see, to examine</span></div>
+        <div class="rs-meta-cell"><span class="k">Etymology</span><span class="v it">Latin specere</span></div>
+        <div class="rs-meta-cell"><span class="k">Variants</span><span class="v">spec- · spect- · spic-</span></div>
+      </div>
+    </header>
+
+    <div class="rs-section-head">
+      <h2>이 어근에서 자란 <em>다섯 단어</em></h2>
+      <span class="count">5 / 12 unlocked</span>
+    </div>
+
+    <div class="rs-derived" id="derived">
+      <article class="rs-word open" data-id="inspect">
+        <div class="rs-blocks">
+          <span class="rs-block prefix"><span class="gloss">안으로</span><span>in-</span></span>
+          <span class="rs-block root"><span class="gloss">보다</span><span>spec</span></span>
+          <span class="rs-block suffix"><span class="gloss">동사화</span><span>t</span></span>
+        </div>
+        <div class="rs-word-caption">
+          <span class="rs-word-ko">안을 들여다보다 · 점검하다</span>
+          <button class="rs-word-toggle" type="button">접기 –</button>
+        </div>
+        <div class="rs-word-detail"><div class="inner">
+          <p class="rs-decompose"><b>inspect</b> = in (안으로) + spec (보다) → 안쪽을 들여다보다</p>
+          <div class="rs-example">
+            <span class="en">"The mechanic will inspect the engine for any signs of wear."</span>
+            <span class="ko">정비공이 마모 흔적이 있는지 엔진을 점검할 것이다.</span>
+          </div>
+        </div></div>
+      </article>
+
+      <article class="rs-word" data-id="spectator">
+        <div class="rs-blocks">
+          <span class="rs-block root"><span class="gloss">보다</span><span>spect</span></span>
+          <span class="rs-block suffix"><span class="gloss">~하는 사람</span><span>-ator</span></span>
+        </div>
+        <div class="rs-word-caption">
+          <span class="rs-word-ko">구경꾼 · 관중</span>
+          <button class="rs-word-toggle" type="button">예문 보기 +</button>
+        </div>
+        <div class="rs-word-detail"><div class="inner">
+          <p class="rs-decompose"><b>spectator</b> = spect (보다) + -ator (사람) → 보는 사람</p>
+          <div class="rs-example">
+            <span class="en">"Every spectator rose to their feet as the final whistle blew."</span>
+            <span class="ko">종료 휘슬이 울리자 모든 관중이 자리에서 일어섰다.</span>
+          </div>
+        </div></div>
+      </article>
+
+      <article class="rs-word" data-id="perspective">
+        <div class="rs-blocks">
+          <span class="rs-block prefix"><span class="gloss">~을 통해</span><span>per-</span></span>
+          <span class="rs-block root"><span class="gloss">보다</span><span>spect</span></span>
+          <span class="rs-block suffix"><span class="gloss">명사화</span><span>-ive</span></span>
+        </div>
+        <div class="rs-word-caption">
+          <span class="rs-word-ko">관점 · 시각</span>
+          <button class="rs-word-toggle" type="button">예문 보기 +</button>
+        </div>
+        <div class="rs-word-detail"><div class="inner">
+          <p class="rs-decompose"><b>perspective</b> = per (관통하여) + spect (보다) → 무언가를 꿰뚫어 보는 방식</p>
+          <div class="rs-example">
+            <span class="en">"From a historian's perspective, the treaty was a turning point."</span>
+            <span class="ko">역사가의 관점에서 그 조약은 전환점이었다.</span>
+          </div>
+        </div></div>
+      </article>
+
+      <article class="rs-word" data-id="suspect">
+        <div class="rs-blocks">
+          <span class="rs-block prefix"><span class="gloss">아래에서</span><span>sus-</span></span>
+          <span class="rs-block root"><span class="gloss">보다</span><span>spec</span></span>
+          <span class="rs-block suffix"><span class="gloss">동사화</span><span>t</span></span>
+        </div>
+        <div class="rs-word-caption">
+          <span class="rs-word-ko">의심하다 · 용의자</span>
+          <button class="rs-word-toggle" type="button">예문 보기 +</button>
+        </div>
+        <div class="rs-word-detail"><div class="inner">
+          <p class="rs-decompose"><b>suspect</b> = sus (밑에서) + spec (보다) → 몰래 훔쳐보다 = 의심하다</p>
+          <div class="rs-example">
+            <span class="en">"Police suspect the fire was started deliberately."</span>
+            <span class="ko">경찰은 그 화재가 의도적으로 시작되었다고 의심한다.</span>
+          </div>
+        </div></div>
+      </article>
+
+      <article class="rs-word" data-id="conspicuous">
+        <div class="rs-blocks">
+          <span class="rs-block prefix"><span class="gloss">완전히</span><span>con-</span></span>
+          <span class="rs-block root"><span class="gloss">보다</span><span>spic</span></span>
+          <span class="rs-block suffix"><span class="gloss">형용사화</span><span>-uous</span></span>
+        </div>
+        <div class="rs-word-caption">
+          <span class="rs-word-ko">눈에 띄는 · 두드러진</span>
+          <button class="rs-word-toggle" type="button">예문 보기 +</button>
+        </div>
+        <div class="rs-word-detail"><div class="inner">
+          <p class="rs-decompose"><b>conspicuous</b> = con (완전히) + spic (보이는) → 누구의 눈에든 띄는</p>
+          <div class="rs-example">
+            <span class="en">"Her red coat made her conspicuous in the gray crowd."</span>
+            <span class="ko">빨간 코트가 회색 인파 속에서 그녀를 눈에 띄게 만들었다.</span>
+          </div>
+        </div></div>
+      </article>
+    </div>
+
+    <footer class="rs-footer">
+      <div class="rs-progress">
+        <div class="rs-progress-label"><span>이 어근의 진도</span><b>Box 3 / 5</b></div>
+        <div class="rs-progress-dots">
+          <span class="dot on"></span>
+          <span class="dot on"></span>
+          <span class="dot on current"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+      <div class="rs-cta-group">
+        <button class="rs-cta secondary" type="button">다음 어근</button>
+        <a class="rs-cta primary" href="./02-root-inference.html">추론 퀴즈</a>
+      </div>
+    </footer>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.rs-word').forEach(card => {
+    card.addEventListener('click', () => {
+      const open = card.classList.contains('open');
+      document.querySelectorAll('.rs-word').forEach(c => c.classList.remove('open'));
+      if (!open) card.classList.add('open');
+      document.querySelectorAll('.rs-word').forEach(c => {
+        const btn = c.querySelector('.rs-word-toggle');
+        if (btn) btn.textContent = c.classList.contains('open') ? '접기 –' : '예문 보기 +';
+      });
+    });
+  });
+</script>
+</body>
+</html>

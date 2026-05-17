@@ -24,6 +24,10 @@ const MedTermExamAttemptPage = lazy(() => import('./pages/MedTermExamsPage').the
 const BaseballPage = lazy(() => import('./pages/BaseballPage'));
 const SignupRequestPage = lazy(() => import('./pages/SignupRequestPage'));
 const ChangePinPage = lazy(() => import('./pages/ChangePinPage'));
+const AskAIHubPage = lazy(() => import('./pages/AskAIHubPage'));
+const AskAIPage = lazy(() => import('./pages/AskAIPage'));
+const DrillPage = lazy(() => import('./pages/DrillPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -78,6 +82,11 @@ export default function App() {
             <Route path="/medterm/exams/:attemptId" element={<MedTermExamAttemptPage />} />
             <Route path="/archives" element={<MyArchivePage />} />
             <Route path="/me" element={<MePage />} />
+            <Route path="/ask-ai" element={<AskAIHubPage />} />
+            <Route path="/ask-ai/write" element={<AskAIPage />} />
+            <Route path="/ask-ai/photo" element={<AskAIPage />} />
+            <Route path="/drill" element={<DrillPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

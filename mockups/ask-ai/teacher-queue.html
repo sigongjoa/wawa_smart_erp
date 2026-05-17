@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>설명 AI · 강사 큐 — 오늘</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    background: var(--bg-canvas);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    height: 100dvh; overflow: hidden;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 56px 380px minmax(0, 1fr);
+    grid-template-rows: 64px 56px minmax(0, 1fr);
+    grid-template-areas:
+      "side topbar  topbar"
+      "side filters detail-bar"
+      "side list    detail";
+    height: 100dvh;
+  }
+  @media (max-width: 1080px) {
+    .shell { grid-template-columns: 56px 1fr;
+      grid-template-rows: 64px 56px auto auto auto auto;
+      grid-template-areas:
+      "side topbar"
+      "side filters"
+      "side list"
+      "side detail-bar"
+      "side detail"
+      "side detail"; height: auto; min-height: 100dvh; }
+    body { overflow: auto; height: auto; }
+    .list { max-height: 50dvh; }
+    .detail-bar { border-top: var(--border-hair); }
+  }
+  @media (max-width: 560px) {
+    .shell { grid-template-columns: 1fr;
+      grid-template-areas:
+      "topbar" "filters" "list" "detail-bar" "detail"; }
+    .sidebar { display: none; }
+  }
+
+  /* ───── sidebar */
+  .sidebar {
+    grid-area: side;
+    background: var(--bg-card);
+    border-right: var(--border-hair);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px 0;
+    gap: 8px;
+  }
+  .sidebar .nav-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    border: none; background: transparent;
+    color: var(--ink-60); cursor: pointer;
+    display: grid; place-items: center;
+    position: relative;
+  }
+  .sidebar .nav-btn:hover { background: var(--ink-05); color: var(--ink); }
+  .sidebar .nav-btn.active { background: var(--ink); color: white; }
+  .sidebar .nav-btn .badge {
+    position: absolute; top: 2px; right: 2px;
+    min-width: 14px; height: 14px; padding: 0 4px;
+    border-radius: 7px;
+    background: var(--danger); color: white;
+    font-size: 9px; font-weight: 800;
+    display: grid; place-items: center;
+    line-height: 1;
+  }
+  .sidebar .mark {
+    margin-top: auto;
+    width: 32px; height: 32px; border-radius: 10px;
+    background: var(--primary); color: white;
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 13px;
+  }
+
+  /* ───── topbar */
+  .topbar {
+    grid-area: topbar;
+    border-bottom: var(--border-hair);
+    background: var(--bg-card);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+  }
+  .topbar .title {
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .topbar h1 {
+    font-size: 17px; font-weight: 800; letter-spacing: -0.01em;
+  }
+  .topbar h1 .role { color: var(--type-water); margin-left: 2px; }
+  .topbar .date {
+    font-size: 12px; color: var(--ink-60);
+    font-feature-settings: 'tnum' 1;
+  }
+  .topbar .summary {
+    display: flex; gap: 28px;
+    font-size: 12px; color: var(--ink-60);
+    letter-spacing: 0.4px; text-transform: uppercase; font-weight: 600;
+  }
+  .topbar .summary .num {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 900;
+    color: var(--ink); letter-spacing: -0.02em;
+    line-height: 1; margin-top: 2px;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    text-transform: none;
+  }
+  .topbar .summary .num.warn { color: var(--danger); }
+
+  /* ───── filters */
+  .filters {
+    grid-area: filters;
+    border-right: var(--border-hair);
+    border-bottom: var(--border-hair);
+    background: var(--bg-card);
+    padding: 0 16px;
+    display: flex; align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .chip {
+    height: 30px; padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--ink-09);
+    background: transparent;
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    color: var(--ink-72); cursor: pointer;
+    white-space: nowrap;
+    transition: all 150ms var(--ease);
+  }
+  .chip:hover { border-color: var(--ink-40); color: var(--ink); }
+  .chip.on { background: var(--ink); color: white; border-color: var(--ink); }
+  .chip .ct {
+    margin-left: 6px;
+    font-feature-settings: 'tnum' 1;
+    color: var(--ink-40);
+  }
+  .chip.on .ct { color: rgba(255,255,255,0.7); }
+  .filters .sep {
+    width: 1px; height: 18px; background: var(--ink-09);
+    margin: 0 6px;
+  }
+  .filters .toggle {
+    height: 30px; padding: 0 12px;
+    border-radius: 8px;
+    background: rgba(230, 40, 41, 0.08);
+    border: 1px solid rgba(230, 40, 41, 0.2);
+    color: var(--danger);
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .filters .toggle .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 0 3px rgba(230, 40, 41, 0.15);
+  }
+
+  /* ───── detail-bar */
+  .detail-bar {
+    grid-area: detail-bar;
+    border-bottom: var(--border-hair);
+    background: var(--bg-card);
+    padding: 0 24px;
+    display: flex; align-items: center;
+    gap: 16px;
+  }
+  .detail-bar .breadcrumb {
+    font-size: 13px; color: var(--ink-60);
+    flex: 1;
+  }
+  .detail-bar .breadcrumb b { color: var(--ink); font-weight: 700; margin: 0 4px; }
+  .detail-bar .icon-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--ink-09);
+    background: var(--bg-card);
+    cursor: pointer;
+    display: grid; place-items: center;
+    color: var(--ink-60);
+  }
+  .detail-bar .icon-btn:hover { color: var(--ink); border-color: var(--ink-40); }
+
+  /* ───── list */
+  .list {
+    grid-area: list;
+    border-right: var(--border-hair);
+    background: var(--bg-canvas);
+    overflow-y: auto;
+  }
+  .list .day-header {
+    padding: 14px 16px 6px;
+    font-size: 11px; font-weight: 700;
+    color: var(--ink-60);
+    letter-spacing: 0.6px; text-transform: uppercase;
+    position: sticky; top: 0;
+    background: var(--bg-canvas);
+    z-index: 1;
+  }
+  .slip {
+    display: grid;
+    grid-template-columns: 4px 1fr;
+    background: var(--bg-card);
+    border-bottom: var(--border-hair);
+    cursor: pointer;
+    transition: background 150ms var(--ease);
+    position: relative;
+  }
+  .slip:hover { background: #fdfdff; }
+  .slip.selected { background: var(--primary-surface); }
+  .slip.selected::before {
+    content: ""; position: absolute; right: -1px; top: 0; bottom: 0;
+    width: 2px; background: var(--primary);
+  }
+  .slip .stripe { background: var(--c, var(--ink-20)); }
+  .slip .body { padding: 14px 16px; min-width: 0; }
+  .slip .row1 {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px;
+  }
+  .slip .name { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+  .slip .time {
+    margin-left: auto; font-size: 11px; color: var(--ink-60);
+    font-feature-settings: 'tnum' 1;
+  }
+  .slip .row2 {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 6px;
+    font-size: 11px; color: var(--ink-60);
+    font-weight: 600;
+  }
+  .slip .subj-tag {
+    padding: 2px 6px; border-radius: 4px;
+    background: var(--c-surface, var(--ink-05));
+    color: var(--c, var(--ink-72));
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .slip .preview {
+    font-size: 13px; line-height: 1.45;
+    color: var(--ink-72);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .slip .row3 {
+    margin-top: 8px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; color: var(--ink-60);
+  }
+  .slip .conf {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-weight: 600;
+  }
+  .slip .conf .bar { display: inline-flex; gap: 2px; }
+  .slip .conf .bar i {
+    width: 4px; height: 9px; border-radius: 1px;
+    background: var(--ink-09);
+  }
+  .slip .conf.high   .bar i { background: var(--success); }
+  .slip .conf.medium .bar i:nth-child(1),
+  .slip .conf.medium .bar i:nth-child(2) { background: var(--warning); }
+  .slip .conf.low    .bar i:nth-child(1) { background: var(--danger); }
+  .slip .badge {
+    margin-left: auto;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .slip .badge.needs   { background: rgba(230, 40, 41, 0.10); color: var(--danger); }
+  .slip .badge.ok      { background: rgba(63, 161, 41, 0.10); color: var(--success); }
+  .slip .badge.commented { background: rgba(45, 58, 140, 0.08); color: var(--primary); }
+  .slip .badge.wrong   { background: rgba(145, 81, 33, 0.10); color: var(--type-ground); }
+
+  /* ───── detail */
+  .detail {
+    grid-area: detail;
+    overflow-y: auto;
+    padding: 32px clamp(20px, 4vw, 48px) 0;
+    display: grid;
+    grid-template-rows: 1fr auto;
+  }
+  .detail-inner {
+    max-width: 760px; width: 100%;
+    margin: 0 auto;
+  }
+  .question-card {
+    padding: 22px 26px;
+    background: var(--bg-card);
+    border: 1px solid var(--ink-09);
+    border-radius: var(--r-lg);
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 18px;
+  }
+  .question-card .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--c, var(--primary)); color: white;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 15px;
+  }
+  .question-card h2 {
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .question-card h2 small {
+    font-weight: 500; color: var(--ink-60);
+    font-feature-settings: 'tnum' 1;
+  }
+  .question-card .question-text {
+    font-size: 16px; line-height: 1.55; color: var(--ink);
+    font-weight: 500;
+  }
+  .question-card .attachments {
+    margin-top: 12px;
+    display: flex; gap: 8px;
+    font-size: 11.5px; color: var(--ink-60);
+  }
+  .question-card .att {
+    padding: 4px 10px;
+    background: var(--bg-canvas); border-radius: 6px;
+    border: 1px solid var(--ink-09);
+  }
+
+  .ai-section {
+    margin-bottom: 28px;
+  }
+  .ai-section .head {
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: var(--border-hair);
+  }
+  .ai-section .head h3 {
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-60);
+  }
+  .ai-section .head .conf-text {
+    font-size: 11.5px; color: var(--ink-60);
+  }
+  .ai-section .head .spacer { flex: 1; }
+  .ai-section .head .full-link {
+    font-size: 12px; color: var(--primary); font-weight: 600;
+    text-decoration: none;
+  }
+  .ai-section .head .full-link:hover { text-decoration: underline; }
+
+  .ai-step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    padding: 12px 0;
+  }
+  .ai-step + .ai-step { border-top: 1px dashed var(--ink-09); }
+  .ai-step .n {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--ink-05); color: var(--ink-72);
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 13px;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+  .ai-step h4 {
+    font-size: 14px; font-weight: 700; line-height: 1.35;
+    margin-bottom: 4px;
+  }
+  .ai-step p {
+    font-size: 13.5px; line-height: 1.6; color: var(--ink-72);
+  }
+  .ai-step .formula {
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: var(--bg-paper); border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .citations {
+    padding: 14px 18px;
+    background: var(--bg-paper);
+    border-radius: var(--r-md);
+    margin-bottom: 24px;
+  }
+  .citations .label {
+    font-size: 10.5px; font-weight: 800;
+    color: var(--type-grass);
+    letter-spacing: 0.6px; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .citations ul { list-style: none; }
+  .citations li {
+    font-size: 12.5px; color: var(--ink-72);
+    padding: 4px 0;
+  }
+  .citations li b { color: var(--ink); font-weight: 700; }
+
+  /* action bar */
+  .action-rail {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg, transparent 0%, var(--bg-canvas) 30%);
+    padding: 32px 0 24px;
+    margin-top: auto;
+  }
+  .action-card {
+    background: var(--bg-card);
+    border: 1px solid var(--ink-09);
+    border-radius: var(--r-lg);
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    box-shadow: var(--shadow-pop);
+  }
+  .action-card .row {
+    display: flex; gap: 8px; align-items: stretch;
+  }
+  .action-card textarea {
+    flex: 1;
+    resize: none;
+    border: 1px solid var(--ink-09);
+    border-radius: var(--r-sm);
+    padding: 10px 12px;
+    font-family: inherit; font-size: 13.5px; line-height: 1.5;
+    color: var(--ink);
+    background: var(--bg-canvas);
+    min-height: 64px; max-height: 200px;
+  }
+  .action-card textarea:focus { outline: none; border-color: var(--primary); background: var(--bg-card); }
+  .action-card textarea::placeholder { color: var(--ink-60); }
+
+  .action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .action-btn {
+    height: 44px; padding: 0 14px;
+    border-radius: 10px;
+    font-family: inherit; font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    transition: all 150ms var(--ease);
+  }
+  .action-btn .k {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 1px 5px; border-radius: 4px;
+    background: rgba(255,255,255,0.2);
+  }
+  .action-btn.ok {
+    background: var(--success); color: white;
+  }
+  .action-btn.ok:hover { background: #347d24; }
+  .action-btn.comment {
+    background: var(--primary); color: white;
+  }
+  .action-btn.comment:hover { background: var(--primary-hover); }
+  .action-btn.wrong {
+    background: var(--bg-card); color: var(--danger);
+    border-color: var(--danger);
+  }
+  .action-btn.wrong:hover { background: rgba(230, 40, 41, 0.06); }
+
+  .action-meta {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--ink-60);
+  }
+  .action-meta .left { display: flex; gap: 12px; align-items: center; }
+  .action-meta .quick {
+    color: var(--primary); font-weight: 600; cursor: pointer;
+    background: none; border: none; font-family: inherit; font-size: 11px;
+  }
+  .action-meta .quick:hover { text-decoration: underline; }
+
+  /* katex tweaks */
+  .katex { font-size: 1em; }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<div class="shell">
+
+  <aside class="sidebar">
+    <button class="nav-btn" title="홈">
+      <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
+    <button class="nav-btn active" title="설명 AI 큐">
+      <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="badge">5</span>
+    </button>
+    <button class="nav-btn" title="학생 관리">
+      <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </button>
+    <div class="mark">와</div>
+  </aside>
+
+  <header class="topbar">
+    <div class="title">
+      <h1>설명 AI<span class="role"> · 강사 큐</span></h1>
+      <span class="date">2026-05-15 (금) · 오후 2:48</span>
+    </div>
+    <div class="summary">
+      <div>오늘 질문<span class="num">12</span></div>
+      <div>미코멘트<span class="num">5</span></div>
+      <div>경고<span class="num warn">2</span></div>
+    </div>
+  </header>
+
+  <nav class="filters">
+    <button class="chip on">전체 <span class="ct">12</span></button>
+    <button class="chip">중1–중3 <span class="ct">3</span></button>
+    <button class="chip">고1 <span class="ct">2</span></button>
+    <button class="chip">고2 <span class="ct">4</span></button>
+    <button class="chip">고3·N <span class="ct">3</span></button>
+    <span class="sep"></span>
+    <button class="chip">시간순</button>
+    <button class="chip on">미코멘트 먼저</button>
+    <span class="sep"></span>
+    <button class="toggle"><span class="dot"></span> 검토 필요만 (2)</button>
+  </nav>
+
+  <header class="detail-bar">
+    <div class="breadcrumb">
+      <b>이루다</b>· 확통 III-1 표본분포 ·<b style="color: var(--ink-60); font-weight: 500;">2026-05-15 14:02 시작</b>
+    </div>
+    <button class="icon-btn" title="대화 전체 보기">
+      <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+    </button>
+    <button class="icon-btn" title="다음 항목으로 (j)">
+      <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  </header>
+
+  <!-- ─── list ─── -->
+  <section class="list" id="main">
+
+    <div class="day-header">오늘 — 5월 15일 (금)</div>
+
+    <div class="slip selected" role="button" tabindex="0" style="--c: var(--type-grass); --c-surface: var(--type-grass-surface);" data-id="iruda">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">이루다</span>
+          <span class="time">14:02</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">증명</span>
+          확통 III-1 · 표본분포
+        </div>
+        <p class="preview">표본평균의 분산이 왜 σ²/n 인가요? 단원지에 그냥 그렇다고만…</p>
+        <div class="row3">
+          <span class="conf high"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 높음</span>
+          <span class="badge needs">미코멘트</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="slip" role="button" tabindex="0" style="--c: var(--type-dragon); --c-surface: var(--type-dragon-surface);">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">박동진</span>
+          <span class="time">13:45</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">도전</span>
+          수II · 함수의 극한 직관
+        </div>
+        <p class="preview">lim sin x / x = 1 이거 왜 그런지 직관으로 설명해주세요. ε–δ 말고 좀…</p>
+        <div class="row3">
+          <span class="conf medium"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 보통</span>
+          <span class="badge needs">검토 필요</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="slip" role="button" tabindex="0" style="--c: var(--type-psychic); --c-surface: var(--type-psychic-surface);">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">오하람</span>
+          <span class="time">11:20</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">논술</span>
+          서울대 논술 · 조건부확률
+        </div>
+        <p class="preview">베이즈 정리 답안에서 분모를 풀어쓰는 게 맞나요, 아니면 P(B)로 두는 게 맞나요?</p>
+        <div class="row3">
+          <span class="conf high"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 높음</span>
+          <span class="badge ok">OK 처리됨</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="slip" role="button" tabindex="0" style="--c: var(--type-grass); --c-surface: var(--type-grass-surface);">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">김시우</span>
+          <span class="time">10:15</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">증명</span>
+          중2 기하 · 이등변삼각형
+        </div>
+        <p class="preview">왜 두 밑각이 같아요? 그냥 보기에 같은 거 아닌가요…</p>
+        <div class="row3">
+          <span class="conf high"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 높음</span>
+          <span class="badge needs">미코멘트</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="slip" role="button" tabindex="0" style="--c: var(--type-electric); --c-surface: var(--type-electric-surface);">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">김성준</span>
+          <span class="time">09:50</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">자체교재</span>
+          중3 · 곱셈공식
+        </div>
+        <p class="preview">(a+b)² 풀 때 2ab 빼먹는 게 자꾸 나와요. 외우는 거 외에 방법…</p>
+        <div class="row3">
+          <span class="conf low"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 낮음</span>
+          <span class="badge needs">검토 필요</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-header">어제 — 5월 14일 (목)</div>
+
+    <div class="slip" role="button" tabindex="0" style="--c: var(--type-water); --c-surface: var(--type-water-surface);">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">김은지</span>
+          <span class="time">어제 19:42</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">대수</span>
+          동아 대수 · 거듭제곱 성질
+        </div>
+        <p class="preview">a^m × a^n 인지 a^(m+n) 인지 헷갈려요</p>
+        <div class="row3">
+          <span class="conf high"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 높음</span>
+          <span class="badge ok">OK 처리됨</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="slip" role="button" tabindex="0" style="--c: var(--type-electric); --c-surface: var(--type-electric-surface);">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">윤지후</span>
+          <span class="time">어제 17:08</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">자체교재</span>
+          중3 · 분수 통분
+        </div>
+        <p class="preview">분모가 다른 분수 더할 때 분모만 더하면 안 되는 이유…</p>
+        <div class="row3">
+          <span class="conf medium"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 보통</span>
+          <span class="badge wrong">AI 답 틀림</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="slip" role="button" tabindex="0" style="--c: var(--type-ground); --c-surface: var(--type-ground-surface);">
+      <div class="stripe"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">하진서</span>
+          <span class="time">어제 16:30</span>
+        </div>
+        <div class="row2">
+          <span class="subj-tag">시험지</span>
+          베이직쎈 · 절댓값 부등식
+        </div>
+        <p class="preview">|x-3| < 5 풀이에서 양변에 절댓값 벗기는 순서가…</p>
+        <div class="row3">
+          <span class="conf high"><span class="bar"><i></i><i></i><i></i></span> AI 확신도 높음</span>
+          <span class="badge commented">코멘트 1</span>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── detail ─── -->
+  <section class="detail">
+    <div class="detail-inner">
+
+      <!-- 학생 질문 -->
+      <article class="question-card" style="--c: var(--type-grass);">
+        <div class="avatar">루</div>
+        <div>
+          <h2>이루다의 질문 <small>· 14:02 · 단계 3/4 진행</small></h2>
+          <p class="question-text">표본평균의 분산이 왜 $\sigma^2/n$ 인지 모르겠어요. 단원지 §2.3 보면 그냥 그렇다고 나오는데… 외워야 되나요?</p>
+          <div class="attachments">
+            <span class="att"><span aria-hidden="true">📷</span> problem-2026-05-15.jpg</span>
+            <span class="att"><span aria-hidden="true">🧩</span> 컨텍스트 자동주입: _meta.json (약점: 그래프 누락)</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- AI 답변 요약 -->
+      <section class="ai-section">
+        <div class="head">
+          <h3>AI 답변</h3>
+          <span class="conf-text">3단계 응답 · Sonnet 4.6 · 1.8초 · 4,210토큰</span>
+          <span class="spacer"></span>
+          <a href="./student-chat.html" class="full-link">학생 화면에서 보기 →</a>
+        </div>
+
+        <div class="ai-step">
+          <span class="n">1</span>
+          <div>
+            <h4>표본평균은 그냥 평균이 아니라 '확률변수'다</h4>
+            <p>매번 표본을 뽑을 때마다 평균값이 바뀌므로, 표본평균 자체가 변수임을 강조. 독립·동일분포 가정 명시.</p>
+            <div class="formula">$\bar X = \tfrac{1}{n}(X_1 + \cdots + X_n)$, $X_i$ 는 i.i.d.</div>
+          </div>
+        </div>
+        <div class="ai-step">
+          <span class="n">2</span>
+          <div>
+            <h4>분산의 두 성질을 먼저 꺼낸다</h4>
+            <p>$V(aX) = a^2 V(X)$ 와 독립일 때 $V(X+Y) = V(X) + V(Y)$ — 다음 단계의 부품으로 미리 깔아둠.</p>
+          </div>
+        </div>
+        <div class="ai-step">
+          <span class="n">3</span>
+          <div>
+            <h4>$V(\bar X)$ 를 직접 풀어 $\sigma^2/n$ 도출</h4>
+            <p>$V(\bar X) = \tfrac{1}{n^2} \cdot n\sigma^2 = \tfrac{\sigma^2}{n}$. 함께 첨부한 그림으로 $n$ 증가 시 분산 감소를 시각화.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 인용 -->
+      <div class="citations">
+        <div class="label">AI가 인용한 학원 자료</div>
+        <ul>
+          <li><span aria-hidden="true">📘</span> <b>확통 III-1 단원지</b> · §2.1 p.11 (정의 11–14)</li>
+          <li><span aria-hidden="true">📘</span> <b>확통 II-3 단원지</b> · §1.4 p.7 (분산 가법성)</li>
+          <li><span aria-hidden="true">📝</span> <b>이루다 학생 메모</b> · _meta.json · "근의 위치·경계값에서 그림 안 그리는 습관"</li>
+        </ul>
+      </div>
+
+      <!-- 코멘트 + 액션 -->
+      <div class="action-rail">
+        <div class="action-card">
+          <div class="row">
+            <textarea aria-label="학생에게 보낼 코멘트" id="comment"
+              placeholder="이 학생에게 보충 코멘트… (보내면 학생 채팅에 강사 말풍선으로 추가됨)"></textarea>
+          </div>
+          <div class="action-meta">
+            <div class="left">
+              <button class="quick" onclick="quickFill('루다, 4단계 빈칸 답해서 다시 보내봐. 그게 진짜 마무리야.')">+ 마무리 독려</button>
+              <button class="quick" onclick="quickFill('AI 그림 좋네. 비슷한 모양으로 직접 한 번 그려서 가져와봐.')">+ 직접 그려오기</button>
+              <button class="quick" onclick="quickFill('단원지 §2.3 다시 정독 후 4단계 답하기.')">+ 단원지 복습</button>
+            </div>
+            <span>한 줄 OK면 코멘트 비워두고 ✓</span>
+          </div>
+          <div class="action-buttons">
+            <button class="action-btn ok" onclick="markOK()">✓ OK 처리 <span class="k">k</span></button>
+            <button class="action-btn comment" onclick="sendComment()">✏ 코멘트 보내기 <span class="k">⌘↵</span></button>
+            <button class="action-btn wrong" onclick="markWrong()">⚠ AI 답 틀림 <span class="k" style="background: rgba(230,40,41,0.1); color: var(--danger);">x</span></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$',  right: '$',  display: false}
+          ],
+          throwOnError: false
+        });"></script>
+
+<script>
+  // 슬립 선택
+  document.querySelectorAll('.slip').forEach(s => {
+    const activate = () => {
+      document.querySelectorAll('.slip.selected').forEach(x => x.classList.remove('selected'));
+      s.classList.add('selected');
+      // 목업이라 detail 내용은 그대로 두되, breadcrumb만 갱신
+      const name = s.querySelector('.name').textContent;
+      const subj = s.querySelector('.row2').textContent.trim().replace(/\s+/g, ' ');
+      const time = s.querySelector('.time').textContent;
+      document.querySelector('.breadcrumb').innerHTML =
+        `<b>${name}</b>· ${subj} · <b style="color: var(--ink-60); font-weight: 500;">${time} 시작</b>`;
+    };
+    s.addEventListener('click', activate);
+    s.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activate();
+      }
+    });
+  });
+
+  // 키보드 단축키
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'k') markOK();
+    if (e.key === 'x') markWrong();
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') sendComment();
+    if (e.key === 'j') {
+      const cur = document.querySelector('.slip.selected');
+      const next = cur?.nextElementSibling;
+      if (next?.classList.contains('slip')) next.click();
+    }
+  });
+
+  function quickFill(text) {
+    const ta = document.getElementById('comment');
+    ta.value = ta.value ? ta.value + '\n' + text : text;
+    ta.focus();
+  }
+  function markOK()      { flash('✓ OK 처리됨', 'var(--success)'); }
+  function markWrong()   { flash('⚠ AI 답 틀림으로 분류됨 — 학생에게 경고 전송', 'var(--danger)'); }
+  function sendComment() {
+    const v = document.getElementById('comment').value.trim();
+    if (!v) { flash('코멘트 비어있음', 'var(--ink-60)'); return; }
+    flash('✏ 코멘트 보냄 — 학생 채팅에 추가됨', 'var(--primary)');
+    document.getElementById('comment').value = '';
+  }
+  function flash(msg, color) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = `
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+      background: ${color}; color: white;
+      padding: 10px 18px; border-radius: 10px;
+      font-family: 'Pretendard Variable', sans-serif; font-weight: 700; font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999;
+      animation: rise 220ms cubic-bezier(.25,1,.5,1);
+    `;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = 0; t.style.transition = 'opacity 250ms'; }, 1800);
+    setTimeout(() => t.remove(), 2100);
+  }
+  const sty = document.createElement('style');
+  sty.textContent = '@keyframes rise { from { transform: translate(-50%, 12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }';
+  document.head.appendChild(sty);
+</script>
+</body>
+</html>

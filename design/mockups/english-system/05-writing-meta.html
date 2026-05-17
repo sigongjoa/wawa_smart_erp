@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>영어 워크북 · Pass 3 메타 학습</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+.wmp-root{
+  --wmp-paper:#f6f4ee; --wmp-paper-2:#ebe7dc; --wmp-stage:#fffdf5;
+  --wmp-ink:#1a1e2e; --wmp-ink-soft:#5e6478; --wmp-rule:#d8d3c4;
+  --wmp-mark:#d97706;
+  --wmp-prefix:#b45309; --wmp-prefix-tile:#fde7b8;
+  --wmp-root:#2d3a8c; --wmp-root-tile:#d8dcf2;
+  --wmp-suffix:#006e5a; --wmp-suffix-tile:#c4eee2;
+  --wmp-hook:#d97706; --wmp-claim:#2d3a8c; --wmp-evidence:#006e5a;
+  --wmp-counter:#b91c1c; --wmp-conclusion:#7c3aed;
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 60% 0%, var(--wmp-stage), transparent 60%),
+    var(--wmp-paper);
+  color:var(--wmp-ink); font-family:'Pretendard Variable',system-ui,sans-serif;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.wmp-root *,.wmp-root *::before,.wmp-root *::after{box-sizing:border-box;}
+.wmp-root::before{
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background-image:radial-gradient(circle at 1px 1px, rgba(26,30,46,0.02) 1px, transparent 0);
+  background-size:3px 3px;
+}
+.wmp-topbar{
+  position:sticky; top:0; z-index:5;
+  background:rgba(246,244,238,0.92); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--wmp-rule);
+  padding:12px clamp(16px,4vw,28px);
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--wmp-ink-soft); font-weight:600;
+}
+.wmp-topbar .pass b{color:var(--wmp-mark); font-weight:700;}
+.wmp-topbar .pass a{color:inherit; text-decoration:none; margin-right:8px;}
+.wmp-topbar .score{
+  font-family:'Fraunces',serif; font-style:italic;
+  font-variation-settings:'opsz' 16,'wght' 600;
+  text-transform:none; letter-spacing:-0.005em;
+  font-size:14px; color:var(--wmp-ink);
+}
+.wmp-inner{
+  max-width:880px; margin:0 auto;
+  padding:32px clamp(16px,4vw,28px) 120px;
+  display:flex; flex-direction:column; gap:44px;
+}
+.wmp-hero{
+  display:flex; flex-direction:column; gap:8px;
+  padding-bottom:24px; border-bottom:1px solid var(--wmp-rule);
+}
+.wmp-hero .eyebrow{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--wmp-mark); font-weight:700;
+}
+.wmp-hero h1{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 96,'wght' 500;
+  font-size:clamp(34px,6vw,56px); line-height:1.05;
+  letter-spacing:-0.025em; margin:0;
+}
+.wmp-hero h1 em{
+  font-style:italic; font-variation-settings:'opsz' 96,'wght' 400;
+  color:var(--wmp-mark);
+}
+.wmp-hero .sub{ font-size:15px; line-height:1.65; color:var(--wmp-ink-soft); max-width:60ch;}
+.wmp-section{display:flex; flex-direction:column; gap:18px;}
+.wmp-section-head{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:16px; padding-bottom:14px; border-bottom:1px dashed var(--wmp-rule);
+}
+.wmp-section-head .head-row{display:flex; align-items:flex-start; gap:0;}
+.wmp-section-head .no{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 144,'wght' 300;
+  font-size:44px; line-height:0.8;
+  color:var(--wmp-mark); letter-spacing:-0.03em; margin-right:16px;
+}
+.wmp-section-head .text{display:flex; flex-direction:column; gap:4px; flex:1;}
+.wmp-section-head h2{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 48,'wght' 500;
+  font-size:clamp(22px,3.5vw,28px); letter-spacing:-0.015em; margin:0;
+}
+.wmp-section-head h2 em{
+  font-style:italic; font-variation-settings:'opsz' 48,'wght' 400;
+  color:var(--wmp-root);
+}
+.wmp-section-head .why{ font-size:13px; color:var(--wmp-ink-soft); line-height:1.55; max-width:56ch;}
+.wmp-section-head .progress{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.12em; color:var(--wmp-ink-soft); white-space:nowrap;
+}
+.wmp-thesis-choices{display:flex; flex-direction:column; gap:10px;}
+.wmp-thesis-choice{
+  display:grid; grid-template-columns:auto minmax(0,1fr); gap:14px;
+  padding:16px 18px; background:#fff;
+  border:1.5px solid var(--wmp-rule); border-radius:12px;
+  cursor:pointer; transition:all 200ms cubic-bezier(0.16,1,0.3,1);
+  box-shadow:0 1px 0 rgba(26,30,46,0.04);
+  text-align:left; font-family:inherit;
+}
+.wmp-thesis-choice .letter{
+  width:28px; height:28px; border-radius:8px;
+  background:var(--wmp-paper-2); color:var(--wmp-ink-soft);
+  font-family:'Fraunces',Georgia,serif; font-style:italic;
+  font-variation-settings:'opsz' 18,'wght' 600;
+  font-size:15px; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.wmp-thesis-choice .body{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 18,'wght' 500;
+  font-size:17px; line-height:1.45; color:var(--wmp-ink);
+  letter-spacing:-0.008em;
+}
+.wmp-thesis-choice .verdict{
+  display:none; grid-column:2 / 3; margin-top:8px;
+  font-size:13px; font-family:'Pretendard Variable',sans-serif;
+  color:var(--wmp-ink-soft); line-height:1.6;
+  padding:10px 12px; border-radius:8px;
+}
+.wmp-thesis-choice:hover{ border-color:var(--wmp-root); transform:translateY(-1px); box-shadow:0 12px 24px -14px rgba(45,58,140,0.24);}
+.wmp-thesis-choice.selected{ border-color:var(--wmp-root); box-shadow:0 0 0 3px rgba(45,58,140,0.1);}
+.wmp-thesis-choice.selected .letter{ background:var(--wmp-root); color:#fff;}
+.wmp-thesis-choice.correct{
+  border-color:var(--wmp-suffix);
+  background:linear-gradient(180deg, var(--wmp-suffix-tile), #fff 80%);
+}
+.wmp-thesis-choice.correct .letter{ background:var(--wmp-suffix); color:#fff;}
+.wmp-thesis-choice.correct .verdict{ display:block; background:rgba(0,110,90,0.08); border-left:3px solid var(--wmp-suffix);}
+.wmp-thesis-choice.wrong{ border-color:var(--wmp-counter); opacity:0.85;}
+.wmp-thesis-choice.wrong .verdict{ display:block; background:rgba(185,28,28,0.06); border-left:3px solid var(--wmp-counter);}
+.wmp-vocab-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px;
+}
+.wmp-vocab{
+  background:#fff; border:1px solid var(--wmp-rule); border-radius:12px;
+  padding:14px; display:flex; flex-direction:column; gap:8px;
+  transition:all 200ms cubic-bezier(0.16,1,0.3,1);
+}
+.wmp-vocab:hover{ border-color:var(--wmp-root); transform:translateY(-2px); box-shadow:0 14px 28px -16px rgba(45,58,140,0.24);}
+.wmp-vocab .word{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 32,'wght' 600;
+  font-size:22px; line-height:1; letter-spacing:-0.015em;
+  color:var(--wmp-ink); margin-bottom:2px;
+}
+.wmp-vocab .ipa{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  color:var(--wmp-ink-soft); margin-bottom:4px; letter-spacing:0.02em;
+}
+.wmp-vocab .ko{ font-size:13px; font-weight:600; color:var(--wmp-ink);}
+.wmp-vocab .ko::before{
+  content:'→ '; color:var(--wmp-mark);
+  font-family:'JetBrains Mono',monospace; font-weight:500; margin-right:2px;
+}
+.wmp-vocab .breakdown{
+  display:flex; flex-wrap:wrap; gap:3px; align-items:center;
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 14,'wght' 600;
+  font-size:13px; margin-top:4px;
+}
+.wmp-vocab .m{ padding:2px 7px; border-radius:5px; line-height:1.4;}
+.wmp-vocab .m.prefix{ background:var(--wmp-prefix-tile); color:var(--wmp-prefix);}
+.wmp-vocab .m.root{ background:var(--wmp-root-tile); color:var(--wmp-root);}
+.wmp-vocab .m.suffix{ background:var(--wmp-suffix-tile); color:var(--wmp-suffix);}
+.wmp-vocab .plus{ color:var(--wmp-rule);}
+.wmp-vocab .add{
+  margin-top:6px; padding-top:10px; border-top:1px dashed var(--wmp-rule);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.wmp-vocab .add small{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  color:var(--wmp-ink-soft); letter-spacing:0.04em;
+}
+.wmp-vocab .add button{
+  background:none; border:none; font-family:inherit;
+  font-size:12px; font-weight:700; color:var(--wmp-root); cursor:pointer; padding:0;
+}
+.wmp-vocab.added .add button{ color:var(--wmp-suffix);}
+.wmp-vocab.added .add button::before{ content:'✓ ';}
+.wmp-structure{display:flex; flex-direction:column; gap:10px;}
+.wmp-para{
+  display:grid; grid-template-columns:56px minmax(0,1fr) 180px;
+  gap:16px; padding:16px 18px;
+  background:#fff; border:1px solid var(--wmp-rule); border-radius:12px;
+  align-items:center;
+}
+@media (max-width:640px){
+  .wmp-para{ grid-template-columns:40px minmax(0,1fr);
+    grid-template-areas: "num excerpt" "drop drop";
+  }
+  .wmp-para .num{ grid-area:num;}
+  .wmp-para .text{ grid-area:excerpt;}
+  .wmp-para .drop{ grid-area:drop;}
+}
+.wmp-para .num{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 96,'wght' 300;
+  font-size:44px; line-height:0.8;
+  color:var(--wmp-rule); letter-spacing:-0.03em; text-align:center;
+}
+.wmp-para .text{
+  font-family:'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 16,'wght' 400;
+  font-size:14px; line-height:1.55;
+  color:var(--wmp-ink-soft); font-style:italic;
+}
+.wmp-para .text b{
+  font-style:normal; color:var(--wmp-ink);
+  font-variation-settings:'opsz' 16,'wght' 500;
+}
+.wmp-para .drop{
+  display:flex; align-items:center; justify-content:center;
+  min-height:44px; border-radius:10px;
+  background:var(--wmp-paper-2); border:2px dashed var(--wmp-rule);
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.16em; text-transform:uppercase;
+  color:var(--wmp-ink-soft); font-weight:600; cursor:pointer;
+}
+.wmp-para .drop.set{ border-style:solid; border-color:transparent;}
+.wmp-para .drop.set.hook{ background:rgba(217,119,6,0.14); color:var(--wmp-hook);}
+.wmp-para .drop.set.claim{ background:rgba(45,58,140,0.12); color:var(--wmp-claim);}
+.wmp-para .drop.set.evidence{ background:rgba(0,110,90,0.13); color:var(--wmp-evidence);}
+.wmp-para .drop.set.counter{ background:rgba(185,28,28,0.1); color:var(--wmp-counter);}
+.wmp-para .drop.set.conclusion{ background:rgba(124,58,237,0.1); color:var(--wmp-conclusion);}
+.wmp-label-tray{
+  margin-top:6px; padding:12px 14px;
+  background:var(--wmp-paper-2); border:1px solid var(--wmp-rule);
+  border-radius:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+}
+.wmp-label-tray .hint{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--wmp-ink-soft); font-weight:600; margin-right:6px;
+}
+.wmp-label{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
+  padding:7px 12px; border-radius:999px; cursor:grab;
+  border:1.5px solid; background:transparent;
+}
+.wmp-label:active{ cursor:grabbing; transform:scale(0.96);}
+.wmp-label.hook{ background:rgba(217,119,6,0.14); color:var(--wmp-hook); border-color:rgba(217,119,6,0.3);}
+.wmp-label.claim{ background:rgba(45,58,140,0.12); color:var(--wmp-claim); border-color:rgba(45,58,140,0.3);}
+.wmp-label.evidence{ background:rgba(0,110,90,0.13); color:var(--wmp-evidence); border-color:rgba(0,110,90,0.3);}
+.wmp-label.counter{ background:rgba(185,28,28,0.1); color:var(--wmp-counter); border-color:rgba(185,28,28,0.3);}
+.wmp-label.conclusion{ background:rgba(124,58,237,0.1); color:var(--wmp-conclusion); border-color:rgba(124,58,237,0.3);}
+.wmp-dock{
+  position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+  display:flex; gap:8px; padding:10px;
+  background:rgba(255,255,255,0.95); backdrop-filter:blur(12px);
+  border:1px solid var(--wmp-rule); border-radius:999px;
+  box-shadow:0 24px 48px -24px rgba(26,30,46,0.24); z-index:50;
+}
+.wmp-dock-btn{
+  border:none; background:transparent; color:var(--wmp-ink-soft);
+  font-family:inherit; font-weight:600; font-size:13px;
+  padding:10px 18px; border-radius:999px; cursor:pointer;
+  letter-spacing:-0.005em; text-decoration:none;
+}
+.wmp-dock-btn:hover{ background:var(--wmp-paper); color:var(--wmp-ink);}
+.wmp-dock-btn.primary{
+  background:var(--wmp-mark); color:#fff;
+  position:relative; padding-right:28px;
+}
+.wmp-dock-btn.primary:hover{ background:#b35e04;}
+.wmp-dock-btn.primary::after{
+  content:'↓'; position:absolute; right:14px; top:50%;
+  transform:translateY(-50%); font-family:'Fraunces',serif;
+}
+@keyframes wmp-fade-up{from{opacity:0; transform:translateY(8px);}to{opacity:1; transform:translateY(0);}}
+.wmp-hero,.wmp-section,.wmp-dock{ animation: wmp-fade-up 500ms cubic-bezier(0.16,1,0.3,1) both;}
+.wmp-hero{animation-delay:80ms;}
+.wmp-section:nth-of-type(1){animation-delay:180ms;}
+.wmp-section:nth-of-type(2){animation-delay:280ms;}
+.wmp-section:nth-of-type(3){animation-delay:380ms;}
+.wmp-section:nth-of-type(4){animation-delay:480ms;}
+.wmp-dock{animation-delay:580ms;}
+body{margin:0;}
+</style>
+</head>
+<body>
+<div class="wmp-root">
+  <div class="wmp-topbar">
+    <span class="pass"><a href="./index.html">← 목록</a> · Pass <b>3</b> / 3 · Meta Practice</span>
+    <span class="score">자기 글로 배우기 · 진행도 42%</span>
+  </div>
+
+  <div class="wmp-inner">
+    <header class="wmp-hero">
+      <span class="eyebrow">From your own essay · Climate change</span>
+      <h1>네 글이 곧 <em>너의 교재</em>.</h1>
+      <p class="sub">방금 다듬은 에세이를 토대로 세 가지 메타 학습을 해볼 거야 — 글의 요지를 다시 확인하고, 그 안에 어떤 어휘와 어근이 살고 있는지 살펴보고, 문단들이 어떻게 논리적으로 자리 잡았는지 라벨링해보자.</p>
+    </header>
+
+    <section class="wmp-section">
+      <div class="wmp-section-head">
+        <span class="head-row">
+          <span class="no">01</span>
+          <span class="text">
+            <h2>네 글의 <em>진짜 요지</em>는 어느 것?</h2>
+            <span class="why">글을 끝까지 쓰고도 thesis를 한 줄로 못 짚는 경우가 많다. 본문의 흐름과 정렬되는 단 하나를 골라보자.</span>
+          </span>
+        </span>
+        <span class="progress" id="thesis-prog">1 / 1 · 응답됨</span>
+      </div>
+      <div class="wmp-thesis-choices" id="theses">
+        <button class="wmp-thesis-choice" data-letter="a">
+          <span class="letter">a</span>
+          <span class="body">정부가 환경 문제 해결을 주도해야 한다.</span>
+          <span class="verdict">× 본문의 도입에선 정부 역할을 인정하지만, 글 전체는 "individuals also have important roles"를 강조한다. 이 선택지는 *반대 입장*에 가깝다.</span>
+        </button>
+        <button class="wmp-thesis-choice selected correct" data-letter="b" data-correct="true">
+          <span class="letter">b</span>
+          <span class="body">개인의 작은 행동이 환경 보호를 만든다.</span>
+          <span class="verdict">✓ 정확. thesis statement "individuals also have important roles" + 세 가지 근거(에너지·소비·교육) + 결론 "small action can make a difference"의 흐름이 일관된다.</span>
+        </button>
+        <button class="wmp-thesis-choice" data-letter="c">
+          <span class="letter">c</span>
+          <span class="body">교육이 환경 문제 해결의 가장 중요한 열쇠다.</span>
+          <span class="verdict">× 교육은 *세 가지 근거 중 하나*일 뿐이다. 한 가지를 thesis로 올리면 다른 두 근거(에너지·소비)가 떠 있게 된다.</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="wmp-section">
+      <div class="wmp-section-head">
+        <span class="head-row">
+          <span class="no">02</span>
+          <span class="text">
+            <h2>글 속의 <em>핵심 어휘 일곱 개</em></h2>
+            <span class="why">AI가 추출한 어휘는 어근까지 분해되어 있어. "추가" 버튼을 누르면 내 단어장에 들어가고 각 어근의 학습 상태와 자동 연결돼.</span>
+          </span>
+        </span>
+        <span class="progress" id="vocab-prog">2 / 7 추가</span>
+      </div>
+      <div class="wmp-vocab-grid" id="vocab-grid">
+        <article class="wmp-vocab added" data-word="individual">
+          <div class="word">individual</div>
+          <div class="ipa">/ˌɪn.dɪˈvɪdʒ.u.əl/</div>
+          <div class="ko">개인의 · 한 사람의</div>
+          <div class="breakdown"><span class="m prefix">in-</span><span class="plus">·</span><span class="m root">divid</span><span class="plus">·</span><span class="m suffix">-ual</span></div>
+          <div class="add"><small>tier 2 · 신규</small><button type="button">내 단어장</button></div>
+        </article>
+        <article class="wmp-vocab added" data-word="consumption">
+          <div class="word">consumption</div>
+          <div class="ipa">/kənˈsʌmp.ʃən/</div>
+          <div class="ko">소비 · 섭취</div>
+          <div class="breakdown"><span class="m prefix">con-</span><span class="plus">·</span><span class="m root">sumpt</span><span class="plus">·</span><span class="m suffix">-ion</span></div>
+          <div class="add"><small>tier 3 · 신규</small><button type="button">내 단어장</button></div>
+        </article>
+        <article class="wmp-vocab" data-word="excessive">
+          <div class="word">excessive</div>
+          <div class="ipa">/ɪkˈses.ɪv/</div>
+          <div class="ko">지나친 · 과도한</div>
+          <div class="breakdown"><span class="m prefix">ex-</span><span class="plus">·</span><span class="m root">cess</span><span class="plus">·</span><span class="m suffix">-ive</span></div>
+          <div class="add"><small>tier 2 · 신규</small><button type="button">내 단어장에 추가</button></div>
+        </article>
+        <article class="wmp-vocab" data-word="responsible">
+          <div class="word">responsible</div>
+          <div class="ipa">/rɪˈspɒn.sə.bəl/</div>
+          <div class="ko">책임 있는</div>
+          <div class="breakdown"><span class="m prefix">re-</span><span class="plus">·</span><span class="m root">spons</span><span class="plus">·</span><span class="m suffix">-ible</span></div>
+          <div class="add"><small>tier 2 · 신규</small><button type="button">내 단어장에 추가</button></div>
+        </article>
+        <article class="wmp-vocab" data-word="essential">
+          <div class="word">essential</div>
+          <div class="ipa">/ɪˈsen.ʃəl/</div>
+          <div class="ko">필수적인 · 본질적인</div>
+          <div class="breakdown"><span class="m root">ess</span><span class="plus">·</span><span class="m suffix">-ential</span></div>
+          <div class="add"><small>tier 3 · 신규</small><button type="button">내 단어장에 추가</button></div>
+        </article>
+        <article class="wmp-vocab" data-word="pollution">
+          <div class="word">pollution</div>
+          <div class="ipa">/pəˈluː.ʃən/</div>
+          <div class="ko">오염 · 공해</div>
+          <div class="breakdown"><span class="m root">pollut</span><span class="plus">·</span><span class="m suffix">-ion</span></div>
+          <div class="add"><small>tier 2 · 신규</small><button type="button">내 단어장에 추가</button></div>
+        </article>
+        <article class="wmp-vocab" data-word="generation">
+          <div class="word">generation</div>
+          <div class="ipa">/ˌdʒen.əˈreɪ.ʃən/</div>
+          <div class="ko">세대 · 발생</div>
+          <div class="breakdown"><span class="m root">gener</span><span class="plus">·</span><span class="m suffix">-ation</span></div>
+          <div class="add"><small>tier 2 · 신규</small><button type="button">내 단어장에 추가</button></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="wmp-section">
+      <div class="wmp-section-head">
+        <span class="head-row">
+          <span class="no">03</span>
+          <span class="text">
+            <h2>각 문단의 <em>역할</em>은 무엇이었지?</h2>
+            <span class="why">좋은 글은 문단마다 분명한 *역할*을 갖는다. 아래 라벨을 각 문단으로 끌어 놓고, 흐름이 자연스러운지 확인해보자.</span>
+          </span>
+        </span>
+        <span class="progress" id="struct-prog">2 / 5</span>
+      </div>
+      <div class="wmp-structure" id="structure">
+        <div class="wmp-para" data-num="01" data-answer="claim">
+          <span class="num">01</span>
+          <span class="text"><b>P1.</b> "Climate change is one of the most serious problems… individuals also have important roles."</span>
+          <span class="drop set claim" data-label="claim">CLAIM / 주장</span>
+        </div>
+        <div class="wmp-para" data-num="02" data-answer="evidence">
+          <span class="num">02</span>
+          <span class="text"><b>P2.</b> "First, we can reduce our energy use… turning off the lights… using public transportation…"</span>
+          <span class="drop set evidence" data-label="evidence">EVIDENCE / 근거</span>
+        </div>
+        <div class="wmp-para" data-num="03" data-answer="evidence">
+          <span class="num">03</span>
+          <span class="text"><b>P3.</b> "Second, we should change our consumption habit… Buying eco-friendly products…"</span>
+          <span class="drop">라벨 놓기</span>
+        </div>
+        <div class="wmp-para" data-num="04" data-answer="evidence">
+          <span class="num">04</span>
+          <span class="text"><b>P4.</b> "Finally, education is essential. If we teach children about environment from a young age…"</span>
+          <span class="drop">라벨 놓기</span>
+        </div>
+        <div class="wmp-para" data-num="05" data-answer="conclusion">
+          <span class="num">05</span>
+          <span class="text"><b>P5.</b> "In conclusion, although the government has the biggest power, every individual's small action can make a difference."</span>
+          <span class="drop">라벨 놓기</span>
+        </div>
+      </div>
+      <div class="wmp-label-tray">
+        <span class="hint">Drag labels →</span>
+        <span class="wmp-label hook" data-key="hook">HOOK / 도입</span>
+        <span class="wmp-label claim" data-key="claim">CLAIM / 주장</span>
+        <span class="wmp-label evidence" data-key="evidence">EVIDENCE / 근거</span>
+        <span class="wmp-label counter" data-key="counter">COUNTER / 반박</span>
+        <span class="wmp-label conclusion" data-key="conclusion">CONCLUSION</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="wmp-dock">
+    <a class="wmp-dock-btn" href="./04-writing-review.html">건너뛰기</a>
+    <button class="wmp-dock-btn" type="button">다른 글 쓰기</button>
+    <button class="wmp-dock-btn primary" type="button">워크북 PDF 저장</button>
+  </div>
+</div>
+<script>
+  // Thesis: select one
+  const theses = document.querySelectorAll('.wmp-thesis-choice');
+  theses.forEach(t => {
+    t.addEventListener('click', () => {
+      theses.forEach(x => {
+        x.classList.remove('selected', 'correct', 'wrong');
+      });
+      t.classList.add('selected');
+      if (t.dataset.correct === 'true') t.classList.add('correct');
+      else t.classList.add('wrong');
+    });
+  });
+
+  // Vocab: toggle add
+  document.querySelectorAll('.wmp-vocab').forEach(v => {
+    const btn = v.querySelector('.add button');
+    btn.addEventListener('click', () => {
+      v.classList.toggle('added');
+      btn.textContent = v.classList.contains('added') ? '내 단어장' : '내 단어장에 추가';
+      const added = document.querySelectorAll('.wmp-vocab.added').length;
+      document.getElementById('vocab-prog').textContent = added + ' / 7 추가';
+    });
+  });
+
+  // Structure: click label to fill next empty drop, click filled drop to clear
+  const LABEL_KO = {
+    hook: 'HOOK / 도입',
+    claim: 'CLAIM / 주장',
+    evidence: 'EVIDENCE / 근거',
+    counter: 'COUNTER / 반박',
+    conclusion: 'CONCLUSION'
+  };
+  function updateStructProg(){
+    const set = document.querySelectorAll('.wmp-para .drop.set').length;
+    document.getElementById('struct-prog').textContent = set + ' / 5';
+  }
+  document.querySelectorAll('.wmp-label').forEach(lab => {
+    lab.addEventListener('click', () => {
+      const drops = document.querySelectorAll('.wmp-para .drop');
+      for (const d of drops) {
+        if (!d.classList.contains('set')) {
+          d.classList.add('set', lab.dataset.key);
+          d.dataset.label = lab.dataset.key;
+          d.textContent = LABEL_KO[lab.dataset.key];
+          updateStructProg();
+          return;
+        }
+      }
+    });
+  });
+  document.querySelectorAll('.wmp-para .drop').forEach(d => {
+    d.addEventListener('click', () => {
+      if (d.classList.contains('set')) {
+        d.classList.remove('set', 'hook', 'claim', 'evidence', 'counter', 'conclusion');
+        delete d.dataset.label;
+        d.textContent = '라벨 놓기';
+        updateStructProg();
+      }
+    });
+  });
+</script>
+</body>
+</html>

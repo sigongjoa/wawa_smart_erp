@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1400" />
+<title>01 · ERP — 와와 EduTech Stack</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<link rel="stylesheet" href="deck.css" />
+<style>
+  :root {
+    --sys-dark: #475569;
+    --sys-mid:  #64748b;
+    --sys-soft: #e2e8f0;
+    --sys-fill: #f1f5f9;
+    --sys-rule: #cbd5e1;
+    --sys-ink:  #1e293b;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="curves" viewBox="0 0 480 480" fill="none" stroke="currentColor">
+      <path d="M 480 100 Q 360 220, 480 360" />
+      <path d="M 480 140 Q 320 240, 480 380" />
+      <path d="M 480 180 Q 280 260, 480 400" />
+      <path d="M 480 220 Q 240 280, 480 420" />
+      <path d="M 480 260 Q 200 300, 480 440" />
+      <path d="M 480 300 Q 160 320, 460 460" />
+      <path d="M 480 340 Q 140 360, 420 470" />
+    </symbol>
+  </defs>
+</svg>
+
+<nav class="topnav" aria-label="시스템 탐색">
+  <div class="topnav-inner">
+    <a class="nav-brand" href="index.html">와와<em> · EduTech</em></a>
+    <div class="nav-links">
+      <a href="index.html"><span class="dot" aria-hidden="true" style="background:#0f0f1f"></span>Overview</a>
+      <a href="erp.html" class="active"><span class="dot" aria-hidden="true" style="background:#475569"></span>01 ERP</a>
+      <a href="askai.html"><span class="dot" aria-hidden="true" style="background:#4f46e5"></span>02 AskAI</a>
+      <a href="proof.html"><span class="dot" aria-hidden="true" style="background:#059669"></span>03 Proof</a>
+      <a href="english.html"><span class="dot" aria-hidden="true" style="background:#d97706"></span>04 English</a>
+      <a href="vocab.html"><span class="dot" aria-hidden="true" style="background:#dc2626"></span>05 Vocab</a>
+      <a href="tutorflow.html"><span class="dot" aria-hidden="true" style="background:#0891b2"></span>06 TutorFlow</a>
+      <a href="perfeval.html"><span class="dot" aria-hidden="true" style="background:#7c3aed"></span>07 PerfEval</a>
+    </div>
+    <span class="nav-meta">System 01 of 07</span>
+  </div>
+</nav>
+
+<main class="canvas">
+
+  <header class="canvas-header">
+    <h1 class="canvas-title">01 · ERP<em> — 학원 운영툴</em></h1>
+    <span class="canvas-tag">18+ 모듈 · 학원별 데이터 자동 분리 · 4 frames</span>
+    <div class="canvas-meta">
+      <div><b>Slate theme</b> · #475569</div>
+      <div>System 01 of 07</div>
+    </div>
+  </header>
+
+  <section class="slide-row">
+
+    <!-- 01.01 Intro -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">01 · 01</span><span>Intro</span><span class="dim">— ERP thesis</span></div>
+      <div class="slide s-intro">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>Detail · <span class="sys">01 · ERP</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">ERP</span></div>
+          </div>
+          <div class="lead-row">
+            <div>
+              <h1>학원의 <span class="acc">뼈대</span>.<br/>하루 운영<br/>한 화면에서.</h1>
+              <div class="sub">학생·담임·출결·숙제·시험·라이브 세션·학부모 리포트·게임형 보상까지. <span class="acc">학원별 데이터 자동 분리</span> <span class="gloss">multi-tenant</span> — 다지점 즉시 분리.</div>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="v">18+<sub>모듈</sub></div><div class="k">운영 모듈<small>학생/교사/학부모</small></div></div>
+              <div class="stat"><div class="v">3<sub>앱</sub></div><div class="k">Desktop · Student · Parent<small>역할별 분리</small></div></div>
+              <div class="stat"><div class="v">CF<sub>full-stack</sub></div><div class="k">Cloudflare D1+Workers+R2<small>학생당 비용 ↓</small></div></div>
+              <div class="stat"><div class="v">24<sub>보안 R</sub></div><div class="k">보안 라운드 누적<small>OWASP top 10 가드</small></div></div>
+            </div>
+          </div>
+          <div class="toc" style="grid-template-columns:repeat(4,1fr);">
+            <div class="item"><div class="n">01.1</div><div class="t">Module Map<small>18+ 모듈</small></div></div>
+            <div class="item"><div class="n">01.2</div><div class="t">학원별 자동 분리<small>multi-tenant</small></div></div>
+            <div class="item"><div class="n">01.3</div><div class="t">3-앱 구조<small>역할별 페르소나</small></div></div>
+            <div class="item"><div class="n">01.4</div><div class="t">Use Case<small>강사 실제 화면</small></div></div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · ERP Subdeck · 2026 Q2</div><div class="page"><b>01 · 01</b> / 01 · 04</div></div>
+      </div>
+    </div>
+
+    <!-- 01.02 Module Map -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">01 · 02</span><span>Module Map</span><span class="dim">— 18+ 모듈 한 화면</span></div>
+      <div class="slide s-arch">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>01 · ERP · <span class="sys">Module Map</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">ERP</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>학원 하루를 <span class="acc">한 화면</span>으로.</h2>
+            <div class="subtitle">모든 모듈에서 학원·지점별 데이터가 자동으로 섞이지 않게 분리됨</div>
+          </div>
+          <div class="grid cols-4">
+            <div class="mod core"><div class="top"><div class="n">A</div><div class="badge">CORE</div></div><div class="t">Academy</div><div class="role">학원 마스터</div><div class="d">학원 등록 · 강사 권한 · 정책 설정</div></div>
+            <div class="mod core"><div class="top"><div class="n">B</div><div class="badge">CORE</div></div><div class="t">Students</div><div class="role">원생 관리</div><div class="d">프로필 · 학년 · 가입 승인 · PIN 인증</div></div>
+            <div class="mod core"><div class="top"><div class="n">C</div><div class="badge">CORE</div></div><div class="t">Homeroom</div><div class="role">담임 대시보드</div><div class="d">상담 · 시험 · 후속조치 한 곳</div></div>
+            <div class="mod core"><div class="top"><div class="n">D</div><div class="badge">CORE</div></div><div class="t">Timer</div><div class="role">학습 시간</div><div class="d">실시간 세션 추적 · 학생별 학습량</div></div>
+            <div class="mod"><div class="top"><div class="n">E</div><div class="badge">OPS</div></div><div class="t">Absence</div><div class="role">출결</div><div class="d">결석 처리 · 학부모 자동 알림</div></div>
+            <div class="mod"><div class="top"><div class="n">F</div><div class="badge">OPS</div></div><div class="t">Assignments</div><div class="role">숙제</div><div class="d">발행 · 제출 · 채점 · 학부모 가시화</div></div>
+            <div class="mod"><div class="top"><div class="n">G</div><div class="badge">OPS</div></div><div class="t">Exam Mgmt</div><div class="role">시험 운영</div><div class="d">시험지 · 응시 · 결과 · 타이머</div></div>
+            <div class="mod"><div class="top"><div class="n">H</div><div class="badge">OPS</div></div><div class="t">Live Session</div><div class="role">실시간 수업</div><div class="d">학원 내 라이브 세션 (TutorFlow와 별개)</div></div>
+            <div class="mod"><div class="top"><div class="n">I</div><div class="badge">COMM</div></div><div class="t">Board</div><div class="role">공지·게시판</div><div class="d">학원 공지 · 학년별 분리</div></div>
+            <div class="mod"><div class="top"><div class="n">J</div><div class="badge">COMM</div></div><div class="t">Notifications</div><div class="role">알림 허브</div><div class="d">신규 알림 종류 = 1줄 추가로 확장</div></div>
+            <div class="mod"><div class="top"><div class="n">K</div><div class="badge">COMM</div></div><div class="t">Meeting</div><div class="role">상담 미팅</div><div class="d">학부모 면담 일정·기록</div></div>
+            <div class="mod"><div class="top"><div class="n">L</div><div class="badge">COMM</div></div><div class="t">Messages</div><div class="role">강사↔학생</div><div class="d">내부 메시지 · 첨부 지원</div></div>
+            <div class="mod"><div class="top"><div class="n">M</div><div class="badge">PARENT</div></div><div class="t">Parent Lessons</div><div class="role">학부모 화면</div><div class="d">자녀 수업 일정·진도</div></div>
+            <div class="mod"><div class="top"><div class="n">N</div><div class="badge">PARENT</div></div><div class="t">Parent Report</div><div class="role">학부모 리포트</div><div class="d">단원별 약점 · 정답률 시각화</div></div>
+            <div class="mod"><div class="top"><div class="n">O</div><div class="badge">PARENT</div></div><div class="t">Parent HW</div><div class="role">숙제 가시화</div><div class="d">자녀 숙제 진행 실시간</div></div>
+            <div class="mod"><div class="top"><div class="n">P</div><div class="badge">REWARD</div></div><div class="t">Gacha Card</div><div class="role">카드 마스터</div><div class="d">카드 디자인·드롭률 정책</div></div>
+            <div class="mod core"><div class="top"><div class="n">Q</div><div class="badge">REWARD</div></div><div class="t">Gacha Student</div><div class="role">학생 보상</div><div class="d">학습 → 카드 획득 → <span style="color:#fff; font-weight:700;">retention 엔진</span></div></div>
+            <div class="mod"><div class="top"><div class="n">R</div><div class="badge">CUR</div></div><div class="t">Curriculum</div><div class="role">단원 트리</div><div class="d">단원별 진도·자료 매핑</div></div>
+          </div>
+          <div class="legend">
+            <span class="key"><span class="sw core"></span> <b>CORE / REWARD</b> — 차별화 모듈</span>
+            <span class="key"><span class="sw aux"></span> <b>OPS · COMM · PARENT · CUR</b> — 운영 기반</span>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · ERP Subdeck · 2026 Q2</div><div class="page"><b>01 · 02</b> / 01 · 04</div></div>
+      </div>
+    </div>
+
+    <!-- 01.03 Multi-tenant + 3-app -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">01 · 03</span><span>학원별 분리 + 3-앱</span><span class="dim">— 인프라 + 페르소나</span></div>
+      <div class="slide s-two">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>01 · ERP · <span class="sys">학원별 분리 + 3-앱</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">ERP</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>다지점 확장은 <span class="acc">코드 수정 0</span>.<br/>학원 ID 한 줄만 추가하면 끝.</h2>
+            <div class="subtitle">코드 레벨에서 학원 격리 · 역할별 3 앱이 페르소나 분리</div>
+          </div>
+          <div class="two equal">
+            <div class="why">
+              <h3>— LEFT · 학원별 자동 분리 (코딩 강제 사항)</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">모든 DB 조회에 <b>학원 ID 필터 강제</b></div><div class="d">학생·시험·과제 모든 조회/수정/삭제. <span class="acc">데이터 누출 0</span>.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">파일 저장 경로에도 학원 ID 포함</div><div class="d">사진·증명·자료 저장도 학원별 폴더 분리 — 학원 간 접근 불가.</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">로그인 PIN·공유 토큰에 <b>위변조 차단 서명</b></div><div class="d">학원별 비밀 키. <span class="acc">다른 학원 위변조 불가</span>.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">신규 학원 = DB 한 줄 추가</div><div class="d">코드 변경 없이 학원 추가. <span class="acc">프랜차이즈 즉시 분리</span>.</div></div></li>
+              </ul>
+            </div>
+            <div class="why">
+              <h3>— RIGHT · 3-앱 구조 (역할별 페르소나)</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">apps/desktop — 강사용</div><div class="d">학원 운영 전반. 18 모듈 모두. <span class="acc">권위 있는 톤</span>.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">apps/student — 학생용</div><div class="d">모바일 우선. 학습·시험·가챠. <span class="acc">게임 폴리시 톤</span>.</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">apps/student (parent mode)</div><div class="d">학부모 read-only 링크. <span class="acc">방문 0</span>으로 자녀 현황.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">디자인 시스템 별도</div><div class="d">design/system/DESKTOP.md · STUDENT.md. <span class="acc">톤 분리</span>로 사용자 혼동 0.</div></div></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · ERP Subdeck · 2026 Q2</div><div class="page"><b>01 · 03</b> / 01 · 04</div></div>
+      </div>
+    </div>
+
+    <!-- 01.04 Use Case (Real screenshot) -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">01 · 04</span><span>Use Case</span><span class="dim">— 강사 담임 대시보드</span></div>
+      <div class="slide s-usecase">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>01 · ERP · <span class="sys">Use Case</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">ERP</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>강사가 매일 보는 <span class="acc">실제 화면</span>.</h2>
+            <div class="subtitle">apps/desktop · HomeroomPage · 알파시티점 / 서재용 강사 · 라이브 프로덕션 캡처</div>
+          </div>
+
+          <div class="layout">
+            <div class="hero" data-tag="TEACHER · DESKTOP · HOMEROOM · LIVE">
+              <img class="screenshot desktop" src="img/desktop-homeroom.png" alt="알파시티점 담임 대시보드 — 서재용 강사가 보는 실제 운영 화면" />
+            </div>
+            <div class="annotations">
+              <div class="anno">
+                <span class="n">1</span>
+                <div class="body">
+                  <div class="t">학원 · 강사 컨텍스트</div>
+                  <div class="d">좌상단 <span class="acc">알파시티점 ERP</span> 좌하단 <span class="acc">서재용 관리자</span> — 학원·강사 컨텍스트가 항상 보임. 학원별 자동 분리 시각화.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">2</span>
+                <div class="body">
+                  <div class="t">담임 요약 4 카드</div>
+                  <div class="d">담임 학생 · 이번달 상담 · 7일내 후속 · 14일내 시험 — <span class="acc">학기 진행 한눈에</span>.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">3</span>
+                <div class="body">
+                  <div class="t">월별 상담 매트릭스</div>
+                  <div class="d">학생 × 날짜 그리드. 월1회 / 시험전 / 시험후 / 수시 — <span class="acc">상담 누락 0</span>으로 강제.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">4</span>
+                <div class="body">
+                  <div class="t">사이드바 = 18+ 모듈 트리</div>
+                  <div class="d">수업 · 학생 · 담임 · 학습(수학) · 학습(영단어) · 학원일정 · 학원관리 · 설정 — <span class="acc">학원 운영 전체가 한 화면</span>.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">5</span>
+                <div class="body">
+                  <div class="t">교과 메모 종합</div>
+                  <div class="d">하단 학생별 우려·총 메모. 차주 상담·코멘트 우선순위 자동. <span class="acc">강사 학기 작업의 본부</span>.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · ERP Subdeck · 2026 Q2</div><div class="page"><b>01 · 04</b> / 01 · 04 · END</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="canvas-footer">
+    <h2>End of ERP subdeck<em> · 4 frames</em></h2>
+    <span></span>
+    <div class="meta"><div>Slate <b>#475569</b> · System 01 of 07</div></div>
+  </footer>
+
+</main>
+</body>
+</html>

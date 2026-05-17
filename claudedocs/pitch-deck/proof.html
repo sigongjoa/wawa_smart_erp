@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1400" />
+<title>03 · Proof — 와와 EduTech Stack</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<link rel="stylesheet" href="deck.css" />
+<style>
+  :root {
+    --sys-dark: #059669;
+    --sys-mid:  #10b981;
+    --sys-soft: #d1fae5;
+    --sys-fill: #ecfdf5;
+    --sys-rule: #a7f3d0;
+    --sys-ink:  #064e3b;
+    /* WCAG: emerald-dark fails 4.5:1 on white. Use darker green for inline text. */
+    --sys-text: #065f46;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="curves" viewBox="0 0 480 480" fill="none" stroke="currentColor">
+      <path d="M 480 100 Q 360 220, 480 360" />
+      <path d="M 480 140 Q 320 240, 480 380" />
+      <path d="M 480 180 Q 280 260, 480 400" />
+      <path d="M 480 220 Q 240 280, 480 420" />
+      <path d="M 480 260 Q 200 300, 480 440" />
+      <path d="M 480 300 Q 160 320, 460 460" />
+      <path d="M 480 340 Q 140 360, 420 470" />
+    </symbol>
+  </defs>
+</svg>
+
+<nav class="topnav" aria-label="시스템 탐색">
+  <div class="topnav-inner">
+    <a class="nav-brand" href="index.html">와와<em> · EduTech</em></a>
+    <div class="nav-links">
+      <a href="index.html"><span class="dot" aria-hidden="true" style="background:#0f0f1f"></span>Overview</a>
+      <a href="erp.html"><span class="dot" aria-hidden="true" style="background:#475569"></span>01 ERP</a>
+      <a href="askai.html"><span class="dot" aria-hidden="true" style="background:#4f46e5"></span>02 AskAI</a>
+      <a href="proof.html" class="active"><span class="dot" aria-hidden="true" style="background:#059669"></span>03 Proof</a>
+      <a href="english.html"><span class="dot" aria-hidden="true" style="background:#d97706"></span>04 English</a>
+      <a href="vocab.html"><span class="dot" aria-hidden="true" style="background:#dc2626"></span>05 Vocab</a>
+      <a href="tutorflow.html"><span class="dot" aria-hidden="true" style="background:#0891b2"></span>06 TutorFlow</a>
+      <a href="perfeval.html"><span class="dot" aria-hidden="true" style="background:#7c3aed"></span>07 PerfEval</a>
+    </div>
+    <span class="nav-meta">System 03 of 07</span>
+  </div>
+</nav>
+
+<main class="canvas">
+
+  <header class="canvas-header">
+    <h1 class="canvas-title">03 · Proof<em> — 수학 증명 자동 채점</em></h1>
+    <span class="canvas-tag">FillBlank · Ordering · Editor · 4 frames</span>
+    <div class="canvas-meta">
+      <div><b>Emerald theme</b> · #059669</div>
+      <div>System 03 of 07</div>
+    </div>
+  </header>
+
+  <section class="slide-row">
+
+    <!-- 03.01 Intro -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">03 · 01</span><span>Intro</span><span class="dim">— Proof thesis</span></div>
+      <div class="slide s-intro">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>Detail · <span class="sys">03 · Proof</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">Proof</span></div>
+          </div>
+          <div class="lead-row">
+            <div>
+              <h1>증명을 <span class="acc">잘게</span><br/>분해해<br/><span class="acc">즉시</span> 채점한다.</h1>
+              <div class="sub">콴다는 풀이검색, 매스프레소는 챗봇. 둘 다 <span class="acc">증명 단계 평가는 안 한다</span>. 우리는 빈칸·순서로 분해해 단계별 사고를 강제한다.</div>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="v">3<sub>modes</sub></div><div class="k">FillBlank · Ordering · Editor<small>모드별 평가 다름</small></div></div>
+              <div class="stat"><div class="v">즉시<sub>채점</sub></div><div class="k">서버 round-trip 채점<small>수능·내신 시장</small></div></div>
+              <div class="stat"><div class="v">↺<sub>복습</sub></div><div class="k">오답 → AskAI 약점 카드<small>매일 자동 복습큐로</small></div></div>
+              <div class="stat"><div class="v">0<sub>경쟁사</sub></div><div class="k">콴다·매스프레소 미진입<small>수능·KMO 영역</small></div></div>
+            </div>
+          </div>
+          <div class="toc" style="grid-template-columns:repeat(4,1fr);">
+            <div class="item"><div class="n">03.1</div><div class="t">3 Modes<small>FB · Ord · Editor</small></div></div>
+            <div class="item"><div class="n">03.2</div><div class="t">Drill 환류<small>오답 → 카드</small></div></div>
+            <div class="item"><div class="n">03.3</div><div class="t">시장 포지셔닝<small>수능·내신·KMO</small></div></div>
+            <div class="item"><div class="n">03.4</div><div class="t">Use Case<small>학생 화면</small></div></div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Proof Subdeck · 2026 Q2</div><div class="page"><b>03 · 01</b> / 03 · 04</div></div>
+      </div>
+    </div>
+
+    <!-- 03.02 3 Modes -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">03 · 02</span><span>3 Modes</span><span class="dim">— FillBlank vs Ordering vs Editor</span></div>
+      <div class="slide s-arch">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>03 · Proof · <span class="sys">3 Modes</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">Proof</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>증명을 다루는 <span class="acc">3 가지 방식</span>.</h2>
+            <div class="subtitle">apps/student/src/pages/Proof* · 학년·난이도별 모드 선택</div>
+          </div>
+          <div class="grid cols-2" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="mod core" style="min-height: 280px;">
+              <div class="top"><div class="n">01</div><div class="badge">학생용</div></div>
+              <div class="t">ProofFillBlank</div>
+              <div class="role">빈칸 채우기형 증명</div>
+              <div class="d">
+                <div style="margin-bottom: 10px;">증명 본문에서 핵심 단계를 빈칸 처리. 학생이 식·논리·기호를 채워 넣음.</div>
+                <div style="opacity:0.85; font-weight:600; font-size:11.5px;">평가: 단계별 정답 일치율</div>
+                <div style="opacity:0.85; font-weight:600; font-size:11.5px;">난이도: <span style="color:#fff;">★★☆</span></div>
+                <div style="opacity:0.85; font-weight:600; font-size:11.5px;">시장: 내신 · 모의고사</div>
+              </div>
+            </div>
+            <div class="mod core" style="min-height: 280px;">
+              <div class="top"><div class="n">02</div><div class="badge">학생용</div></div>
+              <div class="t">ProofOrdering</div>
+              <div class="role">증명 단계 순서 맞추기</div>
+              <div class="d">
+                <div style="margin-bottom: 10px;">증명 단계 5~8개를 뒤섞어 제시. 학생이 논리 순서대로 재배열.</div>
+                <div style="opacity:0.85; font-weight:600; font-size:11.5px;">평가: 정확한 순서 일치</div>
+                <div style="opacity:0.85; font-weight:600; font-size:11.5px;">난이도: <span style="color:#fff;">★★★</span></div>
+                <div style="opacity:0.85; font-weight:600; font-size:11.5px;">시장: 수능 · KMO</div>
+              </div>
+            </div>
+            <div class="mod" style="min-height: 280px;">
+              <div class="top"><div class="n">03</div><div class="badge">강사용</div></div>
+              <div class="t">ProofEditor</div>
+              <div class="role">증명 콘텐츠 작성·등록</div>
+              <div class="d">
+                <div style="margin-bottom: 10px;">강사가 증명 본문을 작성하고, 어떤 단계를 빈칸/순서로 가릴지 마킹. 학원 자체 데이터셋 누적.</div>
+                <div style="font-weight:600; font-size:11.5px; color:var(--sys-dark);">출력: FillBlank + Ordering 자동 생성</div>
+                <div style="font-weight:600; font-size:11.5px; color:var(--sys-dark);">대상: 강사 (desktop)</div>
+                <div style="font-weight:600; font-size:11.5px; color:var(--sys-dark);">자산: <b>학원 증명 라이브러리</b></div>
+              </div>
+            </div>
+          </div>
+          <div class="legend">
+            <span class="key"><span class="sw core"></span> <b>학생용</b> — 학습·평가</span>
+            <span class="key"><span class="sw aux"></span> <b>강사용</b> — 콘텐츠 작성 → 학원 자산 누적</span>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Proof Subdeck · 2026 Q2</div><div class="page"><b>03 · 02</b> / 03 · 04</div></div>
+      </div>
+    </div>
+
+    <!-- 03.03 Drill 환류 + 시장 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">03 · 03</span><span>Drill 환류 + 시장</span><span class="dim">— AskAI 연결 + 포지셔닝</span></div>
+      <div class="slide s-two">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>03 · Proof · <span class="sys">Drill 환류 + 시장</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">Proof</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>증명 오답 한 번이 <span class="acc">학생 약점 자산</span>이 된다.</h2>
+            <div class="subtitle">Proof + AskAI = 단일 학습 사이클. 한 번 틀리면 매일 복습큐에 들어옴.</div>
+          </div>
+          <div class="two equal">
+            <div class="why">
+              <h3>— LEFT · Drill 환류 (Proof → AskAI)</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">증명 오답 발생</div><div class="d">FillBlank 빈칸 X 또는 Ordering 순서 X → <span class="acc">exam_wrong 신호</span> 발화.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">복습 카드 자동 생성</div><div class="d">AskAI의 약점 카드 발행 모듈이 자동 카드화 (단원·항목 기록).</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">자동 복습큐로 진입</div><div class="d">학생 일일 복습큐에 자동 편입. <span class="acc">"모름" 시 즉시 재진입</span>.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">강사 시각화</div><div class="d">Homeroom 대시보드에 학생별 증명 약점 단원 표시 — <span class="acc">강사 코멘트 ROI ↑</span>.</div></div></li>
+              </ul>
+            </div>
+            <div class="why">
+              <h3>— RIGHT · 시장 포지셔닝</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">수능 수학 — 증명형 문항</div><div class="d">고2~고3 시장. 매년 출제. 콴다·매스프레소 모두 <span class="acc">증명 단계 평가 X</span>.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">내신 — 학교별 변별 문항</div><div class="d">고1~고2. 학교마다 증명 출제 패턴 다름. <span class="acc">학원별 증명 라이브러리</span>가 moat.</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">KMO · 영재고 · 과학고</div><div class="d">상위권 학원 시장. 증명 능력이 진학 결정 요소. <span class="acc">고객 단가 높음</span>.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">왜 경쟁사가 안 하나</div><div class="d">증명 데이터 직접 만들어야 함 (수능 콘텐츠 회사 못 따라옴). <span class="acc">학원이 직접 만든다는 게 이점</span>.</div></div></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Proof Subdeck · 2026 Q2</div><div class="page"><b>03 · 03</b> / 03 · 04</div></div>
+      </div>
+    </div>
+
+    <!-- 03.04 Use Case -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">03 · 04</span><span>Use Case</span><span class="dim">— 증명 풀이 흐름</span></div>
+      <div class="slide s-usecase">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>03 · Proof · <span class="sys">Use Case</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">Proof</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>학생이 <span class="acc">증명 빈칸</span>을 채우는 실제 화면.</h2>
+            <div class="subtitle">apps/student/src/pages/ProofFillBlankPage — 단계별 사고를 강제하는 UI</div>
+          </div>
+
+          <div class="layout">
+            <div class="hero" data-tag="STUDENT · MOBILE · PROOF FILLBLANK">
+              <div class="mockup-phone">
+                <div class="blk line short" style="height:8px; max-width:35%; background:var(--sys-dark);"></div>
+                <div class="blk line long" style="height:14px; max-width:80%; background:var(--sys-mid);"></div>
+                <div class="blk" style="background:var(--sys-soft); padding:8px 10px; min-height:auto;">
+                  <div class="blk line" style="height:6px; max-width:50%; background:var(--sys-dark); margin-bottom:4px;"></div>
+                  <div class="blk line" style="height:5px; max-width:80%; background:var(--sys-mid);"></div>
+                </div>
+                <div style="background:var(--sys-fill); border:1px solid var(--sys-rule); padding:10px; display:flex; flex-direction:column; gap:6px; flex:1;">
+                  <div class="blk line long" style="height:5px;"></div>
+                  <div class="blk line" style="height:5px;"></div>
+                  <div style="display:flex; gap:4px; align-items:center;">
+                    <div class="blk line short" style="height:5px; max-width:30%;"></div>
+                    <div style="height:14px; flex:1; background:var(--bg); border:1px dashed var(--sys-dark); border-radius:2px;"></div>
+                    <div class="blk line short" style="height:5px; max-width:25%;"></div>
+                  </div>
+                  <div class="blk line long" style="height:5px;"></div>
+                  <div style="display:flex; gap:4px; align-items:center;">
+                    <div class="blk line short" style="height:5px; max-width:25%;"></div>
+                    <div style="height:14px; flex:1; background:var(--sys-dark); border-radius:2px;"></div>
+                  </div>
+                  <div class="blk line" style="height:5px;"></div>
+                </div>
+                <div style="display:flex; gap:4px;">
+                  <div style="flex:1; padding:6px; background:var(--sys-soft); display:flex; gap:3px; flex-wrap:wrap;">
+                    <span style="font-size:9px; padding:2px 5px; background:var(--bg); border:1px solid var(--sys-rule); border-radius:2px; color:var(--sys-dark); font-weight:700;">f'(x)</span>
+                    <span style="font-size:9px; padding:2px 5px; background:var(--bg); border:1px solid var(--sys-rule); border-radius:2px; color:var(--sys-dark); font-weight:700;">f(b)−f(a)</span>
+                    <span style="font-size:9px; padding:2px 5px; background:var(--bg); border:1px solid var(--sys-rule); border-radius:2px; color:var(--sys-dark); font-weight:700;">b−a</span>
+                  </div>
+                </div>
+                <div class="blk cta" style="width:100%; height:32px;"></div>
+              </div>
+            </div>
+
+            <div class="annotations">
+              <div class="anno">
+                <span class="n">1</span>
+                <div class="body">
+                  <div class="t">증명 본문 + 빈칸</div>
+                  <div class="d">평균값 정리 같은 단원의 증명을 <span class="acc">단계별로 분해</span>. 핵심 단계만 빈칸 처리.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">2</span>
+                <div class="body">
+                  <div class="t">하단 보기 선택 (수식 칩)</div>
+                  <div class="d"><span class="acc">함정 보기</span> 포함. 학생이 "왜 이게 답인지" 사고 강제. 단순 객관식 X.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">3</span>
+                <div class="body">
+                  <div class="t">즉시 채점 + 단계 해설</div>
+                  <div class="d">제출 즉시 빈칸 단계별 정답 일치 표시. <span class="acc">틀린 단계의 해설</span> 자동 노출.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">4</span>
+                <div class="body">
+                  <div class="t">오답 → AskAI Drill 환류</div>
+                  <div class="d">증명 오답 = <span class="acc">시험 오답 신호 발생</span>. 다음 날 자동으로 복습큐에.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">5</span>
+                <div class="body">
+                  <div class="t">강사용 ProofEditor</div>
+                  <div class="d">증명 본문 + 빈칸 마킹 → <span class="acc">학원 자체 증명 라이브러리</span> 누적. 다른 학원이 못 따라옴.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · Proof Subdeck · 2026 Q2</div><div class="page"><b>03 · 04</b> / 03 · 04 · END</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="canvas-footer">
+    <h2>End of Proof subdeck<em> · 4 frames</em></h2>
+    <span></span>
+    <div class="meta"><div>Emerald <b>#059669</b> · System 03 of 07</div></div>
+  </footer>
+
+</main>
+</body>
+</html>

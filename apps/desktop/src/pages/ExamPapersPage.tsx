@@ -62,6 +62,14 @@ export default function ExamPapersPage() {
   const [detailPaperId, setDetailPaperId] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<(ExamPaperItem & { distributions: ExamPaperDistribution[] }) | null>(null);
 
+  // 메타 수정 (파일 제외)
+  const [editPaper, setEditPaper] = useState<ExamPaperItem | null>(null);
+  const [editState, setEditState] = useState<{
+    title: string; examType: ExamType; subject: string; school: string;
+    grade: string; examYear: number; semester: 1 | 2; memo: string;
+  } | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm();
 
   const load = useCallback(async () => {
@@ -163,6 +171,54 @@ export default function ExamPapersPage() {
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  const openEdit = (p: ExamPaperItem) => {
+    setEditPaper(p);
+    setEditState({
+      title: p.title || '',
+      examType: (p.exam_type as ExamType) || 'midterm',
+      subject: p.subject || '',
+      school: p.school || '',
+      grade: p.grade || '',
+      examYear: p.exam_year || CURRENT_YEAR,
+      semester: ((p.semester || 1) as 1 | 2),
+      memo: p.memo || '',
+    });
+  };
+
+  const closeEdit = () => {
+    if (editSaving) return;
+    setEditPaper(null);
+    setEditState(null);
+  };
+
+  const handleEditSave = async () => {
+    if (!editPaper || !editState) return;
+    if (!editState.title.trim()) { toast.error('제목을 입력해주세요'); return; }
+    if (!editState.school.trim()) { toast.error('학교를 입력해주세요'); return; }
+    if (!editState.grade) { toast.error('학년을 선택해주세요'); return; }
+    setEditSaving(true);
+    try {
+      await api.updateExamPaper(editPaper.id, {
+        title: editState.title.trim(),
+        examType: editState.examType,
+        subject: editState.subject.trim(),
+        school: editState.school.trim(),
+        grade: editState.grade,
+        examYear: editState.examYear,
+        semester: editState.semester,
+        memo: editState.memo,
+      });
+      toast.success('시험지 정보 수정 완료');
+      setEditPaper(null);
+      setEditState(null);
+      await load();
+    } catch (err) {
+      toast.error('수정 실패: ' + (err as Error).message);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -275,6 +331,7 @@ export default function ExamPapersPage() {
                     <td>{p.created_at?.split('T')[0] || p.created_at}</td>
                     <td className="action-cell">
                       <button className="btn btn-sm btn-ghost" onClick={() => openDetail(p.id)} aria-label={`${p.title} 상세 보기`}>상세</button>
+                      <button className="btn btn-sm btn-ghost" onClick={() => openEdit(p)} aria-label={`${p.title} 수정`}>수정</button>
                       <button className="btn btn-sm btn-danger-ghost" onClick={() => handleDelete(p)} aria-label={`${p.title} 삭제`}>삭제</button>
                     </td>
                   </tr>
@@ -306,6 +363,7 @@ export default function ExamPapersPage() {
                     </a>
                   )}
                   <button className="btn btn-sm btn-ghost" onClick={() => openDetail(p.id)}>상세</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => openEdit(p)}>수정</button>
                   <button className="btn btn-sm btn-danger-ghost" onClick={() => handleDelete(p)}>삭제</button>
                 </div>
               </li>
@@ -550,6 +608,119 @@ export default function ExamPapersPage() {
               </Modal.Footer>
             </>
           )}
+        </Modal>
+      )}
+
+      {editPaper && editState && (
+        <Modal onClose={closeEdit} className="modal-content--wide">
+          <Modal.Header closeDisabled={editSaving}>시험지 정보 수정</Modal.Header>
+          <Modal.Body>
+            <p className="form-help" style={{ marginBottom: 12, color: 'var(--text-tertiary)', fontSize: 13 }}>
+              파일 자체는 변경되지 않습니다. 메타데이터만 수정합니다.
+            </p>
+            <div className="form-grid">
+              <div>
+                <label className="form-label" htmlFor="exam-edit-title">
+                  제목 <span className="required-mark" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="exam-edit-title"
+                  className="form-input"
+                  required
+                  value={editState.title}
+                  onChange={e => setEditState(s => s && { ...s, title: e.target.value })}
+                  aria-required="true"
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-edit-type">유형</label>
+                <select
+                  id="exam-edit-type"
+                  className="form-select"
+                  value={editState.examType}
+                  onChange={e => setEditState(s => s && { ...s, examType: e.target.value as ExamType })}
+                >
+                  <option value="midterm">중간고사</option>
+                  <option value="final">기말고사</option>
+                  <option value="performance">수행평가</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-edit-subject">과목</label>
+                <input
+                  id="exam-edit-subject"
+                  className="form-input"
+                  value={editState.subject}
+                  onChange={e => setEditState(s => s && { ...s, subject: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-edit-school">
+                  학교 <span className="required-mark" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="exam-edit-school"
+                  className="form-input"
+                  value={editState.school}
+                  onChange={e => setEditState(s => s && { ...s, school: e.target.value })}
+                  aria-required="true"
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-edit-grade">
+                  학년 <span className="required-mark" aria-hidden="true">*</span>
+                </label>
+                <select
+                  id="exam-edit-grade"
+                  className="form-select"
+                  value={editState.grade}
+                  onChange={e => setEditState(s => s && { ...s, grade: e.target.value })}
+                  aria-required="true"
+                >
+                  <option value="">선택</option>
+                  {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-edit-year">연도</label>
+                <input
+                  id="exam-edit-year"
+                  className="form-input"
+                  type="number"
+                  value={editState.examYear}
+                  onChange={e => setEditState(s => s && { ...s, examYear: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="exam-edit-semester">학기</label>
+                <select
+                  id="exam-edit-semester"
+                  className="form-select"
+                  value={editState.semester}
+                  onChange={e => setEditState(s => s && { ...s, semester: Number(e.target.value) as 1 | 2 })}
+                >
+                  <option value={1}>1학기</option>
+                  <option value={2}>2학기</option>
+                </select>
+              </div>
+              <div className="form-grid-full">
+                <label className="form-label" htmlFor="exam-edit-memo">메모</label>
+                <textarea
+                  id="exam-edit-memo"
+                  className="form-textarea"
+                  rows={2}
+                  value={editState.memo}
+                  onChange={e => setEditState(s => s && { ...s, memo: e.target.value })}
+                />
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <button className="btn btn-secondary" onClick={closeEdit} disabled={editSaving}>취소</button>
+            <button className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
+              {editSaving ? '저장 중…' : '저장'}
+            </button>
+          </Modal.Footer>
         </Modal>
       )}
 

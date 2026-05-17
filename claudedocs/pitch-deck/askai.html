@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1400" />
+<title>02 · AskAI — 와와 EduTech Stack</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<link rel="stylesheet" href="deck.css" />
+<style>
+  :root {
+    --sys-dark: #4f46e5;
+    --sys-mid:  #6366f1;
+    --sys-soft: #eef2ff;
+    --sys-fill: #f5f6ff;
+    --sys-rule: #c7c1f8;
+    --sys-ink:  #1e1b4b;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="curves" viewBox="0 0 480 480" fill="none" stroke="currentColor">
+      <path d="M 480 100 Q 360 220, 480 360" />
+      <path d="M 480 140 Q 320 240, 480 380" />
+      <path d="M 480 180 Q 280 260, 480 400" />
+      <path d="M 480 220 Q 240 280, 480 420" />
+      <path d="M 480 260 Q 200 300, 480 440" />
+      <path d="M 480 300 Q 160 320, 460 460" />
+      <path d="M 480 340 Q 140 360, 420 470" />
+    </symbol>
+    <symbol id="arrow-r" viewBox="0 0 60 30">
+      <line x1="2" y1="15" x2="50" y2="15" stroke="currentColor" stroke-width="2"/>
+      <polyline points="44,8 52,15 44,22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="arrow-l" viewBox="0 0 60 30">
+      <line x1="58" y1="15" x2="10" y2="15" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/>
+      <polyline points="16,8 8,15 16,22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<nav class="topnav" aria-label="시스템 탐색">
+  <div class="topnav-inner">
+    <a class="nav-brand" href="index.html">와와<em> · EduTech</em></a>
+    <div class="nav-links">
+      <a href="index.html"><span class="dot" aria-hidden="true" style="background:#0f0f1f"></span>Overview</a>
+      <a href="erp.html"><span class="dot" aria-hidden="true" style="background:#475569"></span>01 ERP</a>
+      <a href="askai.html" class="active"><span class="dot" aria-hidden="true" style="background:#4f46e5"></span>02 AskAI</a>
+      <a href="proof.html"><span class="dot" aria-hidden="true" style="background:#059669"></span>03 Proof</a>
+      <a href="english.html"><span class="dot" aria-hidden="true" style="background:#d97706"></span>04 English</a>
+      <a href="vocab.html"><span class="dot" aria-hidden="true" style="background:#dc2626"></span>05 Vocab</a>
+      <a href="tutorflow.html"><span class="dot" aria-hidden="true" style="background:#0891b2"></span>06 TutorFlow</a>
+      <a href="perfeval.html"><span class="dot" aria-hidden="true" style="background:#7c3aed"></span>07 PerfEval</a>
+    </div>
+    <span class="nav-meta">System 02 of 07</span>
+  </div>
+</nav>
+
+<main class="canvas">
+
+  <header class="canvas-header">
+    <h1 class="canvas-title">02 · AskAI<em> — 학습 AI 엔진</em></h1>
+    <span class="canvas-tag">9 modules · 3,063 LOC · Teacher-in-the-loop · 6 frames</span>
+    <div class="canvas-meta">
+      <div><b>Indigo theme</b> · #4f46e5</div>
+      <div>System 02 of 07</div>
+    </div>
+  </header>
+
+  <section class="slide-row">
+
+    <!-- 02.01 Intro -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">02 · 01</span><span>Intro</span><span class="dim">— AskAI thesis</span></div>
+      <div class="slide s-intro">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>Detail · <span class="sys">02 · AskAI</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">AskAI</span></div>
+          </div>
+          <div class="lead-row">
+            <div>
+              <h1>이것은<br/><s>AI 챗봇</s>이<br/><span class="acc">아니다.</span></h1>
+              <div class="sub"><span class="acc">학원 자료 기반 AI 답 + 자동 복습 + 약점 드릴 + 강사 검수 사이클</span>이 결합된, 학원 운영 위에서 작동하는 학습 AI 엔진.</div>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="v">9<sub>modules</sub></div><div class="k">독립 모듈<small>core 5 + aux 4</small></div></div>
+              <div class="stat"><div class="v">3,063<sub>LOC</sub></div><div class="k">production code<small>TypeScript</small></div></div>
+              <div class="stat"><div class="v">9/9<sub>tested</sub></div><div class="k">모듈별 .test.ts<small>vitest</small></div></div>
+              <div class="stat"><div class="v">2<sub>LLMs</sub></div><div class="k">Claude + Gemini<small>vendor lock-in 회피</small></div></div>
+            </div>
+          </div>
+          <div class="toc" style="grid-template-columns:repeat(5,1fr);">
+            <div class="item"><div class="n">02.1</div><div class="t">Architecture<small>9 modules</small></div></div>
+            <div class="item"><div class="n">02.2</div><div class="t">The Loop<small>질문 → 복습</small></div></div>
+            <div class="item"><div class="n">02.3</div><div class="t">Teacher-in-Loop<small>강사 검수 흐름</small></div></div>
+            <div class="item"><div class="n">02.4</div><div class="t">약점 + 자동복습<small>실수 → 복습 카드</small></div></div>
+            <div class="item"><div class="n">02.5</div><div class="t">Use Case<small>학생 화면</small></div></div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · AskAI Subdeck · 2026 Q2</div><div class="page"><b>02 · 01</b> / 02 · 06</div></div>
+      </div>
+    </div>
+
+    <!-- 02.02 Architecture -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">02 · 02</span><span>Architecture</span><span class="dim">— 9 modules</span></div>
+      <div class="slide s-arch">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>02 · AskAI · <span class="sys">Architecture</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">AskAI</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>9 개 모듈, <span class="acc">5 개가 코어</span>.<br/>나머지 4 는 인프라.</h2>
+            <div class="subtitle">workers/src/services/ask-ai · 모든 모듈에 .test.ts 동반</div>
+          </div>
+          <div class="grid-core">
+            <div class="mod core"><div class="top"><div class="n">01</div><div class="badge">CORE</div></div><div class="t">응답 컨트롤러</div><div class="role">AI 응답 양식 잠금</div><div class="d">Claude AI가 *정해진 양식*으로만 답하도록 강제. 학원 자료·학생 메모 자동 주입. 헛소리(환각) 차단선.</div></div>
+            <div class="mod core"><div class="top"><div class="n">02</div><div class="badge">CORE</div></div><div class="t">학원 자료 검색</div><div class="role">RAG · 단원지 매칭</div><div class="d">학생 질문 → 학원 단원지에서 관련 부분 자동 찾기. 한국어 조사 처리. 학생이 배우는 단원에 가산점.</div></div>
+            <div class="mod core"><div class="top"><div class="n">03</div><div class="badge">CORE</div></div><div class="t">자동 복습</div><div class="role">SM-2 · 잊을 때쯤 다시</div><div class="d">학생 자가평가 (쉬움·보통·어려움·모름) → 다음 복습 시점 자동 계산. "모름" 즉시 재진입.</div></div>
+            <div class="mod core"><div class="top"><div class="n">04</div><div class="badge">CORE</div></div><div class="t">약점 카드 자동 발행</div><div class="role">실수 → 복습 카드</div><div class="d">4 신호(시험 오답·체크포인트 실패·숙제 감점·단원 X) → 자동 복습 카드. 같은 약점 중복 제외.</div></div>
+            <div class="mod core"><div class="top"><div class="n">05</div><div class="badge">CORE</div></div><div class="t">강사 검수 큐</div><div class="role">애매한 답 강사에게</div><div class="d">AI 자신감 낮을 때 강사 큐로 자동. OK / 코멘트 추가 / AI 오답 → 강사 교정이 학원 자료로 환류.</div></div>
+          </div>
+          <div class="grid-aux">
+            <div class="mod"><div class="top"><div class="n">06</div><div class="badge">AUX</div></div><div class="t">사진 질문 업로드</div><div class="role">사진으로 질문</div><div class="d">학생이 문제 사진 업로드 + 안전 파일 가드 + 학원별 자동 분리.</div></div>
+            <div class="mod"><div class="top"><div class="n">07</div><div class="badge">AUX</div></div><div class="t">일일 한도</div><div class="role">사용량 관리</div><div class="d">학생당 일일 질문 한도 + 비용 통제.</div></div>
+            <div class="mod"><div class="top"><div class="n">08</div><div class="badge">AUX</div></div><div class="t">Gemini 어댑터</div><div class="role">AI 회사 다중화</div><div class="d">Claude 외 Gemini 백엔드 추가. 한 회사에만 묶이지 않음.</div></div>
+            <div class="mod"><div class="top"><div class="n">09</div><div class="badge">AUX</div></div><div class="t">알림</div><div class="role">강사·학생 알림</div><div class="d">강사 큐 도착 / 학생 신규 답 / 코멘트 알림.</div></div>
+          </div>
+          <div class="legend">
+            <span class="key"><span class="sw core"></span> <b>CORE</b> — 학습 사이클의 본체 (5 모듈)</span>
+            <span class="key"><span class="sw aux"></span> <b>AUX</b> — 운영·인프라 보조 (4 모듈)</span>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · AskAI Subdeck · 2026 Q2</div><div class="page"><b>02 · 02</b> / 02 · 06</div></div>
+      </div>
+    </div>
+
+    <!-- 02.03 The Loop -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">02 · 03</span><span>The Loop</span><span class="dim">— 질문 → 약점 → 복습</span></div>
+      <div class="slide s-loop">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>02 · AskAI · <span class="sys">The Loop</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">AskAI</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>질문 한 번이 <span class="acc">3 가지 사이클</span>을 돌고 돌아온다.</h2>
+            <div class="subtitle">학생-AI 1:1 챗팅이 아니라, 학생-AI-강사-데이터셋 4 자 사이클</div>
+          </div>
+          <div class="diagram">
+            <div class="node"><div class="l">01 · INPUT</div><div class="t">학생 질문</div><div class="d">사진 또는 텍스트. 학생 ID + 단원 메타 동봉.</div></div>
+            <div class="arrow"><svg><use href="#arrow-r"/></svg></div>
+            <div class="node dark"><div class="l">02 · 응답 컨트롤러</div><div class="t">학원 자료 주입</div><div class="d"><span class="acc">학원 단원지 검색</span> + 학생 메모 + 응답 양식 잠금</div></div>
+            <div class="arrow"><svg><use href="#arrow-r"/></svg></div>
+            <div class="node"><div class="l">03 · CLAUDE 답변</div><div class="t">답변 + 자신감 점수</div><div class="d">정해진 양식. <span class="acc">낮음·중간·높음</span></div></div>
+
+            <div class="branch">
+              <div class="lane hot">
+                <div class="lane-label">↳ LOW</div>
+                <div class="node dark"><div class="l">04a · 강사 검수 큐</div><div class="t">강사 교정 + 코멘트</div><div class="d">OK / 코멘트 / AI 오답 → <span class="acc">학원 자료로 환류</span></div></div>
+              </div>
+              <div class="lane">
+                <div class="lane-label">↳ OK</div>
+                <div class="node"><div class="l">04b · SIGNAL COLLECTION</div><div class="t">4 신호 수집</div><div class="d">실패×3 · 시험 오답 · 숙제 감점×2 · 단원 X</div></div>
+              </div>
+            </div>
+
+            <div class="return">
+              <div class="node"><div class="l">05 · 약점 카드 발행</div><div class="t">신호 → 복습 카드</div><div class="d">실수 신호 → <span class="acc">복습 카드</span></div></div>
+              <div class="arrow"><svg><use href="#arrow-r"/></svg></div>
+              <div class="node"><div class="l">06 · 자동 복습큐</div><div class="t">매일 복습 분배</div><div class="d"><span class="acc">"모름" 즉시 재진입</span></div></div>
+              <div class="arrow"><span class="label">loop back</span><svg><use href="#arrow-l"/></svg></div>
+              <div class="node"><div class="l">07 · BACK TO STUDENT</div><div class="t">학생 복습</div><div class="d">다시 학습 → 다시 신호 → 사이클 반복.</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · AskAI Subdeck · 2026 Q2</div><div class="page"><b>02 · 03</b> / 02 · 06</div></div>
+      </div>
+    </div>
+
+    <!-- 02.04 Teacher -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">02 · 04</span><span>Teacher-in-the-Loop</span><span class="dim">— 강사 검수 흐름</span></div>
+      <div class="slide s-two s-decisions">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>02 · AskAI · <span class="sys">Teacher-in-the-Loop</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">AskAI</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>AI가 모르면, <span class="acc">강사가 가르친다</span>.<br/>그 답은 다음 학생을 가르친다.</h2>
+            <div class="subtitle">AI 자신감 낮음 → 강사 자동 라우팅 + 강사 결정 3 종 + 학원 자료 환류</div>
+          </div>
+          <div class="two">
+            <div class="why">
+              <h3>— WHY · 왜 이 구조가 비싼가</h3>
+              <ul>
+                <li><div class="i">i.</div><div><div class="t">환각 방어선</div><div class="d">Claude가 자신 없을 때(<span class="acc">low</span>) 학생에게 보내지 않고 강사 큐로 — 운영 사고 0.</div></div></li>
+                <li><div class="i">ii.</div><div><div class="t">학원 자료로 환류</div><div class="d">강사 교정·코멘트가 <span class="acc">학원 자체 AI 학습 자료</span>로 누적.</div></div></li>
+                <li><div class="i">iii.</div><div><div class="t">학생 신뢰 유지</div><div class="d">"콴다 답"이 아니라 <span class="acc">"우리 학원 답"</span>. retention 직결.</div></div></li>
+                <li><div class="i">iv.</div><div><div class="t">강사 시간 ROI</div><div class="d"><span class="acc">진짜 어려운 질문</span>만 강사 큐 — 시간 가치 극대화.</div></div></li>
+              </ul>
+            </div>
+            <div>
+              <h3>— DECISIONS · 강사 결정 3 종</h3>
+              <div class="row">
+                <div class="verdict good"><div class="l">결정</div><div class="n">OK</div></div>
+                <div class="desc"><div class="t">AI 답 그대로 통과</div><div class="d">학생에게 그대로 전달. <span class="acc">정답 예시</span>로 학원 자료 누적.</div><div class="flow">→ <b>AI 답 → 학생</b> + 정답 예시</div></div>
+              </div>
+              <div class="row">
+                <div class="verdict mid"><div class="l">결정</div><div class="n">코멘트</div></div>
+                <div class="desc"><div class="t">AI 답 + 강사 보강</div><div class="d">"AI 답은 맞지만 부족". AI 답 + 강사 코멘트가 함께 전달.</div><div class="flow">→ <b>AI + 코멘트 → 학생</b> + 보강 예시</div></div>
+              </div>
+              <div class="row">
+                <div class="verdict bad"><div class="l">결정</div><div class="n">AI 오답</div></div>
+                <div class="desc"><div class="t">AI 답 부정 → 강사 정답</div><div class="d">강사 답만 학생에게. <span class="acc">AI 답은 오답 예시</span>로 보관.</div><div class="flow">→ <b>강사 답만 → 학생</b> + 오답 예시</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · AskAI Subdeck · 2026 Q2</div><div class="page"><b>02 · 04</b> / 02 · 06</div></div>
+      </div>
+    </div>
+
+    <!-- 02.05 약점 + 자동복습 -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">02 · 05</span><span>약점 + 자동복습</span><span class="dim">— 실수 신호 → 복습 카드</span></div>
+      <div class="slide s-two">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>02 · AskAI · <span class="sys">약점 + 자동복습</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">AskAI</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>약점은 <span class="acc">4 가지 신호</span>로 새어 들어온다.<br/>그 다음 자동 복습이 매일 분배한다.</h2>
+            <div class="subtitle">4 신호 · 임계치 기반 dedup · SuperMemo-2 학원 변형 + "모름" 즉시 재진입</div>
+          </div>
+          <div class="two equal">
+            <div>
+              <h3>— LEFT · 4 가지 실수 신호</h3>
+              <div class="s-signals">
+                <div class="signal hot">
+                  <div><div class="name">시험 오답</div><div class="d">시험에서 1번 틀려도 — <b>가장 강한 신호</b></div></div>
+                  <div class="th">≥ 1 (즉시)</div>
+                </div>
+                <div class="signal">
+                  <div><div class="name">AI 풀이 체크 실패</div><div class="d">AI와 풀이 검토 중 <b>3회 이상</b> 막힐 때</div></div>
+                  <div class="th">≥ 3</div>
+                </div>
+                <div class="signal">
+                  <div><div class="name">숙제 감점</div><div class="d">숙제 감점 <b>2점 이상</b> 누적 시</div></div>
+                  <div class="th">≥ 2</div>
+                </div>
+                <div class="signal hot">
+                  <div><div class="name">단원 X 표시</div><div class="d">강사가 학생 단원에 X 체크 — 무조건 카드화</div></div>
+                  <div class="th">무조건</div>
+                </div>
+              </div>
+              <p style="margin-top:12px; font-size:12px; color:var(--ink-3); font-weight:500;">※ 같은 약점 신호가 중복 발생하면 자동 제외. 복습 카드 인플레이션 방지.</p>
+            </div>
+            <div>
+              <h3>— RIGHT · 자동 복습 (잊을 때쯤 다시)</h3>
+              <div class="s-ratings">
+                <div class="rating"><div class="l">EASY</div><div class="v">쉬움</div><div class="next">interval × ease</div></div>
+                <div class="rating"><div class="l">OK</div><div class="v">보통</div><div class="next">interval × 1.0</div></div>
+                <div class="rating"><div class="l">HARD</div><div class="v">어려움</div><div class="next">interval × 0.6</div></div>
+                <div class="rating dunno"><div class="l">DUNNO</div><div class="v">모름</div><div class="next">interval = 0</div></div>
+              </div>
+              <div class="s-variants">
+                <div class="variant">
+                  <div class="l">학원 변형 1</div>
+                  <div class="t">"모름" → <span class="acc">즉시 재진입</span></div>
+                  <div class="d">표준 5단계 대신 4단계. dunno면 interval=0 → 바로 mobile-chat 라우팅.</div>
+                </div>
+                <div class="variant">
+                  <div class="l">학원 변형 2</div>
+                  <div class="t">첫 3 회 review 간격 <span class="acc">고정</span></div>
+                  <div class="d">ease와 무관하게 1 / 3 / 7 일. 학생 부담 ↓ + 초기 정착률 ↑.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · AskAI Subdeck · 2026 Q2</div><div class="page"><b>02 · 05</b> / 02 · 06</div></div>
+      </div>
+    </div>
+
+    <!-- 02.06 Use Case -->
+    <div class="frame">
+      <div class="frame-label"><span class="num">02 · 06</span><span>Use Case</span><span class="dim">— 학생이 보는 실제 화면</span></div>
+      <div class="slide s-usecase">
+        <div class="curve"><svg><use href="#curves"/></svg></div>
+        <div class="chrome">
+          <div class="chrome-top">
+            <div class="section-label"><span class="dot"></span><span>02 · AskAI · <span class="sys">Use Case</span></span></div>
+            <div class="brand">와와<span class="mute"> · </span><span class="sys">AskAI</span></div>
+          </div>
+          <div class="slide-head">
+            <h2>학생 입장에서 <span class="acc">한 번의 질문</span>이 이렇게 보인다.</h2>
+            <div class="subtitle">apps/student/src/pages/AskAIHubPage — 모바일 PWA 화면</div>
+          </div>
+
+          <div class="layout">
+            <div class="hero" data-tag="STUDENT · MOBILE · ASKAI HUB · LIVE">
+              <img class="screenshot" src="img/student-ask-ai-hub.png" alt="AskAI Hub — 학생 모바일 화면 (서재용 / 확통 III-1 단원)" />
+            </div>
+
+            <div class="annotations">
+              <div class="anno">
+                <span class="n">1</span>
+                <div class="body">
+                  <div class="t">사진 또는 글로 질문</div>
+                  <div class="d">학생이 막힌 문제를 <span class="acc">사진 한 장</span>으로 또는 텍스트로 입력. 두 진입점.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">2</span>
+                <div class="body">
+                  <div class="t">학원 단원지에서 자료 검색</div>
+                  <div class="d">현재 단원 <span class="acc">확통 III-1</span>을 자동 인식 → 학원 자체 단원지에서 관련 부분 자동 찾기.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">3</span>
+                <div class="body">
+                  <div class="t">일일 quota 시각화</div>
+                  <div class="d">"오늘 남은 질문 27/30" — 비용 통제 + 학생에게 <span class="acc">신중한 질문</span> 유도.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">4</span>
+                <div class="body">
+                  <div class="t">하단 Drill 카드</div>
+                  <div class="d">자동 복습큐가 분배한 <span class="acc">매일 복습 카드</span>. 학생이 하루 학습을 *여기서 시작*.</div>
+                </div>
+              </div>
+              <div class="anno">
+                <span class="n">5</span>
+                <div class="body">
+                  <div class="t">AI 자신감 낮음 → 강사 알림</div>
+                  <div class="d">AI 자신 없는 답은 <span class="acc">강사 큐로 자동 라우팅</span> · 강사 코멘트 시 학생 알림.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chrome-bottom"><div class="meta">와와 EduTech Stack · AskAI Subdeck · 2026 Q2</div><div class="page"><b>02 · 06</b> / 02 · 06 · END</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="canvas-footer">
+    <h2>End of AskAI subdeck<em> · 6 frames</em></h2>
+    <span></span>
+    <div class="meta"><div>Indigo <b>#4f46e5</b> · System 02 of 07</div></div>
+  </footer>
+
+</main>
+</body>
+</html>

@@ -22,6 +22,7 @@ import { handleStudent } from '@/routes/student-handler';
 import { handleTeachers } from '@/routes/teachers-handler';
 import { handleSettings } from '@/routes/settings-handler';
 import { handleAI } from '@/routes/ai-handler';
+import { handleAskAI } from '@/routes/ask-ai-handler';
 import { handleAbsence } from '@/routes/absence-handler';
 import { handleBoard } from '@/routes/board-handler';
 import { handleOnboard } from '@/routes/onboard-handler';
@@ -30,6 +31,8 @@ import { handleMeeting } from '@/routes/meeting-handler';
 import { handleGachaStudent } from '@/routes/gacha-student-handler';
 import { handleGachaCard } from '@/routes/gacha-card-handler';
 import { handleNotifications } from '@/routes/notifications-handler';
+import { handleCalendar } from '@/routes/calendar-handler';
+import { handlePlayCalendar } from '@/routes/play-calendar-handler';
 import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
@@ -149,6 +152,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       if (pathname.startsWith('/api/play/live')) {
         return addCorsHeaders(await handlePlayLive(method, pathname, request, context), env, origin);
       }
+      if (pathname.startsWith('/api/play/calendar')) {
+        return addCorsHeaders(await handlePlayCalendar(method, pathname, request, context), env, origin);
+      }
       if (pathname.startsWith('/api/play/')) {
         return addCorsHeaders(await handleGachaPlay(method, pathname, request, context), env, origin);
       }
@@ -166,6 +172,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학부모 숙제 피드백 조회/파일 (HMAC 토큰 기반 공개)
       if (pathname.startsWith('/api/parent-homework/')) {
         return addCorsHeaders(await handleParentHomework(method, pathname, request, context), env, origin);
+      }
+
+      // ask-ai: 학생/강사 두 인증 모두 핸들러 내부에서 자체 분기 (전역 JWT auth 우회)
+      if (pathname.startsWith('/api/ask-ai/')) {
+        return addCorsHeaders(await handleAskAI(method, pathname, request, context), env, origin);
       }
 
       // 인증 체크 (logout, 다른 protected routes)
@@ -262,6 +273,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 알림 (JWT 인증)
       if (pathname.startsWith('/api/notifications')) {
         return addCorsHeaders(await handleNotifications(method, pathname, request, context), env, origin);
+      }
+
+      // 캘린더 (JWT 인증, 강사·관리자)
+      if (pathname.startsWith('/api/calendar')) {
+        return addCorsHeaders(await handleCalendar(method, pathname, request, context), env, origin);
       }
 
       // 가차 학생/카드 관리 (JWT 인증)

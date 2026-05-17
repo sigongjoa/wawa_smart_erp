@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:live": "E2E_LIVE=1 playwright test",
     "test:e2e:report": "npx ts-node e2e/generate-pdf-report.ts"
   },
   "dependencies": {

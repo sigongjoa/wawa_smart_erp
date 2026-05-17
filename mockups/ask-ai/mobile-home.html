@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#fafbfc" />
+<title>설명 AI · 묻기 — 모바일 홈</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* desktop: 폰 프리뷰처럼 */
+  body {
+    background: var(--ink-05);
+    min-height: 100dvh;
+  }
+  .viewport {
+    max-width: 430px;
+    margin: 0 auto;
+    background: var(--bg-canvas);
+    min-height: 100dvh;
+    position: relative;
+    overflow-x: hidden;
+  }
+  @media (min-width: 480px) {
+    body { padding: 32px 0; }
+    .viewport {
+      min-height: calc(100dvh - 64px);
+      border-radius: 36px;
+      overflow: hidden;
+      box-shadow: var(--shadow-frame);
+      border: 1px solid var(--ink-09);
+    }
+  }
+
+  /* skip link + focus + reduced motion */
+
+  /* ───────────────────────────── header */
+  header.app {
+    padding: calc(var(--safe-top) + 24px) 22px 12px;
+    background: var(--bg-canvas);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .greeting {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 18px;
+  }
+  .greeting .avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--type-grass); color: white;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 17px;
+    letter-spacing: -0.02em;
+    box-shadow: 0 2px 6px rgba(63,161,41,0.25);
+  }
+  .greeting h1 {
+    font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .greeting h1 b { color: var(--type-grass); font-weight: 800; }
+  .greeting .sub {
+    font-size: 12px; color: var(--ink-60);
+    margin-top: 2px;
+  }
+  .greeting .bell {
+    margin-left: auto;
+    width: 44px; height: 44px;
+    border-radius: 50%; border: none;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    color: var(--ink-72);
+    display: grid; place-items: center;
+    cursor: pointer;
+    position: relative;
+  }
+  .greeting .bell::after {
+    content: ""; position: absolute; top: 10px; right: 11px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 0 2px var(--bg-card);
+  }
+  .greeting .bell:active { background: var(--ink-05); }
+
+  /* unit progress strip */
+  .unit-strip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border-radius: 999px;
+    border: var(--border-hair);
+    margin-bottom: 4px;
+    width: fit-content;
+  }
+  .unit-strip .swatch {
+    width: 24px; height: 24px; border-radius: 7px;
+    background: var(--type-grass);
+    color: white; display: grid; place-items: center;
+    font-size: 11px; font-weight: 800;
+  }
+  .unit-strip .info {
+    flex: 1; min-width: 0;
+  }
+  .unit-strip .info .label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--ink-60); text-transform: uppercase;
+  }
+  .unit-strip .info .name {
+    font-size: 14px; font-weight: 700; color: var(--ink);
+    line-height: 1.2;
+    white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+  }
+  .unit-strip .progress {
+    text-align: right;
+    font-feature-settings: 'tnum' 1;
+  }
+  .unit-strip .progress .pct {
+    font-size: 16px; font-weight: 900; color: var(--ink);
+    letter-spacing: -0.02em; line-height: 1;
+  }
+  .unit-strip .progress .dim {
+    font-size: 10px; color: var(--ink-60);
+    margin-top: 2px;
+  }
+
+  /* main scroll area */
+  main {
+    padding: 20px 22px calc(var(--tabbar-h) + var(--safe-bottom) + 32px);
+  }
+
+  .section-label {
+    font-size: 11px; font-weight: 800;
+    color: var(--ink-60);
+    letter-spacing: 0.6px; text-transform: uppercase;
+    margin: 32px 0 12px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .section-label .ct {
+    color: var(--ink-40);
+    font-feature-settings: 'tnum' 1;
+  }
+  .section-label .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--danger);
+    display: inline-block;
+  }
+  .section-label .more {
+    margin-left: auto;
+    color: var(--primary); text-decoration: none; font-weight: 600;
+    font-size: 12px; letter-spacing: 0;
+    text-transform: none;
+  }
+  .section-label:first-child { margin-top: 12px; }
+
+  /* ───────────────────────────── HERO — 묻기 시작 */
+  .hero-ask {
+    margin: 12px 0 4px;
+    background: var(--primary);
+    color: white;
+    border-radius: var(--r-lg);
+    padding: 28px 24px 0;
+    overflow: hidden;
+  }
+  .hero-ask h2 {
+    font-size: 22px; font-weight: 900;
+    letter-spacing: -0.02em; line-height: 1.2;
+    position: relative;
+  }
+  .hero-ask h2 em {
+    font-style: normal;
+    background: linear-gradient(180deg, transparent 60%, rgba(250,192,0,0.4) 60%);
+    padding: 0 2px;
+  }
+  .hero-ask p.lede {
+    margin-top: 10px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.5;
+  }
+  .hero-ask .actions {
+    margin: 24px -24px 0;
+    display: grid; grid-template-columns: 1.4fr 1fr;
+    gap: 1px;
+    background: rgba(255,255,255,0.12);
+  }
+  .hero-ask .actions a {
+    background: var(--primary);
+    padding: 22px 18px 26px;
+    text-decoration: none;
+    color: white;
+    display: flex; flex-direction: column;
+    gap: 6px;
+    transition: background 150ms var(--ease);
+    min-height: 96px;
+  }
+  .hero-ask .actions a:active { background: var(--primary-hover); }
+  .hero-ask .actions a .ico {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.15);
+    display: grid; place-items: center;
+    margin-bottom: 4px;
+  }
+  .hero-ask .actions a .ico svg { width: 20px; height: 20px; }
+  .hero-ask .actions a .label {
+    font-size: 15px; font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .hero-ask .actions a .hint { display: none; }
+
+  /* quota bar */
+  .quota {
+    margin-top: 20px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12px;
+  }
+  .quota .label {
+    color: var(--ink-60); font-weight: 600;
+  }
+  .quota .bar {
+    flex: 1;
+    height: 6px; border-radius: 3px;
+    background: var(--ink-05);
+    overflow: hidden;
+    position: relative;
+  }
+  .quota .bar i {
+    display: block; height: 100%;
+    background: var(--type-grass);
+    border-radius: 3px;
+    width: 73%;
+  }
+  .quota .num {
+    color: var(--ink); font-weight: 800;
+    font-feature-settings: 'tnum' 1;
+    font-size: 13px;
+  }
+  .quota .num small { color: var(--ink-60); font-weight: 600; }
+
+  /* ───────────────────────────── 오늘 복습 카드 */
+  .drill-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px;
+    padding: 16px 18px;
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-left: 4px solid var(--type-electric);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-card);
+    text-decoration: none; color: inherit;
+    transition: transform 150ms var(--ease);
+    margin-bottom: 4px;
+    align-items: center;
+  }
+  .drill-card:active { transform: scale(0.985); }
+  .drill-card .drill-left {
+    text-align: left;
+    border-right: 1px dashed var(--ink-09);
+    padding-right: 14px;
+  }
+  .drill-card .drill-left .big {
+    font-size: 28px; font-weight: 900; letter-spacing: -0.02em;
+    line-height: 1;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    color: var(--ink);
+  }
+  .drill-card .drill-left .big .dim {
+    font-size: 13px; font-weight: 700; color: var(--ink-60);
+    margin-left: 2px;
+  }
+  .drill-card .drill-left .sub {
+    margin-top: 6px;
+    font-size: 11px; color: var(--ink-60); font-weight: 600;
+  }
+  .drill-card .drill-right {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    align-content: center;
+  }
+  .drill-card .src-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10.5px; font-weight: 700;
+    background: var(--ink-05);
+    color: var(--c, var(--ink-72));
+    border: 1px solid color-mix(in srgb, var(--c) 20%, transparent);
+  }
+
+  /* ───────────────────────────── 이어할 대화 (resume) */
+  .resume {
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: var(--r-lg);
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    box-shadow: var(--shadow-card);
+    border-left: 4px solid var(--type-grass);
+    position: relative;
+    transition: transform 150ms var(--ease);
+  }
+  .resume:active { transform: scale(0.985); }
+  .resume .top {
+    display: flex; align-items: baseline; gap: 6px;
+    margin-bottom: 8px;
+    font-size: 12px; color: var(--ink-60); font-weight: 600;
+  }
+  .resume .top .subj { color: var(--type-grass); font-weight: 700; }
+  .resume .top .when {
+    margin-left: auto;
+    color: var(--ink-60); font-weight: 600;
+    text-transform: none; letter-spacing: 0;
+    font-feature-settings: 'tnum' 1;
+  }
+  .resume h3 {
+    font-size: 15.5px; font-weight: 700; line-height: 1.5;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+  .resume .progress-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; color: var(--ink-60);
+  }
+  .resume .dots {
+    display: flex; gap: 4px; flex: 1;
+  }
+  .resume .dots i {
+    width: 22px; height: 4px; border-radius: 2px;
+    background: var(--ink-09);
+  }
+  .resume .dots i.done { background: var(--type-grass); }
+  .resume .dots i.now {
+    background: var(--type-grass);
+    box-shadow: 0 0 0 2px rgba(63,161,41,0.2);
+  }
+  .resume .next {
+    color: var(--type-grass); font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .resume .next svg { width: 14px; height: 14px; }
+
+  /* ───────────────────────────── 강사 코멘트 알림 */
+  .teacher-note {
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-left: 3px solid var(--type-water);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    display: flex; gap: 12px;
+    align-items: flex-start;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+  .teacher-note .who {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--ink); color: white;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 12px;
+    flex-shrink: 0;
+  }
+  .teacher-note .body { flex: 1; min-width: 0; }
+  .teacher-note .body .from {
+    font-size: 11.5px; color: var(--ink-60); margin-bottom: 4px;
+  }
+  .teacher-note .body .from b { color: var(--ink); font-weight: 700; }
+  .teacher-note .body .quote {
+    font-size: 14.5px; line-height: 1.55; color: var(--ink);
+    font-weight: 500;
+  }
+  .teacher-note .ctx { display: none; }
+
+  /* ───────────────────────────── 최근 활동 */
+  .recent-list {
+    display: flex; flex-direction: column;
+    gap: 10px;
+  }
+  .recent-item {
+    background: var(--bg-card);
+    border: var(--border-hair);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 4px 1fr auto;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    align-items: center;
+  }
+  .recent-item .stripe {
+    align-self: stretch;
+    background: var(--c, var(--ink-09));
+    border-radius: 2px;
+  }
+  .recent-item .info {
+    min-width: 0;
+  }
+  .recent-item .row1 {
+    font-size: 11px; font-weight: 700;
+    color: var(--c, var(--ink-60));
+    letter-spacing: 0.4px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .recent-item .preview {
+    font-size: 14px; line-height: 1.5;
+    color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+  }
+  .recent-item .when {
+    font-size: 11px; color: var(--ink-60);
+    font-feature-settings: 'tnum' 1;
+    flex-shrink: 0;
+  }
+
+  /* ───────────────────────────── 오늘의 힌트 */
+  .tip {
+    margin-top: 24px;
+    padding: 16px 18px;
+    background: var(--bg-paper);
+    border-radius: var(--r-md);
+    font-size: 13px;
+    color: var(--ink-72);
+    line-height: 1.65;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .tip .ico {
+    color: var(--type-electric); font-size: 16px;
+    line-height: 1; flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .tip b { color: var(--ink); font-weight: 700; }
+
+  /* ───────────────────────────── tabbar */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .tabbar-inner {
+    max-width: 430px; margin: 0 auto;
+    background: var(--bg-card);
+    border-top: var(--border-hair);
+    padding: 8px 12px calc(8px + var(--safe-bottom));
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    pointer-events: auto;
+  }
+  @media (min-width: 480px) {
+    .tabbar { bottom: 32px; }
+    .tabbar-inner {
+      border-top: none;
+      border-radius: 0 0 36px 36px;
+    }
+  }
+  .tab {
+    background: none; border: none;
+    padding: 8px 4px;
+    color: var(--ink-60);
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    text-decoration: none;
+    font-family: inherit;
+    border-radius: var(--r-sm);
+    transition: color 150ms var(--ease);
+    min-height: 48px;
+    position: relative;
+  }
+  .tab svg { width: 22px; height: 22px; }
+  .tab .label {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .tab.active { color: var(--primary); }
+  .tab.active::before {
+    content: ""; position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 28px; height: 3px;
+    background: var(--primary); border-radius: 0 0 3px 3px;
+  }
+  .tab .badge {
+    position: absolute; top: 4px; right: 28%;
+    min-width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 0 2px var(--bg-card);
+  }
+  .tab:active { color: var(--ink); }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+<div class="viewport">
+
+  <header class="app">
+    <div class="greeting">
+      <div class="avatar" aria-hidden="true">루</div>
+      <div>
+        <h1>안녕, <b>루다</b>!</h1>
+      </div>
+      <button class="bell" aria-label="알림 1건">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+    </div>
+
+    <div class="unit-strip" role="status">
+      <div class="swatch" aria-hidden="true">증</div>
+      <div class="info">
+        <div class="name">확통 III-1 · 표본분포</div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- HERO: 묻기 시작 -->
+    <section class="hero-ask" aria-labelledby="ask-heading">
+      <h2 id="ask-heading">모르겠는 거,<br><em>바로 물어봐</em>.</h2>
+      <nav class="actions" aria-label="질문 시작 방법" style="margin-top:22px;">
+        <a href="./mobile-photo.html">
+          <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/></svg>
+          </span>
+          <span class="label">사진으로 묻기</span>
+          <span class="hint">교과서·내 풀이 사진 → AI 채점</span>
+        </a>
+        <a href="./mobile-write.html">
+          <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </span>
+          <span class="label">글로 묻기</span>
+          <span class="hint">한 줄도, 길게도</span>
+        </a>
+      </nav>
+    </section>
+
+    <!-- 오늘 복습 -->
+    <h2 class="section-label">오늘 복습</h2>
+    <a class="drill-card" href="./mobile-drill.html" aria-label="오늘 복습 시작 — 8장 약 5분">
+      <div class="drill-left">
+        <div class="big">8<span class="dim">장</span></div>
+        <div class="sub">약 5분 · 4일 연속</div>
+      </div>
+      <div class="drill-right">
+        <span class="src-tag" style="--c: var(--type-grass);">AskAI 3</span>
+        <span class="src-tag" style="--c: var(--type-ground);">시험 2</span>
+        <span class="src-tag" style="--c: var(--type-electric);">숙제 2</span>
+        <span class="src-tag" style="--c: var(--type-water);">단원지 1</span>
+      </div>
+    </a>
+
+    <!-- 이어할 대화 -->
+    <h2 class="section-label">이어할 대화</h2>
+    <a class="resume" href="./mobile-chat.html" aria-label="확통 III-1 표본분포 대화 이어하기">
+      <div class="top">
+        <span class="subj">증명</span>· 확통 III-1 표본분포
+        <span class="when">10분 전</span>
+      </div>
+      <h3>표본평균의 분산이 왜 σ²/n 인가요?</h3>
+      <div class="progress-row">
+        <div class="dots" aria-hidden="true">
+          <i class="done"></i><i class="done"></i><i class="now"></i><i></i>
+        </div>
+        <span class="next">3 / 4 단계 이어하기
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <polyline points="9 18 15 12 9 6"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- 강사 코멘트 알림 -->
+    <h2 class="section-label">강사 코멘트<span class="dot" aria-label="새 알림"></span></h2>
+    <a class="teacher-note" href="#">
+      <div class="who" aria-hidden="true">서</div>
+      <div class="body">
+        <div class="from"><b>서재용 쌤</b> · 어제</div>
+        <div class="quote">루다, 4단계 빈칸 답해서 다시 보내봐. 그게 진짜 마무리야.</div>
+      </div>
+    </a>
+
+    <!-- 최근 활동 -->
+    <h2 class="section-label">최근 질문</h2>
+    <div class="recent-list">
+      <a class="recent-item" href="#" style="--c: var(--type-water)">
+        <div class="stripe"></div>
+        <div class="info">
+          <p class="preview">a^m × a^n 인지 a^(m+n) 인지 헷갈려요</p>
+        </div>
+        <span class="when">어제</span>
+      </a>
+      <a class="recent-item" href="#" style="--c: var(--type-grass)">
+        <div class="stripe"></div>
+        <div class="info">
+          <p class="preview">Z = (X − μ) / σ 의 의미가 뭐예요?</p>
+        </div>
+        <span class="when">2일 전</span>
+      </a>
+    </div>
+
+  </main>
+
+  <!-- bottom tab bar -->
+  <nav class="tabbar" aria-label="주 메뉴">
+    <div class="tabbar-inner">
+      <a class="tab" href="#" aria-label="홈">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="label">홈</span>
+      </a>
+      <a class="tab active" href="./mobile-home.html" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="label">묻기</span>
+        <span class="badge" aria-hidden="true"></span>
+      </a>
+      <a class="tab" href="#" aria-label="자료">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span class="label">자료</span>
+      </a>
+      <a class="tab" href="#" aria-label="숙제">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="label">숙제</span>
+      </a>
+      <a class="tab" href="#" aria-label="내 정보">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="label">나</span>
+      </a>
+    </div>
+  </nav>
+</div>
+</body>
+</html>

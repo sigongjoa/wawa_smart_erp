@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>설명 AI · 김시우 — 사진으로 묻기</title>
+
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="./_shared.css">
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-display);
+    color: var(--ink);
+    background: var(--bg-canvas);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-rows: 64px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "side topbar"
+      "side main"
+      "side composer";
+    height: 100dvh;
+  }
+  @media (max-width: 560px) {
+    .shell { grid-template-columns: 1fr; grid-template-areas: "topbar" "main" "composer"; }
+    .sidebar { display: none; }
+  }
+
+  /* sidebar */
+  .sidebar {
+    grid-area: side;
+    background: var(--bg-card);
+    border-right: var(--border-hair);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px 0;
+    gap: 8px;
+  }
+  .sidebar .back, .sidebar .nav {
+    width: 36px; height: 36px; border-radius: 10px;
+    border: none; background: transparent;
+    color: var(--ink-60); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .sidebar .back:hover { background: var(--ink-05); color: var(--ink); }
+  .sidebar .mark {
+    margin-top: auto;
+    width: 32px; height: 32px; border-radius: 10px;
+    background: var(--primary); color: white;
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 13px;
+  }
+
+  /* topbar */
+  .topbar {
+    grid-area: topbar;
+    border-bottom: var(--border-hair);
+    background: var(--bg-card);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+  }
+  .topbar h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .topbar h1 .ai { color: var(--ink-40); font-weight: 500; margin-left: 6px; }
+  .ctx-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 8px;
+    background: var(--type-grass-surface);
+    border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+    color: var(--type-grass);
+  }
+  .ctx-chip .swatch {
+    width: 16px; height: 16px; border-radius: 5px;
+    background: var(--type-grass); color: white;
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 800;
+  }
+  .topbar .spacer { flex: 1; }
+  .topbar .session-meta {
+    font-size: 12px; color: var(--ink-60);
+    font-feature-settings: 'tnum' 1;
+  }
+  .topbar .session-meta b { color: var(--ink); font-weight: 700; margin-right: 4px; }
+
+  /* main */
+  .main {
+    grid-area: main;
+    overflow-y: auto;
+    padding: 32px clamp(16px, 4vw, 48px) 48px;
+  }
+  .conversation {
+    max-width: 760px; margin: 0 auto;
+    display: flex; flex-direction: column;
+    gap: 32px;
+  }
+
+  /* ─────────────── 학생 질문 — 사진 두 장이 주인공 */
+  .question {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 16px;
+  }
+  .question .who {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--type-grass); color: white;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 13px;
+  }
+  .question .body { padding-top: 4px; }
+  .question .meta {
+    display: flex; gap: 8px; align-items: baseline;
+    font-size: 11px; color: var(--ink-60);
+    letter-spacing: 0.4px; text-transform: uppercase; font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .question .meta b { color: var(--ink); letter-spacing: -0.01em; text-transform: none; font-size: 13px; font-weight: 700; }
+  .question p {
+    padding: 14px 18px;
+    background: var(--bg-question);
+    border-radius: var(--r-md);
+    border: 1px solid rgba(45, 58, 140, 0.08);
+    font-size: 15px; line-height: 1.55;
+    margin-bottom: 14px;
+  }
+
+  /* 사진 두 장: 가로 스크롤 갤러리 */
+  .photo-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 600px) { .photo-strip { grid-template-columns: 1fr; } }
+
+  .photo {
+    background: var(--bg-card);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-photo);
+    overflow: hidden;
+    position: relative;
+  }
+  .photo .photo-label {
+    position: absolute; top: 8px; left: 8px;
+    padding: 3px 8px;
+    background: rgba(17, 20, 26, 0.85);
+    color: white;
+    border-radius: 5px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.4px;
+    z-index: 2;
+  }
+  .photo .photo-meta {
+    padding: 8px 12px;
+    border-top: var(--border-hair);
+    font-size: 11px; color: var(--ink-60);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--bg-card);
+  }
+  .photo .photo-meta b { color: var(--ink); font-weight: 700; }
+  .photo svg { display: block; width: 100%; height: auto; }
+
+  /* 교과서 페이지 톤 (살짝 누런 종이) */
+  .photo.textbook svg { background: #faf6ee; }
+
+  /* 노트 페이지 톤 (옅은 베이지 + 줄) */
+  .photo.notebook svg { background: var(--bg-photo); }
+
+  /* ─────────────── AI 단계 (student-chat 과 동일 톤) */
+  .step {
+    position: relative;
+    padding-left: 64px;
+  }
+  .step .num {
+    position: absolute; left: 0; top: 4px;
+    width: 44px; height: 44px;
+    background: var(--ink); color: var(--bg-canvas);
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 900;
+    line-height: 1; letter-spacing: -0.04em;
+  }
+  .step .num::after {
+    content: ""; position: absolute; left: 50%; top: 100%;
+    width: 1px; height: calc(100% + 16px);
+    background: var(--ink-09);
+    transform: translateX(-0.5px);
+  }
+  .step:last-of-type .num::after { display: none; }
+  .step h3 {
+    font-size: 19px; font-weight: 800; letter-spacing: -0.01em;
+    line-height: 1.3; margin-bottom: 4px;
+  }
+  .step .step-tag {
+    display: inline-block;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-60); margin-bottom: 8px;
+  }
+  .step .body { font-size: 15.5px; line-height: 1.7; color: var(--ink-72); }
+  .step .body p + p { margin-top: 12px; }
+  .step .body .katex-display { margin: 16px 0; }
+
+  /* OCR 결과 인용 — "내가 너 사진에서 읽은 건" */
+  .ocr-paste {
+    margin: 14px 0;
+    padding: 16px 18px;
+    background: var(--bg-paper);
+    border-radius: var(--r-md);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .ocr-paste .src {
+    display: flex; gap: 8px; align-items: center;
+    font-size: 11px; font-weight: 700;
+    color: var(--ink-60); letter-spacing: 0.4px; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .ocr-paste .src b { color: var(--ink); letter-spacing: -0.01em; text-transform: none; font-weight: 700; font-size: 12px; }
+  .ocr-paste .src .badge-ok {
+    margin-left: auto;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.4px;
+    background: var(--success); color: white;
+    text-transform: none;
+  }
+  .ocr-paste .stmt { font-size: 14.5px; color: var(--ink); line-height: 1.6; }
+  .ocr-paste .confirm-row {
+    display: flex; gap: 8px; align-items: center;
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px dashed var(--ink-09);
+    font-size: 12.5px; color: var(--ink-60);
+  }
+  .ocr-paste .confirm-row .yes,
+  .ocr-paste .confirm-row .fix {
+    height: 28px; padding: 0 10px;
+    border-radius: 7px; border: 1px solid var(--ink-09);
+    background: var(--bg-card);
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    color: var(--ink); cursor: pointer;
+  }
+  .ocr-paste .confirm-row .yes { background: var(--ink); color: white; border-color: var(--ink); }
+  .ocr-paste .confirm-row .yes:hover { background: var(--primary); border-color: var(--primary); }
+  .ocr-paste .confirm-row .fix:hover { border-color: var(--ink-40); }
+
+  /* annotated photo (학생 풀이 + 빨간펜 오버레이) */
+  .annotated {
+    margin: 16px 0;
+    background: var(--bg-card);
+    border: 1px solid var(--ink-09);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .annotated .annot-head {
+    padding: 10px 14px;
+    border-bottom: var(--border-hair);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--ink-72);
+    background: var(--bg-card);
+  }
+  .annotated .annot-head .pen {
+    width: 14px; height: 14px;
+    border-radius: 4px; background: var(--pen-red);
+    display: grid; place-items: center;
+    color: white; font-size: 9px; font-weight: 800;
+  }
+  .annotated .annot-head b { color: var(--ink); font-weight: 700; }
+  .annotated .annot-head .toggle {
+    margin-left: auto;
+    font-size: 11px; color: var(--primary); font-weight: 600;
+    background: none; border: none; cursor: pointer;
+  }
+  .annotated .annot-head .toggle:hover { text-decoration: underline; }
+  .annotated svg { display: block; width: 100%; height: auto; background: var(--bg-photo); }
+
+  /* annotation legend */
+  .annot-legend {
+    padding: 10px 14px;
+    border-top: var(--border-hair);
+    background: var(--bg-card);
+    display: flex; gap: 16px; flex-wrap: wrap;
+    font-size: 12px; color: var(--ink-72);
+  }
+  .annot-legend .item { display: inline-flex; align-items: center; gap: 6px; }
+  .annot-legend .swatch {
+    width: 12px; height: 12px; border-radius: 4px;
+    border: 2px solid var(--pen-red);
+    background: var(--pen-red-soft);
+  }
+  .annot-legend .swatch.fix { background: var(--type-grass); border-color: var(--type-grass); }
+  .annot-legend .swatch.under {
+    border: none; height: 3px; background: var(--pen-red);
+  }
+
+  /* checkpoint */
+  .ck {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, transparent 0%, var(--primary-surface) 100%);
+    border: 1px dashed rgba(45, 58, 140, 0.35);
+    border-radius: var(--r-md);
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .ck .ck-q {
+    font-size: 14px; font-weight: 600; color: var(--primary);
+    flex: 1 1 200px;
+  }
+  .ck .ck-q::before { content: "✦"; margin-right: 6px; color: var(--type-grass); }
+  .ck button {
+    height: 36px; padding: 0 14px; border-radius: 9px;
+    border: 1px solid transparent;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .ck .yes { background: var(--primary); color: white; }
+  .ck .no  { background: transparent; color: var(--ink-72); border: 1px solid var(--ink-20); }
+
+  /* ─────────────── composer (업로드 UX 풀세트) */
+  .composer {
+    grid-area: composer;
+    border-top: var(--border-hair);
+    background: var(--bg-card);
+    padding: 14px clamp(16px, 4vw, 48px);
+  }
+  .composer-inner { max-width: 760px; margin: 0 auto; }
+
+  .dropzone {
+    border: 1.5px dashed var(--ink-20);
+    border-radius: var(--r-md);
+    padding: 14px;
+    transition: all 200ms var(--ease);
+    background: var(--bg-canvas);
+    margin-bottom: 10px;
+  }
+  .dropzone.drag-over {
+    border-color: var(--primary);
+    background: var(--primary-surface);
+  }
+  .dropzone-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .dropzone-head .label {
+    font-size: 12px; font-weight: 700; color: var(--ink);
+  }
+  .dropzone-head .hint {
+    font-size: 11px; color: var(--ink-60);
+  }
+  .dropzone-head .clear {
+    margin-left: auto;
+    font-size: 11px; color: var(--ink-60);
+    background: none; border: none; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+  }
+  .dropzone-head .clear:hover { color: var(--danger); }
+
+  /* attached photo chips */
+  .attached-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .attached {
+    position: relative;
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    background: var(--bg-photo);
+    overflow: hidden;
+    border: 1px solid var(--ink-09);
+  }
+  .attached svg { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .attached .x {
+    position: absolute; top: 4px; right: 4px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(17, 20, 26, 0.7); color: white;
+    border: none; cursor: pointer;
+    display: grid; place-items: center;
+    font-size: 10px; line-height: 1;
+  }
+  .attached .x:hover { background: var(--danger); }
+  .attached .name {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 2px 4px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.65));
+    font-size: 9px; color: white; font-weight: 600;
+    text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .add-more {
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    border: 1.5px dashed var(--ink-20);
+    background: transparent;
+    display: grid; place-items: center;
+    color: var(--ink-60); cursor: pointer;
+    transition: all 150ms var(--ease);
+  }
+  .add-more:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* upload sources strip */
+  .sources {
+    display: flex; gap: 6px; margin-top: 10px;
+    padding-top: 10px;
+    border-top: var(--border-hair);
+  }
+  .src-btn {
+    flex: 1;
+    height: 32px; padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--ink-09);
+    background: var(--bg-card);
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    color: var(--ink-72);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+    transition: all 150ms var(--ease);
+  }
+  .src-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .src-btn kbd {
+    font-family: var(--font-mono); font-size: 9px;
+    padding: 1px 4px; border-radius: 3px;
+    background: var(--ink-05); color: var(--ink-60);
+    border: 1px solid var(--ink-09);
+    margin-left: 2px;
+  }
+
+  /* text + send row */
+  .composer-text-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px; align-items: end;
+  }
+  .composer textarea {
+    resize: none;
+    border: 1px solid var(--ink-09);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    font-family: inherit; font-size: 14.5px; line-height: 1.5;
+    color: var(--ink);
+    background: var(--bg-canvas);
+    min-height: 44px; max-height: 140px;
+  }
+  .composer textarea:focus { outline: none; border-color: var(--primary); background: var(--bg-card); }
+  .composer textarea::placeholder { color: var(--ink-60); }
+
+  .composer .send {
+    height: 44px; padding: 0 18px;
+    border-radius: var(--r-md);
+    background: var(--ink); color: var(--bg-canvas);
+    border: none;
+    font-family: inherit; font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+  .composer .send:hover { background: var(--primary); }
+
+  .composer .footnote {
+    margin-top: 8px;
+    display: flex; gap: 12px;
+    font-size: 11px; color: var(--ink-60);
+  }
+  .composer .footnote .lock { color: var(--ink-60); }
+  .composer .footnote .quota { margin-left: auto; }
+  .composer .footnote .quota b { color: var(--ink); }
+
+  /* katex tweaks */
+  .katex { font-size: 1.05em; }
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<div class="shell">
+
+  <aside class="sidebar">
+    <button class="back" title="뒤로" aria-label="뒤로">
+      <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="mark">와</div>
+  </aside>
+
+  <header class="topbar">
+    <h1>설명 AI<span class="ai">/ 와와</span></h1>
+    <span class="ctx-chip"><span class="swatch">증</span>중2 기하 · 이등변삼각형 증명</span>
+    <span class="spacer"></span>
+    <span class="session-meta"><b>김시우</b>· 오늘 10:15 시작 · 사진 2장</span>
+  </header>
+
+  <main class="main" id="main">
+    <div class="conversation">
+
+      <!-- 학생 질문 — 두 사진과 함께 -->
+      <article class="question">
+        <div class="who">시</div>
+        <div class="body">
+          <div class="meta"><b>김시우</b><span>· 10:15</span></div>
+          <p>이 문제 풀었는데 쌤이 틀렸대요… 어디가 틀렸는지 모르겠어요. 제 풀이 사진도 같이 올려요.</p>
+
+          <div class="photo-strip">
+            <!-- 사진 1: 교과서 문제 -->
+            <figure class="photo textbook">
+              <span class="photo-label"><span aria-hidden="true">📷</span> 사진 1 — 교과서 문제</span>
+              <svg viewBox="0 0 320 220" role="img" aria-label="교과서 페이지">
+                <!-- subtle paper texture lines -->
+                <g stroke="rgba(0,0,0,0.025)" stroke-width="1">
+                  <line x1="0" y1="42"  x2="320" y2="42"/>
+                  <line x1="0" y1="80"  x2="320" y2="80"/>
+                  <line x1="0" y1="118" x2="320" y2="118"/>
+                  <line x1="0" y1="156" x2="320" y2="156"/>
+                  <line x1="0" y1="194" x2="320" y2="194"/>
+                </g>
+
+                <!-- 페이지 헤더 -->
+                <text x="20" y="28" font-family="Pretendard Variable" font-size="9" fill="#888"
+                      letter-spacing="1.5">2-3 도형의 닮음</text>
+                <text x="300" y="28" text-anchor="end" font-family="Pretendard Variable"
+                      font-size="9" fill="#888">14</text>
+
+                <!-- 제목 -->
+                <rect x="18" y="40" width="50" height="16" rx="3" fill="#1c4ea8"/>
+                <text x="43" y="51" text-anchor="middle" font-family="Pretendard Variable"
+                      font-size="10" font-weight="700" fill="white">증명 1.4</text>
+                <text x="76" y="52" font-family="Pretendard Variable"
+                      font-size="13" font-weight="700" fill="#11141a">이등변삼각형의 두 밑각은 같다.</text>
+
+                <!-- 본문 -->
+                <text x="20" y="78" font-family="Pretendard Variable" font-size="11" fill="#333">
+                  삼각형 ABC에서 AB = AC 일 때,
+                </text>
+                <text x="20" y="94" font-family="Pretendard Variable" font-size="11" fill="#333">
+                  ∠B = ∠C 임을 증명하시오.
+                </text>
+
+                <!-- 도형 -->
+                <g transform="translate(180, 120)">
+                  <polygon points="0,-30 -34,30 34,30" fill="none" stroke="#11141a" stroke-width="1.4"/>
+                  <text x="0" y="-36" text-anchor="middle" font-family="Pretendard Variable" font-size="10" font-weight="600">A</text>
+                  <text x="-42" y="38" text-anchor="middle" font-family="Pretendard Variable" font-size="10" font-weight="600">B</text>
+                  <text x="42" y="38" text-anchor="middle" font-family="Pretendard Variable" font-size="10" font-weight="600">C</text>
+                  <!-- equal marks on AB AC -->
+                  <line x1="-19" y1="-3" x2="-15" y2="3" stroke="#11141a" stroke-width="1.2"/>
+                  <line x1="15" y1="-3" x2="19" y2="3" stroke="#11141a" stroke-width="1.2"/>
+                </g>
+
+                <!-- 풀이란 placeholder -->
+                <text x="20" y="160" font-family="Pretendard Variable" font-size="9" fill="#999">
+                  〔증명〕
+                </text>
+                <line x1="20"  y1="178" x2="155" y2="178" stroke="#ddd" stroke-dasharray="2 3"/>
+                <line x1="20"  y1="196" x2="155" y2="196" stroke="#ddd" stroke-dasharray="2 3"/>
+              </svg>
+              <div class="photo-meta">
+                <span><b>증명1-4-textbook.jpg</b> · 320KB</span>
+                <span>2초 전</span>
+              </div>
+            </figure>
+
+            <!-- 사진 2: 학생 손글씨 풀이 -->
+            <figure class="photo notebook">
+              <span class="photo-label"><span aria-hidden="true">📷</span> 사진 2 — 내 풀이</span>
+              <svg viewBox="0 0 320 220" role="img" aria-label="학생 손글씨 풀이">
+                <!-- notebook ruled lines -->
+                <g stroke="#c8b89a" stroke-width="0.6" opacity="0.55">
+                  <line x1="0"  y1="34"  x2="320" y2="34"/>
+                  <line x1="0"  y1="66"  x2="320" y2="66"/>
+                  <line x1="0"  y1="98"  x2="320" y2="98"/>
+                  <line x1="0"  y1="130" x2="320" y2="130"/>
+                  <line x1="0"  y1="162" x2="320" y2="162"/>
+                  <line x1="0"  y1="194" x2="320" y2="194"/>
+                </g>
+                <!-- left margin -->
+                <line x1="32" y1="0" x2="32" y2="220" stroke="#d99a9a" stroke-width="0.8" opacity="0.6"/>
+
+                <!-- 손글씨 (Gaegu) -->
+                <g font-family="Gaegu, sans-serif" fill="#1c2436">
+                  <text x="40" y="28" font-size="14" font-weight="700">[증명]</text>
+                  <text x="40" y="58" font-size="13">① AB = AC 이다 (가정)</text>
+                  <text x="40" y="90" font-size="13">② ∠B = ∠C  (이등변삼각형이니까)</text>
+                  <text x="40" y="122" font-size="13">③ 따라서 ∠B = ∠C 이다.</text>
+                  <text x="40" y="154" font-size="13">      ∴  증명 끝.  ☆</text>
+                </g>
+
+                <!-- 데이트 도장 우상단 -->
+                <g transform="translate(240, 14)">
+                  <rect width="64" height="16" rx="2" fill="none" stroke="#888" stroke-width="0.5"/>
+                  <text x="32" y="11" text-anchor="middle" font-family="Pretendard Variable"
+                        font-size="8" fill="#666">2026.05.14</text>
+                </g>
+              </svg>
+              <div class="photo-meta">
+                <span><b>my-proof.jpg</b> · 412KB</span>
+                <span>2초 전</span>
+              </div>
+            </figure>
+          </div>
+        </div>
+      </article>
+
+      <!-- step 1 — AI가 사진 인식한 결과 (확인용) -->
+      <article class="step" data-step="1">
+        <div class="num">1</div>
+        <span class="step-tag">사진 읽기</span>
+        <h3>네 사진에서 두 가지 읽었어 — 맞는지 확인부터</h3>
+        <div class="body">
+          <p>잘못 읽었으면 한 번에 고쳐줘. 그래야 이후 풀이도 맞아.</p>
+
+          <div class="ocr-paste">
+            <div class="src">
+              <span><span aria-hidden="true">📷</span></span><b>증명1-4-textbook.jpg</b> 에서 읽은 문제
+              <span class="badge-ok">자신 있음</span>
+            </div>
+            <div class="stmt">
+              <b>주어진:</b> $\triangle ABC$ 에서 $\overline{AB} = \overline{AC}$.<br>
+              <b>증명할 것:</b> $\angle B = \angle C$.
+            </div>
+            <div class="confirm-row">
+              <span>이 문제가 맞아?</span>
+              <button class="yes">응, 맞아</button>
+              <button class="fix">아니, 직접 고칠래</button>
+            </div>
+          </div>
+
+          <div class="ocr-paste">
+            <div class="src">
+              <span><span aria-hidden="true">✍</span><span aria-hidden="true">️</span></span><b>my-proof.jpg</b> 에서 읽은 너의 풀이
+              <span class="badge-ok" style="background: var(--warning); color: var(--ink);">한 줄 모호</span>
+            </div>
+            <div class="stmt">
+              ① $\overline{AB} = \overline{AC}$ &nbsp; <i>(가정)</i><br>
+              ② $\angle B = \angle C$ &nbsp; <i>(이등변삼각형이니까)</i><br>
+              ③ 따라서 $\angle B = \angle C$ 이다.
+            </div>
+            <div class="confirm-row">
+              <span>이게 네가 적은 풀이 맞아?</span>
+              <button class="yes">응, 맞아</button>
+              <button class="fix">②번 다시 적을래</button>
+            </div>
+          </div>
+        </div>
+        <div class="ck"><span class="ck-q">두 인식 결과 OK?</span></div>
+      </article>
+
+      <!-- step 2 — 빨간펜 채점 (annotated overlay) -->
+      <article class="step" data-step="2">
+        <div class="num">2</div>
+        <span class="step-tag">어디가 무너졌는지</span>
+        <h3>네 풀이에 빨간펜으로 표시해봤어</h3>
+        <div class="body">
+          <p>핵심은 <b>②번 한 줄</b>이야. 정답 자체를 이유로 들었어 — <b>증명할 걸 가정으로 가져다 쓴</b> 셈이야. 이걸 <i>순환논리</i>라고 불러.</p>
+
+          <div class="annotated">
+            <div class="annot-head">
+              <span class="pen"><span aria-hidden="true">✎</span></span>
+              <b>my-proof.jpg</b> · AI 채점 오버레이
+              <button class="toggle">원본만 보기</button>
+            </div>
+            <svg viewBox="0 0 320 220" role="img" aria-label="학생 풀이에 빨간펜 채점">
+              <!-- 노트 줄 -->
+              <g stroke="#c8b89a" stroke-width="0.6" opacity="0.55">
+                <line x1="0" y1="34" x2="320" y2="34"/>
+                <line x1="0" y1="66" x2="320" y2="66"/>
+                <line x1="0" y1="98" x2="320" y2="98"/>
+                <line x1="0" y1="130" x2="320" y2="130"/>
+                <line x1="0" y1="162" x2="320" y2="162"/>
+                <line x1="0" y1="194" x2="320" y2="194"/>
+              </g>
+              <line x1="32" y1="0" x2="32" y2="220" stroke="#d99a9a" stroke-width="0.8" opacity="0.6"/>
+
+              <!-- 학생 손글씨 -->
+              <g font-family="Gaegu, sans-serif" fill="#1c2436">
+                <text x="40" y="28" font-size="14" font-weight="700">[증명]</text>
+
+                <!-- ① OK 표시 -->
+                <text x="40" y="58" font-size="13">① AB = AC 이다 (가정)</text>
+                <text x="280" y="60" font-size="16" fill="#3FA129" font-weight="700">✓</text>
+
+                <!-- ② 잘못된 줄 — 빨간 박스 -->
+                <rect x="36" y="74" width="240" height="22" rx="3"
+                      fill="rgba(217, 46, 46, 0.10)"
+                      stroke="#d92e2e" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <text x="40" y="90" font-size="13">② ∠B = ∠C  (이등변삼각형이니까)</text>
+
+                <!-- ③ 무효 표시 (빗금) -->
+                <text x="40" y="122" font-size="13">③ 따라서 ∠B = ∠C 이다.</text>
+                <line x1="40" y1="119" x2="220" y2="125" stroke="#d92e2e" stroke-width="1.5"/>
+
+                <text x="40" y="154" font-size="13">      ∴  증명 끝.  ☆</text>
+                <line x1="80" y1="151" x2="170" y2="155" stroke="#d92e2e" stroke-width="1.5"/>
+              </g>
+
+              <!-- 빨간펜 주석 (오른쪽 마진) -->
+              <g font-family="Gaegu, sans-serif" fill="#d92e2e" font-weight="700">
+                <!-- ②에 화살표 -->
+                <path d="M 280 90 Q 290 90 290 105" fill="none" stroke="#d92e2e" stroke-width="1.5"/>
+                <text x="287" y="118" font-size="12">↑ 여기!</text>
+
+                <!-- 본문 외부 주석박스 -->
+                <g transform="translate(170, 175)">
+                  <rect x="0" y="0" width="142" height="36" rx="6" fill="#fff5f5" stroke="#d92e2e" stroke-width="1"/>
+                  <text x="8" y="14" font-size="11" font-weight="700">"이등변이니까" 가</text>
+                  <text x="8" y="29" font-size="11" font-weight="700">곧 ∠B=∠C 라는 뜻이야.</text>
+                </g>
+              </g>
+            </svg>
+
+            <div class="annot-legend">
+              <span class="item"><span class="swatch"></span> 의심 구간</span>
+              <span class="item"><span class="swatch under"></span> 무효 처리</span>
+              <span class="item"><span class="swatch fix"></span> 통과한 줄</span>
+            </div>
+          </div>
+
+          <p>그러니까 네가 '이등변이니까 두 밑각이 같다'고 적은 건 결국 <b>"두 밑각이 같으니까 두 밑각이 같다"</b>를 적은 거야. 이유가 비어있는 거지.</p>
+        </div>
+        <div class="ck"><span class="ck-q">왜 ②번이 안 되는지 감이 잡혀?</span></div>
+      </article>
+
+      <!-- step 3 — 다시 제대로 가는 길 -->
+      <article class="step" data-step="3">
+        <div class="num">3</div>
+        <span class="step-tag">바로 잡는 길</span>
+        <h3>보조선 한 줄로 무너지지 않는 풀이가 돼</h3>
+        <div class="body">
+          <p>꼭짓점 $A$ 에서 밑변 $BC$ 의 중점 $M$ 으로 보조선 $\overline{AM}$ 을 그어. 그러면 $\triangle ABM$ 과 $\triangle ACM$ 이 생기는데:</p>
+
+          <div class="annotated">
+            <div class="annot-head">
+              <span class="pen" style="background: var(--type-grass);"><span aria-hidden="true">✦</span></span>
+              <b>제대로 된 풀이</b> · AI 그림
+            </div>
+            <svg viewBox="0 0 320 200" role="img" aria-label="보조선이 들어간 이등변삼각형">
+              <g transform="translate(160, 170)">
+                <!-- 삼각형 -->
+                <polygon points="0,-130 -90,0 90,0" fill="none" stroke="#11141a" stroke-width="1.5"/>
+                <!-- 보조선 -->
+                <line x1="0" y1="-130" x2="0" y2="0" stroke="#3FA129" stroke-width="1.8" stroke-dasharray="5 3"/>
+                <!-- 직각 표시 -->
+                <polyline points="-7,-7 -7,0 0,0" fill="none" stroke="#3FA129" stroke-width="1"/>
+                <!-- 라벨 -->
+                <text x="0" y="-138" text-anchor="middle" font-family="Pretendard Variable" font-size="12" font-weight="700">A</text>
+                <text x="-98" y="14" font-family="Pretendard Variable" font-size="12" font-weight="700">B</text>
+                <text x="92" y="14" font-family="Pretendard Variable" font-size="12" font-weight="700">C</text>
+                <text x="0" y="14" text-anchor="middle" font-family="Pretendard Variable" font-size="12" font-weight="700" fill="#3FA129">M</text>
+                <!-- equal marks AB AC -->
+                <line x1="-49" y1="-67" x2="-44" y2="-62" stroke="#11141a" stroke-width="1.4"/>
+                <line x1="44" y1="-67" x2="49" y2="-62" stroke="#11141a" stroke-width="1.4"/>
+                <!-- equal marks BM MC -->
+                <line x1="-47" y1="-3" x2="-43" y2="3" stroke="#11141a" stroke-width="1.4"/>
+                <line x1="43" y1="-3" x2="47" y2="3" stroke="#11141a" stroke-width="1.4"/>
+              </g>
+              <!-- 캡션 -->
+              <text x="160" y="194" text-anchor="middle" font-family="Pretendard Variable"
+                    font-size="11" fill="rgba(17,20,26,0.6)">$M$ = $BC$ 의 중점, $\overline{AM}$ = 보조선</text>
+            </svg>
+          </div>
+
+          <p>이제 두 삼각형에서:</p>
+          <p>$$\overline{AB} = \overline{AC} \;\text{(가정)},\quad \overline{BM} = \overline{CM} \;\text{(중점)},\quad \overline{AM}\;\text{공통}$$</p>
+          <p>세 변이 같으니 <b>SSS 합동</b>. 합동인 두 삼각형의 대응각은 같으니까 결국 $\angle B = \angle C$.</p>
+          <p>이번엔 ②번 자리에 <b>"SSS 합동이라서"</b> 가 들어가니까 이유가 진짜 있어. 이게 차이야.</p>
+        </div>
+        <div class="ck">
+          <span class="ck-q">보조선 아이디어 익혔어?</span>
+          <button class="yes">응, 다음 단계로</button>
+          <button class="no">합동조건 다시 설명</button>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- composer — 업로드 풀세트 -->
+  <footer class="composer">
+    <div class="composer-inner">
+
+      <div class="dropzone" id="dz">
+        <div class="dropzone-head">
+          <span class="label"><span aria-hidden="true">📎</span> 첨부된 사진</span>
+          <span class="hint">2 / 5 · JPG·PNG·HEIC, 5MB 이하</span>
+          <button class="clear" aria-label="첨부 사진 모두 지우기">전부 지우기</button>
+        </div>
+        <div class="attached-row">
+          <div class="attached" title="증명1-4-textbook.jpg">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 64 64"><rect width="64" height="64" fill="#faf6ee"/>
+              <text x="32" y="20" text-anchor="middle" font-family="Pretendard Variable" font-size="6" fill="#888">2-3 도형의 닮음</text>
+              <rect x="6" y="24" width="18" height="6" rx="1" fill="#1c4ea8"/>
+              <text x="15" y="29" text-anchor="middle" font-family="Pretendard Variable" font-size="4.5" font-weight="700" fill="white">증명1.4</text>
+              <text x="6" y="42" font-family="Pretendard Variable" font-size="5" fill="#333">AB=AC 일 때</text>
+              <text x="6" y="50" font-family="Pretendard Variable" font-size="5" fill="#333">∠B=∠C 증명</text>
+              <polygon points="50,38 42,52 58,52" fill="none" stroke="#11141a" stroke-width="0.6"/>
+            </svg>
+            <button class="x" title="제거" aria-label="첨부 사진 제거">×</button>
+            <span class="name">증명1-4-textbook.jpg</span>
+          </div>
+          <div class="attached" title="my-proof.jpg">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 64 64"><rect width="64" height="64" fill="#efece4"/>
+              <line x1="0" y1="14" x2="64" y2="14" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <line x1="0" y1="26" x2="64" y2="26" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <line x1="0" y1="38" x2="64" y2="38" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <line x1="0" y1="50" x2="64" y2="50" stroke="#c8b89a" stroke-width="0.5" opacity="0.6"/>
+              <g font-family="Gaegu, sans-serif" fill="#1c2436">
+                <text x="6" y="12" font-size="6" font-weight="700">[증명]</text>
+                <text x="6" y="24" font-size="5">①AB=AC</text>
+                <text x="6" y="36" font-size="5">②∠B=∠C</text>
+                <text x="6" y="48" font-size="5">③ 끝.</text>
+              </g>
+            </svg>
+            <button class="x" title="제거" aria-label="첨부 사진 제거">×</button>
+            <span class="name">my-proof.jpg</span>
+          </div>
+          <button class="add-more" title="사진 더 추가" aria-label="사진 더 추가">
+            <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <div class="sources">
+          <button class="src-btn" title="기기에서 파일 선택">
+            <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            파일 선택
+          </button>
+          <button class="src-btn" title="카메라로 찍기">
+            <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            카메라
+          </button>
+          <button class="src-btn" title="화면 캡처 붙여넣기">
+            <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            붙여넣기 <kbd>⌘V</kbd>
+          </button>
+          <button class="src-btn" title="이전 대화에서 가져오기">
+            <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+            내 노트에서
+          </button>
+        </div>
+      </div>
+
+      <div class="composer-text-row">
+        <label class="sr-only" for="ta-studentphoto">문제와 함께 보낼 메시지</label>
+      <textarea id="ta-studentphoto" aria-label="문제와 함께 보낼 메시지" placeholder="사진과 함께 한 줄로 물어봐. (예: '어디가 틀렸는지 봐주세요')">이 문제 풀었는데 쌤이 틀렸대요… 어디가 틀렸는지 모르겠어요.</textarea>
+        <button class="send">물어보기</button>
+      </div>
+
+      <div class="footnote">
+        <span class="lock"><span aria-hidden="true">🔒</span> 사진은 학원 서버에서만 처리되고 7일 후 자동삭제돼.</span>
+        <span class="quota">오늘 남은 질문 <b>22</b>/30 · 사진 <b>3</b>/10</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$',  right: '$',  display: false}
+          ],
+          throwOnError: false
+        });"></script>
+
+<script>
+  // 드래그앤드롭 시각 피드백
+  const dz = document.getElementById('dz');
+  ['dragenter','dragover'].forEach(ev =>
+    document.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(ev =>
+    document.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag-over'); }));
+
+  // 첨부 칩 제거
+  document.querySelectorAll('.attached .x').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    b.closest('.attached').style.transition = 'opacity 200ms';
+    b.closest('.attached').style.opacity = '0';
+    setTimeout(() => b.closest('.attached').remove(), 200);
+  }));
+
+  // annotation toggle
+  document.querySelectorAll('.annot-head .toggle').forEach(b => b.addEventListener('click', () => {
+    const wrap = b.closest('.annotated');
+    const annotated = wrap.querySelectorAll('svg [stroke="#d92e2e"], svg [fill="#d92e2e"], svg [fill="#3FA129"]');
+    const isHidden = wrap.dataset.hidden === '1';
+    annotated.forEach(el => el.style.display = isHidden ? '' : 'none');
+    b.textContent = isHidden ? '원본만 보기' : '오버레이 다시 보기';
+    wrap.dataset.hidden = isHidden ? '0' : '1';
+  }));
+</script>
+</body>
+</html>

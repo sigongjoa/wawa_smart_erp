@@ -1,230 +1,72 @@
-# WAWA Smart ERP — Claude 작업 가이드
+# CLAUDE.md — AI 협업 및 작업 가이드
 
-이 문서는 신규 핸들러를 추가하거나 기존 코드를 수정할 때 반드시 따라야 하는 보안·성능·코드 패턴을 정리합니다. **2026-04 보안 라운드 1~24의 회귀 방지가 목적**.
+이 문서는 AI(Claude)가 코드를 작성할 때 지켜야 할 **행동 지침**과 WAWA Smart ERP 프로젝트의 **기술적 제약 사항**을 정의합니다.
 
-## 프로젝트 구조
+---
 
-```
-workers/                    # Cloudflare Workers 백엔드 (D1 + KV + R2)
-  src/
-    routes/                 # 도메인별 핸들러 (auth, student, exam, vocab, ...)
-    middleware/             # auth, cors, rateLimit
-    utils/                  # db, crypto, sanitize, jwt, response, logger, ...
-    types/                  # TypeScript 타입
-  migrations/               # D1 SQL 마이그레이션 (순번 prefix)
-apps/
-  desktop/                  # 강사 React 앱 (Cloudflare Pages)
-  student/                  # 학생 React 앱 (Cloudflare Pages, PIN 토큰 인증)
-docs/USECASES.md           # 유즈케이스 인덱스 (UC-A1, UC-S1, ...)
-```
+## Ⅰ. Behavioral Guidelines (행동 지침)
+*Andrej Karpathy의 코딩 가이드라인을 바탕으로 하며, 속도보다 정확성과 단순성을 우선합니다.*
 
-## 핵심 보안 규칙 (신규 핸들러는 모두 따를 것)
+### 1. 구현 전 사고 (Think Before Coding)
+- **가정하지 마십시오.** 불확실한 점이 있다면 먼저 질문하십시오.
+- **혼동을 숨기지 마십시오.** 여러 해석이 가능할 경우 마음대로 선택하지 말고 옵션을 제시하십시오.
+- **더 단순한 방법이 있다면 제안하십시오.** 불필요하게 복잡한 설계에는 이의를 제기하십시오.
+
+### 2. 단순함 우선 (Simplicity First)
+- **요청받지 않은 기능은 추가하지 마십시오.** (No speculative features)
+- **일회성 코드에 추상화를 도입하지 마십시오.**
+- **불필요한 설정이나 유연성을 부여하지 마십시오.**
+- **200줄의 코드가 50줄로 줄어들 수 있다면 다시 작성하십시오.**
+
+### 3. 외과적 수정 (Surgical Changes)
+- **필요한 곳만 수정하십시오.** 자신의 작업이 아닌 주변 코드, 주석, 포맷을 "개선"하려 하지 마십시오.
+- **기존 스타일을 존중하십시오.** 본인의 선호보다 프로젝트의 기존 컨벤션을 우선합니다.
+- **사용되지 않게 된 코드만 제거하십시오.** 본인의 수정으로 인해 고아가 된 import/변수/함수만 정리합니다. 기존의 데드 코드는 언급만 하고 직접 삭제하지 마십시오.
+
+### 4. 목표 중심 실행 (Goal-Driven Execution)
+- **성공 기준을 정의하십시오.** "그냥 작동하게 하기"가 아닌 구체적인 검증 지표를 세웁니다.
+- **수정 → 검증 루프를 돌리십시오.** 버그 수정 시 재현 테스트를 먼저 작성하고, 이를 통과시키십시오.
+- **다단계 작업 시 계획을 먼저 공유하십시오.** (Step-by-Step plan)
+
+---
+
+## Ⅱ. Project Technical Guidelines (WAWA Smart ERP)
+*2026-04 보안 라운드 1~24의 회귀 방지를 위한 강제 사항입니다.*
 
 ### 1. multi-tenant academy 격리 (필수)
-
 모든 SELECT/UPDATE/DELETE는 `academy_id` 격리 필수.
-
 ```ts
-// 나쁜 예
-'SELECT * FROM gacha_cards WHERE id = ?'
-
-// 좋은 예
+// 좋은 예: academy_id 필터 포함
 'SELECT * FROM gacha_cards WHERE id = ? AND academy_id = ?'
 ```
 
-학생/강사 ID도 본인 학원 소속인지 사전 검증:
-
-```ts
-const student = await executeFirst<{id: string}>(
-  db, 'SELECT id FROM students WHERE id = ? AND academy_id = ?',
-  [input.studentId, academyId]
-);
-if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
-```
-
-**주의**: `academyId` 파라미터만으로는 부족. 학원 내 다른 강사 학생을 잠그려면 `instructor` role은 `student_teachers` 또는 `teacher_id` 필터 추가 필요.
-
 ### 2. 입력 위생화 (`utils/sanitize.ts` 사용)
-
-**모든 텍스트 입력**은 DB/KV 저장 전 위생화 + 길이 캡.
-
-```ts
-import { sanitizeText, sanitizeNullable, sanitizeRequired } from '@/utils/sanitize';
-
-const cleanTitle = sanitizeText(body.title, 200);  // 빈 문자열 가능
-const cleanDesc = sanitizeNullable(body.description, 2000);  // 빈 → null
-const cleanName = sanitizeRequired(body.name, 'name', 50);  // 빈 시 throw
-```
-
-**금지**: 핸들러마다 자체 sanitize 함수 정의. 반드시 `utils/sanitize.ts` 사용.
+모든 텍스트 입력은 DB/KV 저장 전 위생화 + 길이 캡. `sanitizeText`, `sanitizeNullable`, `sanitizeRequired`를 사용하십시오.
 
 ### 3. ID 형식 검증
+URL 파라미터나 body의 ID는 `isValidId`로 반드시 검증하십시오.
 
-URL 파라미터·body의 ID는 `isValidId`로 검증 (path traversal·SQL meta 차단):
+### 4. SQL 파라미터 바인딩
+문자열 보간(`...WHERE id = '${id}'`)은 절대 금지입니다. 항상 `?` 바인딩을 사용하십시오.
 
-```ts
-import { isValidId } from '@/utils/sanitize';
+### 5. 멱등성 및 원자성 가드
+상태 전이 시 `WHERE status NOT IN (...)` 가드를 사용하고, 다중 작업은 `db.batch()`로 묶으십시오.
 
-if (!isValidId(studentId)) return errorResponse('id 형식 오류', 400);
-```
+### 6. N+1 쿼리 방지
+반복문 내부의 DB 호출은 `db.batch()` 또는 `IN (...)` 쿼리로 변환하십시오.
 
-### 4. SQL은 항상 파라미터 바인딩
+### 7. 보안 통신 (R2/PIN/Shared Tokens)
+- **R2**: 위험 MIME 타입 차단, academy_id를 포함한 경로 지정.
+- **PIN**: 반드시 `utils/crypto.ts`의 `hashPin`/`verifyPin`을 사용하십시오.
+- **Shared Tokens**: HMAC 서명 검증 및 만료 확인 필수.
 
-```ts
-// 금지
-db.prepare(`SELECT * FROM students WHERE id = '${id}'`).run();
+### 8. 백업 정책
+DB 스키마 변경 시 마이그레이션 전후로 반드시 `wrangler d1 export`를 수행하십시오.
 
-// 필수
-db.prepare('SELECT * FROM students WHERE id = ?').bind(id).run();
-```
+---
 
-문자열 보간 SQL은 PR review에서 즉시 reject.
-
-### 5. 멱등 가드 (status 전이 작업)
-
-제출/종료 같은 상태 전이는 race condition + 재시도 시 두 번 실행되지 않도록:
-
-```ts
-// 좋은 예
-'UPDATE exam_attempts SET status="submitted" WHERE id=? AND status NOT IN ("submitted","expired","voided")'
-```
-
-여러 UPDATE/INSERT는 `db.batch()`로 원자화:
-
-```ts
-await db.batch([
-  db.prepare('UPDATE attempts SET status="submitted" WHERE id=? AND status="running"').bind(id),
-  db.prepare('UPDATE assignments SET completed=1 WHERE id=?').bind(assignId),
-]);
-```
-
-### 6. N+1 제거
-
-for-loop INSERT/UPDATE는 항상 `db.batch()` 또는 `IN (...)` SELECT로 변환:
-
-```ts
-// 나쁜 예
-for (const id of ids) {
-  await db.prepare('INSERT INTO foo VALUES (?)').bind(id).run();
-}
-
-// 좋은 예
-await db.batch(ids.map(id => db.prepare('INSERT INTO foo VALUES (?)').bind(id)));
-```
-
-병렬 가능한 SELECT는 `Promise.all`:
-
-```ts
-const [a, b] = await Promise.all([queryA(), queryB()]);
-```
-
-### 7. 외부 노출 토큰 (학부모/공개 링크)
-
-HMAC 서명 토큰 + 만료 + rate limit 3종 세트 필수:
-
-```ts
-import { signShareToken, verifyShareToken } from '@/utils/share-token';
-import { parentReportRateLimit } from '@/middleware/rateLimit';
-
-// 검증 실패 시 logSecurity 기록
-const blocked = await parentReportRateLimit(kv, request, targetId);
-if (blocked) return blocked;
-
-const verify = await verifyShareToken(token, targetId, 'kind', secret);
-if (!verify.ok) {
-  logger.logSecurity('TOKEN_INVALID', 'medium', { targetId, reason: verify.reason });
-  return errorResponse(...);
-}
-```
-
-### 8. URL 응답에 origin 신뢰 금지
-
-공유 링크 URL을 만들 때 `request.headers.get('origin')` 그대로 사용 금지 — phishing 위험.
-
-```ts
-function resolveSafeBase(env, requestOrigin: string): string {
-  const allowed = env.APP_BASE_URL;
-  if (allowed) return requestOrigin === allowed ? requestOrigin : allowed;
-  return /^https?:\/\//.test(requestOrigin) ? requestOrigin : '';
-}
-```
-
-### 9. 파일 업로드 (R2)
-
-```ts
-// 1. 위험 mime deny (XSS 호스팅 차단)
-const blocked = ['text/html', 'text/javascript', 'application/javascript', 'image/svg+xml'];
-if (blocked.some(m => file.type.startsWith(m))) return errorResponse('허용되지 않는 형식', 415);
-
-// 2. ext sanitize
-const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 32);
-
-// 3. R2 키에 academy_id 포함 (ACL 검증용)
-const key = `myfolder/${academyId}/...`;
-
-// 4. contentType은 서버가 결정 (file.type 신뢰 금지)
-await BUCKET.put(key, buffer, { httpMetadata: { contentType: 'application/octet-stream' } });
-```
-
-### 10. PIN 해싱은 `utils/crypto.ts`만 사용
-
-```ts
-import { hashPin, verifyPin, isLegacyHash } from '@/utils/crypto';
-
-const stored = await hashPin(pin);  // 100k iter pbkdf2$<iter>$<salt>$<hash>
-const ok = await verifyPin(pin, user.password_hash);
-if (ok && isLegacyHash(user.password_hash)) {
-  // 자동 재해시
-  await db.prepare('UPDATE users SET password_hash=? WHERE id=?').bind(await hashPin(pin), user.id).run();
-}
-```
-
-**금지**: 핸들러에서 자체 PBKDF2 호출 (iteration 약함 위험).
-
-### 11. PIN/시크릿 응답 cache 차단
-
-평문 PIN을 응답 body에 포함하는 경우 (admin reset 등):
-
-```ts
-const resp = successResponse({ tempPin, ... });
-resp.headers.set('Cache-Control', 'no-store, private, max-age=0');
-resp.headers.set('Pragma', 'no-cache');
-return resp;
-```
-
-## 변경 시 백업 정책
-
-DB 스키마 변경 (마이그레이션 추가) **전후로 반드시** 백업:
-
-```bash
-# /erp-backup 스킬 또는 직접 실행:
-wrangler d1 export wawa-smart-erp --remote --output=/tmp/erp-backup/wawa-smart-erp-$(date +%Y%m%d-%H%M).sql
-gdrive upload /tmp/erp-backup/...sql --folder-name "erpbackup"
-```
-
-## 이슈 #106 (보안 트래킹)
-
-라운드별 보안 패치 진행 상황. 신규 핸들러 작성 시 이 이슈에서 패턴 확인 후 적용.
-
-## 보류 중인 H급 항목 (별도 PR)
-
-이 항목들은 위 규칙으로 막을 수 없는 영역 — 마이그레이션·클라이언트 협업 필요:
-
-- **이슈 #60**: localStorage `play_token` → httpOnly 쿠키 전환
-- **SEC-AUTH-M1**: refresh DB 평문 → SHA-256 (마이그레이션 + 사용자 재로그인 강제)
-- **SEC-AUTH-M3**: CSRF 토큰 (state-change 헤더 강제)
-- **SEC-AUTH-M5**: Logout JWT 즉시 무효화 (KV deny-list, 비용)
-
-## 작업 시 체크리스트
-
-신규 핸들러 PR을 만들기 전:
-
-- [ ] 모든 SELECT/UPDATE/DELETE에 `academy_id` 필터?
-- [ ] 외부 입력 ID는 `isValidId` 검증?
-- [ ] 텍스트 필드는 `sanitizeText`/`sanitizeNullable` + 길이 캡?
-- [ ] 상태 전이는 `WHERE status NOT IN (...)` 가드?
-- [ ] for-loop DB 호출 → `db.batch()` 또는 `IN`?
-- [ ] 병렬 가능 SELECT → `Promise.all`?
-- [ ] 파일 업로드는 mime deny + ext sanitize + academy prefix?
-- [ ] 평문 시크릿 응답은 `Cache-Control: no-store`?
-- [ ] DB 스키마 변경 시 마이그레이션 직전·직후 백업?
+## 작업 전 체크리스트
+- [ ] 본인의 코드가 요청 사항에만 직접적으로 연결되어 있는가? (외과적 수정)
+- [ ] `academy_id` 격리가 누락되지 않았는가?
+- [ ] 입력값에 대해 `sanitize` 및 `isValidId` 검증을 수행했는가?
+- [ ] 복잡한 로직을 더 단순화할 수 있는가?
