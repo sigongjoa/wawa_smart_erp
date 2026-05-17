@@ -2557,6 +2557,99 @@ export interface CalendarWidgetEvent {
   unconfirmed_count: number;
 }
 
+// ── 설명 AI · 강사 큐 ──
+
+export type AskAIConfidence = 'low' | 'medium' | 'high';
+export type AskAITeacherDecision = 'ok' | 'comment' | 'ai_wrong';
+export type AskAIQueueSort = 'recent' | 'uncommented_first' | 'needs_teacher_first';
+
+export interface AskAIQueueItem {
+  conversation_id: string;
+  student_id: string;
+  student_name: string;
+  unit: string;
+  confidence: AskAIConfidence;
+  needs_teacher: boolean;
+  decision: AskAITeacherDecision | null;
+  comment_count: number;
+  started_at: string;
+}
+
+export interface AskAIStep {
+  n?: number;
+  title?: string;
+  body?: string;
+  formula?: string;
+  [key: string]: unknown;
+}
+
+export interface AskAIResponseShape {
+  steps?: AskAIStep[];
+  citations?: Array<{ unit?: string; source?: string; ref?: string; [key: string]: unknown }>;
+  checkpoint?: unknown;
+  confidence?: AskAIConfidence;
+  needs_teacher?: boolean;
+  [key: string]: unknown;
+}
+
+export interface AskAIConversationDetail {
+  conversation: {
+    id: string;
+    student_id: string;
+    student_name: string;
+    unit_id: string | null;
+    message: string;
+    response: AskAIResponseShape | null;
+    confidence: AskAIConfidence;
+    needs_teacher: boolean;
+    used_tokens: number | null;
+    duration_ms: number | null;
+    attached_photos: string[];
+    started_at: string;
+  };
+  decisions: Array<{
+    id: number;
+    teacher_id: string;
+    decision: AskAITeacherDecision;
+    comment: string | null;
+    applied_at: string;
+  }>;
+}
+
+export interface AskAIDecisionInput {
+  conversation_id: string;
+  decision: AskAITeacherDecision;
+  comment?: string;
+}
+
+export const askAiTeacherApi = {
+  queue: (opts?: { needs_teacher?: boolean; uncommented?: boolean; sort?: AskAIQueueSort }) => {
+    const params = new URLSearchParams();
+    if (opts?.needs_teacher) params.set('needs_teacher', '1');
+    if (opts?.uncommented) params.set('uncommented', '1');
+    if (opts?.sort) params.set('sort', opts.sort);
+    const qs = params.toString();
+    return request<{ items: AskAIQueueItem[]; total: number }>(
+      `/api/ask-ai/teacher/queue${qs ? `?${qs}` : ''}`,
+    );
+  },
+  getConversation: (id: string) =>
+    request<AskAIConversationDetail>(`/api/ask-ai/teacher/conversations/${encodeURIComponent(id)}`),
+  applyDecision: (input: AskAIDecisionInput) =>
+    request<{
+      conversation_id: string;
+      teacher_id: string;
+      decision: AskAITeacherDecision;
+      comment?: string;
+      notify_student: boolean;
+      flag_for_training: boolean;
+      applied_at: string;
+    }>(`/api/ask-ai/teacher/decision`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+};
+
 export const calendarApi = {
   list: (from: string, to: string) =>
     request<{ events: CalendarEvent[] }>(

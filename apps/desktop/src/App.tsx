@@ -45,6 +45,7 @@ const StudentLessonsPage = lazy(() => import('./pages/StudentLessonsPage'));
 const ParentLessonsPage = lazy(() => import('./pages/ParentLessonsPage'));
 const CurriculumPage = lazy(() => import('./pages/CurriculumPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const TeacherAskAIQueuePage = lazy(() => import('./pages/TeacherAskAIQueuePage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -124,6 +125,7 @@ export default function App() {
             <Route path="/homeroom/exams" element={<HomeroomExamsPage />} />
             <Route path="/medterm" element={<MedTermAdminPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/teacher/ask-ai" element={<TeacherAskAIQueuePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/timer" replace />} />
         </Routes>

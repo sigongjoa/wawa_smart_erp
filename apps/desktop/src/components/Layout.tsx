@@ -54,6 +54,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/gacha/cards', label: '카드 관리', icon: 'Layers' },
       { to: '/gacha/proofs', label: '증명 연습', icon: 'FunctionSquare' },
       { to: '/gacha/dashboard', label: '학습 현황', icon: 'Activity' },
+      { to: '/teacher/ask-ai', label: '설명 AI 큐', icon: 'MessageSquareText' },
     ],
   },
   {

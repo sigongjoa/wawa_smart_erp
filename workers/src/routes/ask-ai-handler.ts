@@ -96,6 +96,15 @@ export async function handleAskAI(
       return await handleTeacherDecision(request, context);
     }
 
+    // 강사용 — GET /teacher/conversations/:id (UC-09 상세)
+    if (method === 'GET' && pathname.startsWith('/api/ask-ai/teacher/conversations/')) {
+      if (auth.role !== 'instructor' && auth.role !== 'admin') {
+        return errorResponse('강사 권한이 필요합니다', 403);
+      }
+      const id = pathname.slice('/api/ask-ai/teacher/conversations/'.length);
+      return await handleTeacherConversation(id, context);
+    }
+
     // 학생 drill — GET /drill/today
     if (method === 'GET' && pathname === '/api/ask-ai/drill/today') {
       return await handleDrillToday(context);
@@ -256,27 +265,33 @@ async function handleGetConversation(id: string, context: RequestContext): Promi
 /* ─────────── 강사 ─────────── */
 
 async function handleTeacherQueue(request: Request, context: RequestContext): Promise<Response> {
+  const auth = context.auth!;
+  const academyId = auth.academyId;
+  if (!academyId) return errorResponse('학원 정보가 없습니다', 400);
+
   const url = new URL(request.url);
   const needsTeacherOnly = url.searchParams.get('needs_teacher') === '1';
   const uncommentedOnly = url.searchParams.get('uncommented') === '1';
   const sort = (url.searchParams.get('sort') ?? 'uncommented_first') as any;
 
-  // 최근 7일 대화 fetch
+  // 최근 7일 대화 — gacha_students JOIN으로 academy 격리 + 학생 이름
   const rows = await context.env.DB.prepare(
-    `SELECT c.id as conversation_id, c.student_id, c.unit_id, c.confidence, c.needs_teacher,
-            c.started_at,
+    `SELECT c.id as conversation_id, c.student_id, g.name as student_name,
+            c.unit_id, c.confidence, c.needs_teacher, c.started_at,
             (SELECT decision FROM askai_decisions WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) as decision,
             (SELECT COUNT(*) FROM askai_decisions WHERE conversation_id = c.id AND decision = 'comment') as comment_count
      FROM askai_conversations c
-     WHERE c.started_at > datetime('now', '-7 days')
+     JOIN gacha_students g ON g.id = c.student_id
+     WHERE g.academy_id = ?
+       AND c.started_at > datetime('now', '-7 days')
      ORDER BY c.started_at DESC
      LIMIT 200`
-  ).all();
+  ).bind(academyId).all();
 
   const summaries: ConversationSummary[] = (rows.results || []).map((r: any) => ({
     conversation_id: r.conversation_id,
     student_id: r.student_id,
-    student_name: r.student_id,  // TODO: students 테이블 조인
+    student_name: r.student_name ?? r.student_id,
     unit: r.unit_id ?? '미분류',
     confidence: r.confidence,
     needs_teacher: !!r.needs_teacher,
@@ -291,8 +306,62 @@ async function handleTeacherQueue(request: Request, context: RequestContext): Pr
   return successResponse({ items: sorted, total: sorted.length });
 }
 
+async function handleTeacherConversation(id: string, context: RequestContext): Promise<Response> {
+  const auth = context.auth!;
+  const academyId = auth.academyId;
+  if (!academyId) return errorResponse('학원 정보가 없습니다', 400);
+  if (!/^[a-zA-Z0-9_-]+$/.test(id) || id.length > 64) {
+    return errorResponse('잘못된 conversation id', 400);
+  }
+
+  // academy 격리 — gacha_students JOIN으로 강사 academy 일치 검증
+  const row = await context.env.DB.prepare(
+    `SELECT c.*, g.name as student_name, g.academy_id as student_academy_id
+     FROM askai_conversations c
+     JOIN gacha_students g ON g.id = c.student_id
+     WHERE c.id = ? AND g.academy_id = ?`
+  ).bind(id, academyId).first();
+  if (!row) return notFoundResponse();
+
+  // 결정 이력
+  const decisionsResult = await context.env.DB.prepare(
+    `SELECT id, teacher_id, decision, comment, applied_at
+     FROM askai_decisions
+     WHERE conversation_id = ?
+     ORDER BY id DESC`
+  ).bind(id).all();
+  const decisions = (decisionsResult.results ?? []) as any[];
+
+  let response: unknown = null;
+  try { response = JSON.parse(row.response_json as string); } catch { response = null; }
+  let attached: string[] = [];
+  try {
+    if (row.attached_photos) attached = JSON.parse(row.attached_photos as string);
+  } catch { attached = []; }
+
+  return successResponse({
+    conversation: {
+      id: row.id,
+      student_id: row.student_id,
+      student_name: row.student_name,
+      unit_id: row.unit_id,
+      message: row.message,
+      response,
+      confidence: row.confidence,
+      needs_teacher: !!row.needs_teacher,
+      used_tokens: row.used_tokens,
+      duration_ms: row.duration_ms,
+      attached_photos: attached,
+      started_at: row.started_at,
+    },
+    decisions,
+  });
+}
+
 async function handleTeacherDecision(request: Request, context: RequestContext): Promise<Response> {
   const auth = context.auth!;
+  const academyId = auth.academyId;
+  if (!academyId) return errorResponse('학원 정보가 없습니다', 400);
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const parsed = TeacherActionRequestSchema.safeParse({
     ...body,
@@ -300,6 +369,18 @@ async function handleTeacherDecision(request: Request, context: RequestContext):
   });
   if (!parsed.success) {
     return errorResponse(parsed.error.message, 400);
+  }
+
+  // academy 격리 — 대상 conversation의 학생이 같은 학원인지 검증
+  const owner = await context.env.DB.prepare(
+    `SELECT g.academy_id as student_academy_id
+     FROM askai_conversations c
+     JOIN gacha_students g ON g.id = c.student_id
+     WHERE c.id = ?`
+  ).bind(parsed.data.conversation_id).first();
+  if (!owner) return notFoundResponse();
+  if ((owner.student_academy_id as string) !== academyId) {
+    return errorResponse('학원 권한이 없습니다', 403);
   }
 
   const result = applyDecision(parsed.data);
