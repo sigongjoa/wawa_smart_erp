@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { askAI } from '@/lib/askAI/client';
+import type { PhotoUploadResult } from '@/lib/askAI/client';
 import type { AskAIResult, Step } from '@/lib/askAI/types';
 import { Points2DChart } from '@/components/Points2DChart';
 import './AskAIPage.css';
@@ -28,11 +29,15 @@ export default function AskAIPage() {
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // UC-03 사진 첨부
+  const [attachedPhotos, setAttachedPhotos] = useState<PhotoUploadResult[]>([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const sendRef = useRef<HTMLButtonElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // KaTeX render — 응답 도착 시 / step expand 시
   useEffect(() => {
@@ -89,11 +94,16 @@ export default function AskAIPage() {
     setError(null);
     setOriginalQuestion(text);
     try {
-      const r = await askAI.ask({ message: text.trim(), unit_id: unit });
+      const r = await askAI.ask({
+        message: text.trim(),
+        unit_id: unit,
+        attached_photos: attachedPhotos.map((p) => p.r2_key),
+      });
       setResult(r);
       setDoneSteps(new Set());
       setExpandedSteps(new Set());
       setMessage('');
+      setAttachedPhotos([]);  // 제출 후 첨부 비우기
       if (composerRef.current) composerRef.current.value = '';
       if (sendRef.current) {
         sendRef.current.disabled = true;
@@ -104,7 +114,7 @@ export default function AskAIPage() {
     } finally {
       setLoading(false);
     }
-  }, [loading, unit]);
+  }, [loading, unit, attachedPhotos]);
 
   const advance = useCallback((idx: number) => {
     setDoneSteps((prev) => new Set([...prev, idx]));
@@ -361,6 +371,46 @@ export default function AskAIPage() {
           </button>
         )}
 
+        {/* 첨부된 사진 미리보기 */}
+        {attachedPhotos.length > 0 && (
+          <div
+            role="list"
+            aria-label="첨부된 사진"
+            style={{
+              display: 'flex', gap: 6, padding: '6px 12px',
+              fontSize: 12, color: 'var(--ink-60, #5e6478)',
+              borderTop: '1px solid var(--ink-09, rgba(0,0,0,0.09))',
+              flexWrap: 'wrap', alignItems: 'center',
+            }}
+          >
+            <span style={{ fontWeight: 700 }}>📎 사진 {attachedPhotos.length}장</span>
+            {attachedPhotos.map((p, i) => (
+              <span
+                key={p.r2_key}
+                role="listitem"
+                style={{
+                  background: 'var(--bg-canvas, #fafbfc)',
+                  border: '1px solid var(--ink-09, rgba(0,0,0,0.09))',
+                  borderRadius: 6, padding: '2px 8px',
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                {(p.size_bytes / 1024).toFixed(0)}KB
+                <button
+                  type="button"
+                  aria-label={`사진 ${i + 1} 제거`}
+                  onClick={() => setAttachedPhotos((prev) => prev.filter((x) => x.r2_key !== p.r2_key))}
+                  style={{
+                    border: 0, background: 'transparent', padding: 0, marginLeft: 2,
+                    cursor: 'pointer', color: 'var(--ink-40, #9098ad)', lineHeight: 1,
+                  }}
+                >×</button>
+              </span>
+            ))}
+            {photoUploading && <span style={{ color: 'var(--primary, #2d3a8c)' }}>업로드 중…</span>}
+          </div>
+        )}
+
         {/* composer */}
         <form
           className="composer"
@@ -370,7 +420,35 @@ export default function AskAIPage() {
             if (text.trim()) submit(text);
           }}
         >
-          <button type="button" className="ico-btn" aria-label="사진 첨부 (준비 중)" disabled>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setPhotoUploading(true);
+              setError(null);
+              try {
+                const uploaded = await askAI.uploadPhoto(file);
+                setAttachedPhotos((prev) => [...prev, uploaded].slice(-5));
+              } catch (err) {
+                setError((err as Error).message || '사진 업로드 실패');
+              } finally {
+                setPhotoUploading(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="ico-btn"
+            aria-label={photoUploading ? '사진 업로드 중' : '사진 첨부'}
+            disabled={photoUploading || attachedPhotos.length >= 5}
+            onClick={() => fileInputRef.current?.click()}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                  strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>

@@ -14,6 +14,31 @@ export interface GeminiAdapterOpts {
   userId: string;
   academyId?: string;
   model?: string;     // gemini-2.5-flash 권장 (한국어 수학 설명, lite보다 한 단계 위)
+  /** UC-03 — 학생이 첨부한 사진 R2 keys (Gemini Vision parts.inlineData 로 변환됨) */
+  attachedPhotoKeys?: string[];
+}
+
+const VISION_ALLOWED_MIMES = new Set([
+  'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
+]);
+
+async function loadPhotosAsParts(env: Env, keys: string[]): Promise<Array<{ mimeType: string; data: string }>> {
+  if (keys.length === 0) return [];
+  const parts: Array<{ mimeType: string; data: string }> = [];
+  for (const key of keys.slice(0, 5)) {  // 최대 5장
+    const obj = await env.BUCKET.get(key);
+    if (!obj) continue;
+    const mimeType = obj.httpMetadata?.contentType?.toLowerCase() || 'image/jpeg';
+    if (!VISION_ALLOWED_MIMES.has(mimeType)) continue;
+    const buf = await obj.arrayBuffer();
+    // base64 encode (worker runtime은 btoa 가능하나 Uint8Array → string 필요)
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const data = btoa(binary);
+    parts.push({ mimeType, data });
+  }
+  return parts;
 }
 
 export class GeminiFetcher implements ClaudeFetcher {
@@ -33,18 +58,26 @@ export class GeminiFetcher implements ClaudeFetcher {
     const userText = userMsgs
       .map((m) => {
         if (typeof m.content === 'string') return m.content;
-        // 멀티모달 — 사진 부분은 일단 텍스트로만 (Gemini vision은 별도 작업)
+        // 사진은 inlineData parts로 별도 전달 — text 블록만 합침
         return m.content
-          .map((b: any) => (b.type === 'text' ? b.text : `[사진 첨부: ${b.source?.data ?? '?'}]`))
+          .map((b: any) => (b.type === 'text' ? b.text : ''))
+          .filter(Boolean)
           .join('\n');
       })
       .join('\n\n');
+
+    // R2 → base64 inlineData parts 로드
+    const imageParts = await loadPhotosAsParts(this.opts.env, this.opts.attachedPhotoKeys ?? []);
+
+    const photoNote = imageParts.length > 0
+      ? `\n(학생이 사진 ${imageParts.length}장을 첨부했습니다. 사진의 수식·도형·문제를 인식해 응답에 반영하세요.)\n`
+      : '';
 
     const prompt = [
       systemText,
       '',
       wrapUserInput('학생 질문', userText),
-      '',
+      photoNote,
       '위 질문에 대한 응답을 schema에 맞춰 JSON으로 반환하세요.',
     ].join('\n');
 
@@ -63,6 +96,7 @@ export class GeminiFetcher implements ClaudeFetcher {
       maxOutputTokens: 8192,
       model: this.opts.model ?? 'gemini-2.5-flash',
       responseSchema: schema,
+      imageParts,
     });
 
     if (result.blocked) {

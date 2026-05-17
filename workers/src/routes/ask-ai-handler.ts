@@ -33,6 +33,7 @@ import { GeminiFetcher } from '@/services/ask-ai/gemini-adapter';
 import { checkQuota, incrementQuota, freshQuotaState, isStaleForToday } from '@/services/ask-ai/quota';
 import { applyDecision, filterQueue, sortQueue, type ConversationSummary } from '@/services/ask-ai/teacher';
 import { nextSM2 } from '@/services/ask-ai/sm2';
+import { makePhotoKey, validatePhotoFile, expirationDate, MAX_PHOTO_BYTES } from '@/services/ask-ai/photo-upload';
 
 const TZ_OFFSET_KST_MS = 9 * 60 * 60 * 1000;
 
@@ -67,6 +68,11 @@ export async function handleAskAI(
     // 학생용 — POST /ask
     if (method === 'POST' && pathname === '/api/ask-ai/ask') {
       return await handleAsk(request, context);
+    }
+
+    // 학생용 — POST /photos/upload (UC-03: 사진 R2 PUT + askai_photos INSERT)
+    if (method === 'POST' && pathname === '/api/ask-ai/photos/upload') {
+      return await handlePhotoUpload(request, context);
     }
 
     // 학생용 — GET /quota
@@ -156,6 +162,7 @@ async function handleAsk(request: Request, context: RequestContext): Promise<Res
     userId: auth.userId,
     academyId: auth.academyId,
     model: 'gemini-2.5-flash',
+    attachedPhotoKeys: req.attached_photos,  // UC-03 Vision
   });
   const result = await orchestrateV2({
     request: req,
@@ -393,6 +400,65 @@ async function handleTeacherDecision(request: Request, context: RequestContext):
 
   // TODO: notify_student → push 발송 큐
   return successResponse(result);
+}
+
+/* ─────────── 사진 업로드 (UC-03) ─────────── */
+
+async function handlePhotoUpload(request: Request, context: RequestContext): Promise<Response> {
+  const auth = context.auth!;
+  const studentId = auth.userId;
+
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().startsWith('multipart/form-data')) {
+    return errorResponse('multipart/form-data 필요', 400);
+  }
+
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return errorResponse('form 파싱 실패', 400);
+  }
+
+  const file = formData.get('photo');
+  if (!(file instanceof File)) {
+    return errorResponse('photo 파일이 없습니다', 400);
+  }
+
+  const mime = (file.type || '').toLowerCase();
+  const check = validatePhotoFile({ size: file.size, mime });
+  if (!check.allowed) {
+    return errorResponse(check.reason ?? '파일 검증 실패', 415);
+  }
+
+  // path traversal 방어
+  if (!/^[a-zA-Z0-9_-]+$/.test(studentId)) {
+    return errorResponse('잘못된 학생 ID', 400);
+  }
+
+  const today = todayKST();
+  const uuid = crypto.randomUUID();
+  const r2Key = makePhotoKey({ student_id: studentId, today, uuid, filename: file.name || 'photo.jpg' });
+
+  // R2 PUT
+  const buf = await file.arrayBuffer();
+  await context.env.BUCKET.put(r2Key, buf, {
+    httpMetadata: { contentType: mime },
+    customMetadata: { student_id: studentId, uploaded_at: new Date().toISOString() },
+  });
+
+  // askai_photos INSERT
+  await context.env.DB.prepare(
+    `INSERT INTO askai_photos (r2_key, student_id, conversation_id, size_bytes, mime, expires_at)
+     VALUES (?, ?, NULL, ?, ?, ?)`
+  ).bind(r2Key, studentId, file.size, mime, expirationDate(today)).run();
+
+  return successResponse({
+    r2_key: r2Key,
+    size_bytes: file.size,
+    mime,
+    expires_at: expirationDate(today),
+  });
 }
 
 /* ─────────── drill ─────────── */

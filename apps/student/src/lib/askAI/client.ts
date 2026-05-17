@@ -71,6 +71,33 @@ export interface AskOpts {
   attached_photos?: string[];
 }
 
+export interface PhotoUploadResult {
+  r2_key: string;
+  size_bytes: number;
+  mime: string;
+  expires_at: string;
+}
+
+async function apiUploadPhoto(file: File): Promise<PhotoUploadResult> {
+  const fd = new FormData();
+  fd.append('photo', file);
+  const res = await fetch(`${API_BASE}/api/ask-ai/photos/upload`, {
+    method: 'POST',
+    headers: { ...authHeaders() },  // Content-Type 자동 (boundary)
+    credentials: 'include',
+    body: fd,
+  });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error('세션이 만료되었습니다');
+  }
+  const json = (await res.json()) as ApiEnvelope<PhotoUploadResult>;
+  if (!res.ok || !json.success) {
+    throw new Error(json.error || `사진 업로드 실패 (HTTP ${res.status})`);
+  }
+  return json.data as PhotoUploadResult;
+}
+
 export const askAI = {
   ask: (opts: AskOpts) => apiPost<AskAIResult>('/ask', opts),
   quota: () => apiGet<QuotaSummary>('/quota'),
@@ -78,4 +105,5 @@ export const askAI = {
   drillToday: () => apiGet<{ cards: any[]; today: string }>('/drill/today'),
   drillRate: (card_id: string, rating: Rating) =>
     apiPost('/drill/rate', { card_id, rating }),
+  uploadPhoto: (file: File) => apiUploadPhoto(file),
 };

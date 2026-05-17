@@ -49,6 +49,8 @@ export interface GeminiOptions {
   model?: string;
   /** 응답을 JSON으로 강제 + 스키마 검증 */
   responseSchema?: object;
+  /** 멀티모달 — Gemini Vision parts.inlineData 로 첨부 */
+  imageParts?: Array<{ mimeType: string; data: string }>;  // data: base64 (no prefix)
 }
 
 export interface GeminiResult {
@@ -94,8 +96,15 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
     generationConfig.responseSchema = opts.responseSchema;
   }
 
+  // Vision: image parts 가 있으면 prompt 텍스트 앞에 끼움
+  const parts: Array<Record<string, unknown>> = [];
+  for (const img of opts.imageParts ?? []) {
+    parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+  }
+  parts.push({ text: prompt });
+
   const body = {
-    contents: [{ parts: [{ text: prompt }] }],
+    contents: [{ parts }],
     generationConfig,
   };
 
