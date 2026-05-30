@@ -223,7 +223,7 @@ export interface TeacherUpdateInput {
 }
 
 export interface StudentProfile extends Student {
-  teachers: { id: string; name: string; is_homeroom?: number }[];
+  teachers: { id: string; name: string; is_homeroom?: number; subjects?: string[] }[];
   homeroom_teacher?: { id: string; name: string } | null;
 }
 
@@ -367,6 +367,7 @@ export interface ReportEntry {
   yearMonth?: string | null;
   term?: string | null;
   scores: ScoreEntry[];
+  studentSubjects?: string[];
   totalComment: string;
 }
 
@@ -394,6 +395,39 @@ export interface RealtimeSession {
   scheduledEndTime?: string | null;
   pauseHistory: PauseRecord[];
   subject?: string | null;
+}
+
+export type ExamPresetMonthRef = 'prev' | 'current' | 'next' | 'next2' | string;
+export type ExamPresetScope = 'mine' | 'all';
+export type ExamPresetVisibility = 'private' | 'academy';
+
+export interface ExamViewPreset {
+  id: string;
+  academy_id: string;
+  owner_user_id: string;
+  name: string;
+  month_ref: ExamPresetMonthRef;
+  scope: ExamPresetScope;
+  visibility: ExamPresetVisibility;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExamPresetInput {
+  name: string;
+  month_ref: ExamPresetMonthRef;
+  scope: ExamPresetScope;
+  visibility: ExamPresetVisibility;
+  sort_order?: number;
+}
+
+export type ExamPresetPatch = Partial<ExamPresetInput>;
+
+export interface ExamMgmtPageState {
+  monthRef?: ExamPresetMonthRef;
+  scope?: ExamPresetScope;
+  subTab?: 'assign' | 'absentees';
 }
 
 export const api = {
@@ -500,7 +534,16 @@ export const api = {
     request<Student>(`/api/student/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteStudent: (id: string) =>
     request(`/api/student/${id}`, { method: 'DELETE' }),
-  setStudentTeachers: (id: string, teacher_ids: string[]) =>
+  setStudentTeachers: (
+    id: string,
+    teachers: { id: string; subjects: string[] }[]
+  ) =>
+    request(`/api/student/${id}/teachers`, {
+      method: 'PUT',
+      body: JSON.stringify({ teachers }),
+    }),
+  /** @deprecated use setStudentTeachers with subjects */
+  _setStudentTeachersLegacy: (id: string, teacher_ids: string[]) =>
     request(`/api/student/${id}/teachers`, { method: 'PUT', body: JSON.stringify({ teacher_ids }) }),
   getTeachers: () =>
     request<TeacherOption[]>('/api/teachers'),
@@ -519,11 +562,12 @@ export const api = {
   // Report — returns ReportEntry[]
   //   월말: getReport({ reportType: 'monthly', yearMonth })
   //   정기고사: getReport({ reportType: 'midterm'|'final', term: 'YYYY-N' })
-  getReport: (params: { reportType?: ReportType; yearMonth?: string; term?: string }) => {
+  getReport: (params: { reportType?: ReportType; yearMonth?: string; term?: string; scope?: 'mine' | 'all' }) => {
     const qp = new URLSearchParams();
     qp.set('reportType', params.reportType || 'monthly');
     if (params.yearMonth) qp.set('yearMonth', params.yearMonth);
     if (params.term) qp.set('term', params.term);
+    if (params.scope) qp.set('scope', params.scope);
     return request<ReportEntry[]>(`/api/report?${qp.toString()}`);
   },
 
@@ -1402,6 +1446,34 @@ export const api = {
   getExamAbsentees: (month: string, scope?: 'all' | 'mine') =>
     request<{ period: ExamPeriod | null; absentees: ExamAbsentee[] }>(
       `/api/exam-mgmt/absentees?month=${encodeURIComponent(month)}${scope === 'all' ? '&scope=all' : ''}`
+    ),
+
+  // ── 정기고사 뷰 프리셋 (migration 075) ──
+  listExamPresets: () => request<ExamViewPreset[]>(`/api/exam-mgmt/presets`),
+  createExamPreset: (input: ExamPresetInput) =>
+    request<ExamViewPreset>(`/api/exam-mgmt/presets`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  updateExamPreset: (id: string, patch: ExamPresetPatch) =>
+    request<ExamViewPreset>(`/api/exam-mgmt/presets/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  deleteExamPreset: (id: string) =>
+    request<{ deleted: true }>(`/api/exam-mgmt/presets/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+
+  // ── 페이지별 마지막 화면 자동 저장 ──
+  getUserPageState: <T = unknown>(pageKey: string) =>
+    request<{ state: T | null; updated_at?: string }>(
+      `/api/user-state/${encodeURIComponent(pageKey)}`
+    ),
+  putUserPageState: <T = unknown>(pageKey: string, state: T | null) =>
+    request<{ saved?: true; cleared?: true }>(
+      `/api/user-state/${encodeURIComponent(pageKey)}`,
+      { method: 'PUT', body: JSON.stringify({ state }) }
     ),
 
   // ── 시험지(유인물) 관리 ──

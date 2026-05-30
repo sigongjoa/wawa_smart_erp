@@ -29,7 +29,7 @@ async function loadTarget(db: D1Database, targetId: string) {
             gs.name as student_name, gs.grade as student_grade
      FROM assignment_targets t
      JOIN assignments a ON a.id = t.assignment_id
-     LEFT JOIN gacha_students gs ON gs.id = t.student_id
+     LEFT JOIN students gs ON gs.id = t.student_id
      WHERE t.id = ?`,
     [targetId]
   );

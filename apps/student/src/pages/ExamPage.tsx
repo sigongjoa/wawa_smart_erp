@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, ExamAttemptFull, ExamListItem } from '../api';
 import { useVisiblePolling } from '../lib/useVisiblePolling';
+import ConfirmSheet from '../components/ConfirmSheet';
+import { Timer } from '@phosphor-icons/react';
 
 type Phase = 'ready' | 'take' | 'result';
 
@@ -24,6 +26,7 @@ export default function ExamPage() {
   const [idx, setIdx] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingSubmit, setConfirmingSubmit] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const saveTimers = useRef<Map<number, number>>(new Map());
   // 재진입 방지: setSubmitting 은 React state 라 비동기 반영됨 → ref 로 즉시 차단
@@ -183,11 +186,15 @@ export default function ExamPage() {
 
   useEffect(() => { autoSubmitRef.current = autoSubmit; }, [autoSubmit]);
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(() => {
     if (!attempt) return;
-    if (!confirm('답안을 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.')) return;
+    setConfirmingSubmit(true);
+  }, [attempt]);
+
+  const confirmSubmit = useCallback(async () => {
+    setConfirmingSubmit(false);
     await autoSubmit();
-  }, [attempt, autoSubmit]);
+  }, [autoSubmit]);
 
   if (error) {
     return (
@@ -209,11 +216,11 @@ export default function ExamPage() {
       <div className="page-center" style={{ padding: 20 }}>
         <div style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
           <h1 style={{ margin: '24px 0 8px' }}>{meta.title}</h1>
-          <p style={{ color: 'var(--ink-60)', marginBottom: 24 }}>
-            ⏱ {meta.durationMinutes}분 · {meta.questionCount}문항
+          <p style={{ color: 'var(--ink-60)', marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Timer size={16} aria-hidden /> {meta.durationMinutes}분 · {meta.questionCount}문항
           </p>
           <div style={{
-            background: '#f7fafc', borderRadius: 12, padding: 16, textAlign: 'left', marginBottom: 24,
+            background: 'var(--bg-canvas)', borderRadius: 12, padding: 16, textAlign: 'left', marginBottom: 24,
             fontSize: 14, color: 'var(--ink-60)', lineHeight: 1.7,
           }}>
             • 답을 선택하면 자동 저장됩니다.<br />
@@ -225,7 +232,7 @@ export default function ExamPage() {
             disabled={!ready}
             style={{
               width: '100%', padding: '14px 20px', fontSize: 16, fontWeight: 700,
-              background: ready ? '#2d3a8c' : '#cbd5e0', color: '#fff',
+              background: ready ? 'var(--primary)' : 'var(--ink-20)', color: '#fff',
               border: 'none', borderRadius: 10, cursor: ready ? 'pointer' : 'not-allowed',
             }}
           >
@@ -261,23 +268,24 @@ export default function ExamPage() {
           <span style={{
             fontSize: 13, fontWeight: 700,
             padding: '4px 10px', borderRadius: 20,
-            background: lowTime ? '#fed7d7' : '#eef0f8',
-            color: lowTime ? '#c53030' : '#2d3a8c',
+            background: lowTime ? 'var(--danger-surface)' : 'var(--primary-surface)',
+            color: lowTime ? 'var(--danger)' : 'var(--primary)',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
           }}>
-            ⏱ {fmtMMSS(remaining)}
+            <Timer size={14} aria-hidden /> {fmtMMSS(remaining)}
           </span>
         </div>
         <div style={{ height: 4, background: 'var(--ink-09)', borderRadius: 99, overflow: 'hidden', marginBottom: 20 }}>
           <div style={{
-            height: '100%', background: '#2d3a8c', width: `${(idx / Math.max(1, total)) * 100}%`,
+            height: '100%', background: 'var(--primary)', width: `${(idx / Math.max(1, total)) * 100}%`,
             transition: 'width .2s',
           }} />
         </div>
 
         {/* 문제 */}
         <div style={{
-          background: '#f7fafc', borderRadius: 12, padding: 20, marginBottom: 16,
-          minHeight: 120, fontSize: 16, lineHeight: 1.7, color: '#1a202c',
+          background: 'var(--bg-canvas)', borderRadius: 12, padding: 20, marginBottom: 16,
+          minHeight: 120, fontSize: 16, lineHeight: 1.7, color: 'var(--ink)',
           whiteSpace: 'pre-wrap',
         }}>
           <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--primary)' }}>Q{currentQ.questionNo}.</div>
@@ -297,9 +305,9 @@ export default function ExamPage() {
                   textAlign: 'left',
                   padding: '14px 16px',
                   borderRadius: 10,
-                  border: selected ? '2px solid #2d3a8c' : '2px solid #e2e8f0',
-                  background: selected ? '#eef0f8' : '#fff',
-                  color: '#1a202c',
+                  border: selected ? '2px solid var(--primary)' : '2px solid var(--ink-09)',
+                  background: selected ? 'var(--primary-surface)' : 'var(--bg-card)',
+                  color: 'var(--ink)',
                   fontSize: 15,
                   fontWeight: selected ? 700 : 500,
                   cursor: 'pointer',
@@ -308,8 +316,8 @@ export default function ExamPage() {
               >
                 <span style={{
                   width: 26, height: 26, borderRadius: '50%',
-                  background: selected ? '#2d3a8c' : '#e2e8f0',
-                  color: selected ? '#fff' : '#4a5568',
+                  background: selected ? 'var(--primary)' : 'var(--ink-09)',
+                  color: selected ? '#fff' : 'var(--ink-60)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontWeight: 700, fontSize: 13, flexShrink: 0,
                 }}>{n}</span>
@@ -326,7 +334,7 @@ export default function ExamPage() {
             disabled={idx === 0}
             style={{
               flex: 1, padding: '12px', borderRadius: 10,
-              border: '1px solid #cbd5e0', background: 'var(--bg-card)',
+              border: '1px solid var(--ink-20)', background: 'var(--bg-card)',
               color: 'var(--ink-60)', fontWeight: 600,
               cursor: idx === 0 ? 'not-allowed' : 'pointer',
               opacity: idx === 0 ? 0.5 : 1,
@@ -338,7 +346,7 @@ export default function ExamPage() {
               disabled={submitting}
               style={{
                 flex: 2, padding: '12px', borderRadius: 10,
-                border: 'none', background: '#00c4a3', color: '#fff',
+                border: 'none', background: 'var(--success)', color: '#fff',
                 fontWeight: 700, fontSize: 15,
                 cursor: submitting ? 'not-allowed' : 'pointer',
               }}
@@ -348,7 +356,7 @@ export default function ExamPage() {
               onClick={() => setIdx(i => Math.min(total - 1, i + 1))}
               style={{
                 flex: 2, padding: '12px', borderRadius: 10,
-                border: 'none', background: '#2d3a8c', color: '#fff',
+                border: 'none', background: 'var(--primary)', color: '#fff',
                 fontWeight: 700, fontSize: 15, cursor: 'pointer',
               }}
             >다음 →</button>
@@ -366,15 +374,23 @@ export default function ExamPage() {
                 onClick={() => setIdx(i)}
                 style={{
                   width: 28, height: 28, borderRadius: 6,
-                  background: active ? '#2d3a8c' : (a ? '#d1fae5' : '#f7fafc'),
-                  color: active ? '#fff' : (a ? '#065f46' : '#a0aec0'),
-                  border: '1px solid ' + (active ? '#2d3a8c' : '#e2e8f0'),
+                  background: active ? 'var(--primary)' : (a ? 'var(--success-surface)' : 'var(--bg-canvas)'),
+                  color: active ? '#fff' : (a ? 'var(--success)' : 'var(--ink-40)'),
+                  border: '1px solid ' + (active ? 'var(--primary)' : 'var(--ink-09)'),
                   fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 }}
               >{q.questionNo}</button>
             );
           })}
         </div>
+        {confirmingSubmit && (
+          <ConfirmSheet
+            message="답안을 제출하시겠습니까? 제출 후에는 수정할 수 없습니다."
+            confirmLabel="제출"
+            onConfirm={confirmSubmit}
+            onCancel={() => setConfirmingSubmit(false)}
+          />
+        )}
       </div>
     );
   }

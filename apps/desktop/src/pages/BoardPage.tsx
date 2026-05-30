@@ -4,6 +4,7 @@ import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
 import { PageHeader } from '../components/v2';
+import DialogShell from '../components/DialogShell';
 
 interface Notice {
   id: string;
@@ -423,14 +424,7 @@ export default function BoardPage() {
 
       {/* ═══ 공지 작성 모달 ═══ */}
       {showNoticeModal && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="공지 작성"
-          onClick={() => setShowNoticeModal(false)}
-          onKeyDown={(e) => { if (e.key === 'Escape') setShowNoticeModal(false); }}
-        >
+        <DialogShell ariaLabel="공지 작성" onClose={() => setShowNoticeModal(false)}>
           <div className="modal-content modal-board" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">공지 작성</h3>
             <div className="modal-body">
@@ -477,19 +471,12 @@ export default function BoardPage() {
               </button>
             </div>
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {/* ═══ 할일 추가 모달 ═══ */}
       {showActionModal && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="할일 추가"
-          onClick={() => setShowActionModal(false)}
-          onKeyDown={(e) => { if (e.key === 'Escape') setShowActionModal(false); }}
-        >
+        <DialogShell ariaLabel="할일 추가" onClose={() => setShowActionModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">할일 추가</h3>
             <div className="modal-body">
@@ -508,19 +495,12 @@ export default function BoardPage() {
               </button>
             </div>
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {/* ═══ 할일 수정 모달 ═══ */}
       {editingAction && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="할일 수정"
-          onClick={() => setEditingAction(null)}
-          onKeyDown={(e) => { if (e.key === 'Escape') setEditingAction(null); }}
-        >
+        <DialogShell ariaLabel="할일 수정" onClose={() => setEditingAction(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">할일 수정</h3>
             <div className="modal-body">
@@ -536,7 +516,7 @@ export default function BoardPage() {
               <button className="btn btn-primary" onClick={handleUpdateAction} disabled={!editActionForm.title.trim() || !editActionForm.assignedTo}>저장</button>
             </div>
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {loadError && (

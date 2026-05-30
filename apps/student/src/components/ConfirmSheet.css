@@ -1,0 +1,79 @@
+.confirm-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  background: rgba(17, 20, 26, 0.32);
+  animation: confirm-sheet-fade var(--dur-fast, 150ms) var(--ease-out-quart, ease-out);
+}
+
+.confirm-sheet {
+  width: 100%;
+  max-width: 320px;
+  background: var(--bg-card);
+  border: var(--border-hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  padding: var(--sp-5);
+  animation: confirm-sheet-rise var(--dur-base, 220ms) var(--ease-out-quart, ease-out);
+}
+
+.confirm-sheet-message {
+  margin: 0 0 var(--sp-5);
+  font-size: var(--fs-body, 15px);
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.confirm-sheet-actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+}
+
+.confirm-sheet-btn {
+  flex: 1;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-body, 15px);
+  font-weight: 600;
+  cursor: pointer;
+  border: var(--border-hairline);
+  background: var(--bg-card);
+  color: var(--text);
+  transition: background var(--dur-fast, 150ms) var(--ease-out-quart, ease-out);
+}
+
+.confirm-sheet-btn--ghost:hover { background: var(--ink-09); }
+
+.confirm-sheet-btn--primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.confirm-sheet-btn--primary:hover { background: var(--primary-hover); }
+
+.confirm-sheet-btn--danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.confirm-sheet-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@keyframes confirm-sheet-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes confirm-sheet-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

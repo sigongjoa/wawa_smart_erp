@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, Consultation } from '../api';
 import { useAuthStore } from '../store';
-import { toast } from './Toast';
+import { toast, useConfirm } from './Toast';
 
 interface Props {
   studentId: string;
@@ -36,6 +36,7 @@ function todayLocalDateTime(): string {
 
 export default function ConsultationPanel({ studentId }: Props) {
   const user = useAuthStore((s) => s.user);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -88,7 +89,7 @@ export default function ConsultationPanel({ studentId }: Props) {
 
   const handleSubmit = async () => {
     if (!summary.trim()) {
-      alert('상담 내용을 입력해 주세요');
+      toast.error('상담 내용을 입력해 주세요');
       return;
     }
     setSaving(true);
@@ -106,23 +107,24 @@ export default function ConsultationPanel({ studentId }: Props) {
       setShowForm(false);
       await load();
     } catch (err: any) {
-      alert(err.message || '상담 기록 저장 실패');
+      toast.error(err.message || '상담 기록 저장 실패');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('이 상담 기록을 삭제하시겠습니까?')) return;
+    if (!(await confirm('이 상담 기록을 삭제하시겠습니까?'))) return;
     try {
       await api.deleteConsultation(studentId, id);
       await load();
     } catch (err: any) {
-      alert(err.message || '삭제 실패');
+      toast.error(err.message || '삭제 실패');
     }
   };
 
   return (
+    <>
     <section className="dashboard-section">
       <div className="section-title-row">
         <h3>학부모 상담 기록</h3>
@@ -340,5 +342,7 @@ export default function ConsultationPanel({ studentId }: Props) {
         </ul>
       )}
     </section>
+    {ConfirmDialog}
+    </>
   );
 }

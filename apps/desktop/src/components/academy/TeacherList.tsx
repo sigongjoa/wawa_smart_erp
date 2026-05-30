@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Circle } from 'lucide-react';
 import { api, type TeacherOption } from '../../api';
 import { toast } from '../Toast';
 import TeacherEditModal from './TeacherEditModal';
@@ -101,9 +102,9 @@ export default function TeacherList({ onCreateInvite }: Props) {
                     </td>
                     <td style={{ padding: '10px' }}>
                       {st === 'active' ? (
-                        <span style={{ color: 'var(--success)', fontSize: 13 }}>● 활성</span>
+                        <span style={{ color: 'var(--success)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Circle size={9} fill="currentColor" aria-hidden /> 활성</span>
                       ) : (
-                        <span style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>● 비활성</span>
+                        <span style={{ color: 'var(--text-tertiary)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Circle size={9} fill="currentColor" aria-hidden /> 비활성</span>
                       )}
                     </td>
                     <td style={{ padding: '10px', color: 'var(--text-tertiary)', fontSize: 13 }}>

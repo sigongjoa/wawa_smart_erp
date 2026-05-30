@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api';
 
 type Overview = Awaited<ReturnType<typeof api.getHomeroomNotesOverview>>;
@@ -64,7 +65,7 @@ export default function HomeroomNotesOverview() {
       <div className="section-title-row">
         <h3 style={{ margin: 0 }}>교과 메모 종합 ({period})</h3>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setPeriod(periodShift(period, -1))}>◀</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setPeriod(periodShift(period, -1))} aria-label="이전 달"><ChevronLeft size={16} /></button>
           <input
             type="month"
             className="form-input"
@@ -72,7 +73,7 @@ export default function HomeroomNotesOverview() {
             onChange={(e) => setPeriod(e.target.value)}
             style={{ width: 160 }}
           />
-          <button className="btn btn-ghost btn-sm" onClick={() => setPeriod(periodShift(period, 1))}>▶</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setPeriod(periodShift(period, 1))} aria-label="다음 달"><ChevronRight size={16} /></button>
         </div>
       </div>
 
@@ -125,8 +126,8 @@ export default function HomeroomNotesOverview() {
                         >
                           <span>{b.count}</span>
                           {b.sentiment_counts.concern > 0 && (
-                            <span style={{ color: 'var(--danger-text)', marginLeft: 4, fontWeight: 600 }}>
-                              ⚠{b.sentiment_counts.concern}
+                            <span style={{ color: 'var(--danger-text)', marginLeft: 4, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                              <AlertTriangle size={12} aria-hidden />{b.sentiment_counts.concern}
                             </span>
                           )}
                         </td>

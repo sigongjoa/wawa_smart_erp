@@ -5,9 +5,29 @@
 
 import { RequestContext } from '@/types';
 import { executeQuery, executeFirst, executeInsert, executeUpdate } from '@/utils/db';
-import { successResponse, errorResponse, unauthorizedResponse } from '@/utils/response';
+import { successResponse, errorResponse, notFoundResponse, forbiddenResponse, unauthorizedResponse } from '@/utils/response';
 import { requireAuth } from '@/middleware/auth';
 import { generatePrefixedId } from '@/utils/id';
+import { sanitizeRequired, isValidId } from '@/utils/sanitize';
+
+const MONTH_REF_RELATIVE = new Set(['prev', 'current', 'next', 'next2']);
+const ABSOLUTE_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+function isValidMonthRef(v: unknown): v is string {
+  return typeof v === 'string' && (MONTH_REF_RELATIVE.has(v) || ABSOLUTE_MONTH_RE.test(v));
+}
+
+interface ExamViewPresetRow {
+  id: string;
+  academy_id: string;
+  owner_user_id: string;
+  name: string;
+  month_ref: string;
+  scope: string;
+  visibility: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
 
 function safeParseChoices(s: string | null): string[] {
   if (!s) return [];
@@ -74,9 +94,9 @@ export async function handleExamMgmt(
   if (method === 'GET' && pathname === '/api/exam-mgmt/by-month') {
     const url = new URL(request.url);
     const month = url.searchParams.get('month');
-    const scope = url.searchParams.get('scope');
     const isAdmin = context.auth!.role === 'admin';
-    const showAll = isAdmin && scope === 'all';
+    // admin = 학원 전체 학생 / 그 외 = 담당 학생만 (과목·담임 무관, role 기준)
+    const showAll = isAdmin;
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
     }
@@ -161,9 +181,8 @@ export async function handleExamMgmt(
   if (method === 'GET' && pathname === '/api/exam-mgmt/absentees') {
     const url = new URL(request.url);
     const month = url.searchParams.get('month');
-    const scope = url.searchParams.get('scope');
     const isAdmin = context.auth!.role === 'admin';
-    const showAll = isAdmin && scope === 'all';
+    const showAll = isAdmin;
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
     }
@@ -287,6 +306,131 @@ export async function handleExamMgmt(
       [id, period.id, paper.id, student_id, academyId]
     );
     return successResponse({ assigned: true, assignment_id: id });
+  }
+
+  // ═══════════════════════════════════════════
+  // 뷰 프리셋 (Exam View Presets) — migration 075
+  // ═══════════════════════════════════════════
+
+  // GET /api/exam-mgmt/presets — 본인 + 학원 공유 합집합 (sort_order, created_at)
+  if (method === 'GET' && pathname === '/api/exam-mgmt/presets') {
+    const rows = await executeQuery<ExamViewPresetRow>(
+      db,
+      `SELECT id, academy_id, owner_user_id, name, month_ref, scope, visibility, sort_order, created_at, updated_at
+         FROM exam_view_presets
+        WHERE academy_id = ? AND (owner_user_id = ? OR visibility = 'academy')
+        ORDER BY sort_order ASC, created_at ASC`,
+      [academyId, userId]
+    );
+    return successResponse(rows);
+  }
+
+  // POST /api/exam-mgmt/presets — { name, month_ref, scope, visibility }
+  if (method === 'POST' && pathname === '/api/exam-mgmt/presets') {
+    const body = await request.json() as any;
+    let name: string;
+    try {
+      name = sanitizeRequired(body.name, 'name', 30);
+    } catch (e) {
+      return errorResponse((e as Error).message, 400);
+    }
+    if (!isValidMonthRef(body.month_ref)) {
+      return errorResponse('month_ref 형식이 올바르지 않습니다', 400);
+    }
+    const scope = body.scope === 'all' ? 'all' : 'mine';
+    const visibility = body.visibility === 'academy' ? 'academy' : 'private';
+    const sortOrder = Number.isFinite(body.sort_order) ? Number(body.sort_order) : 0;
+
+    const id = generatePrefixedId('pst');
+    await executeInsert(db,
+      `INSERT INTO exam_view_presets (id, academy_id, owner_user_id, name, month_ref, scope, visibility, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, academyId, userId, name, body.month_ref, scope, visibility, sortOrder]
+    );
+    const created = await executeFirst<ExamViewPresetRow>(
+      db,
+      `SELECT id, academy_id, owner_user_id, name, month_ref, scope, visibility, sort_order, created_at, updated_at
+         FROM exam_view_presets WHERE id = ? AND academy_id = ?`,
+      [id, academyId]
+    );
+    return successResponse(created);
+  }
+
+  // PATCH /api/exam-mgmt/presets/:id — owner만
+  const presetIdMatch = pathname.match(/^\/api\/exam-mgmt\/presets\/([^/]+)$/);
+  if (method === 'PATCH' && presetIdMatch) {
+    const presetId = presetIdMatch[1];
+    if (!isValidId(presetId)) return errorResponse('잘못된 id', 400);
+
+    const existing = await executeFirst<{ owner_user_id: string }>(
+      db,
+      `SELECT owner_user_id FROM exam_view_presets WHERE id = ? AND academy_id = ?`,
+      [presetId, academyId]
+    );
+    if (!existing) return notFoundResponse();
+    if (existing.owner_user_id !== userId) return forbiddenResponse();
+
+    const body = await request.json() as any;
+    const sets: string[] = [];
+    const args: any[] = [];
+
+    if (body.name !== undefined) {
+      try {
+        const n = sanitizeRequired(body.name, 'name', 30);
+        sets.push('name = ?'); args.push(n);
+      } catch (e) { return errorResponse((e as Error).message, 400); }
+    }
+    if (body.month_ref !== undefined) {
+      if (!isValidMonthRef(body.month_ref)) return errorResponse('month_ref 형식이 올바르지 않습니다', 400);
+      sets.push('month_ref = ?'); args.push(body.month_ref);
+    }
+    if (body.scope !== undefined) {
+      const s = body.scope === 'all' ? 'all' : 'mine';
+      sets.push('scope = ?'); args.push(s);
+    }
+    if (body.visibility !== undefined) {
+      const v = body.visibility === 'academy' ? 'academy' : 'private';
+      sets.push('visibility = ?'); args.push(v);
+    }
+    if (body.sort_order !== undefined && Number.isFinite(body.sort_order)) {
+      sets.push('sort_order = ?'); args.push(Number(body.sort_order));
+    }
+    if (sets.length === 0) return errorResponse('수정할 필드가 없습니다', 400);
+
+    sets.push(`updated_at = datetime('now')`);
+    args.push(presetId, academyId, userId);
+    await executeUpdate(db,
+      `UPDATE exam_view_presets SET ${sets.join(', ')}
+        WHERE id = ? AND academy_id = ? AND owner_user_id = ?`,
+      args
+    );
+    const updated = await executeFirst<ExamViewPresetRow>(
+      db,
+      `SELECT id, academy_id, owner_user_id, name, month_ref, scope, visibility, sort_order, created_at, updated_at
+         FROM exam_view_presets WHERE id = ? AND academy_id = ?`,
+      [presetId, academyId]
+    );
+    return successResponse(updated);
+  }
+
+  // DELETE /api/exam-mgmt/presets/:id — owner만
+  if (method === 'DELETE' && presetIdMatch) {
+    const presetId = presetIdMatch[1];
+    if (!isValidId(presetId)) return errorResponse('잘못된 id', 400);
+
+    const existing = await executeFirst<{ owner_user_id: string }>(
+      db,
+      `SELECT owner_user_id FROM exam_view_presets WHERE id = ? AND academy_id = ?`,
+      [presetId, academyId]
+    );
+    if (!existing) return notFoundResponse();
+    if (existing.owner_user_id !== userId) return forbiddenResponse();
+
+    await executeUpdate(db,
+      `DELETE FROM exam_view_presets WHERE id = ? AND academy_id = ? AND owner_user_id = ?`,
+      [presetId, academyId, userId]
+    );
+    return successResponse({ deleted: true });
   }
 
   // ═══════════════════════════════════════════
@@ -547,7 +691,7 @@ export async function handleExamMgmt(
       db,
       `SELECT a.*, s.name as student_name, s.grade as student_grade, p.title as paper_title
        FROM exam_assignments a
-       JOIN gacha_students s ON s.id = a.student_id
+       JOIN students s ON s.id = a.student_id
        JOIN exam_papers p ON p.id = a.exam_paper_id
        WHERE a.exam_period_id = ? AND a.academy_id = ?
        ORDER BY s.grade, s.name`,
@@ -571,7 +715,7 @@ export async function handleExamMgmt(
     // 학원 학생 목록
     const students = await executeQuery<{ id: string; name: string; grade: string }>(
       db,
-      `SELECT id, name, grade FROM gacha_students WHERE academy_id = ? AND status = 'active'`,
+      `SELECT id, name, grade FROM students WHERE academy_id = ? AND status = 'active'`,
       [academyId]
     );
 

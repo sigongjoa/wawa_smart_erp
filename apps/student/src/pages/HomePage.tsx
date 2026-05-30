@@ -235,7 +235,7 @@ export default function HomePage() {
           <Baseball className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
-            <span className="hp-tile-label">⚾ 야구</span>
+            <span className="hp-tile-label">야구</span>
           </div>
           <div className="hp-tile-value">
             <span className="hp-tile-value-sub">단어 시합 →</span>
@@ -251,7 +251,7 @@ export default function HomePage() {
           <ChatCircleDots className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
-            <span className="hp-tile-label">💬 설명 AI</span>
+            <span className="hp-tile-label">설명 AI</span>
           </div>
           <div className="hp-tile-value">
             <span className="hp-tile-value-sub">모르는 거 물어보기 →</span>
@@ -267,7 +267,7 @@ export default function HomePage() {
           <Cards className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
-            <span className="hp-tile-label">🔥 오늘 복습</span>
+            <span className="hp-tile-label">오늘 복습</span>
           </div>
           <div className="hp-tile-value">
             <span className="hp-tile-value-sub">막혔던 단계 다시 →</span>
@@ -283,7 +283,7 @@ export default function HomePage() {
           <CalendarDots className="hp-tile-icon" weight="duotone" aria-hidden />
           <div className="hp-tile-head">
             <span className="hp-tile-dot" aria-hidden="true" />
-            <span className="hp-tile-label">📅 캘린더</span>
+            <span className="hp-tile-label">캘린더</span>
           </div>
           <div className="hp-tile-value">
             {upcomingEvents.length > 0 ? (

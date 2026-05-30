@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { GripVertical, Star } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -34,7 +35,7 @@ function SortableStep({ item, idx }: { item: StepItem; idx: number }) {
   };
   return (
     <div ref={setNodeRef} style={style} className="ordering-step" {...attributes} {...listeners}>
-      <span className="ordering-step-handle">☰</span>
+      <span className="ordering-step-handle" aria-hidden="true"><GripVertical size={18} /></span>
       <span className="ordering-step-num">{idx + 1}</span>
       <div className="ordering-step-content">
         {item.content_image ? (
@@ -118,7 +119,7 @@ export default function ProofOrderingPage() {
       <div className="proof-play-title">
         <h2>{problem.proof.title}</h2>
         <span className="proof-play-meta">
-          {problem.proof.grade} · {'★'.repeat(problem.proof.difficulty)} · {problem.total_steps}단계
+          {problem.proof.grade} · <span style={{ display: 'inline-flex', verticalAlign: 'middle' }} aria-label={`난이도 ${problem.proof.difficulty}`}>{Array.from({ length: problem.proof.difficulty }, (_, i) => <Star key={i} size={12} fill="currentColor" aria-hidden />)}</span> · {problem.total_steps}단계
         </span>
       </div>
 

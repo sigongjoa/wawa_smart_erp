@@ -45,7 +45,7 @@ export interface PaginatedListOptions {
   table: string;
   /** SELECT 컬럼 — JOIN 시 alias 포함 자유 형식. 기본 '*' */
   selectColumns?: string;
-  /** JOIN 절 (선택) — 'JOIN gacha_students s ON s.id = j.student_id' */
+  /** JOIN 절 (선택) — 'JOIN students s ON s.id = j.student_id' */
   join?: string;
   /** counts/total/items 모두에 적용되는 필터 */
   baseFilters: Filter[];

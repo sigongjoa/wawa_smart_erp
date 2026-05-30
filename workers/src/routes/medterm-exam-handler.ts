@@ -106,7 +106,7 @@ async function handleCreateExam(
   const placeholders = data.student_ids.map(() => '?').join(',');
   const validStudents = await executeQuery<{ id: string }>(
     context.env.DB,
-    `SELECT id FROM gacha_students WHERE academy_id = ? AND id IN (${placeholders})`,
+    `SELECT id FROM students WHERE academy_id = ? AND id IN (${placeholders})`,
     [academyId, ...data.student_ids]
   );
   const validIds = new Set(validStudents.map((s) => s.id));

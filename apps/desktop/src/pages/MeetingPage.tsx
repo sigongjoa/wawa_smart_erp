@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { errorMessage } from '../utils/errors';
+import { toast, useConfirm } from '../components/Toast';
 
 interface Meeting {
   id: string;
@@ -30,6 +31,7 @@ interface MeetingAction {
 type ViewMode = 'list' | 'record' | 'detail';
 
 export default function MeetingPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -56,11 +58,11 @@ export default function MeetingPage() {
 
   const handleSave = async () => {
     if (!newTitle.trim()) {
-      alert('회의 제목을 입력해주세요');
+      toast.error('회의 제목을 입력해주세요');
       return;
     }
     if (!manualTranscript.trim()) {
-      alert('회의 내용을 입력해주세요');
+      toast.error('회의 내용을 입력해주세요');
       return;
     }
 
@@ -77,7 +79,7 @@ export default function MeetingPage() {
       setViewMode('list');
       loadMeetings();
     } catch (err: unknown) {
-      alert('저장 실패: ' + errorMessage(err, '오류 발생'));
+      toast.error('저장 실패: ' + errorMessage(err, '오류 발생'));
     } finally {
       setSaving(false);
     }
@@ -96,7 +98,7 @@ export default function MeetingPage() {
       setSelectedMeeting(detail);
       setViewMode('detail');
     } catch {
-      alert('상세 정보 로딩 실패');
+      toast.error('상세 정보 로딩 실패');
     }
   };
 
@@ -112,23 +114,23 @@ export default function MeetingPage() {
   };
 
   const handlePublish = async (id: string) => {
-    if (!confirm('보드에 회의록을 게시하시겠습니까?')) return;
+    if (!(await confirm('보드에 회의록을 게시하시겠습니까?'))) return;
     try {
       await api.publishMeeting(id);
-      alert('보드에 게시되었습니다');
+      toast.success('보드에 게시되었습니다');
     } catch (err: unknown) {
-      alert('게시 실패: ' + errorMessage(err, '오류'));
+      toast.error('게시 실패: ' + errorMessage(err, '오류'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('이 회의록을 삭제하시겠습니까?')) return;
+    if (!(await confirm('이 회의록을 삭제하시겠습니까?'))) return;
     try {
       await api.deleteMeeting(id);
       if (viewMode === 'detail') setViewMode('list');
       loadMeetings();
     } catch (err: unknown) {
-      alert('삭제 실패: ' + errorMessage(err, '오류'));
+      toast.error('삭제 실패: ' + errorMessage(err, '오류'));
     }
   };
 
@@ -335,6 +337,7 @@ export default function MeetingPage() {
             </button>
           </div>
         </div>
+        {ConfirmDialog}
       </div>
     );
   }

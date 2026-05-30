@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { CommentHistoryEntry } from '../api';
 
 interface Props {
@@ -34,7 +35,7 @@ export default function CommentTimeline({ entries }: Props) {
               className="timeline-month-header"
               onClick={() => toggle(entry.yearMonth)}
             >
-              <span className="timeline-toggle">{isOpen ? '▼' : '▶'}</span>
+              <span className="timeline-toggle" aria-hidden="true">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
               <span>{formatYearMonth(entry.yearMonth)}</span>
             </button>
             {isOpen && (

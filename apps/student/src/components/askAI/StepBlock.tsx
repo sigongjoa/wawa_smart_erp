@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkle } from 'lucide-react';
 import KaTeX from '../KaTeX';
 import type { Step } from '@/lib/askAI/types';
 import './StepBlock.css';
@@ -48,7 +49,7 @@ export function StepBlock({ step, index, isLocked = false, isDone = false }: Pro
         )}
         {step.kind === 'checkpoint' && (
           <h2 id={`step-${index}-title`} className="checkpoint-q">
-            <span aria-hidden="true">✦ </span>{step.question}
+            <Sparkle size={14} aria-hidden style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{step.question}
           </h2>
         )}
         {step.kind === 'ocr_confirm' && (

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, X } from 'lucide-react';
+import { Check, X, Circle, Star } from 'lucide-react';
 import { medtermApi, MedTermCard, MedTermAnswerResult, MedTermDetail, MedTermFigureLabel } from '../api';
 import './MedTermPage.css';
 
@@ -385,14 +385,14 @@ function FigureClickArea({ src, click, setClick, disabled, showAnswer }: FigureC
           className="medterm-figure-marker user"
           style={{ left: `${click.x * 100}%`, top: `${click.y * 100}%` }}
           data-testid="medterm-figure-user-marker"
-        >●</div>
+        ><Circle size={16} fill="currentColor" aria-hidden /></div>
       )}
       {showAnswer && (
         <div
           className="medterm-figure-marker answer"
           style={{ left: `${showAnswer.x * 100}%`, top: `${showAnswer.y * 100}%` }}
           data-testid="medterm-figure-answer-marker"
-        >★</div>
+        ><Star size={16} fill="currentColor" aria-hidden /></div>
       )}
     </div>
   );

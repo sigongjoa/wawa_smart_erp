@@ -17,6 +17,14 @@ export default function MyArchivePage() {
   const [items, setItems] = useState<StudentArchiveItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState('');
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const handleDownload = (url: string, fileName: string) => {
+    setDownloadError(null);
+    downloadBlob(url, fileName).catch((err) =>
+      setDownloadError(err instanceof Error ? err.message : '다운로드 실패')
+    );
+  };
 
   useEffect(() => {
     api
@@ -43,6 +51,20 @@ export default function MyArchivePage() {
         <h1 style={{ margin: 0, fontSize: 18 }}>{auth?.student?.name || '내'} 자료함</h1>
         <div style={{ width: 32 }} />
       </header>
+
+      {downloadError && (
+        <div
+          role="alert"
+          onClick={() => setDownloadError(null)}
+          style={{
+            background: 'var(--danger-surface)', color: 'var(--danger)',
+            border: 'var(--border-hairline)', borderRadius: 'var(--r-sm)',
+            padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-3)', fontSize: 13,
+          }}
+        >
+          {downloadError}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>불러오는 중…</div>
@@ -119,7 +141,7 @@ export default function MyArchivePage() {
                       {a.can_download ? (
                         <button
                           type="button"
-                          onClick={() => downloadBlob(api.archiveDownloadUrl(a.id, f.id), f.file_name)}
+                          onClick={() => handleDownload(api.archiveDownloadUrl(a.id, f.id), f.file_name)}
                           style={{ background: 'var(--primary)', color: 'var(--text-on-primary)', padding: '6px 10px', borderRadius: 6, border: 0, fontSize: 12, cursor: 'pointer' }}
                         >
                           받기
@@ -156,7 +178,7 @@ async function downloadBlob(url: string, fileName: string) {
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   } catch (err) {
-    alert(err instanceof Error ? err.message : '다운로드 실패');
+    throw err instanceof Error ? err : new Error('다운로드 실패');
   }
 }
 

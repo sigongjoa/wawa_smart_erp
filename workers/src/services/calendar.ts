@@ -171,10 +171,10 @@ export async function loadTeacherWidget(
   from: string,
   to: string,
 ): Promise<WidgetEvent[]> {
-  // 학원 전체 활성 학생 수 (gacha_students 기준)
+  // 학원 전체 활성 학생 수 (students 기준)
   const totalRow = await executeFirst<{ cnt: number }>(
     db,
-    `SELECT COUNT(*) AS cnt FROM gacha_students WHERE academy_id = ?`,
+    `SELECT COUNT(*) AS cnt FROM students WHERE academy_id = ?`,
     [academyId],
   );
   const totalStudents = totalRow?.cnt ?? 0;

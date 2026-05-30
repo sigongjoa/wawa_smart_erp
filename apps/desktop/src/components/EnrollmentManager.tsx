@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
+import { toast } from './Toast';
 
 interface Enrollment {
   id: string;
@@ -59,7 +60,7 @@ export default function EnrollmentManager({ studentId, studentName }: Props) {
       setNewSubject('');
       loadEnrollments();
     } catch (err: any) {
-      alert(err.message || '시간표 추가 실패');
+      toast.error(err.message || '시간표 추가 실패');
     } finally {
       setSaving(false);
     }
@@ -70,7 +71,7 @@ export default function EnrollmentManager({ studentId, studentName }: Props) {
       await api.deleteEnrollment(id);
       loadEnrollments();
     } catch (err: any) {
-      alert(err.message || '삭제 실패');
+      toast.error(err.message || '삭제 실패');
     }
   };
 

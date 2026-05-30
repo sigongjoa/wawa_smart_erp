@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { api, ExamAttemptDto } from '../api';
 import { useAuthStore } from '../store';
 import { useVisiblePolling } from '../lib/useVisiblePolling';
@@ -268,7 +269,7 @@ export default function ExamTimerPage() {
             opacity: submitting ? 0.6 : 1,
           }}
         >
-          ✓ 제출
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Check size={16} aria-hidden /> 제출</span>
         </button>
       </div>
 

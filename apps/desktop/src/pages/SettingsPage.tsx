@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuthStore } from '../store';
 import { errorMessage } from '../utils/errors';
+import { PageHeader, Panel } from '../components/v2';
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -47,14 +48,17 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
-      <h2 className="page-title">설정</h2>
+      <PageHeader crumb="시스템 · 설정" title="설정" sub="성적 입력 기준 월과 학원 운영 설정을 관리합니다." />
 
-      <div className="settings-section">
-        <h3>성적 입력 활성 월</h3>
+      <Panel title="성적 입력 활성 월">
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 var(--sp-4)' }}>
+          리포트·성적 입력에 사용할 기준 월입니다. 선택한 월의 성적만 입력·집계됩니다.
+        </p>
         <div className="month-selector">
           <label htmlFor="active-month" className="sr-only">활성 월 선택</label>
           <select
             id="active-month"
+            className="form-select form-select--sm"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
@@ -77,18 +81,17 @@ export default function SettingsPage() {
             현재 활성 월: <strong>{activeMonth}</strong>
           </p>
         )}
-      </div>
+      </Panel>
 
       {isAdmin && (
-        <div className="settings-section" style={{ marginTop: 24 }}>
-          <h3>학원 · 선생님 관리</h3>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 12px' }}>
+        <Panel title="학원 · 선생님 관리">
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 var(--sp-4)' }}>
             학원 정보 수정, 선생님 초대·추가·권한 관리는 <strong>학원 관리</strong> 페이지에서 할 수 있습니다.
           </p>
           <Link to="/academy" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
             학원 관리 페이지 열기
           </Link>
-        </div>
+        </Panel>
       )}
     </div>
   );

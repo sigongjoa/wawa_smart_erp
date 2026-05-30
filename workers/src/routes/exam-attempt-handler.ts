@@ -430,7 +430,7 @@ async function handleTeacherRoutes(
          FROM exam_attempts ea
          JOIN exam_assignments asg ON asg.id = ea.exam_assignment_id
          LEFT JOIN students s ON s.id = ea.student_id
-         LEFT JOIN gacha_students gs ON gs.id = ea.student_id
+         LEFT JOIN students gs ON gs.id = ea.student_id
         WHERE asg.exam_period_id = ? AND ea.academy_id = ?`,
       [periodId, academyId]
     );
@@ -450,7 +450,7 @@ async function handleTeacherRoutes(
               ep.title AS paper_title
          FROM exam_attempts ea
          LEFT JOIN students s       ON s.id  = ea.student_id
-         LEFT JOIN gacha_students gs ON gs.id = ea.student_id
+         LEFT JOIN students gs ON gs.id = ea.student_id
          JOIN exam_assignments asg ON asg.id = ea.exam_assignment_id
          LEFT JOIN exam_papers ep ON ep.id = asg.exam_paper_id
         WHERE ea.id = ? AND ea.academy_id = ?`,

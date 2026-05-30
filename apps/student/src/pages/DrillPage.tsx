@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Flame } from 'lucide-react';
+import { Sparkle, PencilSimple, Diamond, X as XIcon, SmileyWink, Smiley, SmileyNervous, SmileyBlank, Plant, Confetti, type Icon } from '@phosphor-icons/react';
 import { askAI } from '@/lib/askAI/client';
 import type { Rating } from '@/lib/askAI/types';
 import './DrillPage.css';
@@ -16,18 +18,18 @@ interface DrillCard {
   created_at: string;
 }
 
-const SOURCE_LABEL: Record<DrillCard['source'], { label: string; type: 'grass' | 'ground' | 'electric' | 'water'; ico: string }> = {
-  askai_failed_checkpoint: { label: 'AskAI 막힌 단계', type: 'grass', ico: '✦' },
-  exam_wrong:              { label: '시험 오답',       type: 'ground', ico: '✎' },
-  homework_deduction:      { label: '숙제 감점',       type: 'electric', ico: '◆' },
-  unit_xmark:              { label: '단원지 X',        type: 'water', ico: '✕' },
+const SOURCE_LABEL: Record<DrillCard['source'], { label: string; type: 'grass' | 'ground' | 'electric' | 'water'; Ico: Icon }> = {
+  askai_failed_checkpoint: { label: 'AskAI 막힌 단계', type: 'grass', Ico: Sparkle },
+  exam_wrong:              { label: '시험 오답',       type: 'ground', Ico: PencilSimple },
+  homework_deduction:      { label: '숙제 감점',       type: 'electric', Ico: Diamond },
+  unit_xmark:              { label: '단원지 X',        type: 'water', Ico: XIcon },
 };
 
-const RATE_LABELS: Record<Rating, { face: string; label: string; next: string; cls: string }> = {
-  easy:  { face: '😎', label: '쉬움',   next: '7일 후',  cls: 'easy' },
-  ok:    { face: '🙂', label: '적당',   next: '3일 후',  cls: 'ok' },
-  hard:  { face: '😅', label: '어려움', next: '1일 후',  cls: 'hard' },
-  dunno: { face: '😶', label: '모름',   next: '→ 다시 배우기', cls: 'dunno' },
+const RATE_LABELS: Record<Rating, { Face: Icon; label: string; next: string; cls: string }> = {
+  easy:  { Face: SmileyWink,    label: '쉬움',   next: '7일 후',  cls: 'easy' },
+  ok:    { Face: Smiley,        label: '적당',   next: '3일 후',  cls: 'ok' },
+  hard:  { Face: SmileyNervous, label: '어려움', next: '1일 후',  cls: 'hard' },
+  dunno: { Face: SmileyBlank,   label: '모름',   next: '→ 다시 배우기', cls: 'dunno' },
 };
 
 function timeAgo(iso: string): string {
@@ -132,7 +134,7 @@ export default function DrillPage() {
 
       {!loading && total > 0 && (
         <div className="dr-streak" role="status">
-          <span className="flame" aria-hidden="true">🔥</span>
+          <span className="flame" aria-hidden="true"><Flame size={16} /></span>
           <span>오늘 복습 시작</span>
           <span className="dim">남은 {Math.max(0, total - currentIdx)}장</span>
         </div>
@@ -145,7 +147,7 @@ export default function DrillPage() {
 
         {!loading && !error && total === 0 && (
           <div className="dr-empty">
-            <div className="emoji" aria-hidden="true">🌱</div>
+            <div className="emoji" aria-hidden="true"><Plant size={48} weight="duotone" /></div>
             <h2>오늘 복습할 카드가 없어요</h2>
             <p>AskAI에서 막혔던 단계, 시험 오답, 숙제 감점이<br/>자동으로 카드가 됩니다. 내일 또 보자!</p>
             <button className="dr-empty-cta" onClick={() => navigate('/ask-ai')}>
@@ -156,7 +158,7 @@ export default function DrillPage() {
 
         {!loading && !error && currentIdx >= total && total > 0 && (
           <div className="dr-done">
-            <div className="emoji" aria-hidden="true">🎉</div>
+            <div className="emoji" aria-hidden="true"><Confetti size={48} weight="duotone" /></div>
             <h2>오늘 복습 끝!</h2>
             <p>{total}장 모두 마쳤어요. 내일 또 만나자.</p>
             <button className="dr-empty-cta" onClick={() => navigate('/')}>
@@ -174,7 +176,7 @@ export default function DrillPage() {
               aria-labelledby="drill-problem"
             >
               <header className="dr-source">
-                <span className="ico" aria-hidden="true">{SOURCE_LABEL[card.source].ico}</span>
+                <span className="ico" aria-hidden="true">{(() => { const I = SOURCE_LABEL[card.source].Ico; return <I size={14} weight="fill" />; })()}</span>
                 {SOURCE_LABEL[card.source].label}
                 <span className="when">{timeAgo(card.created_at)}</span>
               </header>
@@ -219,6 +221,7 @@ export default function DrillPage() {
           <div className="row">
             {(Object.keys(RATE_LABELS) as Rating[]).map((level) => {
               const r = RATE_LABELS[level];
+              const Face = r.Face;
               return (
                 <button
                   key={level}
@@ -227,7 +230,7 @@ export default function DrillPage() {
                   disabled={rating}
                   aria-label={`${r.label} — ${r.next}`}
                 >
-                  <span className="face" aria-hidden="true">{r.face}</span>
+                  <span className="face" aria-hidden="true"><Face size={28} weight="duotone" /></span>
                   <span className="label">{r.label}</span>
                   <span className="next">{r.next}</span>
                 </button>

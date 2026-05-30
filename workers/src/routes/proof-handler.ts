@@ -635,7 +635,7 @@ async function handleAssignProof(request: Request, context: RequestContext, proo
   const placeholders = cleanIds.map(() => '?').join(',');
   const validRows = await executeQuery<{ id: string }>(
     context.env.DB,
-    `SELECT id FROM gacha_students WHERE academy_id = ? AND id IN (${placeholders})`,
+    `SELECT id FROM students WHERE academy_id = ? AND id IN (${placeholders})`,
     [academyId, ...cleanIds]
   );
   const validIds = new Set(validRows.map(r => r.id));
@@ -684,7 +684,7 @@ async function handleUnassignProof(context: RequestContext, proofId: string, stu
   // 학생이 본 학원 소속인지 확인
   const student = await executeFirst<any>(
     context.env.DB,
-    'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
     [studentId, academyId]
   );
   if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
@@ -713,7 +713,7 @@ async function handleGetStats(context: RequestContext): Promise<Response> {
 
   const studentCount = await executeFirst<any>(
     context.env.DB,
-    `SELECT COUNT(*) as count FROM gacha_students gs WHERE gs.academy_id = ? ${studentFilter}`,
+    `SELECT COUNT(*) as count FROM students gs WHERE gs.academy_id = ? ${studentFilter}`,
     baseParams
   );
 
@@ -735,7 +735,7 @@ async function handleGetStats(context: RequestContext): Promise<Response> {
     context.env.DB,
     `SELECT COUNT(DISTINCT gs2.student_id) as count
      FROM gacha_sessions gs2
-     JOIN gacha_students gst ON gst.id = gs2.student_id
+     JOIN students gst ON gst.id = gs2.student_id
      WHERE gs2.session_date = ? AND gst.academy_id = ?`,
     [today, academyId]
   );
@@ -750,7 +750,7 @@ async function handleGetStats(context: RequestContext): Promise<Response> {
       (SELECT COUNT(DISTINCT proof_id) FROM proof_results pr WHERE pr.student_id = gs.id) as completed_proofs,
       (SELECT AVG(score) FROM proof_results pr WHERE pr.student_id = gs.id) as avg_proof_score,
       (SELECT session_date FROM gacha_sessions gse WHERE gse.student_id = gs.id ORDER BY session_date DESC LIMIT 1) as last_activity
-    FROM gacha_students gs
+    FROM students gs
     WHERE gs.academy_id = ? ${studentFilter}
     ORDER BY gs.name`,
     baseParams

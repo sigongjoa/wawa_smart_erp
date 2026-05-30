@@ -146,6 +146,7 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
     const reportType = (url.searchParams.get('reportType') || 'monthly') as 'monthly' | 'midterm' | 'final';
     const yearMonth = url.searchParams.get('yearMonth');
     const term = url.searchParams.get('term');
+    const scope = url.searchParams.get('scope'); // 'mine' (기본) | 'all'
 
     if (!['monthly', 'midterm', 'final'].includes(reportType)) {
       return errorResponse('reportType은 monthly|midterm|final 중 하나여야 합니다', 400);
@@ -162,11 +163,14 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
     const { executeQuery } = await import('@/utils/db');
     const academyId = getAcademyId(context);
     const userId = context.auth?.userId;
-    const role = context.auth?.role;
 
-    // 1) 학생 조회 — instructor는 본인 담당 학생만, admin은 전체
+    // 1) 학생 조회 — scope 토글에 따라
+    //  - scope='all': 학원 전체 활성 학생 (모든 역할 가능)
+    //  - 기본('mine'): 본인 담당 학생만
+    // inactive 학생은 제외 (비활성 처리한 학생이 리포트에 다시 나타나면 안 됨)
+    const showAll = scope === 'all';
     let allStudents: any[];
-    if (role === 'instructor' && userId) {
+    if (!showAll && userId) {
       allStudents = await executeQuery<any>(
         context.env.DB,
         `SELECT s.id, s.name, s.subjects
@@ -219,24 +223,89 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
       );
     }
 
-    // 성적을 student_id별로 인덱싱
-    const gradeMap = new Map<string, any[]>();
-    for (const g of grades) {
-      if (!gradeMap.has(g.student_id)) gradeMap.set(g.student_id, []);
-      gradeMap.get(g.student_id)!.push(g);
+    // 3.5) 학생별 매핑된 과목 UNION
+    //  - students.subjects (학생 수강 과목) ∪ 모든 선생님의 (student, teacher).subjects
+    //  - 사용자가 학생 모달의 chip으로 (선생님, 과목) 추가하면 자동 반영됨
+    const studentIds = allStudents.map((s: any) => s.id);
+    const teacherMappedSubjects = new Map<string, Set<string>>();
+    if (studentIds.length > 0) {
+      const studPh = studentIds.map(() => '?').join(',');
+      const allAssignments = await executeQuery<{ student_id: string; subjects: string }>(
+        context.env.DB,
+        `SELECT student_id, subjects FROM student_teachers
+         WHERE student_id IN (${studPh})`,
+        studentIds
+      );
+      for (const a of allAssignments) {
+        let subs: string[] = [];
+        try {
+          subs = JSON.parse(a.subjects || '[]') as string[];
+        } catch {}
+        if (!teacherMappedSubjects.has(a.student_id)) {
+          teacherMappedSubjects.set(a.student_id, new Set());
+        }
+        const set = teacherMappedSubjects.get(a.student_id)!;
+        for (const s of subs) set.add(s);
+      }
     }
 
     // exam_name에서 과목명 추출 헬퍼
     // "4월 월말평가 (수학)" → "수학", "중간고사 - 영어" → "영어"
     function extractSubject(examName: string | null): string {
       if (!examName) return '기타';
-      // 괄호 안 과목명: "월말평가 (수학)" → "수학"
       const parenMatch = examName.match(/\(([^)]+)\)\s*$/);
       if (parenMatch) return parenMatch[1];
-      // 대시 구분: "중간고사 - 영어" → "영어"
       const parts = examName.split(' - ');
       if (parts.length > 1) return parts[parts.length - 1].trim();
       return examName;
+    }
+
+    // 3.6) 매핑된 과목 중 시험이 없으면 자동 생성
+    // (학생 관리에서 chip 추가 → 리포트 페이지 진입 → 시험 자동 생성 → 빈 슬롯 노출)
+    const allMappedSubjects = new Set<string>();
+    for (const set of teacherMappedSubjects.values()) {
+      for (const s of set) allMappedSubjects.add(s);
+    }
+    const existingExamSubjects = new Set(exams.map((e: any) => extractSubject(e.name)));
+    const missingSubjects = Array.from(allMappedSubjects).filter((s) => !existingExamSubjects.has(s));
+
+    if (missingSubjects.length > 0) {
+      const isMonthly = reportType === 'monthly';
+      const periodKey = isMonthly ? yearMonth! : term!;
+      const periodLabel = isMonthly
+        ? `${periodKey.slice(0, 4)}년 ${parseInt(periodKey.slice(5, 7))}월 월말평가`
+        : `${periodKey} ${reportType === 'midterm' ? '중간고사' : '기말고사'}`;
+      const defaultDate = isMonthly ? `${periodKey}-15` : new Date().toISOString().slice(0, 10);
+
+      const newExams = missingSubjects.map((subject) => ({
+        id: `exam-auto-${periodKey}-${subject}-${Math.random().toString(36).slice(2, 8)}`.replace(/\s+/g, ''),
+        name: `${periodLabel} - ${subject}`,
+        exam_month: isMonthly ? periodKey : null,
+      }));
+
+      const insertStmts = newExams.map((e) =>
+        context.env.DB.prepare(
+          `INSERT INTO exams (id, academy_id, name, exam_month, date, total_score, is_active, exam_type, term, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 100, 1, ?, ?, datetime('now'), datetime('now'))`
+        ).bind(
+          e.id,
+          academyId,
+          e.name,
+          isMonthly ? periodKey : null,
+          defaultDate,
+          isMonthly ? 'monthly' : reportType,
+          isMonthly ? null : periodKey,
+        )
+      );
+      await context.env.DB.batch(insertStmts);
+      for (const e of newExams) exams.push(e);
+    }
+
+    // 성적을 student_id별로 인덱싱
+    const gradeMap = new Map<string, any[]>();
+    for (const g of grades) {
+      if (!gradeMap.has(g.student_id)) gradeMap.set(g.student_id, []);
+      gradeMap.get(g.student_id)!.push(g);
     }
 
     // 4) 학생별 리포트 생성 — 성적 유무 관계없이 모든 학생 포함
@@ -254,35 +323,27 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
         });
       }
 
-      // 학생의 수강 과목 파싱
-      let studentSubjects: string[] = [];
-      try {
-        studentSubjects = student.subjects ? JSON.parse(student.subjects) : [];
-      } catch {
-        studentSubjects = [];
-      }
-
       // 이미 성적이 있는 과목 추적 (중복 시험 방어)
       const gradedExamIds = new Set(studentGrades.map((g: any) => g.exam_id));
       const gradedSubjects = new Set(studentGrades.map((g: any) => extractSubject(g.exam_name)));
 
-      // 성적이 없는 시험에 대해 빈 슬롯 추가 (수강 과목만, 중복 과목 제외)
+      // 빈 슬롯 필터: 사용자가 학생 모달 chip에서 편집한 선생님 매핑 subjects UNION만 사용 (strict)
+      // students.subjects(시드)는 UI에서 편집 불가하므로 필터에서 제외.
+      // 매핑이 비어있으면 빈 슬롯 없음 → 프론트에서 "학생 관리에서 과목 설정" 안내 표시
+      const subjectSet = teacherMappedSubjects.get(student.id) || new Set<string>();
+
       for (const exam of exams) {
-        if (!gradedExamIds.has(exam.id)) {
-          const examSubject = extractSubject(exam.name);
-          // 이미 해당 과목 성적이 있으면 중복 슬롯 추가하지 않음
-          if (gradedSubjects.has(examSubject)) continue;
-          // 수강 과목이 설정되어 있으면 해당 과목만, 없으면 전체 표시
-          if (studentSubjects.length === 0 || studentSubjects.includes(examSubject)) {
-            scores.push({
-              examId: exam.id,
-              subject: examSubject,
-              score: 0,
-              comment: '',
-            });
-            gradedSubjects.add(examSubject); // 이 과목도 추가됐으므로 중복 방지
-          }
-        }
+        if (gradedExamIds.has(exam.id)) continue;
+        const examSubject = extractSubject(exam.name);
+        if (gradedSubjects.has(examSubject)) continue;
+        if (!subjectSet.has(examSubject)) continue;
+        scores.push({
+          examId: exam.id,
+          subject: examSubject,
+          score: 0,
+          comment: '',
+        });
+        gradedSubjects.add(examSubject);
       }
 
       const reportKey = reportType === 'monthly' ? yearMonth! : `${term}-${reportType}`;
@@ -294,6 +355,7 @@ async function handleGetReports(request: Request, context: RequestContext): Prom
         yearMonth: reportType === 'monthly' ? yearMonth : null,
         term: reportType !== 'monthly' ? term : null,
         scores,
+        studentSubjects: Array.from(subjectSet),
         totalComment: '',
         createdAt: new Date().toISOString(),
       };

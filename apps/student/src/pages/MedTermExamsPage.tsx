@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 import { medtermApi, MedTermExamAttempt, MedTermExamItem } from '../api';
 
 export function MedTermExamsListPage() {
@@ -193,8 +194,8 @@ export function MedTermExamAttemptPage() {
           <article key={it.id} className="medterm-card" data-testid={`medterm-exam-item-${it.no}`}>
             <div className="medterm-mode-badge">
               문제 {it.no} · [{it.type}] · {it.difficulty}
-              {correct === 1 && <span style={{ color: 'var(--success)', marginLeft: 8 }}>✓</span>}
-              {correct === 0 && <span style={{ color: 'var(--danger)', marginLeft: 8 }}>✕</span>}
+              {correct === 1 && <Check size={14} style={{ color: 'var(--success)', marginLeft: 8, verticalAlign: 'middle' }} aria-label="정답" />}
+              {correct === 0 && <X size={14} style={{ color: 'var(--danger)', marginLeft: 8, verticalAlign: 'middle' }} aria-label="오답" />}
             </div>
             <div className="medterm-meaning">{it.question}</div>
 

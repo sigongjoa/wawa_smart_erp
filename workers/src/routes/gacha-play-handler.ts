@@ -114,7 +114,7 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
   // 학생 조회 — 동명이인 가능성 (학원 내 같은 이름 학생 N명) → 모두 가져와 PIN 일치하는 학생 선택
   const candidates = await executeQuery<any>(
     context.env.DB,
-    'SELECT * FROM gacha_students WHERE academy_id = ? AND name = ? AND status = ?',
+    'SELECT * FROM students WHERE academy_id = ? AND name = ? AND status = ?',
     [academy.id, name.trim(), 'active']
   );
   if (candidates.length === 0) {
@@ -166,7 +166,7 @@ async function handleLogin(request: Request, context: RequestContext): Promise<R
       const upgraded = await hashPinV2(pin);
       await executeUpdate(
         context.env.DB,
-        "UPDATE gacha_students SET pin_hash = ?, pin_salt = '' WHERE id = ?",
+        "UPDATE students SET pin_hash = ?, pin_salt = '' WHERE id = ?",
         [upgraded, student.id]
       );
     } catch (e) {
@@ -233,7 +233,7 @@ async function handleChangePin(request: Request, context: RequestContext, auth: 
     // 현 학생 hash 조회 (academy_id 격리)
     const student = await executeFirst<{ pin_hash: string | null }>(
       context.env.DB,
-      'SELECT pin_hash FROM gacha_students WHERE id = ? AND academy_id = ?',
+      'SELECT pin_hash FROM students WHERE id = ? AND academy_id = ?',
       [auth.studentId, auth.academyId],
     );
     if (!student?.pin_hash) {
@@ -253,7 +253,7 @@ async function handleChangePin(request: Request, context: RequestContext, auth: 
     const newHash = await hashPinV2(new_pin);
     await executeUpdate(
       context.env.DB,
-      "UPDATE gacha_students SET pin_hash = ?, pin_salt = '', updated_at = ? WHERE id = ? AND academy_id = ?",
+      "UPDATE students SET pin_hash = ?, pin_salt = '', updated_at = ? WHERE id = ? AND academy_id = ?",
       [newHash, new Date().toISOString(), auth.studentId, auth.academyId],
     );
 
@@ -644,29 +644,13 @@ async function handleProofSubmit(request: Request, context: RequestContext, auth
   // 결과 저장
   const resultId = generatePrefixedId('pres');
   const now = new Date().toISOString();
-  const today = now.split('T')[0];
-
-  const session = await executeFirst<any>(
-    context.env.DB,
-    'SELECT id FROM gacha_sessions WHERE student_id = ? AND session_date = ?',
-    [auth.studentId, today]
-  );
 
   await executeInsert(
     context.env.DB,
     `INSERT INTO proof_results (id, student_id, proof_id, session_id, mode, score, time_spent, detail_json, box, attempted_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [resultId, auth.studentId, proofId, session?.id || null, mode, score, timeSpent, JSON.stringify(detail), boxAfter, now]
+    [resultId, auth.studentId, proofId, null, mode, score, timeSpent, JSON.stringify(detail), boxAfter, now]
   );
-
-  // 세션 카운트 업데이트
-  if (session) {
-    await executeUpdate(
-      context.env.DB,
-      'UPDATE gacha_sessions SET proofs_done = proofs_done + 1 WHERE id = ?',
-      [session.id]
-    );
-  }
 
   // SEC-GACHA-H3: 시작 시각 KV 정리 (재제출 방지·자원 회수)
   try { await context.env.KV.delete(proofStartKey(auth.studentId, proofId, mode)); } catch { /* ignore */ }
@@ -695,23 +679,7 @@ function normalizeAnswer(s: string): string {
 async function handleGetProfile(context: RequestContext, auth: PlayAuth): Promise<Response> {
   const student = await executeFirst<any>(
     context.env.DB,
-    'SELECT id, name, grade FROM gacha_students WHERE id = ?',
-    [auth.studentId]
-  );
-
-  // 최근 7일 세션
-  const sessions = await executeQuery<any>(
-    context.env.DB,
-    `SELECT * FROM gacha_sessions WHERE student_id = ? ORDER BY session_date DESC LIMIT 7`,
-    [auth.studentId]
-  );
-
-  // 카드 Box 분포 (학생 본인 카드만)
-  const boxDistribution = await executeQuery<any>(
-    context.env.DB,
-    `SELECT box, COUNT(*) as count FROM gacha_cards
-     WHERE student_id = ?
-     GROUP BY box ORDER BY box`,
+    'SELECT id, name, grade FROM students WHERE id = ?',
     [auth.studentId]
   );
 
@@ -728,8 +696,8 @@ async function handleGetProfile(context: RequestContext, auth: PlayAuth): Promis
 
   return successResponse({
     student,
-    sessions,
-    boxDistribution,
+    sessions: [],
+    boxDistribution: [],
     recentProofScores: proofScores,
   });
 }
@@ -761,28 +729,9 @@ export async function handleGachaPlay(
       return errorResponse('Method not allowed', 405);
     }
 
-    // /api/play/session
-    if (pathname === '/api/play/session') {
-      if (method === 'GET') return await handleGetSession(context, auth);
-      return errorResponse('Method not allowed', 405);
-    }
-
     // /api/play/profile
     if (pathname === '/api/play/profile') {
       if (method === 'GET') return await handleGetProfile(context, auth);
-      return errorResponse('Method not allowed', 405);
-    }
-
-    // /api/play/random-card
-    if (pathname === '/api/play/random-card') {
-      if (method === 'GET') return await handleRandomCard(context, auth);
-      return errorResponse('Method not allowed', 405);
-    }
-
-    // /api/play/card/:id/feedback
-    const feedbackMatch = pathname.match(/^\/api\/play\/card\/([^/]+)\/feedback$/);
-    if (feedbackMatch) {
-      if (method === 'POST') return await handleCardFeedback(request, context, auth, feedbackMatch[1]);
       return errorResponse('Method not allowed', 405);
     }
 

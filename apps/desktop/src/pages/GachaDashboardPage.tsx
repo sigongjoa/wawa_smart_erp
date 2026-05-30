@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertTriangle, Star } from 'lucide-react';
 import { api, GachaStats } from '../api';
 
 export default function GachaDashboardPage() {
@@ -83,7 +84,7 @@ export default function GachaDashboardPage() {
                         {daysSince !== null
                           ? daysSince === 0 ? '오늘'
                             : daysSince === 1 ? '어제'
-                            : `${daysSince}일 전${daysSince > 3 ? ' ⚠' : ''}`
+                            : <>{daysSince}일 전{isWarning && <AlertTriangle size={12} aria-hidden style={{ marginLeft: 4, verticalAlign: 'middle', color: 'var(--danger)' }} />}</>
                           : '없음'}
                       </td>
                     </tr>
@@ -105,7 +106,7 @@ export default function GachaDashboardPage() {
                 <span className="gacha-hard-proof-rank">{i + 1}</span>
                 <div className="gacha-hard-proof-info">
                   <span className="gacha-hard-proof-title">{p.title}</span>
-                  <span className="gacha-hard-proof-meta">{p.grade} · {'★'.repeat(p.difficulty)} · {p.attempt_count}회 시도</span>
+                  <span className="gacha-hard-proof-meta">{p.grade} · <span style={{ display: 'inline-flex', verticalAlign: 'middle' }} aria-label={`난이도 ${p.difficulty}`}>{Array.from({ length: p.difficulty }, (_, i) => <Star key={i} size={11} fill="currentColor" aria-hidden />)}</span> · {p.attempt_count}회 시도</span>
                 </div>
                 <span className="gacha-score-low">평균 {Math.round(p.avg_score)}점</span>
               </div>

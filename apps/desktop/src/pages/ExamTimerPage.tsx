@@ -15,6 +15,7 @@ import { api, ExamAttempt, ExamAttemptPendingAssignment } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
+import DialogShell from '../components/DialogShell';
 
 const PAUSE_REASONS = ['화장실', '몸이 안 좋음', '교사 호출', '기타'] as const;
 const POLL_INTERVAL_MS = 5000;
@@ -491,13 +492,9 @@ export default function ExamTimerPage() {
 
       {/* 일시정지 사유 입력 모달 */}
       {pauseTarget && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="일시정지 사유 입력"
-          onClick={() => !pauseSaving && setPauseTarget(null)}
-          onKeyDown={(e) => { if (e.key === 'Escape' && !pauseSaving) setPauseTarget(null); }}
+        <DialogShell
+          ariaLabel="일시정지 사유 입력"
+          onClose={() => !pauseSaving && setPauseTarget(null)}
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>
@@ -551,7 +548,7 @@ export default function ExamTimerPage() {
               </button>
             </div>
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {ConfirmDialog}

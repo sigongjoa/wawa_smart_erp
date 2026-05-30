@@ -39,6 +39,8 @@ export default function GachaStudentPage() {
   // 자가 가입 요청 (pending)
   const [signupRequests, setSignupRequests] = useState<StudentSignupRequest[]>([]);
   const [signupBusy, setSignupBusy] = useState<string | null>(null);
+  const [rejectReq, setRejectReq] = useState<StudentSignupRequest | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,13 +79,20 @@ export default function GachaStudentPage() {
     }
   };
 
-  const handleRejectSignup = async (req: StudentSignupRequest) => {
-    const reason = window.prompt(`${req.name} 가입 요청을 거절합니다.\n사유 (선택, 학생에게 표시되지 않음):`);
-    if (reason === null) return; // 취소
+  const handleRejectSignup = (req: StudentSignupRequest) => {
+    setRejectReason('');
+    setRejectReq(req);
+  };
+
+  const submitRejectSignup = async () => {
+    if (!rejectReq) return;
+    const req = rejectReq;
     setSignupBusy(req.id);
     try {
-      await api.rejectSignupRequest(req.id, reason || undefined);
+      await api.rejectSignupRequest(req.id, rejectReason.trim() || undefined);
       toast.success(`${req.name} 가입 거절`);
+      setRejectReq(null);
+      setRejectReason('');
       await loadSignupRequests();
     } catch (err) {
       toast.error('거절 실패: ' + (err as Error).message);
@@ -185,11 +194,11 @@ export default function GachaStudentPage() {
 
       {/* 자가 가입 요청 (pending) — 있을 때만 노출 */}
       {signupRequests.length > 0 && (
-        <div className="gacha-form-card" style={{ borderColor: '#FAC000', background: '#FFFBEB' }}>
+        <div className="gacha-form-card" style={{ borderColor: 'var(--warning)', background: 'var(--warning-surface)' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             가입 요청 대기
             <span style={{
-              background: '#FAC000', color: '#0a1f14',
+              background: 'var(--warning)', color: 'var(--text-primary)',
               padding: '2px 8px', borderRadius: 12,
               fontSize: 12, fontWeight: 800,
             }}>{signupRequests.length}</span>
@@ -202,26 +211,26 @@ export default function GachaStudentPage() {
                 gap: 12,
                 alignItems: 'center',
                 padding: '10px 12px',
-                background: '#fff',
-                border: '1px solid #eee',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-primary)',
                 borderRadius: 8,
               }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>{req.name}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>{req.grade ?? '학년 미지정'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{req.grade ?? '학년 미지정'}</div>
                 </div>
-                <div style={{ fontSize: 12, color: '#666' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                   {new Date(req.submitted_at + (req.submitted_at.endsWith('Z') ? '' : 'Z')).toLocaleString('ko-KR', {
                     month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
                 </div>
-                <div style={{ fontSize: 12, color: '#444', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {req.requested_teacher_name ? (
-                    <span><strong style={{ color: '#0a1f14' }}>지정 선생님:</strong> {req.requested_teacher_name}</span>
+                    <span><strong style={{ color: 'var(--text-primary)' }}>지정 선생님:</strong> {req.requested_teacher_name}</span>
                   ) : (
-                    <span style={{ color: '#aaa' }}>지정 선생님 없음</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>지정 선생님 없음</span>
                   )}
-                  {req.memo && <span style={{ color: '#888' }}>{req.memo}</span>}
+                  {req.memo && <span style={{ color: 'var(--text-tertiary)' }}>{req.memo}</span>}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
@@ -351,6 +360,38 @@ export default function GachaStudentPage() {
                 </div>
               </>
             )}
+          </div>
+        </DialogShell>
+      )}
+
+      {rejectReq && (
+        <DialogShell
+          ariaLabel="가입 요청 거절"
+          onClose={() => { setRejectReq(null); setRejectReason(''); }}
+          overlayClassName="gacha-modal-overlay"
+        >
+          <div className="gacha-modal" onClick={e => e.stopPropagation()}>
+            <h3>가입 요청 거절</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 12px' }}>
+              <strong>{rejectReq.name}</strong> 학생의 가입 요청을 거절합니다.
+              사유는 선택 사항이며 학생에게 표시되지 않습니다.
+            </p>
+            <textarea
+              placeholder="거절 사유 (선택)"
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value.slice(0, 500))}
+              rows={3}
+              autoFocus
+              style={{ width: '100%' }}
+            />
+            <div className="gacha-form-actions" style={{ gap: 8 }}>
+              <button className="btn-secondary" onClick={() => { setRejectReq(null); setRejectReason(''); }}>취소</button>
+              <button
+                className="btn-primary"
+                onClick={submitRejectSignup}
+                disabled={signupBusy === rejectReq.id}
+              >{signupBusy === rejectReq.id ? '처리 중…' : '거절'}</button>
+            </div>
           </div>
         </DialogShell>
       )}

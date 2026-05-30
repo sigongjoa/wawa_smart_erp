@@ -31,6 +31,7 @@ export default function LiveSessionPage() {
   const [strokes, setStrokes] = useState<LiveStroke[]>([]);
   const [mode, setMode] = useState<'text' | 'canvas'>('text');
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -81,9 +82,10 @@ export default function LiveSessionPage() {
   const onPhotoUpload = async (file: File) => {
     if (!id) return;
     if (file.size > 1 * 1024 * 1024) {
-      alert('사진은 1MB 이내만 가능');
+      setUploadError('사진은 1MB 이내만 가능');
       return;
     }
+    setUploadError(null);
     const dataUrl = await fileToDataUrl(file);
     try {
       await api.patchLiveStudent(id, { append_photo_data_url: dataUrl });
@@ -91,7 +93,7 @@ export default function LiveSessionPage() {
       setState(st);
       setSavedAt(Date.now());
     } catch (e: any) {
-      alert(e.message || '업로드 실패');
+      setUploadError(e.message || '업로드 실패');
     }
   };
 
@@ -197,6 +199,20 @@ export default function LiveSessionPage() {
             />
           </label>
         </div>
+
+        {uploadError && (
+          <div
+            role="alert"
+            onClick={() => setUploadError(null)}
+            style={{
+              background: 'var(--danger-surface)', color: 'var(--danger)',
+              border: 'var(--border-hairline)', borderRadius: 'var(--r-sm)',
+              padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-3)', fontSize: 13,
+            }}
+          >
+            {uploadError}
+          </div>
+        )}
 
         {mode === 'text' ? (
           <textarea

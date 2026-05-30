@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, X, Clock } from 'lucide-react';
+import { Check, X, Clock, AlertTriangle } from 'lucide-react';
 import { api } from '../api';
 import { toast, useConfirm } from './Toast';
 import DialogShell from './DialogShell';
@@ -217,7 +217,9 @@ export default function MakeupSessionsModal({ makeupId, studentName, absenceDate
                 >추가</button>
               </div>
               {remaining > 0 && newDuration > remaining && (
-                <div className="ms-warn">⚠ 남은 필요 시간({remaining}분)보다 많이 예약됩니다.</div>
+                <div className="ms-warn" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <AlertTriangle size={14} aria-hidden /> 남은 필요 시간({remaining}분)보다 많이 예약됩니다.
+                </div>
               )}
             </div>
           </div>

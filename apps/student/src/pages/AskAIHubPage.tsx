@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import { useAuthStore } from '../store';
 import { askAI } from '@/lib/askAI/client';
 import type { QuotaSummary } from '@/lib/askAI/types';
@@ -108,7 +109,7 @@ export default function AskAIHubPage() {
         {/* TODO: 이어할 대화 / 강사 코멘트 / 최근 질문 — 백엔드 엔드포인트 추가 후 활성화 */}
 
         <div className="ah-tip">
-          <span className="ah-tip-ico" aria-hidden="true">★</span>
+          <span className="ah-tip-ico" aria-hidden="true"><Star size={16} fill="currentColor" /></span>
           <div>
             <b>팁.</b> 모르는 문제는 <b>그림부터</b> 그리고 시작하자. AI가 옆에서 한 줄씩 도와준다.
           </div>

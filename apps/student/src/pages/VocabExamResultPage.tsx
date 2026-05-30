@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 import { api, VocabExamDetail } from '../api';
 import TtsButton from '../components/TtsButton';
 import './VocabExamPage.css';
@@ -63,7 +64,7 @@ export default function VocabExamResultPage() {
                 {q.selectedIndex === null && <> · <span className="vresult-mine">미답</span></>}
               </div>
             </div>
-            <div className="vresult-mark">{q.correct ? '○' : '✕'}</div>
+            <div className="vresult-mark">{q.correct ? <Check size={18} aria-label="정답" /> : <X size={18} aria-label="오답" />}</div>
           </div>
         ))}
       </div>

@@ -66,17 +66,21 @@ jurisdiction = "eu"
 
 # Analytics Engine — ask-ai 응답 메트릭 (confidence·needs_teacher·token·unit_id·is_short)
 # 멀티테넌트 격리는 blob1=academy_id 로. 무료 tier 5M writes/day.
-[[analytics_engine_datasets]]
-binding = "AE_ASKAI"
-dataset = "askai_metrics"
-
-[[env.development.analytics_engine_datasets]]
-binding = "AE_ASKAI"
-dataset = "askai_metrics_dev"
-
-[[env.production.analytics_engine_datasets]]
-binding = "AE_ASKAI"
-dataset = "askai_metrics"
+# ⚠️ 활성화 전제: 계정 dashboard 에서 Analytics Engine 1회 enable 필요
+#   https://dash.cloudflare.com/<account>/workers/analytics-engine
+# 미활성 상태에서 binding 을 추가하면 deploy 실패 (error 10089).
+# 활성화 후 아래 주석을 해제하고 재배포.
+# [[analytics_engine_datasets]]
+# binding = "AE_ASKAI"
+# dataset = "askai_metrics"
+#
+# [[env.development.analytics_engine_datasets]]
+# binding = "AE_ASKAI"
+# dataset = "askai_metrics_dev"
+#
+# [[env.production.analytics_engine_datasets]]
+# binding = "AE_ASKAI"
+# dataset = "askai_metrics"
 
 # 기본 환경 변수 (wrangler deploy 시 사용)
 # top-level 은 test DB 를 향하므로 ENVIRONMENT=development 로 명시한다 —

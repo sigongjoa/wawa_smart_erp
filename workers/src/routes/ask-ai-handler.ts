@@ -327,14 +327,14 @@ async function handleTeacherQueue(request: Request, context: RequestContext): Pr
   const uncommentedOnly = url.searchParams.get('uncommented') === '1';
   const sort = (url.searchParams.get('sort') ?? 'uncommented_first') as any;
 
-  // 최근 7일 대화 — gacha_students JOIN으로 academy 격리 + 학생 이름
+  // 최근 7일 대화 — students JOIN으로 academy 격리 + 학생 이름
   const rows = await context.env.DB.prepare(
     `SELECT c.id as conversation_id, c.student_id, g.name as student_name,
             c.unit_id, c.confidence, c.needs_teacher, c.started_at,
             (SELECT decision FROM askai_decisions WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) as decision,
             (SELECT COUNT(*) FROM askai_decisions WHERE conversation_id = c.id AND decision = 'comment') as comment_count
      FROM askai_conversations c
-     JOIN gacha_students g ON g.id = c.student_id
+     JOIN students g ON g.id = c.student_id
      WHERE g.academy_id = ?
        AND c.started_at > datetime('now', '-7 days')
      ORDER BY c.started_at DESC
@@ -367,11 +367,11 @@ async function handleTeacherConversation(id: string, context: RequestContext): P
     return errorResponse('잘못된 conversation id', 400);
   }
 
-  // academy 격리 — gacha_students JOIN으로 강사 academy 일치 검증
+  // academy 격리 — students JOIN으로 강사 academy 일치 검증
   const row = await context.env.DB.prepare(
     `SELECT c.*, g.name as student_name, g.academy_id as student_academy_id
      FROM askai_conversations c
-     JOIN gacha_students g ON g.id = c.student_id
+     JOIN students g ON g.id = c.student_id
      WHERE c.id = ? AND g.academy_id = ?`
   ).bind(id, academyId).first();
   if (!row) return notFoundResponse();
@@ -428,7 +428,7 @@ async function handleTeacherDecision(request: Request, context: RequestContext):
   const owner = await context.env.DB.prepare(
     `SELECT g.academy_id as student_academy_id
      FROM askai_conversations c
-     JOIN gacha_students g ON g.id = c.student_id
+     JOIN students g ON g.id = c.student_id
      WHERE c.id = ?`
   ).bind(parsed.data.conversation_id).first();
   if (!owner) return notFoundResponse();

@@ -12,6 +12,8 @@ import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import { PageHeader, SummaryBar, Panel, Pill } from '../components/v2';
 import { Icon } from '../components/icons/Icon';
+import DialogShell from '../components/DialogShell';
+import Modal from '../components/Modal';
 
 type Day = '월' | '화' | '수' | '목' | '금' | '토' | '일';
 const DAYS: Day[] = ['월', '화', '수', '목', '금', '토', '일'];
@@ -748,13 +750,9 @@ export default function TimerPage() {
 
       {/* 퇴근 확인 모달 */}
       {finishOpen && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="퇴근 확인"
-          onClick={() => { if (!finishing) { setFinishOpen(false); setFinishResult(null); } }}
-          onKeyDown={(e) => { if (e.key === 'Escape' && !finishing) { setFinishOpen(false); setFinishResult(null); } }}
+        <DialogShell
+          ariaLabel="퇴근 확인"
+          onClose={() => { if (!finishing) { setFinishOpen(false); setFinishResult(null); } }}
         >
           <div className="modal-content rt-finish-modal" onClick={(e) => e.stopPropagation()}>
             {!finishResult ? (
@@ -834,141 +832,128 @@ export default function TimerPage() {
               </>
             )}
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {/* 임시 수업 추가 모달 */}
       {adhocOpen && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="임시 수업 추가"
-          onClick={() => !adhocSaving && setAdhocOpen(false)}
-          onKeyDown={(e) => { if (e.key === 'Escape' && !adhocSaving) setAdhocOpen(false); }}
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 600 }}>임시 수업 추가</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* 학생 선택 */}
-              <label style={{ fontSize: 13, fontWeight: 500 }}>
-                학생
-                <input
-                  type="text"
-                  className="exam-input"
-                  placeholder="이름 검색..."
-                  value={adhocSearch}
-                  onChange={(e) => setAdhocSearch(e.target.value)}
-                  style={{ width: '100%', marginTop: 4 }}
-                />
-              </label>
-              <div style={{ maxHeight: 150, overflow: 'auto', border: '1px solid var(--border-primary)', borderRadius: 6, fontSize: 13 }}>
+        <Modal onClose={() => !adhocSaving && setAdhocOpen(false)}>
+          <h3 className="modal-title">임시 수업 추가</h3>
+          <div className="modal-body">
+            {/* 학생 선택 */}
+            <div>
+              <label className="form-label" htmlFor="adhoc-student">학생</label>
+              <input
+                id="adhoc-student"
+                type="text"
+                className="form-input"
+                placeholder="이름 검색..."
+                value={adhocSearch}
+                onChange={(e) => setAdhocSearch(e.target.value)}
+              />
+              <div className="adhoc-picker">
                 {filteredAdhocStudents.map(s => (
                   <button
                     key={s.id}
                     type="button"
+                    className={`adhoc-picker__option${adhocForm.studentId === s.id ? ' is-selected' : ''}`}
                     onClick={() => { setAdhocForm(f => ({ ...f, studentId: s.id })); setAdhocSearch(s.name); }}
-                    style={{
-                      display: 'block', width: '100%', textAlign: 'left',
-                      padding: '6px 10px', border: 'none', cursor: 'pointer',
-                      background: adhocForm.studentId === s.id ? 'var(--primary-surface, #e8e5ff)' : 'transparent',
-                    }}
                   >
-                    {s.name} <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{s.grade}</span>
+                    {s.name} <span className="adhoc-picker__grade">{s.grade}</span>
                   </button>
                 ))}
                 {filteredAdhocStudents.length === 0 && (
-                  <div style={{ padding: '8px 10px', color: 'var(--text-tertiary)' }}>결과 없음</div>
+                  <div className="adhoc-picker__empty">결과 없음</div>
                 )}
               </div>
-
-              {/* 날짜 */}
-              <label style={{ fontSize: 13, fontWeight: 500 }}>
-                날짜
-                <input
-                  type="date"
-                  className="exam-input"
-                  value={adhocForm.date}
-                  onChange={(e) => setAdhocForm(f => ({ ...f, date: e.target.value }))}
-                  style={{ width: '100%', marginTop: 4 }}
-                />
-              </label>
-
-              {/* 시간 */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <label style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
-                  시작
-                  <input
-                    type="time"
-                    className="exam-input"
-                    value={adhocForm.startTime}
-                    onChange={(e) => setAdhocForm(f => ({ ...f, startTime: e.target.value }))}
-                    style={{ width: '100%', marginTop: 4 }}
-                  />
-                </label>
-                <label style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
-                  종료
-                  <input
-                    type="time"
-                    className="exam-input"
-                    value={adhocForm.endTime}
-                    onChange={(e) => setAdhocForm(f => ({ ...f, endTime: e.target.value }))}
-                    style={{ width: '100%', marginTop: 4 }}
-                  />
-                </label>
-              </div>
-
-              {/* 과목 */}
-              <label style={{ fontSize: 13, fontWeight: 500 }}>
-                과목
-                <input
-                  type="text"
-                  className="exam-input"
-                  placeholder="수학"
-                  value={adhocForm.subject}
-                  onChange={(e) => setAdhocForm(f => ({ ...f, subject: e.target.value }))}
-                  style={{ width: '100%', marginTop: 4 }}
-                />
-              </label>
-
-              {/* 사유 */}
-              <label style={{ fontSize: 13, fontWeight: 500 }}>
-                사유
-                <select
-                  className="exam-filter-select"
-                  value={adhocForm.reason}
-                  onChange={(e) => setAdhocForm(f => ({ ...f, reason: e.target.value }))}
-                  style={{ width: '100%', marginTop: 4 }}
-                >
-                  <option value="시간표변경">시간표변경</option>
-                  <option value="보충수업">보충수업</option>
-                  <option value="시험대비">시험대비</option>
-                  <option value="대타">대타</option>
-                  <option value="기타">기타</option>
-                </select>
-              </label>
             </div>
 
-            <div className="modal-footer" style={{ marginTop: 16 }}>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setAdhocOpen(false)}
-                disabled={adhocSaving}
-                type="button"
+            {/* 날짜 */}
+            <div>
+              <label className="form-label" htmlFor="adhoc-date">날짜</label>
+              <input
+                id="adhoc-date"
+                type="date"
+                className="form-input"
+                value={adhocForm.date}
+                onChange={(e) => setAdhocForm(f => ({ ...f, date: e.target.value }))}
+              />
+            </div>
+
+            {/* 시간 */}
+            <div className="form-row form-row--equal">
+              <div>
+                <label className="form-label" htmlFor="adhoc-start">시작</label>
+                <input
+                  id="adhoc-start"
+                  type="time"
+                  className="form-input"
+                  value={adhocForm.startTime}
+                  onChange={(e) => setAdhocForm(f => ({ ...f, startTime: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="adhoc-end">종료</label>
+                <input
+                  id="adhoc-end"
+                  type="time"
+                  className="form-input"
+                  value={adhocForm.endTime}
+                  onChange={(e) => setAdhocForm(f => ({ ...f, endTime: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* 과목 */}
+            <div>
+              <label className="form-label" htmlFor="adhoc-subject">과목</label>
+              <input
+                id="adhoc-subject"
+                type="text"
+                className="form-input"
+                placeholder="수학"
+                value={adhocForm.subject}
+                onChange={(e) => setAdhocForm(f => ({ ...f, subject: e.target.value }))}
+              />
+            </div>
+
+            {/* 사유 */}
+            <div>
+              <label className="form-label" htmlFor="adhoc-reason">사유</label>
+              <select
+                id="adhoc-reason"
+                className="form-select"
+                value={adhocForm.reason}
+                onChange={(e) => setAdhocForm(f => ({ ...f, reason: e.target.value }))}
               >
-                취소
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleAdhocSubmit}
-                disabled={adhocSaving}
-                type="button"
-              >
-                {adhocSaving ? '추가 중...' : '추가'}
-              </button>
+                <option value="시간표변경">시간표변경</option>
+                <option value="보충수업">보충수업</option>
+                <option value="시험대비">시험대비</option>
+                <option value="대타">대타</option>
+                <option value="기타">기타</option>
+              </select>
             </div>
           </div>
-        </div>
+
+          <div className="modal-footer">
+            <button
+              className="btn btn-secondary"
+              onClick={() => setAdhocOpen(false)}
+              disabled={adhocSaving}
+              type="button"
+            >
+              취소
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleAdhocSubmit}
+              disabled={adhocSaving}
+              type="button"
+            >
+              {adhocSaving ? '추가 중...' : '추가'}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {ConfirmDialog}

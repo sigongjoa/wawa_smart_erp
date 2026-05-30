@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type BaseballWord, type BaseballWordsResponse } from '../api';
+import { Baseball, BaseballCap, Fire, Trophy, PencilSimple, Books, SmileySad, Handshake, Check, X, ArrowsClockwise, House, CaretUp, CaretDown, CaretRight } from '@phosphor-icons/react';
+import ConfirmSheet from '../components/ConfirmSheet';
 import './BaseballPage.css';
 
 type Tier = 1 | 2 | 3 | 4;
@@ -471,7 +473,7 @@ export default function BaseballPage() {
       audio.strike();
       vibe(30);
       if (newStrikes >= 3) {
-        showCallout('삼진 아웃! 🔥', 'strike');
+        showCallout('삼진 아웃!', 'strike');
         setOuts((o) => o + 1);
         setStats((s) => ({ ...s, totalK: s.totalK + 1, totalOut: s.totalOut + 1 }));
         setBalls(0);
@@ -496,7 +498,7 @@ export default function BaseballPage() {
 
     // v2: 1루타 추가 (느린 정답). 안타류 모두 타석 종료이므로 카운트 0-0 리셋.
     let basesGained: 1 | 2 | 3 | 4, label: string, cls: string, isHR = false;
-    if (elapsed < 1200)      { basesGained = 4; label = 'HOMERUN! ⚾'; cls = 'homerun'; isHR = true; }
+    if (elapsed < 1200)      { basesGained = 4; label = 'HOMERUN!'; cls = 'homerun'; isHR = true; }
     else if (elapsed < 1700) { basesGained = 3; label = '3루타!';     cls = 'hit'; }
     else if (elapsed < 2300) { basesGained = 2; label = '2루타!';     cls = 'hit'; }
     else                     { basesGained = 1; label = '1루타!';     cls = 'hit'; }
@@ -558,7 +560,7 @@ export default function BaseballPage() {
       audio.strike();
       vibe(20);
       if (newStrikes >= 3) {
-        showCallout('삼진 아웃! 🔥', 'strike');
+        showCallout('삼진 아웃!', 'strike');
         setOuts((o) => o + 1);
         setStats((s) => ({ ...s, totalK: s.totalK + 1, totalOut: s.totalOut + 1 }));
         audio.homerun();
@@ -768,9 +770,12 @@ export default function BaseballPage() {
     : ballAnim,
   ].filter(Boolean).join(' ');
 
+  const [confirmingExit, setConfirmingExit] = useState(false);
+
   const exitGame = () => {
     if (phase === 'playing') {
-      if (!confirm('게임을 종료하고 홈으로 돌아갈까요?')) return;
+      setConfirmingExit(true);
+      return;
     }
     navigate('/');
   };
@@ -804,7 +809,7 @@ export default function BaseballPage() {
           <div className="inn-col">
             <div className="inn-big">
               <span>{inning}</span>
-              <span className="arrow">{isOffense ? '▲' : '▼'}</span>
+              <span className="arrow">{isOffense ? <CaretUp size={14} weight="fill" aria-hidden /> : <CaretDown size={14} weight="fill" aria-hidden />}</span>
             </div>
             <div className="inn-label">INNING</div>
           </div>
@@ -844,15 +849,15 @@ export default function BaseballPage() {
             </div>
           </div>
           <div className="pitches-left">
-            <span>⚾</span>
+            <span><Baseball size={16} weight="fill" aria-hidden /></span>
             <span>{pitchesLeft}</span>
           </div>
         </div>
 
         {/* HALF BANNER */}
         <div className="half-banner">
-          <span className={`role-pill ${isOffense ? 'off' : 'def'}`}>
-            {isOffense ? '⚾ 공격' : '🧢 수비'}
+          <span className={`role-pill ${isOffense ? 'off' : 'def'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {isOffense ? <><Baseball size={15} weight="fill" aria-hidden /> 공격</> : <><BaseballCap size={15} weight="fill" aria-hidden /> 수비</>}
           </span>
           <div className="half-center">
             <div className="inn-txt">{inning}회 {isOffense ? '초' : '말'}</div>
@@ -861,7 +866,7 @@ export default function BaseballPage() {
             </div>
           </div>
           <div className={`streak ${streak === 0 ? 'dead' : ''}`} title="연속 정답">
-            <span>🔥</span><span>{streak}</span>
+            <span><Fire size={16} weight="fill" aria-hidden /></span><span>{streak}</span>
           </div>
         </div>
 
@@ -936,8 +941,10 @@ export default function BaseballPage() {
         {/* HUD */}
         <div className="hud">
           <div className={`question ${isOffense ? 'off' : 'def'}`}>
-            <span className="q-hint">
-              {isOffense ? '⚾ 공이 날아온다 — 뜻 맞혀 쳐라!' : '🧢 공을 던져라 — 빠를수록 스트라이크!'}
+            <span className="q-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {isOffense
+                ? <><Baseball size={15} weight="fill" aria-hidden /> 공이 날아온다 — 뜻 맞혀 쳐라!</>
+                : <><BaseballCap size={15} weight="fill" aria-hidden /> 공을 던져라 — 빠를수록 스트라이크!</>}
             </span>
             <span className="q-word">{current?.prompt ?? '—'}</span>
             <div className="timer-bar">
@@ -993,19 +1000,21 @@ export default function BaseballPage() {
       {/* START OVERLAY */}
       {phase === 'start' && (
         <div className="bb-overlay">
-          <h1>⚾ WORD BASEBALL</h1>
-          <p style={{ color: '#ffc800', fontWeight: 900, letterSpacing: 2, fontSize: 14 }}>
+          <h1 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+            <Baseball size={28} weight="fill" aria-hidden /> WORD BASEBALL
+          </h1>
+          <p style={{ color: 'var(--gold)', fontWeight: 900, letterSpacing: 2, fontSize: 14 }}>
             4 INNINGS · 듀얼 풀 · 공수교대
           </p>
           <div className="rules-grid">
             <div className="rules-card off">
-              <h3>📚 1·2회</h3>
+              <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Books size={16} weight="fill" aria-hidden /> 1·2회</h3>
               <b>모르는 단어</b><br />
               box ≤ 2 또는<br />
               자주 틀린 단어
             </div>
             <div className="rules-card def">
-              <h3>✏️ 3·4회</h3>
+              <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><PencilSimple size={16} weight="fill" aria-hidden /> 3·4회</h3>
               <b>내 단어장</b><br />
               직접 추가한<br />
               단어 위주
@@ -1013,7 +1022,7 @@ export default function BaseballPage() {
           </div>
           <div className="rules-grid">
             <div className="rules-card off">
-              <h3>⚾ 공격</h3>
+              <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Baseball size={16} weight="fill" aria-hidden /> 공격</h3>
               <b>1.2초</b> 홈런<br />
               <b>1.7초</b> 3루타<br />
               <b>2.3초</b> 2루타<br />
@@ -1021,7 +1030,7 @@ export default function BaseballPage() {
               오답=K · 놓침=B
             </div>
             <div className="rules-card def">
-              <h3>🧢 수비</h3>
+              <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BaseballCap size={16} weight="fill" aria-hidden /> 수비</h3>
               정답 <b>&lt;1.5초</b> 스트라이크<br />
               정답 <b>≥1.5초</b> 볼<br />
               오답 = 피안타<br />
@@ -1031,16 +1040,16 @@ export default function BaseballPage() {
           {loadingPool && <p>단어 불러오는 중...</p>}
           {!loadingPool && poolError && (
             <>
-              <p style={{ color: '#ff4b4b' }}>{poolError}</p>
+              <p style={{ color: 'var(--red)' }}>{poolError}</p>
               <button onClick={loadPools}>다시 시도</button>
             </>
           )}
           {!loadingPool && !poolError && wordsByTier && (
             <>
-              <p style={{ fontSize: 12, color: '#b8d4c4' }}>
+              <p style={{ fontSize: 12, color: 'var(--text-sub)' }}>
                 준비된 단어 · 1회 {wordsByTier[1].length} · 2회 {wordsByTier[2].length} · 3회 {wordsByTier[3].length} · 4회 {wordsByTier[4].length}
               </p>
-              <button onClick={startGame}>PLAY BALL! ⚾</button>
+              <button onClick={startGame} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>PLAY BALL! <Baseball size={18} weight="fill" aria-hidden /></button>
             </>
           )}
         </div>
@@ -1068,6 +1077,15 @@ export default function BaseballPage() {
           onRestart={startGame}
         />
       )}
+      {confirmingExit && (
+        <ConfirmSheet
+          message="게임을 종료하고 홈으로 돌아갈까요?"
+          confirmLabel="종료"
+          danger
+          onConfirm={() => { setConfirmingExit(false); navigate('/'); }}
+          onCancel={() => setConfirmingExit(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1084,7 +1102,7 @@ function ReviewOverlay({
   onNext: () => void;
 }) {
   const halfLabel = half === 'top' ? '초' : '말';
-  const role = half === 'top' ? '⚾ 공격' : '🧢 수비';
+  const role = half === 'top' ? '공격' : '수비';
   const answered = logs.filter((l) => l.elapsed !== null);
   const corrects = logs.filter((l) => l.correct).length;
   const avgMs = answered.length ? answered.reduce((s, l) => s + (l.elapsed || 0), 0) / answered.length : 0;
@@ -1118,13 +1136,13 @@ function ReviewOverlay({
       </div>
       <div className="review-list">
         {logs.length === 0 ? (
-          <div className="row" style={{ gridTemplateColumns: '1fr', textAlign: 'center', color: '#b8d4c4' }}>
+          <div className="row" style={{ gridTemplateColumns: '1fr', textAlign: 'center', color: 'var(--text-sub)' }}>
             기록 없음
           </div>
         ) : (
           logs.map((l, i) => (
             <div key={i} className={`row ${l.correct ? '' : 'bad'}`}>
-              <span className={`mark ${l.correct ? 'ok' : 'bad'}`}>{l.correct ? '✓' : '✗'}</span>
+              <span className={`mark ${l.correct ? 'ok' : 'bad'}`}>{l.correct ? <Check size={14} weight="bold" aria-hidden /> : <X size={14} weight="bold" aria-hidden />}</span>
               <span className="w-en">{l.word}<small>{l.ko}</small></span>
               <span className="w-time">{l.elapsed !== null ? (l.elapsed / 1000).toFixed(1) + 's' : '—'}</span>
               <span className="w-result">{l.result}</span>
@@ -1132,7 +1150,7 @@ function ReviewOverlay({
           ))
         )}
       </div>
-      <button onClick={onNext}>다음 ▶</button>
+      <button onClick={onNext} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>다음 <CaretRight size={16} weight="fill" aria-hidden /></button>
     </div>
   );
 }
@@ -1148,27 +1166,27 @@ function EndOverlay({
   onRestart: () => void;
 }) {
   const navigate = useNavigate();
-  let title: string, msg: string;
+  let title: React.ReactNode, msg: string;
   if (myScore > oppScore) {
-    title = '🏆 WIN!';
-    msg = `멋진 경기! ${myScore - oppScore}점 차 승리 🎉`;
+    title = <><Trophy size={28} weight="fill" aria-hidden /> WIN!</>;
+    msg = `멋진 경기! ${myScore - oppScore}점 차 승리`;
   } else if (myScore < oppScore) {
-    title = '😢 LOSE';
+    title = <><SmileySad size={28} weight="fill" aria-hidden /> LOSE</>;
     msg = `아쉽다... ${oppScore - myScore}점 차 패배. 다시 도전!`;
   } else {
-    title = '🤝 TIE';
+    title = <><Handshake size={28} weight="fill" aria-hidden /> TIE</>;
     msg = '무승부! 아슬아슬한 경기였어';
   }
   const acc = stats.totalAnswered ? Math.round(stats.totalCorrect / stats.totalAnswered * 100) : 0;
   const fastest = stats.fastestMs != null ? (stats.fastestMs / 1000).toFixed(2) + 's' : '—';
   const bestText = bestInfo.updated
-    ? `🌟 NEW BEST! ${bestInfo.rec.myScore}:${bestInfo.rec.oppScore} (+${bestInfo.rec.diff}) · HR ${bestInfo.rec.hr}`
+    ? `NEW BEST! ${bestInfo.rec.myScore}:${bestInfo.rec.oppScore} (+${bestInfo.rec.diff}) · HR ${bestInfo.rec.hr}`
     : bestInfo.prev
     ? `역대 최고: ${bestInfo.prev.myScore}:${bestInfo.prev.oppScore} (+${bestInfo.prev.diff}) · HR ${bestInfo.prev.hr}`
     : '';
   return (
     <div className="bb-overlay">
-      <h1>{title}</h1>
+      <h1 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>{title}</h1>
       <div className="big-score">
         <span className="me">{myScore}</span>
         <span className="sep">:</span>
@@ -1201,9 +1219,9 @@ function EndOverlay({
       {bestText && <div className="best-box">{bestText}</div>}
       <p>{msg}</p>
       <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={onRestart}>다시 플레이 🔄</button>
-        <button onClick={() => navigate('/')} style={{ background: '#1cb0f6', boxShadow: '0 6px 0 #0d8dc7, 0 6px 0 #041209' }}>
-          홈으로 🏠
+        <button onClick={onRestart} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>다시 플레이 <ArrowsClockwise size={18} weight="bold" aria-hidden /></button>
+        <button onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center', background: 'var(--blue)', boxShadow: '0 6px 0 var(--blue-2), 0 6px 0 var(--border)' }}>
+          홈으로 <House size={18} weight="fill" aria-hidden />
         </button>
       </div>
     </div>

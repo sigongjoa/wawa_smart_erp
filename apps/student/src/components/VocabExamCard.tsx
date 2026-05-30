@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
 import { api, VocabExamAvailability } from '../api';
 import './VocabExamCard.css';
 
@@ -95,7 +96,9 @@ export default function VocabExamCard() {
   return (
     <div className="vcard">
       <div className="vcard-head">
-        <span className="vcard-title">📖 단어 시험</span>
+        <span className="vcard-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <BookOpen size={18} aria-hidden />단어 시험
+        </span>
         {avail.policy.daily_limit > 0 && (
           <span className="vcard-quota">
             오늘 {avail.todayCount}/{avail.policy.daily_limit}회
@@ -123,11 +126,11 @@ export default function VocabExamCard() {
             onChange={(e) => setSource(e.target.value)}
             disabled={starting}
           >
-            <option value="mywords">⭐ 내 단어 (학생 단어장)</option>
-            <option value="mixed">🎯 내 단어 + 공통어휘 (섞어서)</option>
+            <option value="mywords">내 단어 (학생 단어장)</option>
+            <option value="mixed">내 단어 + 공통어휘 (섞어서)</option>
             {userCatalogs.map((c) => (
               <option key={c.id} value={c.id}>
-                📘 {c.title} ({c.word_count.toLocaleString()})
+                {c.title} ({c.word_count.toLocaleString()})
               </option>
             ))}
           </select>

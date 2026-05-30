@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 import { api, type VocabPrintJobSummary, type VocabPrintJobAnswerRow } from '../../api';
 import { toast, useConfirm } from '../../components/Toast';
 import Modal from '../../components/Modal';
@@ -417,7 +418,7 @@ function DetailModal({ jobId, onClose }: { jobId: string; onClose: () => void; }
                   </div>
                 </div>
                 <span className={`v2-detail-mark${a.correct ? ' is-ok' : ' is-ng'}`}>
-                  {a.correct ? '○' : '✕'}
+                  {a.correct ? <Check size={16} aria-label="정답" /> : <X size={16} aria-label="오답" />}
                 </span>
               </li>
             );

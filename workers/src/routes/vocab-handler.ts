@@ -153,7 +153,7 @@ async function handleCreateWord(request: Request, context: RequestContext): Prom
 
   const student = await executeFirst<IdRow>(
     context.env.DB,
-    'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
     [data.student_id, academyId]
   );
   if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
@@ -234,7 +234,7 @@ async function handleGetGrammar(request: Request, context: RequestContext): Prom
 
   const pg = parsePagination(url, { defaultLimit: 100, maxLimit: 500 });
   let query = `SELECT q.*, s.name as student_name FROM vocab_grammar_qa q
-               LEFT JOIN gacha_students s ON s.id = q.student_id
+               LEFT JOIN students s ON s.id = q.student_id
                WHERE q.academy_id = ?`;
   const params: unknown[] = [academyId];
   if (status) {
@@ -507,7 +507,7 @@ async function handleListPrintJobs(request: Request, context: RequestContext): P
                     j.started_at, j.submitted_at, j.created_at,
                     s.name AS student_name,
                     (SELECT COUNT(*) FROM json_each(j.word_ids_json)) AS word_count`,
-    join: 'JOIN gacha_students s ON s.id = j.student_id',
+    join: 'JOIN students s ON s.id = j.student_id',
     baseFilters: [
       { sql: 'j.academy_id = ?', param: academyId },
       { sql: `datetime(j.created_at) >= datetime('now', '-${days} days')` },
@@ -536,7 +536,7 @@ async function handleGetPrintJobAnswers(context: RequestContext, jobId: string):
     context.env.DB,
     `SELECT j.*, s.name AS student_name
        FROM vocab_print_jobs j
-       JOIN gacha_students s ON s.id = j.student_id
+       JOIN students s ON s.id = j.student_id
       WHERE j.id = ? AND j.academy_id = ?`,
     [jobId, academyId]
   );

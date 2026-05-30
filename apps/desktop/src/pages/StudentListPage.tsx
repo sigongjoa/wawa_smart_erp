@@ -18,6 +18,7 @@ interface Enrollment {
 }
 
 const GRADE_OPTIONS = ['초4', '초5', '초6', '중1', '중2', '중3', '고1', '고2', '고3'];
+const SUBJECT_OPTIONS = ['수학', '영어', '국어', '과학', '사회', '화학', '생물', '물리', '지구과학', '역사', '사탐', '과탐', '통합사회', '통합과학'];
 
 const emptyAdd: StudentCreateInput = {
   name: '', grade: '', school: '', contact: '', guardian_contact: '',
@@ -41,7 +42,7 @@ export default function StudentListPage() {
   const [editTarget, setEditTarget] = useState<Student | null>(null);
   const [editForm, setEditForm] = useState<StudentCreateInput>(emptyAdd);
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
-  const [assignedTeacherIds, setAssignedTeacherIds] = useState<string[]>([]);
+  const [assignedTeachers, setAssignedTeachers] = useState<{ id: string; subjects: string[] }[]>([]);
 
   // 시간표 편집
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -107,10 +108,18 @@ export default function StudentListPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (isAdmin) {
-      api.getTeachers().then(setTeachers).catch(() => {});
-    }
-  }, [isAdmin]);
+    api.getTeachers()
+      .then((list) => {
+        setTeachers(list);
+        if (!list || list.length === 0) {
+          console.warn('[StudentList] getTeachers returned empty list');
+        }
+      })
+      .catch((err) => {
+        console.error('[StudentList] getTeachers failed:', err);
+        toast.error('선생님 목록 조회 실패 (콘솔 확인)');
+      });
+  }, []);
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
@@ -160,13 +169,13 @@ export default function StudentListPage() {
     setEnrollAddOpen(false);
     setNewEnroll({ day: '', startTime: '', endTime: '', subject: '' });
     loadEnrollments(s.id);
-    if (isAdmin) {
-      try {
-        const profile = await api.getStudentProfile(s.id);
-        setAssignedTeacherIds((profile.teachers || []).map(t => t.id));
-      } catch {
-        setAssignedTeacherIds([]);
-      }
+    try {
+      const profile = await api.getStudentProfile(s.id);
+      setAssignedTeachers(
+        (profile.teachers || []).map(t => ({ id: t.id, subjects: t.subjects || [] }))
+      );
+    } catch {
+      setAssignedTeachers([]);
     }
   };
 
@@ -182,9 +191,7 @@ export default function StudentListPage() {
         guardian_contact: editForm.guardian_contact?.trim() || null,
         status: editForm.status,
       });
-      if (isAdmin) {
-        await api.setStudentTeachers(editTarget.id, assignedTeacherIds);
-      }
+      await api.setStudentTeachers(editTarget.id, assignedTeachers);
       toast.success('수정 완료');
       setEditTarget(null);
       load();
@@ -234,8 +241,23 @@ export default function StudentListPage() {
   };
 
   const toggleAssigned = (teacherId: string) => {
-    setAssignedTeacherIds(prev =>
-      prev.includes(teacherId) ? prev.filter(id => id !== teacherId) : [...prev, teacherId]
+    setAssignedTeachers(prev =>
+      prev.some(t => t.id === teacherId)
+        ? prev.filter(t => t.id !== teacherId)
+        : [...prev, { id: teacherId, subjects: [] }]
+    );
+  };
+
+  const toggleTeacherSubject = (teacherId: string, subject: string) => {
+    setAssignedTeachers(prev =>
+      prev.map(t => {
+        if (t.id !== teacherId) return t;
+        const has = t.subjects.includes(subject);
+        return {
+          ...t,
+          subjects: has ? t.subjects.filter(s => s !== subject) : [...t.subjects, subject],
+        };
+      })
     );
   };
 
@@ -429,20 +451,60 @@ export default function StudentListPage() {
               </div>
             </section>
 
-            {isAdmin && teachers.length > 0 && (
+            {teachers.length > 0 && (
               <section className="form-section">
                 <h4 className="form-section-title">담당 선생님</h4>
-                <div className="teacher-checkboxes">
-                  {teachers.map(t => (
-                    <label key={t.id} className="teacher-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={assignedTeacherIds.includes(t.id)}
-                        onChange={() => toggleAssigned(t.id)}
-                      />
-                      {t.name} <span className="teacher-role">({t.role === 'admin' ? '관리자' : '강사'})</span>
-                    </label>
-                  ))}
+                <p className="form-hint">선생님을 체크하고, 이 학생에게 가르치는 과목을 선택하세요. 정기고사 리포트 전송 시 과목 매칭에 사용됩니다.</p>
+                <div className="teacher-checkboxes" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {teachers.map(t => {
+                    const assigned = assignedTeachers.find(a => a.id === t.id);
+                    const checked = !!assigned;
+                    return (
+                      <div key={t.id} style={{ border: '1px solid var(--border-primary)', borderRadius: 6, padding: 8 }}>
+                        <label className="teacher-checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleAssigned(t.id)}
+                          />
+                          <span>{t.name}</span>
+                          <span className="teacher-role">({t.role === 'admin' ? '관리자' : '강사'})</span>
+                        </label>
+                        {checked && (
+                          <div style={{ marginTop: 6, paddingLeft: 22, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {SUBJECT_OPTIONS.map(subject => {
+                              const subChecked = assigned!.subjects.includes(subject);
+                              return (
+                                <label
+                                  key={subject}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '2px 8px',
+                                    borderRadius: 12,
+                                    border: '1px solid',
+                                    borderColor: subChecked ? '#2563eb' : '#d1d5db',
+                                    background: subChecked ? '#dbeafe' : '#fff',
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={subChecked}
+                                    onChange={() => toggleTeacherSubject(t.id, subject)}
+                                    style={{ margin: 0 }}
+                                  />
+                                  {subject}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

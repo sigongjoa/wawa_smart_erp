@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Check, AlertCircle, Info } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -45,8 +46,8 @@ export function ToastContainer() {
     <div className="toast-container" aria-live="polite">
       {items.map((item) => (
         <div key={item.id} className={`toast toast--${item.type}`} role="status">
-          <span className="toast-icon">
-            {item.type === 'success' ? '✓' : item.type === 'error' ? '!' : 'i'}
+          <span className="toast-icon" aria-hidden="true">
+            {item.type === 'success' ? <Check size={16} /> : item.type === 'error' ? <AlertCircle size={16} /> : <Info size={16} />}
           </span>
           <span className="toast-message">{item.message}</span>
         </div>

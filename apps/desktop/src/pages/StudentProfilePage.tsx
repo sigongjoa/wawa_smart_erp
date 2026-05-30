@@ -34,6 +34,11 @@ export default function StudentProfilePage() {
   const [loading, setLoading] = useState(true);
   const [loadWarning, setLoadWarning] = useState<string | null>(null);
 
+  // 라이브 세션 시작 모달
+  const [showLive, setShowLive] = useState(false);
+  const [liveSubject, setLiveSubject] = useState('수학');
+  const [liveStarting, setLiveStarting] = useState(false);
+
   // 편집 모달
   const [showEdit, setShowEdit] = useState(false);
   const [editName, setEditName] = useState('');
@@ -102,9 +107,21 @@ export default function StudentProfilePage() {
       setShowEdit(false);
       loadProfile();
     } catch (err: unknown) {
-      alert(errorMessage(err, '수정 실패'));
+      toast.error(errorMessage(err, '수정 실패'));
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const handleStartLive = async () => {
+    if (!id || !liveSubject.trim()) return;
+    setLiveStarting(true);
+    try {
+      const res = await api.startLiveSession({ student_id: id, subject: liveSubject.trim() });
+      navigate(`/live/${res.id}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : '라이브 세션 시작 실패');
+      setLiveStarting(false);
     }
   };
 
@@ -115,7 +132,7 @@ export default function StudentProfilePage() {
       await api.deleteStudent(id);
       navigate('/student');
     } catch (err: unknown) {
-      alert(errorMessage(err, '삭제 실패'));
+      toast.error(errorMessage(err, '삭제 실패'));
       setDeleting(false);
     }
   };
@@ -145,19 +162,7 @@ export default function StudentProfilePage() {
             {(user?.role === 'instructor' || user?.role === 'admin') && (
               <button
                 className="btn btn-primary btn-sm"
-                onClick={async () => {
-                  const subject = window.prompt('과목명을 입력하세요 (예: 수학)', '수학');
-                  if (!subject) return;
-                  try {
-                    const res = await api.startLiveSession({
-                      student_id: id!,
-                      subject: subject.trim(),
-                    });
-                    navigate(`/live/${res.id}`);
-                  } catch (e: unknown) {
-                    alert(e instanceof Error ? e.message : '라이브 세션 시작 실패');
-                  }
-                }}
+                onClick={() => { setLiveSubject('수학'); setShowLive(true); }}
               >
                 <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)', marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true" />
                 라이브 시작
@@ -266,6 +271,34 @@ export default function StudentProfilePage() {
       </section>
 
       {/* 편집 모달 */}
+      {showLive && (
+        <Modal onClose={() => setShowLive(false)}>
+            <h3 className="modal-title">라이브 세션 시작</h3>
+            <div className="modal-body">
+              <label className="form-label">과목명</label>
+              <input
+                className="form-input"
+                value={liveSubject}
+                onChange={(e) => setLiveSubject(e.target.value)}
+                placeholder="예: 수학"
+                disabled={liveStarting}
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter' && liveSubject.trim()) handleStartLive(); }}
+              />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setShowLive(false)} disabled={liveStarting}>취소</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleStartLive}
+                disabled={liveStarting || !liveSubject.trim()}
+              >
+                {liveStarting ? '시작 중...' : '시작'}
+              </button>
+            </div>
+        </Modal>
+      )}
+
       {showEdit && (
         <Modal onClose={() => setShowEdit(false)}>
             <h3 className="modal-title">학생 정보 편집</h3>

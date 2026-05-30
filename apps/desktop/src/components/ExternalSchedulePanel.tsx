@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, ExternalSchedule } from '../api';
 import { useAuthStore } from '../store';
+import { toast, useConfirm } from './Toast';
 
 interface Props {
   studentId: string;
@@ -15,22 +16,23 @@ const KIND_LABEL: Record<ExternalSchedule['kind'], string> = {
 
 export default function ExternalSchedulePanel({ studentId }: Props) {
   const user = useAuthStore((s) => s.user);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<ExternalSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importMonth, setImportMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
   const handleImportExam = async () => {
-    const month = prompt(
-      '정기고사 월을 입력하세요 (YYYY-MM)',
-      new Date().toISOString().slice(0, 7)
-    );
-    if (!month || !/^\d{4}-\d{2}$/.test(month)) return;
+    if (!/^\d{4}-\d{2}$/.test(importMonth)) {
+      toast.error('가져올 월을 선택해 주세요');
+      return;
+    }
     setImporting(true);
     try {
-      const { periods } = await api.getExamPeriodsByMonth(month);
+      const { periods } = await api.getExamPeriodsByMonth(importMonth);
       if (!periods || periods.length === 0) {
-        alert(`${month}에 등록된 정기고사가 없습니다`);
+        toast.info(`${importMonth}에 등록된 정기고사가 없습니다`);
         return;
       }
       let added = 0;
@@ -40,10 +42,10 @@ export default function ExternalSchedulePanel({ studentId }: Props) {
         if (res.imported) added++;
         else skipped++;
       }
-      alert(`추가 ${added}건 / 이미 존재 ${skipped}건`);
+      toast.success(`추가 ${added}건 / 이미 존재 ${skipped}건`);
       await load();
     } catch (err: any) {
-      alert(err.message || '가져오기 실패');
+      toast.error(err.message || '가져오기 실패');
     } finally {
       setImporting(false);
     }
@@ -83,7 +85,7 @@ export default function ExternalSchedulePanel({ studentId }: Props) {
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      alert('제목을 입력해 주세요');
+      toast.error('제목을 입력해 주세요');
       return;
     }
     setSaving(true);
@@ -101,28 +103,37 @@ export default function ExternalSchedulePanel({ studentId }: Props) {
       setShowForm(false);
       await load();
     } catch (err: any) {
-      alert(err.message || '저장 실패');
+      toast.error(err.message || '저장 실패');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('삭제하시겠습니까?')) return;
+    if (!(await confirm('삭제하시겠습니까?'))) return;
     await api.deleteSchedule(studentId, id);
     await load();
   };
 
   return (
+    <>
     <section className="dashboard-section">
       <div className="section-title-row">
         <h3>타 과목 / 타 학원 / 시험 일정</h3>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            type="month"
+            className="form-input form-input--sm"
+            value={importMonth}
+            onChange={(e) => setImportMonth(e.target.value)}
+            aria-label="정기고사 가져올 월"
+            style={{ width: 140 }}
+          />
           <button
             className="btn btn-ghost btn-sm"
             onClick={handleImportExam}
             disabled={importing}
-            title="해당 월의 모든 정기고사를 이 학생 일정에 자동 추가"
+            title="선택한 월의 모든 정기고사를 이 학생 일정에 자동 추가"
           >
             {importing ? '가져오는 중...' : '정기고사 자동 반영'}
           </button>
@@ -262,5 +273,7 @@ export default function ExternalSchedulePanel({ studentId }: Props) {
         </table>
       )}
     </section>
+    {ConfirmDialog}
+    </>
   );
 }

@@ -134,7 +134,7 @@ export default function LiveSessionPage() {
   const onProblemImageUpload = async (file: File) => {
     if (!id) return;
     if (file.size > SIZE_LIMITS.PHOTO_MAX_BYTES) {
-      alert('이미지는 1MB 이내로 업로드해 주세요');
+      toast.error('이미지는 1MB 이내로 업로드해 주세요');
       return;
     }
     const dataUrl = await fileToDataUrl(file);
@@ -143,7 +143,7 @@ export default function LiveSessionPage() {
       await api.patchLiveState(id, { side: 'problem', image_data_url: dataUrl });
       toast.success('문제 이미지 전송됨');
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '이미지 전송 실패');
+      toast.error(e instanceof Error ? e.message : '이미지 전송 실패');
     }
   };
 
@@ -167,7 +167,7 @@ export default function LiveSessionPage() {
       toast.success('세션 종료' + (result.note_id ? ' · 메모 자동 생성됨' : ''));
       navigate(`/student/${session.student_id}`);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '종료 실패');
+      toast.error(e instanceof Error ? e.message : '종료 실패');
     } finally {
       setEndSubmitting(false);
     }

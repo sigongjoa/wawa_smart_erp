@@ -29,13 +29,13 @@ import { handleOnboard } from '@/routes/onboard-handler';
 import { handleAcademy } from '@/routes/academy-handler';
 import { handleMeeting } from '@/routes/meeting-handler';
 import { handleGachaStudent } from '@/routes/gacha-student-handler';
-import { handleGachaCard } from '@/routes/gacha-card-handler';
 import { handleNotifications } from '@/routes/notifications-handler';
 import { handleCalendar } from '@/routes/calendar-handler';
 import { handlePlayCalendar } from '@/routes/play-calendar-handler';
 import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
+import { handleUserState } from '@/routes/user-state-handler';
 import { handleExamPaper } from '@/routes/exam-paper-handler';
 import { handleVocab } from '@/routes/vocab-handler';
 import { handleVocabPlay } from '@/routes/vocab-play-handler';
@@ -72,13 +72,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     params: {},
   };
 
+  // 요청 origin 추출 — catch 블록에서도 CORS 헤더를 올바른 origin으로 회신하기 위해 try 밖에서 선언
+  const origin = request.headers.get('origin') || undefined;
+
   try {
     // JWT 시크릿 필수 검증 (시작 시)
     if (!env.JWT_SECRET || !env.JWT_REFRESH_SECRET) {
-      return internalErrorResponse(new Error('JWT secrets not configured'));
+      return addCorsHeaders(internalErrorResponse(new Error('JWT secrets not configured')), env, origin);
     }
-    // 요청 origin 추출
-    const origin = request.headers.get('origin') || undefined;
 
     // CORS preflight
     if (method === 'OPTIONS') {
@@ -280,13 +281,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleCalendar(method, pathname, request, context), env, origin);
       }
 
-      // 가차 학생/카드 관리 (JWT 인증)
-      if (pathname.startsWith('/api/gacha/')) {
-        if (pathname.startsWith('/api/gacha/students')) {
-          return addCorsHeaders(await handleGachaStudent(method, pathname, request, context), env, origin);
-        }
-        // 카드 CRUD + 이미지 업로드/서빙
-        return addCorsHeaders(await handleGachaCard(method, pathname, request, context), env, origin);
+      // 학생 PIN 계정 관리 (JWT 인증) — 옛 /api/gacha/students 경로 호환 유지
+      if (pathname.startsWith('/api/gacha/students')) {
+        return addCorsHeaders(await handleGachaStudent(method, pathname, request, context), env, origin);
       }
 
       // 증명 관리 (JWT 인증)
@@ -294,9 +291,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleProof(method, pathname, request, context), env, origin);
       }
 
-      // 정기고사 관리 (JWT 인증)
+      // 정기고사 관리 (JWT 인증) — presets 포함
       if (pathname.startsWith('/api/exam-mgmt')) {
         return addCorsHeaders(await handleExamMgmt(method, pathname, request, context), env, origin);
+      }
+
+      // 페이지별 마지막 화면 자동 저장 (범용 user_page_state, JWT 인증)
+      if (pathname.startsWith('/api/user-state/')) {
+        return addCorsHeaders(await handleUserState(method, pathname, request, context), env, origin);
       }
 
       // 시험 결시 학생 개별 타이머 (JWT 인증)
@@ -351,7 +353,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return addCorsHeaders(errorResponse('Not found', 404), env, origin);
   } catch (error) {
     logger.error('Request error', error instanceof Error ? error : new Error(String(error)));
-    return addCorsHeaders(internalErrorResponse(error), env);
+    return addCorsHeaders(internalErrorResponse(error), env, origin);
   }
 }
 

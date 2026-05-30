@@ -87,7 +87,7 @@ async function getTarget(context: RequestContext, targetId: string) {
             gs.name as student_name, gs.grade as student_grade
      FROM assignment_targets t
      JOIN assignments a ON a.id = t.assignment_id
-     LEFT JOIN gacha_students gs ON gs.id = t.student_id
+     LEFT JOIN students gs ON gs.id = t.student_id
      WHERE t.id = ? AND t.academy_id = ?`,
     [targetId, getAcademyId(context)]
   );
@@ -161,7 +161,7 @@ export async function handleAssignments(
         selectColumns: `t.id as target_id, t.assignment_id, t.student_id, t.status, t.last_submitted_at,
                         a.title, a.kind, a.due_at, a.created_by,
                         gs.name as student_name, gs.grade as student_grade`,
-        join: 'JOIN assignments a ON a.id = t.assignment_id LEFT JOIN gacha_students gs ON gs.id = t.student_id',
+        join: 'JOIN assignments a ON a.id = t.assignment_id LEFT JOIN students gs ON gs.id = t.student_id',
         baseFilters: [
           { sql: 't.academy_id = ?', param: academyId },
           { sql: "t.status IN ('submitted','needs_resubmit')" },
@@ -234,7 +234,7 @@ export async function handleAssignments(
       const placeholders = data.student_ids.map(() => '?').join(',');
       const validStudents = await executeQuery<{ id: string }>(
         context.env.DB,
-        `SELECT id FROM gacha_students WHERE academy_id = ? AND id IN (${placeholders})`,
+        `SELECT id FROM students WHERE academy_id = ? AND id IN (${placeholders})`,
         [academyId, ...data.student_ids]
       );
       const validIds = new Set(validStudents.map((s) => s.id));
@@ -286,7 +286,7 @@ export async function handleAssignments(
                 (SELECT COUNT(*) FROM assignment_submissions s WHERE s.target_id = t.id) as submission_count,
                 (SELECT COUNT(*) FROM assignment_responses r WHERE r.target_id = t.id) as response_count
          FROM assignment_targets t
-         LEFT JOIN gacha_students gs ON gs.id = t.student_id
+         LEFT JOIN students gs ON gs.id = t.student_id
          WHERE t.assignment_id = ?
          ORDER BY t.last_submitted_at DESC NULLS LAST, gs.name ASC`,
         [id]

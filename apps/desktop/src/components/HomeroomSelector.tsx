@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api, StudentProfile } from '../api';
+import { toast } from './Toast';
 
 interface Props {
   profile: StudentProfile;
@@ -16,7 +17,7 @@ export default function HomeroomSelector({ profile, onChanged }: Props) {
       await api.setHomeroom(profile.id, selected || null);
       onChanged();
     } catch (err: any) {
-      alert(err.message || '담임 지정 실패');
+      toast.error(err.message || '담임 지정 실패');
     } finally {
       setSaving(false);
     }

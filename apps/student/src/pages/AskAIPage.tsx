@@ -4,6 +4,7 @@ import { askAI } from '@/lib/askAI/client';
 import type { PhotoUploadResult } from '@/lib/askAI/client';
 import type { AskAIResult, Step } from '@/lib/askAI/types';
 import { Points2DChart } from '@/components/Points2DChart';
+import { Books, Paperclip } from '@phosphor-icons/react';
 import './AskAIPage.css';
 
 // KaTeX auto-render (전역 — index.html에서 katex.min.css 로드됨)
@@ -228,8 +229,8 @@ export default function AskAIPage() {
           )}
 
           {error && (
-            <article className="question" style={{ borderColor: 'rgba(230,40,41,0.20)', background: 'rgba(230,40,41,0.06)' }}>
-              <div className="meta"><b style={{ color: '#E62829' }}>오류</b></div>
+            <article className="question" style={{ borderColor: 'var(--danger)', background: 'var(--danger-surface)' }}>
+              <div className="meta"><b style={{ color: 'var(--danger)' }}>오류</b></div>
               <p>{error}</p>
             </article>
           )}
@@ -363,7 +364,7 @@ export default function AskAIPage() {
             onClick={() => setSheetOpen(true)}
             aria-haspopup="dialog"
           >
-            <span className="ico" aria-hidden="true">📚</span>
+            <span className="ico" aria-hidden="true"><Books size={16} weight="fill" /></span>
             인용된 자료
             <span className="num" aria-label={`${result.response.references.length}개`}>
               {result.response.references.length}
@@ -383,7 +384,7 @@ export default function AskAIPage() {
               flexWrap: 'wrap', alignItems: 'center',
             }}
           >
-            <span style={{ fontWeight: 700 }}>📎 사진 {attachedPhotos.length}장</span>
+            <span style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Paperclip size={14} aria-hidden /> 사진 {attachedPhotos.length}장</span>
             {attachedPhotos.map((p, i) => (
               <span
                 key={p.r2_key}

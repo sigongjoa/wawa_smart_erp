@@ -1,12 +1,43 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type ExamAbsentee, type ExamPaper, type ExamAttemptByPeriod, type ExamAssignmentUpdate, type ExamShareEntry } from '../api';
-import { toast } from '../components/Toast';
+import { api, type ExamAbsentee, type ExamPaper, type ExamAttemptByPeriod, type ExamAssignmentUpdate, type ExamShareEntry, type ExamViewPreset, type ExamPresetMonthRef, type ExamPresetScope, type ExamPresetVisibility, type ExamMgmtPageState } from '../api';
+import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
 import { Icon } from '../components/icons/Icon';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../store';
 import { escapeHtml } from '../utils/html';
 import { PageHeader } from '../components/v2';
+
+const PAGE_STATE_KEY = 'exam-mgmt';
+
+function resolveMonth(ref: ExamPresetMonthRef, thisMonth: string): string {
+  switch (ref) {
+    case 'prev':    return monthOffset(thisMonth, -1);
+    case 'current': return thisMonth;
+    case 'next':    return monthOffset(thisMonth, +1);
+    case 'next2':   return monthOffset(thisMonth, +2);
+    default:        return /^\d{4}-(0[1-9]|1[0-2])$/.test(ref) ? ref : thisMonth;
+  }
+}
+
+function monthToRef(iso: string, thisMonth: string): ExamPresetMonthRef {
+  if (monthOffset(thisMonth, -1) === iso) return 'prev';
+  if (thisMonth === iso) return 'current';
+  if (monthOffset(thisMonth, +1) === iso) return 'next';
+  if (monthOffset(thisMonth, +2) === iso) return 'next2';
+  return iso;
+}
+
+function monthRefLabel(ref: ExamPresetMonthRef): string {
+  switch (ref) {
+    case 'prev':    return '지난달';
+    case 'current': return '이번달';
+    case 'next':    return '다음달';
+    case 'next2':   return '+2달';
+    default:        return ref;
+  }
+}
 
 type ByMonthStudent = {
   student_id: string;
@@ -187,6 +218,7 @@ function AbsenteeView({
 
 export default function ExamManagementPage() {
   const navigate = useNavigate();
+  const { confirm, ConfirmDialog } = useConfirm();
   const thisMonth = useMemo(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -218,6 +250,83 @@ export default function ExamManagementPage() {
 
   // 서브 탭: 배정/결시
   const [subTab, setSubTab] = useState<'assign' | 'absentees'>('assign');
+
+  // ── 프리셋 / 페이지 상태 자동 저장 ──
+  const [presets, setPresets] = useState<ExamViewPreset[]>([]);
+  const [presetMenuOpen, setPresetMenuOpen] = useState(false);
+  const [presetModal, setPresetModal] = useState<
+    | { mode: 'create' }
+    | { mode: 'edit'; preset: ExamViewPreset }
+    | null
+  >(null);
+  const stateRestoredRef = useRef(false);
+
+  // 마운트 시 마지막 화면 복원 + 프리셋 목록 fetch
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { state } = await api.getUserPageState<ExamMgmtPageState>(PAGE_STATE_KEY);
+        if (cancelled || !state) return;
+        // 이미 사용자가 interact했으면 복원으로 덮어쓰지 않음 — race 가드
+        if (stateRestoredRef.current) return;
+        if (state.monthRef) setSelectedMonth(resolveMonth(state.monthRef, thisMonth));
+        if (state.scope === 'all' || state.scope === 'mine') setScope(state.scope);
+        if (state.subTab === 'assign' || state.subTab === 'absentees') setSubTab(state.subTab);
+      } catch { /* 복원 실패는 무시 — 기본값으로 진행 */ }
+      finally { stateRestoredRef.current = true; }
+    })();
+    (async () => {
+      try {
+        const list = await api.listExamPresets();
+        if (!cancelled) setPresets(list);
+      } catch { /* 프리셋 로드 실패는 무시 */ }
+    })();
+    return () => { cancelled = true; };
+    // thisMonth는 mount 1회 고정값이라 deps 제외 의도
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 상태 변경 시 debounce 저장 (복원 끝난 뒤만)
+  useEffect(() => {
+    if (!stateRestoredRef.current) return;
+    const timer = setTimeout(() => {
+      const payload: ExamMgmtPageState = {
+        monthRef: monthToRef(selectedMonth, thisMonth),
+        scope,
+        subTab,
+      };
+      api.putUserPageState(PAGE_STATE_KEY, payload).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [selectedMonth, scope, subTab, thisMonth]);
+
+  const applyPreset = useCallback((preset: ExamViewPreset) => {
+    // 비동기 복원이 나중에 도착해 덮어쓰는 race 방지 + 사용자 interact 마커
+    stateRestoredRef.current = true;
+    setSelectedMonth(resolveMonth(preset.month_ref, thisMonth));
+    // 일반 강사는 'all' 적용 시 권한 없음 — 'mine'으로 fallback
+    setScope(isAdmin ? preset.scope : 'mine');
+    setPresetMenuOpen(false);
+    // 같은 상태에 적용해도 사용자에게 클릭이 먹혔다는 확신을 줌
+    toast.success(`프리셋 적용: ${preset.name}`);
+  }, [thisMonth, isAdmin]);
+
+  const refreshPresets = useCallback(async () => {
+    try { setPresets(await api.listExamPresets()); }
+    catch { /* skip */ }
+  }, []);
+
+  const deletePreset = useCallback(async (preset: ExamViewPreset) => {
+    if (!(await confirm(`"${preset.name}" 프리셋을 삭제할까요?`))) return;
+    try {
+      await api.deleteExamPreset(preset.id);
+      setPresets(prev => prev.filter(p => p.id !== preset.id));
+      toast.success('프리셋을 삭제했습니다');
+    } catch (err) {
+      toast.error('삭제 실패: ' + ((err as Error)?.message || ''));
+    }
+  }, [confirm]);
 
   // 시험상태 변경 모달
   const [statusModalTarget, setStatusModalTarget] = useState<ByMonthStudent | null>(null);
@@ -264,8 +373,13 @@ export default function ExamManagementPage() {
         : { exam_status: 'scheduled', rescheduled_date: null, rescheduled_memo: null, absence_reason: null };
       await api.updateExamAssignment(periodId, statusModalTarget.assignment_id, payload);
       toast.success('시험 상태가 변경되었습니다');
+      // optimistic 패치 — 풀로드 대신 해당 row만 갱신해서 깜빡임 제거
+      const targetId = statusModalTarget.student_id;
+      const patch: Partial<ByMonthStudent> = hasDate
+        ? { exam_status: 'rescheduled', rescheduled_date: statusForm.rescheduled_date }
+        : { exam_status: 'scheduled', rescheduled_date: null, rescheduled_memo: null, absence_reason: null };
+      setStudents(prev => prev.map(x => x.student_id === targetId ? { ...x, ...patch } : x));
       setStatusModalTarget(null);
-      load(selectedMonth);
       if (subTab === 'absentees') loadAbsentees(selectedMonth);
     } catch (err) {
       toast.error('상태 변경 실패: ' + (err as Error).message);
@@ -312,8 +426,8 @@ export default function ExamManagementPage() {
     }
   };
 
-  const load = useCallback(async (month: string) => {
-    setLoading(true);
+  const load = useCallback(async (month: string, opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const data = await api.getExamByMonth(month, isAdmin && scope === 'all' ? 'all' : 'mine');
       setPeriodId(data.period.id);
@@ -322,7 +436,7 @@ export default function ExamManagementPage() {
       toast.error('로드 실패: ' + (err as Error).message);
       setStudents([]);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [isAdmin, scope]);
 
@@ -395,10 +509,9 @@ export default function ExamManagementPage() {
     );
     try {
       await api.toggleExamByMonth(selectedMonth, s.student_id);
-      await load(selectedMonth);
-    } catch (err) {
+    } catch {
       toast.error('배정 변경 실패');
-      load(selectedMonth);
+      load(selectedMonth, { silent: true });
     }
   };
 
@@ -412,7 +525,7 @@ export default function ExamManagementPage() {
       await api.updateExamAssignment(periodId, s.assignment_id, { drive_link: link });
     } catch {
       toast.error('링크 저장 실패');
-      load(selectedMonth);
+      load(selectedMonth, { silent: true });
     }
   };
 
@@ -428,7 +541,7 @@ export default function ExamManagementPage() {
       await api.updateExamAssignment(periodId, s.assignment_id, { [field]: newVal } as Partial<ExamAssignmentUpdate>);
     } catch {
       toast.error('업데이트 실패');
-      load(selectedMonth);
+      load(selectedMonth, { silent: true });
     }
   };
 
@@ -545,6 +658,16 @@ export default function ExamManagementPage() {
                 >모두 보기</button>
               </div>
             )}
+            <PresetMenu
+              presets={presets}
+              userId={user?.id || ''}
+              open={presetMenuOpen}
+              onToggle={() => setPresetMenuOpen(o => !o)}
+              onApply={applyPreset}
+              onSaveNew={() => { setPresetMenuOpen(false); setPresetModal({ mode: 'create' }); }}
+              onEdit={(p) => { setPresetMenuOpen(false); setPresetModal({ mode: 'edit', preset: p }); }}
+              onDelete={deletePreset}
+            />
             <EnglishExamPaperPicker periodId={periodId} />
           </>
         }
@@ -784,7 +907,7 @@ export default function ExamManagementPage() {
                           aria-label={`시험 상태: ${info.label}. 클릭하여 변경`}
                           title="클릭하여 시험 상태/날짜 변경"
                         >
-                          {info.label} <span className="exam-status-badge__caret" aria-hidden="true">▼</span>
+                          {info.label} <span className="exam-status-badge__caret" aria-hidden="true" style={{ display: 'inline-flex', verticalAlign: 'middle' }}><ChevronDown size={12} /></span>
                         </button>
                       );
                     })() : <span className="exam-cell-empty">—</span>}
@@ -880,7 +1003,7 @@ export default function ExamManagementPage() {
                         aria-expanded={expanded}
                         aria-label={`${s.student_name} 상세 ${expanded ? '닫기' : '펼치기'}`}
                       >
-                        <span aria-hidden="true">{expanded ? '▲' : '▼ 상세'}</span>
+                        <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>{expanded ? <ChevronUp size={14} /> : <><ChevronDown size={14} /> 상세</>}</span>
                       </button>
                     )}
                   </td>
@@ -891,6 +1014,26 @@ export default function ExamManagementPage() {
         </table>
       )}
       </>
+      )}
+
+      {/* 프리셋 저장·편집 모달 */}
+      {presetModal && (
+        <PresetModal
+          mode={presetModal.mode}
+          initial={
+            presetModal.mode === 'edit'
+              ? presetModal.preset
+              : {
+                  name: '',
+                  month_ref: monthToRef(selectedMonth, thisMonth),
+                  scope,
+                  visibility: 'private',
+                }
+          }
+          canShareAcademy={isAdmin}
+          onClose={() => setPresetModal(null)}
+          onSaved={async () => { setPresetModal(null); await refreshPresets(); }}
+        />
       )}
 
       {/* 시험 상태 변경 모달 */}
@@ -938,6 +1081,7 @@ export default function ExamManagementPage() {
           </Modal.Footer>
         </Modal>
       )}
+      {ConfirmDialog}
     </div>
   );
 }
@@ -978,7 +1122,7 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
           background: '#eef0f8', color: 'var(--primary)', border: '1px solid #2d3a8c',
           cursor: 'pointer', fontWeight: 600, fontSize: 13,
         }}
-      >영어 문제 입력 {open ? '▴' : '▾'}</button>
+      ><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>영어 문제 입력 {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span></button>
       {open && (
         <div style={{
           position: 'absolute', right: 0, top: '110%', zIndex: 20,
@@ -1020,3 +1164,251 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
     </div>
   );
 }
+
+// ── 프리셋 드롭다운 메뉴 ──
+function PresetMenu({
+  presets,
+  userId,
+  open,
+  onToggle,
+  onApply,
+  onSaveNew,
+  onEdit,
+  onDelete,
+}: {
+  presets: ExamViewPreset[];
+  userId: string;
+  open: boolean;
+  onToggle: () => void;
+  onApply: (p: ExamViewPreset) => void;
+  onSaveNew: () => void;
+  onEdit: (p: ExamViewPreset) => void;
+  onDelete: (p: ExamViewPreset) => void;
+}) {
+  const mine = presets.filter(p => p.owner_user_id === userId);
+  const shared = presets.filter(p => p.owner_user_id !== userId && p.visibility === 'academy');
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          padding: '8px 14px', borderRadius: 8,
+          background: '#fff', color: 'var(--text-primary)', border: '1px solid var(--border-primary)',
+          cursor: 'pointer', fontWeight: 600, fontSize: 13,
+        }}
+      ><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ChevronDown size={14} /> 프리셋 {presets.length > 0 && `(${presets.length})`}</span></button>
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: '110%', zIndex: 30,
+          background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 8,
+          minWidth: 280, maxHeight: 420, overflowY: 'auto',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)', padding: 6,
+        }}>
+          {mine.length === 0 && shared.length === 0 && (
+            <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: 12 }}>
+              저장된 프리셋이 없습니다.
+            </div>
+          )}
+          {mine.length > 0 && (
+            <>
+              <div style={{ padding: '6px 10px', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>내 프리셋</div>
+              {mine.map(p => (
+                <PresetRow key={p.id} preset={p} editable onApply={onApply} onEdit={onEdit} onDelete={onDelete} />
+              ))}
+            </>
+          )}
+          {shared.length > 0 && (
+            <>
+              <div style={{ padding: '6px 10px 6px', marginTop: mine.length > 0 ? 4 : 0, fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                학원 공유
+              </div>
+              {shared.map(p => (
+                <PresetRow key={p.id} preset={p} editable={false} onApply={onApply} onEdit={onEdit} onDelete={onDelete} />
+              ))}
+            </>
+          )}
+          <div style={{ borderTop: '1px solid var(--border-primary)', marginTop: 6, paddingTop: 6 }}>
+            <button
+              type="button"
+              onClick={onSaveNew}
+              style={{
+                width: '100%', textAlign: 'left',
+                padding: '8px 10px', background: 'transparent', border: 'none',
+                borderRadius: 6, cursor: 'pointer',
+                fontSize: 13, color: 'var(--primary)', fontWeight: 600,
+              }}
+            >+ 현재 화면 저장</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PresetRow({
+  preset, editable, onApply, onEdit, onDelete,
+}: {
+  preset: ExamViewPreset;
+  editable: boolean;
+  onApply: (p: ExamViewPreset) => void;
+  onEdit: (p: ExamViewPreset) => void;
+  onDelete: (p: ExamViewPreset) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <button
+        type="button"
+        onClick={() => onApply(preset)}
+        style={{
+          flex: 1, textAlign: 'left',
+          padding: '8px 10px', background: 'transparent', border: 'none',
+          borderRadius: 6, cursor: 'pointer',
+          fontSize: 13, color: 'var(--text-primary)',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = '#f7fafc')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <div style={{ fontWeight: 600 }}>{preset.name}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+          {monthRefLabel(preset.month_ref)} · {preset.scope === 'all' ? '모두' : '내 학생'}
+          {preset.visibility === 'academy' && ' · 공유'}
+        </div>
+      </button>
+      {editable && (
+        <>
+          <button
+            type="button"
+            onClick={() => onEdit(preset)}
+            aria-label={`${preset.name} 편집`}
+            title="편집"
+            style={{ padding: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+          ><Icon name="Pencil" size={14} /></button>
+          <button
+            type="button"
+            onClick={() => onDelete(preset)}
+            aria-label={`${preset.name} 삭제`}
+            title="삭제"
+            style={{ padding: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+          >×</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── 프리셋 저장·편집 모달 ──
+function PresetModal({
+  mode, initial, canShareAcademy, onClose, onSaved,
+}: {
+  mode: 'create' | 'edit';
+  initial: {
+    id?: string;
+    name: string;
+    month_ref: ExamPresetMonthRef;
+    scope: ExamPresetScope;
+    visibility: ExamPresetVisibility;
+  };
+  canShareAcademy: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(initial.name);
+  const [monthRef, setMonthRef] = useState<ExamPresetMonthRef>(initial.month_ref);
+  const [scope, setScope] = useState<ExamPresetScope>(initial.scope);
+  const [visibility, setVisibility] = useState<ExamPresetVisibility>(initial.visibility);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) { toast.error('이름을 입력하세요'); return; }
+    setSaving(true);
+    try {
+      if (mode === 'edit' && initial.id) {
+        await api.updateExamPreset(initial.id, { name: trimmed, month_ref: monthRef, scope, visibility });
+        toast.success('프리셋을 수정했습니다');
+      } else {
+        await api.createExamPreset({ name: trimmed, month_ref: monthRef, scope, visibility });
+        toast.success('프리셋을 저장했습니다');
+      }
+      onSaved();
+    } catch (err) {
+      toast.error('저장 실패: ' + ((err as Error)?.message || ''));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal onClose={() => { if (!saving) onClose(); }}>
+      <Modal.Header closeDisabled={saving}>
+        {mode === 'edit' ? '프리셋 편집' : '프리셋 저장'}
+      </Modal.Header>
+      <Modal.Body>
+        <label className="form-label" htmlFor="preset-name">이름</label>
+        <input
+          id="preset-name"
+          type="text"
+          className="form-input"
+          maxLength={30}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="예: 다음달 결시 점검"
+          autoFocus
+        />
+        <div className="form-hint">최대 30자</div>
+
+        <label className="form-label" htmlFor="preset-month" style={{ marginTop: 12 }}>월</label>
+        <select
+          id="preset-month"
+          className="form-input"
+          value={MONTH_REF_OPTS.some(o => o.value === monthRef) ? monthRef : 'current'}
+          onChange={(e) => setMonthRef(e.target.value as ExamPresetMonthRef)}
+        >
+          {MONTH_REF_OPTS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        <div className="form-hint">상대값 — 다음에 열 때마다 그 시점 기준으로 계산</div>
+
+        <label className="form-label" style={{ marginTop: 12 }}>담당 범위</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="radio" name="preset-scope" checked={scope === 'mine'} onChange={() => setScope('mine')} />
+            내 학생
+          </label>
+          <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="radio" name="preset-scope" checked={scope === 'all'} onChange={() => setScope('all')} />
+            모두 보기
+          </label>
+        </div>
+
+        {canShareAcademy && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12 }}>
+            <input
+              type="checkbox"
+              checked={visibility === 'academy'}
+              onChange={(e) => setVisibility(e.target.checked ? 'academy' : 'private')}
+            />
+            학원 강사 전원 공유
+          </label>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        <button className="btn btn-secondary" onClick={onClose} disabled={saving} type="button">취소</button>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving} type="button">
+          {saving ? '저장 중...' : (mode === 'edit' ? '수정' : '저장')}
+        </button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+const MONTH_REF_OPTS: { value: ExamPresetMonthRef; label: string }[] = [
+  { value: 'prev', label: '지난달' },
+  { value: 'current', label: '이번달' },
+  { value: 'next', label: '다음달' },
+  { value: 'next2', label: '+2달' },
+];

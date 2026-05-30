@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, TeacherNote, TeacherNoteInput } from '../api';
 import { useAuthStore } from '../store';
-import { toast } from './Toast';
+import { toast, useConfirm } from './Toast';
 
 interface Props {
   studentId: string;
@@ -49,6 +49,7 @@ function formatRelative(iso: string): string {
 
 export default function TeacherNotesPanel({ studentId }: Props) {
   const user = useAuthStore((s) => s.user);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<TeacherNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -103,15 +104,15 @@ export default function TeacherNotesPanel({ studentId }: Props) {
 
   const handleSubmit = async () => {
     if (!subject.trim()) {
-      alert('과목을 입력해 주세요');
+      toast.error('과목을 입력해 주세요');
       return;
     }
     if (!content.trim()) {
-      alert('메모 내용을 입력해 주세요');
+      toast.error('메모 내용을 입력해 주세요');
       return;
     }
     if (content.length > 1000) {
-      alert('메모는 최대 1000자까지 입력할 수 있습니다');
+      toast.error('메모는 최대 1000자까지 입력할 수 있습니다');
       return;
     }
     setSaving(true);
@@ -133,23 +134,24 @@ export default function TeacherNotesPanel({ studentId }: Props) {
       setShowForm(false);
       await load();
     } catch (err: any) {
-      alert(err.message || '메모 저장 실패');
+      toast.error(err.message || '메모 저장 실패');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+    if (!(await confirm('이 메모를 삭제하시겠습니까?'))) return;
     try {
       await api.deleteTeacherNote(studentId, id);
       await load();
     } catch (err: any) {
-      alert(err.message || '삭제 실패');
+      toast.error(err.message || '삭제 실패');
     }
   };
 
   return (
+    <>
     <section className="dashboard-section">
       <div className="section-title-row">
         <h3>교과 선생님 메모</h3>
@@ -358,5 +360,7 @@ export default function TeacherNotesPanel({ studentId }: Props) {
         현재 기간: {currentPeriodTag()}
       </div>
     </section>
+    {ConfirmDialog}
+    </>
   );
 }

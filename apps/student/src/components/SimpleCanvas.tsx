@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Undo2 } from 'lucide-react';
 import type { LiveStroke } from '../api';
 
 interface Props {
@@ -155,7 +156,7 @@ export default function SimpleCanvas({
             onClick={() => setErasing((v) => !v)}
             style={{ padding: '4px 8px', background: erasing ? 'var(--warning-surface)' : 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 4 }}
           >지우개</button>
-          <button type="button" onClick={undo} style={{ padding: '4px 8px' }}>↶</button>
+          <button type="button" onClick={undo} style={{ padding: '4px 8px' }} aria-label="실행 취소"><Undo2 size={16} /></button>
           <button type="button" onClick={clearAll} style={{ padding: '4px 8px' }}>전체지움</button>
         </div>
       )}

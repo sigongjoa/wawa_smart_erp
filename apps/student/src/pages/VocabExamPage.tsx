@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { BookOpen, Star } from 'lucide-react';
 import { api, VocabExamDetail } from '../api';
 import TtsButton from '../components/TtsButton';
 import './VocabExamPage.css';
@@ -121,11 +122,11 @@ export default function VocabExamPage() {
         <div className="vexam-prompt">
           {cur.source === 'textbook' ? (
             <span className="vexam-source-chip vexam-source-chip--textbook">
-              📘 공통{cur.textbookTitle ? ` · ${cur.textbookTitle}` : ''}
+              <BookOpen size={14} aria-hidden /> 공통{cur.textbookTitle ? ` · ${cur.textbookTitle}` : ''}
             </span>
           ) : (
             <span className="vexam-source-chip vexam-source-chip--student">
-              ⭐ 내 단어
+              <Star size={14} aria-hidden /> 내 단어
             </span>
           )}
           <span className="vexam-en">

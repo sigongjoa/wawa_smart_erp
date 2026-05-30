@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
-import { toast } from '../components/Toast';
+import { toast, useConfirm } from '../components/Toast';
 import { useAuthStore } from '../store';
 import Modal from '../components/Modal';
 import AssignmentCreateModal from '../components/assignments/AssignmentCreateModal';
@@ -27,6 +27,7 @@ interface Stats {
 export default function AssignmentsPage() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [tab, setTab] = useState<Tab>('inbox');
   const [stats, setStats] = useState<Stats>({});
@@ -102,7 +103,7 @@ export default function AssignmentsPage() {
   };
 
   const closeAssignment = async (id: string, title: string) => {
-    if (!confirm(`"${title}" 과제를 닫으시겠습니까?\n(학생은 더 이상 제출할 수 없게 됩니다)`)) return;
+    if (!(await confirm(`"${title}" 과제를 닫으시겠습니까?\n(학생은 더 이상 제출할 수 없게 됩니다)`))) return;
     try {
       await api.closeAssignment(id);
       toast.success('과제가 닫혔습니다');
@@ -116,9 +117,9 @@ export default function AssignmentsPage() {
   };
 
   const hardDeleteAssignment = async (id: string, title: string) => {
-    if (!confirm(
-      `"${title}" 과제를 완전 삭제하시겠습니까?\n\n⚠ 모든 제출물과 피드백도 함께 영구 삭제되며 복구할 수 없습니다.`
-    )) return;
+    if (!(await confirm(
+      `"${title}" 과제를 완전 삭제하시겠습니까?\n\n주의: 모든 제출물과 피드백도 함께 영구 삭제되며 복구할 수 없습니다.`
+    ))) return;
     try {
       await api.hardDeleteAssignment(id);
       toast.success('과제가 완전 삭제되었습니다');
@@ -133,9 +134,9 @@ export default function AssignmentsPage() {
   };
 
   const deleteTarget = async (targetId: string, studentName: string, title: string) => {
-    if (!confirm(
-      `"${studentName}"의 "${title}" 제출을 완전 삭제하시겠습니까?\n\n⚠ 제출 이미지와 피드백도 함께 영구 삭제됩니다.`
-    )) return;
+    if (!(await confirm(
+      `"${studentName}"의 "${title}" 제출을 완전 삭제하시겠습니까?\n\n주의: 제출 이미지와 피드백도 함께 영구 삭제됩니다.`
+    ))) return;
     try {
       await api.deleteAssignmentTarget(targetId);
       toast.success('삭제되었습니다');
@@ -251,6 +252,7 @@ export default function AssignmentsPage() {
           onSelectTarget={(targetId) => setSelectedTargetId(targetId)}
         />
       )}
+      {ConfirmDialog}
     </div>
   );
 }

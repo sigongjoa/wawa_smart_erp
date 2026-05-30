@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { Check, X } from 'lucide-react';
 import './WritingMetaPage.css';
 
 /* ── Section 1: Thesis ───────────────────────────────────── */
@@ -152,8 +153,8 @@ export default function WritingMetaPage() {
                   <span className="letter">{t.letter}</span>
                   <span className="body">{t.text}</span>
                   {showVerdict && (
-                    <span className="verdict">
-                      {t.correct ? '✓ ' : '× '}
+                    <span className="verdict" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {t.correct ? <Check size={14} aria-hidden /> : <X size={14} aria-hidden />}
                       {t.verdict}
                     </span>
                   )}

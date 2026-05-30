@@ -109,7 +109,7 @@ async function handleUpsertPolicy(
     }
     const student = await executeFirst<{ id: string }>(
       context.env.DB,
-      'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+      'SELECT id FROM students WHERE id = ? AND academy_id = ?',
       [sid, academyId]
     );
     if (!student) return errorResponse('해당 학생이 본 학원 소속이 아닙니다', 404);

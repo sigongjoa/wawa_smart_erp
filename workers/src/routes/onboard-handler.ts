@@ -283,10 +283,10 @@ export async function handleOnboard(
         requestedTeacherId = teacher?.id ?? null;
       }
 
-      // 이미 등록된 학생(gacha_students)에 동명 존재 시 차단
+      // 이미 등록된 학생(students)에 동명 존재 시 차단
       const existingStudent = await executeFirst<{ id: string }>(
         context.env.DB,
-        'SELECT id FROM gacha_students WHERE academy_id = ? AND name = ?',
+        'SELECT id FROM students WHERE academy_id = ? AND name = ?',
         [academy.id, safeName],
       );
       if (existingStudent) {

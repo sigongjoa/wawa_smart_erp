@@ -162,14 +162,13 @@ async function handleGetStudents(request: Request, context: RequestContext): Pro
     const role = context.auth?.role;
     const url = new URL(request.url);
     const classId = url.searchParams.get('classId');
-    const scope = url.searchParams.get('scope');
     const isAdmin = role === 'admin';
-    const showAll = isAdmin && scope === 'all';
+    // admin = 학원 전체 학생 (scope·과목·담당 무관). instructor = 본인 담당만.
+    const showAll = isAdmin;
 
     let students: any[];
 
     if (!showAll) {
-      // instructor + admin(default) = 본인 담당만
       let query = `SELECT s.* FROM students s
         INNER JOIN student_teachers st ON s.id = st.student_id
         WHERE s.academy_id = ? AND st.teacher_id = ?`;
@@ -178,7 +177,6 @@ async function handleGetStudents(request: Request, context: RequestContext): Pro
       query += ' ORDER BY s.name';
       students = await executeQuery<any>(context.env.DB, query, params);
     } else {
-      // admin + scope=all
       let query = 'SELECT * FROM students WHERE academy_id = ?';
       const params: any[] = [academyId];
       if (classId) { query += ' AND class_id = ?'; params.push(classId); }
@@ -371,14 +369,20 @@ async function handleGetStudentProfile(
       return errorResponse('학생을 찾을 수 없습니다', 404);
     }
 
-    // 담당 선생님 + 담임 플래그 조회
-    const teachers = await executeQuery<any>(
+    // 담당 선생님 + 담임 플래그 + (학생, 선생님) 페어별 과목 조회
+    const teacherRows = await executeQuery<any>(
       context.env.DB,
-      `SELECT u.id, u.name, st.is_homeroom FROM student_teachers st
+      `SELECT u.id, u.name, st.is_homeroom, st.subjects FROM student_teachers st
        JOIN users u ON st.teacher_id = u.id
        WHERE st.student_id = ? AND u.academy_id = ?`,
       [studentId, academyId]
     );
+    const teachers = teacherRows.map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      is_homeroom: t.is_homeroom,
+      subjects: t.subjects ? JSON.parse(t.subjects) : [],
+    }));
     const homeroom = teachers.find((t: any) => t.is_homeroom === 1) || null;
 
     return successResponse({
@@ -582,12 +586,27 @@ async function handleSetStudentTeachers(
   context: RequestContext,
   studentId: string
 ): Promise<Response> {
-  if (!requireAuth(context) || !requireRole(context, 'admin')) {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
     return unauthorizedResponse();
   }
   const academyId = getAcademyId(context);
   const body = await request.json() as any;
-  const teacherIds: string[] = Array.isArray(body.teacher_ids) ? body.teacher_ids : [];
+
+  // 입력 형식: { teachers: [{ id, subjects: string[] }] } (신규)
+  // 하위 호환: { teacher_ids: string[] } (subjects=[])
+  let teacherEntries: { id: string; subjects: string[] }[] = [];
+  if (Array.isArray(body.teachers)) {
+    teacherEntries = body.teachers
+      .filter((t: any) => t && typeof t.id === 'string')
+      .map((t: any) => ({
+        id: t.id,
+        subjects: Array.isArray(t.subjects)
+          ? t.subjects.filter((s: any) => typeof s === 'string' && s.trim()).map((s: string) => s.trim())
+          : [],
+      }));
+  } else if (Array.isArray(body.teacher_ids)) {
+    teacherEntries = body.teacher_ids.map((id: string) => ({ id, subjects: [] }));
+  }
 
   const student = await executeFirst<any>(
     context.env.DB,
@@ -597,7 +616,8 @@ async function handleSetStudentTeachers(
   if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
 
   // 선생님들이 같은 academy인지 검증
-  if (teacherIds.length > 0) {
+  if (teacherEntries.length > 0) {
+    const teacherIds = teacherEntries.map((t) => t.id);
     const placeholders = teacherIds.map(() => '?').join(',');
     const valid = await executeQuery<any>(
       context.env.DB,
@@ -610,17 +630,16 @@ async function handleSetStudentTeachers(
   }
 
   // SEC-STU-M3 + PERF-STU-M3: DELETE + INSERT를 D1 batch로 원자 실행.
-  // 부분 실패로 학생의 담당 강사가 0명/일부만 남는 사고 방지.
   const stmts: any[] = [
     context.env.DB.prepare('DELETE FROM student_teachers WHERE student_id = ?').bind(studentId),
-    ...teacherIds.map((tid) =>
+    ...teacherEntries.map((t) =>
       context.env.DB
-        .prepare('INSERT OR IGNORE INTO student_teachers (student_id, teacher_id) VALUES (?, ?)')
-        .bind(studentId, tid)
+        .prepare('INSERT OR IGNORE INTO student_teachers (student_id, teacher_id, subjects) VALUES (?, ?, ?)')
+        .bind(studentId, t.id, JSON.stringify(t.subjects))
     ),
   ];
   await context.env.DB.batch(stmts);
-  return successResponse({ student_id: studentId, teacher_ids: teacherIds });
+  return successResponse({ student_id: studentId, teachers: teacherEntries });
 }
 
 // ==================== 담임(homeroom) 지정 ====================
@@ -630,7 +649,7 @@ async function handleSetHomeroom(
   context: RequestContext,
   studentId: string
 ): Promise<Response> {
-  if (!requireAuth(context) || !requireRole(context, 'admin')) {
+  if (!requireAuth(context) || !requireRole(context, 'instructor', 'admin')) {
     return unauthorizedResponse();
   }
   const academyId = getAcademyId(context);
@@ -1050,18 +1069,27 @@ async function handleHomeroomNotesOverview(
   if (!requireAuth(context)) return unauthorizedResponse();
   const academyId = getAcademyId(context);
   const teacherId = context.auth!.userId;
+  const isAdmin = context.auth!.role === 'admin';
   const url = new URL(request.url);
   const period = url.searchParams.get('period') || currentPeriodTag();
 
-  const homeroomStudents = await executeQuery<any>(
-    context.env.DB,
-    `SELECT s.id, s.name, s.grade
-     FROM student_teachers st
-     JOIN students s ON s.id = st.student_id
-     WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
-     ORDER BY s.name`,
-    [teacherId, academyId]
-  );
+  const homeroomStudents = isAdmin
+    ? await executeQuery<any>(
+        context.env.DB,
+        `SELECT id, name, grade FROM students
+         WHERE academy_id = ? AND status = 'active'
+         ORDER BY name`,
+        [academyId]
+      )
+    : await executeQuery<any>(
+        context.env.DB,
+        `SELECT s.id, s.name, s.grade
+         FROM student_teachers st
+         JOIN students s ON s.id = st.student_id
+         WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
+         ORDER BY s.name`,
+        [teacherId, academyId]
+      );
 
   if (homeroomStudents.length === 0) {
     return successResponse({ period, students: [] });
@@ -1122,17 +1150,26 @@ async function handleHomeroomSummary(context: RequestContext): Promise<Response>
   if (!requireAuth(context)) return unauthorizedResponse();
   const academyId = getAcademyId(context);
   const teacherId = context.auth!.userId;
+  const isAdmin = context.auth!.role === 'admin';
 
-  // 담임인 학생 목록
-  const homeroomStudents = await executeQuery<any>(
-    context.env.DB,
-    `SELECT s.id, s.name, s.grade
-     FROM student_teachers st
-     JOIN students s ON s.id = st.student_id
-     WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
-     ORDER BY s.name`,
-    [teacherId, academyId]
-  );
+  // admin = 학원 전체 학생 / 그 외 = 담임 배정 학생만
+  const homeroomStudents = isAdmin
+    ? await executeQuery<any>(
+        context.env.DB,
+        `SELECT id, name, grade FROM students
+         WHERE academy_id = ? AND status = 'active'
+         ORDER BY name`,
+        [academyId]
+      )
+    : await executeQuery<any>(
+        context.env.DB,
+        `SELECT s.id, s.name, s.grade
+         FROM student_teachers st
+         JOIN students s ON s.id = st.student_id
+         WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
+         ORDER BY s.name`,
+        [teacherId, academyId]
+      );
 
   if (homeroomStudents.length === 0) {
     return successResponse({
@@ -1213,15 +1250,24 @@ async function handleHomeroomCalendar(
     return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
   }
 
-  const students = await executeQuery<any>(
-    context.env.DB,
-    `SELECT s.id, s.name, s.grade
-     FROM student_teachers st
-     JOIN students s ON s.id = st.student_id
-     WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
-     ORDER BY s.name`,
-    [teacherId, academyId]
-  );
+  const isAdmin = context.auth!.role === 'admin';
+  const students = isAdmin
+    ? await executeQuery<any>(
+        context.env.DB,
+        `SELECT id, name, grade FROM students
+         WHERE academy_id = ? AND status = 'active'
+         ORDER BY name`,
+        [academyId]
+      )
+    : await executeQuery<any>(
+        context.env.DB,
+        `SELECT s.id, s.name, s.grade
+         FROM student_teachers st
+         JOIN students s ON s.id = st.student_id
+         WHERE st.teacher_id = ? AND st.is_homeroom = 1 AND s.academy_id = ?
+         ORDER BY s.name`,
+        [teacherId, academyId]
+      );
 
   if (students.length === 0) return successResponse({ month, students: [], consultations: [] });
 

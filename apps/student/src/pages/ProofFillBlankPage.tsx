@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Star, Check, X } from 'lucide-react';
 import { api, FillBlankProblem, SubmitResult, getImageUrl } from '../api';
 import KaTeX from '../components/KaTeX';
 
@@ -149,7 +150,7 @@ export default function ProofFillBlankPage() {
       <div className="proof-play-title">
         <h2>{problem.proof.title}</h2>
         <span className="proof-play-meta">
-          {problem.proof.grade} · {'★'.repeat(problem.proof.difficulty)} · 빈칸 {problem.total_blanks}개 · Box {problem.current_box}
+          {problem.proof.grade} · <span style={{ display: 'inline-flex', verticalAlign: 'middle' }} aria-label={`난이도 ${problem.proof.difficulty}`}>{Array.from({ length: problem.proof.difficulty }, (_, i) => <Star key={i} size={12} fill="currentColor" aria-hidden />)}</span> · 빈칸 {problem.total_blanks}개 · Box {problem.current_box}
         </span>
       </div>
 
@@ -210,7 +211,7 @@ export default function ProofFillBlankPage() {
             {result.detail.results?.map((r: any, i: number) => (
               <div key={i} className={`proof-result-step ${r.correct ? 'correct' : 'wrong'}`}>
                 <span className="proof-result-submitted">{r.submitted || '(빈칸)'}</span>
-                <span>{r.correct ? 'O' : `X → ${r.expected}`}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{r.correct ? <Check size={14} aria-label="정답" /> : <><X size={14} aria-hidden /> → {r.expected}</>}</span>
               </div>
             ))}
           </div>

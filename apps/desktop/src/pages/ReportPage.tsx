@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, X } from 'lucide-react';
 import { api, Student, ReportEntry, ReportType } from '../api';
 import { toast } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
@@ -49,6 +50,7 @@ export default function ReportPage() {
   const [reportType, setReportType] = useState<ReportType>('monthly');
   const [activeMonth, setActiveMonth] = useState('');
   const [activeTerm, setActiveTerm] = useState('');
+  const [scope, setScope] = useState<'mine' | 'all'>('mine');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -72,15 +74,10 @@ export default function ReportPage() {
     ]).then(([monthSettings, reviewSettings, studentList]) => {
       const month = monthSettings?.activeExamMonth ?? '';
       const term = reviewSettings?.activeTerm ?? '';
-      const reviewType = reviewSettings?.activeExamType ?? null;
       if (month) setActiveMonth(month);
       if (term) setActiveTerm(term);
       setStudents(studentList || []);
-
-      // 초기 탭 결정: 정기고사 설정이 있으면 그걸로, 아니면 월말
-      if (reviewType && term) {
-        setReportType(reviewType);
-      }
+      // 기본 탭은 항상 월말평가. 사용자가 명시적으로 정기고사 탭 클릭 시에만 전환.
       setLoading(false);
     });
   }, []);
@@ -89,7 +86,7 @@ export default function ReportPage() {
   useEffect(() => {
     if (reportType === 'monthly') {
       if (activeMonth) {
-        loadReports({ reportType: 'monthly', yearMonth: activeMonth });
+        loadReports({ reportType: 'monthly', yearMonth: activeMonth, scope });
         loadSendStatus({ reportType: 'monthly', yearMonth: activeMonth });
       } else {
         setReports([]);
@@ -97,16 +94,16 @@ export default function ReportPage() {
       }
     } else {
       if (activeTerm) {
-        loadReports({ reportType, term: activeTerm });
+        loadReports({ reportType, term: activeTerm, scope });
         loadSendStatus({ reportType, term: activeTerm });
       } else {
         setReports([]);
         setSendStatus({});
       }
     }
-  }, [reportType, activeMonth, activeTerm]);
+  }, [reportType, activeMonth, activeTerm, scope]);
 
-  const loadReports = async (params: { reportType: ReportType; yearMonth?: string; term?: string }) => {
+  const loadReports = async (params: { reportType: ReportType; yearMonth?: string; term?: string; scope?: 'mine' | 'all' }) => {
     try {
       const data = await api.getReport(params);
       setReports(data || []);
@@ -256,7 +253,20 @@ export default function ReportPage() {
     }
   };
 
-  const currentStudent = students.find((s) => s.id === selectedStudent);
+  // scope 토글에 맞춰 reports 기준으로 표시 학생 목록 좁힘
+  // 내 담당: 점수 슬롯이 0개인 학생(=기입 필요 없음)은 제외
+  // 전체 보기: 모든 학원 학생 표시 (슬롯 0개도 포함, "-"로 표시)
+  const displayedStudents = useMemo(() => {
+    const reportMap = new Map(reports.map((r) => [r.studentId, r]));
+    return students.filter((s) => {
+      const report = reportMap.get(s.id);
+      if (!report) return false;
+      if (scope === 'mine' && (report.scores?.length ?? 0) === 0) return false;
+      return true;
+    });
+  }, [students, reports, scope]);
+
+  const currentStudent = displayedStudents.find((s) => s.id === selectedStudent) || students.find((s) => s.id === selectedStudent);
   const studentReport = reports.find((r) => r.studentId === selectedStudent);
 
   // 학생 선택 시 점수 추이 로드
@@ -325,8 +335,8 @@ export default function ReportPage() {
   const statusIcon = (key: string) => {
     const s = cellStatus.statuses[key];
     if (s === 'saving') return '…';
-    if (s === 'saved') return '✓';
-    if (s === 'error') return '✗';
+    if (s === 'saved') return <Check size={14} aria-label="저장됨" style={{ verticalAlign: 'middle' }} />;
+    if (s === 'error') return <X size={14} aria-label="오류" style={{ verticalAlign: 'middle' }} />;
     return '';
   };
 
@@ -338,7 +348,7 @@ export default function ReportPage() {
     return { total: report.scores.length, entered };
   };
 
-  const sentCount = students.filter((s) => sendStatus[s.id]).length;
+  const sentCount = displayedStudents.filter((s) => sendStatus[s.id]).length;
 
   return (
     <div className="report-page">
@@ -360,13 +370,27 @@ export default function ReportPage() {
         <div className="report-month-badge">
           {periodLabel || '미설정'}
         </div>
+        <div className="scope-toggle" role="group" aria-label="학생 범위" style={{ display: 'inline-flex', gap: 0, marginLeft: 12 }}>
+          <button
+            type="button"
+            className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
+            onClick={() => setScope('mine')}
+            aria-pressed={scope === 'mine'}
+          >내 담당</button>
+          <button
+            type="button"
+            className={`scope-toggle-btn ${scope === 'all' ? 'scope-toggle-btn--active' : ''}`}
+            onClick={() => setScope('all')}
+            aria-pressed={scope === 'all'}
+          >전체 보기</button>
+        </div>
         <div className="report-progress">
           <span className="report-progress-label">전송 현황</span>
-          <span className="report-progress-value">{sentCount}/{students.length}</span>
-          <div className="report-progress-bar" role="progressbar" aria-valuenow={sentCount} aria-valuemin={0} aria-valuemax={students.length} aria-label="전송 진행률">
+          <span className="report-progress-value">{sentCount}/{displayedStudents.length}</span>
+          <div className="report-progress-bar" role="progressbar" aria-valuenow={sentCount} aria-valuemin={0} aria-valuemax={displayedStudents.length} aria-label="전송 진행률">
             <div
               className="report-progress-fill"
-              style={{ width: students.length ? `${(sentCount / students.length) * 100}%` : '0%' }}
+              style={{ width: displayedStudents.length ? `${(sentCount / displayedStudents.length) * 100}%` : '0%' }}
             />
           </div>
         </div>
@@ -389,7 +413,7 @@ export default function ReportPage() {
               onChange={(e) => setSelectedStudent(e.target.value)}
             >
               <option value="">학생을 선택하세요</option>
-              {students.map((s) => {
+              {displayedStudents.map((s) => {
                 const isSent = !!sendStatus[s.id];
                 const { total, entered } = getStudentScoreStatus(s.id);
                 return (
@@ -413,7 +437,7 @@ export default function ReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {students.map((student, idx) => {
+                {displayedStudents.map((student, idx) => {
                   const { total, entered } = getStudentScoreStatus(student.id);
                   const isSent = !!sendStatus[student.id];
                   const isSelected = selectedStudent === student.id;
@@ -454,7 +478,7 @@ export default function ReportPage() {
                 })}
               </tbody>
             </table>
-            {students.length === 0 && (
+            {displayedStudents.length === 0 && (
               <div className="send-table-empty">등록된 학생이 없습니다</div>
             )}
           </div>
@@ -682,9 +706,22 @@ export default function ReportPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="report-empty" style={{ marginTop: 24 }}>
-                      이 학생의 {periodLabel} {REPORT_TYPE_LABEL[reportType]} 성적 데이터가 없습니다
-                    </p>
+                    studentReport && (studentReport.studentSubjects?.length ?? 0) === 0 ? (
+                      <div className="report-empty" style={{ marginTop: 24, padding: 16, border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'var(--warning-surface)' }}>
+                        <p style={{ margin: 0, fontWeight: 600, color: 'var(--warning-text)' }}>
+                          이 학생에게 매핑된 담당 과목이 없습니다.
+                        </p>
+                        <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--warning-text)' }}>
+                          왼쪽 메뉴 <strong>학생 → 학생 관리</strong>에서 <strong>{currentStudent?.name || '이 학생'}</strong>을 수정하고,
+                          담당 선생님의 chip을 클릭해 가르치는 과목을 선택해 주세요.
+                          저장 후 이 페이지 새로고침하면 해당 과목 입력칸이 나타납니다.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="report-empty" style={{ marginTop: 24 }}>
+                        이 학생의 {periodLabel} {REPORT_TYPE_LABEL[reportType]} 성적 데이터가 없습니다 (해당 월에 시험이 등록되지 않았거나, 학생 수강 과목과 시험 과목이 일치하지 않습니다)
+                      </p>
+                    )
                   )}
 
                   {/* ── 푸터 ── */}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 import Modal from './Modal';
 
 type AuthMode = 'jwt' | 'public';
@@ -127,8 +128,9 @@ export default function FilePreviewModal({
           rel="noreferrer noopener"
           className="btn btn-ghost"
           download={fileName}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
         >
-          ⬇ 다운로드
+          <Download size={16} aria-hidden /> 다운로드
         </a>
         <button className="btn btn-primary" onClick={onClose}>닫기</button>
       </Modal.Footer>

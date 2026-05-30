@@ -82,9 +82,8 @@ async function handleGetStudents(context: RequestContext, request?: Request): Pr
 
   let query = `
     SELECT gs.*,
-      (SELECT COUNT(*) FROM gacha_cards gc WHERE gc.student_id = gs.id) as card_count,
       (SELECT COUNT(*) FROM proof_assignments pa WHERE pa.student_id = gs.id) as proof_count
-    FROM gacha_students gs
+    FROM students gs
     WHERE gs.academy_id = ?
   `;
   const params: unknown[] = [academyId];
@@ -108,10 +107,8 @@ async function handleGetStudent(context: RequestContext, studentId: string): Pro
   const student = await executeFirst<any>(
     context.env.DB,
     `SELECT gs.*,
-      (SELECT COUNT(*) FROM gacha_cards gc WHERE gc.student_id = gs.id) as card_count,
-      (SELECT COUNT(*) FROM proof_assignments pa WHERE pa.student_id = gs.id) as proof_count,
-      (SELECT COUNT(*) FROM gacha_sessions gse WHERE gse.student_id = gs.id) as session_count
-    FROM gacha_students gs
+      (SELECT COUNT(*) FROM proof_assignments pa WHERE pa.student_id = gs.id) as proof_count
+    FROM students gs
     WHERE gs.id = ? AND gs.academy_id = ?`,
     [studentId, academyId]
   );
@@ -137,7 +134,7 @@ async function handleCreateStudent(request: Request, context: RequestContext): P
   // 중복 체크
   const existing = await executeFirst<any>(
     context.env.DB,
-    'SELECT id FROM gacha_students WHERE academy_id = ? AND teacher_id = ? AND name = ?',
+    'SELECT id FROM students WHERE academy_id = ? AND teacher_id = ? AND name = ?',
     [academyId, teacherId, input.name]
   );
   if (existing) {
@@ -145,29 +142,15 @@ async function handleCreateStudent(request: Request, context: RequestContext): P
   }
 
   const studentId = generatePrefixedId('gstu');
-  // SEC-PIN-KDF: 100k iter pbkdf2$... 형식. pin_salt는 NULL (포맷 안에 salt 인코딩됨).
   const pinHash = await hashPin(input.pin);
   const now = new Date().toISOString();
 
   await executeInsert(
     context.env.DB,
-    `INSERT INTO gacha_students (id, academy_id, teacher_id, name, pin_hash, pin_salt, grade, created_at)
-     VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
-    [studentId, academyId, teacherId, input.name, pinHash, input.grade, now]
+    `INSERT INTO students (id, academy_id, teacher_id, name, pin_hash, pin_salt, grade, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, '', ?, 'active', ?, ?)`,
+    [studentId, academyId, teacherId, input.name, pinHash, input.grade, now, now]
   );
-
-  // 시험 배정/과제 등에서 FK가 students(id)를 참조하므로 동일 id로 students에도 insert
-  try {
-    await executeInsert(
-      context.env.DB,
-      `INSERT INTO students (id, academy_id, name, grade, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?)`,
-      [studentId, academyId, input.name, input.grade, now, now]
-    );
-  } catch (e) {
-    // 이미 있으면 무시
-    logger.warn('students 동기화 실패 (이미 존재 가능)', e instanceof Error ? e : new Error(String(e)));
-  }
 
   logger.logAudit('GACHA_STUDENT_CREATE', 'GachaStudent', studentId, teacherId, { name: input.name });
 
@@ -184,7 +167,7 @@ async function handleUpdateStudent(request: Request, context: RequestContext, st
 
   const student = await executeFirst<any>(
     context.env.DB,
-    'SELECT * FROM gacha_students WHERE id = ? AND academy_id = ?',
+    'SELECT * FROM students WHERE id = ? AND academy_id = ?',
     [studentId, academyId]
   );
   if (!student) {
@@ -211,7 +194,7 @@ async function handleUpdateStudent(request: Request, context: RequestContext, st
 
   await executeUpdate(
     context.env.DB,
-    `UPDATE gacha_students SET ${sets.join(', ')} WHERE id = ?`,
+    `UPDATE students SET ${sets.join(', ')} WHERE id = ?`,
     params
   );
 
@@ -226,7 +209,7 @@ async function handleDeleteStudent(context: RequestContext, studentId: string): 
 
   const student = await executeFirst<any>(
     context.env.DB,
-    'SELECT * FROM gacha_students WHERE id = ? AND academy_id = ?',
+    'SELECT * FROM students WHERE id = ? AND academy_id = ?',
     [studentId, academyId]
   );
   if (!student) {
@@ -238,7 +221,7 @@ async function handleDeleteStudent(context: RequestContext, studentId: string): 
   }
 
   // CASCADE로 관련 데이터 자동 삭제 (sessions, results, assignments)
-  await executeDelete(context.env.DB, 'DELETE FROM gacha_students WHERE id = ?', [studentId]);
+  await executeDelete(context.env.DB, 'DELETE FROM students WHERE id = ?', [studentId]);
   // 동기화된 students 레코드도 정리 (존재하지 않을 수 있음)
   try { await executeDelete(context.env.DB, 'DELETE FROM students WHERE id = ?', [studentId]); } catch {}
 
@@ -271,7 +254,7 @@ async function handleResetPin(request: Request, context: RequestContext, student
 
   const student = await executeFirst<any>(
     context.env.DB,
-    'SELECT id, teacher_id FROM gacha_students WHERE id = ? AND academy_id = ?',
+    'SELECT id, teacher_id FROM students WHERE id = ? AND academy_id = ?',
     [studentId, academyId]
   );
   if (!student) {
@@ -288,7 +271,7 @@ async function handleResetPin(request: Request, context: RequestContext, student
   // pin_salt: NOT NULL 제약 — 새 pbkdf2$ hash는 salt를 hash에 포함, 빈 문자열로 채움.
   await executeUpdate(
     context.env.DB,
-    "UPDATE gacha_students SET pin_hash = ?, pin_salt = '', updated_at = ? WHERE id = ?",
+    "UPDATE students SET pin_hash = ?, pin_salt = '', updated_at = ? WHERE id = ?",
     [pinHash, new Date().toISOString(), studentId]
   );
 
@@ -385,7 +368,7 @@ async function handleApproveSignupRequest(context: RequestContext, requestId: st
   // 동명 학생 중복 차단 (race 방어)
   const existing = await executeFirst<{ id: string }>(
     context.env.DB,
-    'SELECT id FROM gacha_students WHERE academy_id = ? AND name = ?',
+    'SELECT id FROM students WHERE academy_id = ? AND name = ?',
     [academyId, req.name],
   );
   if (existing) {
@@ -398,17 +381,13 @@ async function handleApproveSignupRequest(context: RequestContext, requestId: st
   // 학생이 지정한 선생님이 있고 여전히 active 면 그 선생님을 담당으로 배정, 없으면 승인자 본인.
   const assignedTeacherId = req.requested_teacher_id ?? teacherId;
 
-  // 원자 실행: gacha_students INSERT + students INSERT + signup_requests DELETE (Ⅱ-5)
+  // 원자 실행: students INSERT + signup_requests DELETE (Ⅱ-5)
   // pin_salt 컬럼은 schema상 NOT NULL이지만 pbkdf2$ 새 형식은 hash 안에 salt 포함 → 빈 문자열로 채움.
   await context.env.DB.batch([
     context.env.DB.prepare(
-      `INSERT INTO gacha_students (id, academy_id, teacher_id, name, pin_hash, pin_salt, grade, status, created_at)
-       VALUES (?, ?, ?, ?, ?, '', ?, 'active', ?)`,
-    ).bind(studentId, academyId, assignedTeacherId, req.name, req.pin_hash, req.grade, now),
-    context.env.DB.prepare(
-      `INSERT INTO students (id, academy_id, name, grade, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?)`,
-    ).bind(studentId, academyId, req.name, req.grade, now, now),
+      `INSERT INTO students (id, academy_id, teacher_id, name, pin_hash, pin_salt, grade, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, '', ?, 'active', ?, ?)`,
+    ).bind(studentId, academyId, assignedTeacherId, req.name, req.pin_hash, req.grade, now, now),
     context.env.DB.prepare(
       'DELETE FROM student_signup_requests WHERE id = ? AND academy_id = ?',
     ).bind(requestId, academyId),

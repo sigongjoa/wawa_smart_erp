@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Star } from 'lucide-react';
 import { api, Proof, ProofDetail, ProofStep, ProofStepInput, GachaStudent } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import DialogShell from '../components/DialogShell';
@@ -319,7 +320,11 @@ export default function ProofEditorPage() {
     }
   };
 
-  const difficultyStars = (d: number) => '★'.repeat(d) + '☆'.repeat(5 - d);
+  const difficultyStars = (d: number) => (
+    <span style={{ display: 'inline-flex', verticalAlign: 'middle', color: 'var(--warning)' }} aria-label={`난이도 ${d}/5`}>
+      {Array.from({ length: 5 }, (_, i) => <Star key={i} size={13} fill={i < d ? 'currentColor' : 'none'} aria-hidden />)}
+    </span>
+  );
 
   return (
     <div className="gacha-page">

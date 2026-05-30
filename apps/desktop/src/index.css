@@ -1944,7 +1944,10 @@
 .settings-page {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--sp-10) var(--sp-8);
+  padding: var(--sp-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
 }
 
 .settings-section {
@@ -3668,6 +3671,43 @@ input[type="number"] {
   padding-bottom: 0;
   border-bottom: none;
 }
+
+/* 두 필드를 균등 너비로 (시작/종료 시간 등) */
+.form-row--equal { align-items: stretch; }
+.form-row--equal > * { flex: 1; min-width: 0; }
+
+/* 임시 수업 모달 — 학생 검색 picker */
+.adhoc-picker {
+  margin-top: var(--sp-2);
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+.adhoc-picker__option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.adhoc-picker__option:hover { background: var(--bg-tertiary); }
+.adhoc-picker__option:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.adhoc-picker__option.is-selected {
+  background: var(--primary-surface);
+  color: var(--primary);
+  font-weight: 600;
+}
+.adhoc-picker__grade { color: var(--text-tertiary); font-size: 12px; margin-left: var(--sp-1); }
+.adhoc-picker__empty { padding: var(--sp-2) var(--sp-3); color: var(--text-tertiary); font-size: 13px; }
 .form-section-title {
   font-size: 13px;
   font-weight: 700;

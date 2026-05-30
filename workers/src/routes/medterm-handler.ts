@@ -368,7 +368,7 @@ async function handleAssignChapter(request: Request, context: RequestContext, ch
   const placeholders = data.student_ids.map(() => '?').join(',');
   const validStudents = await executeQuery<IdRow>(
     context.env.DB,
-    `SELECT id FROM gacha_students WHERE academy_id = ? AND id IN (${placeholders})`,
+    `SELECT id FROM students WHERE academy_id = ? AND id IN (${placeholders})`,
     [academyId, ...data.student_ids]
   );
   const validIdSet = new Set(validStudents.map(s => s.id));
@@ -434,7 +434,7 @@ async function handleStudentProgress(request: Request, context: RequestContext):
   // 학생 학원 격리 검증
   const student = await executeFirst<IdRow>(
     context.env.DB,
-    'SELECT id FROM gacha_students WHERE id = ? AND academy_id = ?',
+    'SELECT id FROM students WHERE id = ? AND academy_id = ?',
     [studentId, academyId]
   );
   if (!student) return errorResponse('학생을 찾을 수 없습니다', 404);
