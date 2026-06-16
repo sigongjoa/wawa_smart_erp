@@ -13,9 +13,6 @@
  *   2. 본 파일의 import + ICONS registry 에 추가
  *   3. `<Icon name="..." />` 사용
  *
- * 마이그레이션 가이드 (emoji → lucide):
- *   ./emoji-map.ts 참조
- *
  * 예시:
  *   <Icon name="ArrowLeft" />                       // 장식
  *   <Icon name="AlertTriangle" aria-label="경고" /> // 의미

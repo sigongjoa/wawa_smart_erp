@@ -143,8 +143,11 @@ scripts/
 # ========================================
 workers/migrations/seed_test_fixtures.sql
 workers/migrations/seed_*.sql
+workers/migrations/_seed_*.sql
 workers/seed-*.sql
 workers/seed-*.mjs
+# PII·데모 시드 격리 폴더 (콘텐츠 시드는 workers/seeds/ 직하에 두면 추적됨)
+workers/seeds/local/
 workers/.dev.vars
 workers/.dev.vars.*
 .env
