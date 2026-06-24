@@ -1,0 +1,27 @@
+# flywheel-api — 단일 워커, 2환경. 동일 코드가 test/prod에 배포(배포 패리티).
+#   배포:  wrangler deploy --config flywheel.toml --env test   (→ flywheel-api-test, DB=flywheel-ssal)
+#          wrangler deploy --config flywheel.toml --env prod   (→ flywheel-api-prod, DB=flywheel-prod)
+name = "flywheel-api"
+main = "src/flywheel-worker.ts"
+compatibility_date = "2026-04-08"
+compatibility_flags = ["nodejs_compat"]
+
+# ── test 환경 (더미 데이터 OK) ──
+[env.test]
+vars = { ENVIRONMENT = "test" }
+[[env.test.d1_databases]]
+binding = "DB"
+database_name = "flywheel-ssal"
+database_id = "61fbaded-9926-47bf-9841-3bcf5aed59a8"
+[env.test.triggers]
+crons = ["* * * * *"]
+
+# ── prod 환경 (실데이터만, 더미 금지) ──
+[env.prod]
+vars = { ENVIRONMENT = "prod" }
+[[env.prod.d1_databases]]
+binding = "DB"
+database_name = "flywheel-prod"
+database_id = "cd679fff-347e-47d8-a505-14b5273afcaf"
+[env.prod.triggers]
+crons = ["* * * * *"]

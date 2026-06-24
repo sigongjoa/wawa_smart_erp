@@ -9,6 +9,8 @@ export interface Env {
   JWT_SECRET?: string;
   JWT_REFRESH_SECRET?: string;
   PARENT_REPORT_SECRET?: string;
+  SIGNAL_MASTER_KEY?: string;        // vine-flywheel 신호 per-student 봉투암호화 마스터키(base64 32B)
+  SIGNAL_WORKER_KEY?: string;        // 외부 생성 워커(edu-arch·수행평가) server-trust 인증 공유키
   GEMINI_API_KEY?: string;
   AI_GATEWAY_GEMINI_BASE?: string;
   AE_ASKAI?: AnalyticsEngineDataset;
