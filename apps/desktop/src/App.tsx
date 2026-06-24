@@ -46,6 +46,7 @@ const ParentLessonsPage = lazy(() => import('./pages/ParentLessonsPage'));
 const CurriculumPage = lazy(() => import('./pages/CurriculumPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const TeacherAskAIQueuePage = lazy(() => import('./pages/TeacherAskAIQueuePage'));
+const RecommendationQueuePage = lazy(() => import('./pages/RecommendationQueuePage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -126,6 +127,7 @@ export default function App() {
             <Route path="/medterm" element={<MedTermAdminPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/teacher/ask-ai" element={<TeacherAskAIQueuePage />} />
+            <Route path="/recommendations" element={<RecommendationQueuePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/timer" replace />} />
         </Routes>

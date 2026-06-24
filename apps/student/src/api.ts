@@ -126,6 +126,35 @@ export interface Academy {
   logo: string | null;
 }
 
+// ── RS (오늘의 길 추천) — rs-api-contract.md SSOT ──
+
+export interface RecItem {
+  id: string; // "ri-…"
+  rank: number; // 1 = 최상위
+  type: 'gacha_deck' | 'jingdari_set' | 'proof' | 'assignment' | 'review' | 'exam';
+  title: string;
+  reason: string;
+  urgency: 'critical' | 'high' | 'medium' | 'low';
+  score: number; // score_total (0~1 정규화)
+  target_path: string;
+  icon?: string;
+  status:
+    | 'auto_served'
+    | 'teacher_pending'
+    | 'teacher_approved'
+    | 'teacher_rejected'
+    | 'teacher_boosted';
+  teacher_note?: string | null;
+}
+
+export interface TodayFeed {
+  actions: RecItem[];
+  generated_at: string; // ISO
+  cold_start: boolean;
+}
+
+export type RecAction = 'shown' | 'clicked' | 'completed' | 'dismissed';
+
 // ── Student signup (자가 가입 요청) ──
 
 export interface SignupRequestInput {
@@ -176,6 +205,16 @@ export const api = {
 
   getSession: () =>
     request<Session>('/api/play/session'),
+
+  // ── RS (오늘의 길) — rs-api-contract.md §1, §2 ──
+  getToday: () =>
+    request<TodayFeed>('/api/play/today'),
+
+  actOnRecommendation: (id: string, action: RecAction) =>
+    request<{ ok: true }>(`/api/play/recommendations/${id}/act`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    }),
 
   getProfile: () =>
     request<StudentProfile>('/api/play/profile'),

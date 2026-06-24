@@ -34,6 +34,7 @@ import { handleCalendar } from '@/routes/calendar-handler';
 import { handlePlayCalendar } from '@/routes/play-calendar-handler';
 import { handleProof } from '@/routes/proof-handler';
 import { handleGachaPlay } from '@/routes/gacha-play-handler';
+import { handlePlayRs } from '@/routes/play-rs-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
 import { handleUserState } from '@/routes/user-state-handler';
 import { handleExamPaper } from '@/routes/exam-paper-handler';
@@ -41,6 +42,11 @@ import { handleVocab } from '@/routes/vocab-handler';
 import { handleVocabPlay } from '@/routes/vocab-play-handler';
 import { handleBaseballPlay } from '@/routes/baseball-play-handler';
 import { handleVocabPolicy } from '@/routes/vocab-policy-handler';
+import { handleSignal } from '@/routes/signal-handler';
+import { handleGachaReview } from '@/routes/gacha-review-handler';
+import { handleJingdariAttempt } from '@/routes/jingdari-attempt-handler';
+import { handleSsaem } from '@/routes/ssaem-handler';
+import { handleFlywheelAdmin } from '@/routes/flywheel-admin-handler';
 import { handleMedTerm } from '@/routes/medterm-handler';
 import { handleMedTermPlay } from '@/routes/medterm-play-handler';
 import { handleMedTermFigures } from '@/routes/medterm-figures-handler';
@@ -56,6 +62,7 @@ import { handleLessonItems } from '@/routes/lesson-items-handler';
 import { handleCurriculum } from '@/routes/curriculum-handler';
 import { expireExpiredAttempts } from '@/cron/expire-exam-attempts';
 import { cleanupExpiredSessions } from '@/cron/cleanup-sessions';
+import { drainRecommendJobs } from '@/services/recommend-service';
 import { tenantMiddleware } from '@/middleware/tenant';
 
 /**
@@ -156,6 +163,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       if (pathname.startsWith('/api/play/calendar')) {
         return addCorsHeaders(await handlePlayCalendar(method, pathname, request, context), env, origin);
       }
+      // 2계층 RS 학생 표면(오늘의 길) — 가챠 플레이 catch-all 앞에 매칭(학생 PIN 토큰 인증)
+      if (pathname === '/api/play/today' || pathname.match(/^\/api\/play\/recommendations\/[^/]+\/act$/)) {
+        return addCorsHeaders(await handlePlayRs(method, pathname, request, context), env, origin);
+      }
       if (pathname.startsWith('/api/play/')) {
         return addCorsHeaders(await handleGachaPlay(method, pathname, request, context), env, origin);
       }
@@ -178,6 +189,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // ask-ai: 학생/강사 두 인증 모두 핸들러 내부에서 자체 분기 (전역 JWT auth 우회)
       if (pathname.startsWith('/api/ask-ai/')) {
         return addCorsHeaders(await handleAskAI(method, pathname, request, context), env, origin);
+      }
+
+      // /api/signal: 외부 생성 워커 전용 — 워커키로 자체 인증 (전역 JWT 게이트 우회)
+      if (pathname === '/api/signal') {
+        return addCorsHeaders(await handleSignal(method, pathname, request, context), env, origin);
       }
 
       // 인증 체크 (logout, 다른 protected routes)
@@ -211,6 +227,20 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       if (pathname.startsWith('/api/timer/')) {
         return addCorsHeaders(await handleTimer(method, pathname, request, context), env, origin);
+      }
+
+      // vine-flywheel 내부 서비스 라우트 (서비스 상태 기록 + 내부 emit)
+      if (pathname === '/api/gacha/review') {
+        return addCorsHeaders(await handleGachaReview(method, pathname, request, context), env, origin);
+      }
+      if (pathname === '/api/jingdari/attempt') {
+        return addCorsHeaders(await handleJingdariAttempt(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/ssaem/')) {
+        return addCorsHeaders(await handleSsaem(method, pathname, request, context), env, origin);
+      }
+      if (pathname.startsWith('/api/flywheel/')) {
+        return addCorsHeaders(await handleFlywheelAdmin(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/message/')) {
@@ -379,6 +409,14 @@ export default {
       }
     } catch (error) {
       logger.error('[cron] expire-exam-attempts failed', error instanceof Error ? error : new Error(String(error)));
+    }
+
+    // 1.5) vine-flywheel recommend-infer 큐 드레인 (매 1분) — 신호 → 추천 precompute
+    try {
+      const n = await drainRecommendJobs(env);
+      if (n > 0) logger.info(`[cron] recommend-infer: ${n} job(s) processed`);
+    } catch (error) {
+      logger.error('[cron] recommend-infer failed', error instanceof Error ? error : new Error(String(error)));
     }
 
     // 2) 만료된 refresh sessions 정리 (SEC-AUTH-M4) — 매 시각 정각 1회만

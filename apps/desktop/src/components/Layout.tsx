@@ -32,6 +32,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: '학생',
     items: [
       { to: '/student', label: '학생 관리', icon: 'Users' },
+      { to: '/recommendations', label: '코칭 큐', icon: 'TrendingUp' },
       { to: '/lessons', label: '학습 기록', icon: 'BookOpen' },
       { to: '/exams', label: '정기고사', icon: 'ClipboardList' },
       { to: '/assignments', label: '과제 회수·첨삭', icon: 'PencilLine' },

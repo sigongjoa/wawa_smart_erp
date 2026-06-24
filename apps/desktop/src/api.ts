@@ -2448,7 +2448,7 @@ export interface ExamAttempt {
 export interface ExamAttemptPendingAssignment {
   assignment_id: string;
   student_id: string;
-  exam_status: 'absent' | 'rescheduled';
+  exam_status: 'scheduled' | 'absent' | 'rescheduled';
   absence_reason: string | null;
   rescheduled_date: string | null;
   exam_period_id: string;
@@ -2744,3 +2744,59 @@ export const calendarApi = {
       `/api/calendar/teacher-widget?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     ),
 };
+
+/* ── 추천 큐 / 관리쌤 인터벤션 콘솔 (RS Layer 1b) ──
+   SSOT: docs/specs/rs-api-contract.md §3·§4 — shape 고정, 드리프트 금지 */
+export type RecItemType =
+  | 'gacha_deck' | 'jingdari_set' | 'proof' | 'assignment' | 'review' | 'exam';
+export type RecItemUrgency = 'critical' | 'high' | 'medium' | 'low';
+export type RecItemStatus =
+  | 'auto_served'
+  | 'teacher_pending'
+  | 'teacher_approved'
+  | 'teacher_rejected'
+  | 'teacher_boosted';
+
+export type RecItem = {
+  id: string;
+  rank: number;
+  type: RecItemType;
+  title: string;
+  reason: string;
+  urgency: RecItemUrgency;
+  score: number;
+  target_path: string;
+  icon?: string;
+  status: RecItemStatus;
+  teacher_note?: string | null;
+};
+
+export type RecQueueStudent = {
+  erp_student_id: string;
+  name: string;
+  grade: string | null;
+  items: RecItem[];
+  risk: { churn: boolean; stale_days: number };
+};
+
+export type RecPatchAction =
+  | 'approve' | 'reject' | 'boost' | 'edit_reason' | 'replace';
+
+export type RecPatchInput = {
+  action: RecPatchAction;
+  note?: string;        // edit_reason / teacher_note
+  new_target?: string;  // replace 시 새 target_path
+};
+
+export function getRecommendationQueue(academyId: string) {
+  return request<{ students: RecQueueStudent[] }>(
+    `/api/ssaem/recommendations?academy_id=${encodeURIComponent(academyId)}`,
+  );
+}
+
+export function patchRecommendation(itemId: string, input: RecPatchInput) {
+  return request<{ ok: true; item: RecItem }>(
+    `/api/ssaem/recommendations/${encodeURIComponent(itemId)}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+  );
+}

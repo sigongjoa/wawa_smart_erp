@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { api, RecItem, RecAction } from './api';
 
 interface StudentAuth {
   token: string;
@@ -31,6 +32,14 @@ function clearWordGachaLocal() {
   // wawa-bridge 모듈 캐시 리셋 트리거
   try {
     window.dispatchEvent(new CustomEvent('wawa:auth-reset'));
+  } catch {}
+}
+
+/** 테마 전환 헬퍼 — data-theme 속성 + localStorage.theme 영속화. 기본값 'white'. */
+export function setTheme(t: string): void {
+  try {
+    document.documentElement.dataset.theme = t;
+    localStorage.setItem('theme', t);
   } catch {}
 }
 
@@ -84,6 +93,57 @@ export const useAuthStore = create<AuthStore>((set) => ({
       } catch {
         set({ auth: null, isLoggedIn: false });
       }
+    }
+  },
+}));
+
+/**
+ * RS "오늘의 길" 추천 슬라이스 — rs-api-contract.md (GET /api/play/today,
+ * POST /api/play/recommendations/:id/act) 를 소비한다.
+ */
+interface RecommendationStore {
+  todayActions: RecItem[];
+  todayLoading: boolean;
+  coldStart: boolean;
+  generatedAt: string | null;
+  fetchToday: () => Promise<void>;
+  act: (id: string, action: RecAction) => Promise<void>;
+}
+
+export const useRecommendationStore = create<RecommendationStore>((set, get) => ({
+  todayActions: [],
+  todayLoading: false,
+  coldStart: false,
+  generatedAt: null,
+
+  fetchToday: async () => {
+    set({ todayLoading: true });
+    try {
+      const feed = await api.getToday();
+      set({
+        todayActions: Array.isArray(feed?.actions)
+          ? [...feed.actions].sort((a, b) => a.rank - b.rank)
+          : [],
+        coldStart: !!feed?.cold_start,
+        generatedAt: feed?.generated_at ?? null,
+      });
+    } catch {
+      // 실패해도 홈은 떠야 함 — 빈 피드로 폴백 (cold_start 안내 활용)
+      set({ todayActions: [], coldStart: true });
+    } finally {
+      set({ todayLoading: false });
+    }
+  },
+
+  act: async (id, action) => {
+    // completed/dismissed 는 피드에서 즉시 제거 (서버 acted_at 갱신과 정합)
+    if (action === 'completed' || action === 'dismissed') {
+      set({ todayActions: get().todayActions.filter((a) => a.id !== id) });
+    }
+    try {
+      await api.actOnRecommendation(id, action);
+    } catch {
+      // 피드백 실패는 조용히 무시 — UX 흐름을 막지 않는다
     }
   },
 }));

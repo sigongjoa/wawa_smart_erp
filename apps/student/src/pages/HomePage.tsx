@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, calendarApi, Session, ProofListItem, AssignmentListItem, ExamListItem, CalendarEvent } from '../api';
-import { useAuthStore } from '../store';
+import { useAuthStore, useRecommendationStore } from '../store';
 import { useVisiblePolling } from '../lib/useVisiblePolling';
+import OhneulgilFeed from '../components/OhneulgilFeed';
 import './HomePage.css';
 import { BookOpenText, Function, ClipboardText, Exam, Baseball, ChatCircleDots, Cards, CalendarDots } from '@phosphor-icons/react';
 
@@ -17,6 +18,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [examChecking, setExamChecking] = useState(true);
   const [examMsg, setExamMsg] = useState<string | null>(null);
+  const fetchToday = useRecommendationStore((s) => s.fetchToday);
 
   useEffect(() => {
     const today = new Date();
@@ -28,6 +30,8 @@ export default function HomePage() {
       api.getAssignments().catch(() => []),
       api.listExams().catch(() => []),
       calendarApi.list(toYmd(today), toYmd(sevenDaysLater)).catch(() => ({ events: [] })),
+      // "오늘의 길" RS 피드 — 자체 스토어가 로딩/에러를 흡수하므로 결과는 버린다
+      fetchToday().catch(() => {}),
     ]).then(([sess, prfs, asns, exs, cal]) => {
       setSession(sess);
       // 서버 응답 변경(paginated 객체 등)에도 견고하게 — 배열 강제 정규화
@@ -36,7 +40,7 @@ export default function HomePage() {
       setExams(Array.isArray(exs) ? exs : []);
       setUpcomingEvents(Array.isArray(cal?.events) ? cal.events : []);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [fetchToday]);
 
   // 활성 시험/라이브 세션 단일 폴링으로 통합 (5초마다 동시 조회, visibility-aware)
   const checkActive = useCallback(async () => {
@@ -115,7 +119,10 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* 2. 오늘의 학습 CTA 카드 */}
+      {/* 2. 오늘의 길 — RS 추천 피드 (최상위 primary 섹션) */}
+      <OhneulgilFeed />
+
+      {/* 3. 오늘의 학습 CTA 카드 */}
       <section className="hp-today">
         <div className="hp-today-head">
           <span className="hp-today-label">오늘의 학습</span>
@@ -141,7 +148,10 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* 3. 2×2 타일 (빠른 진입) */}
+      {/* 4. 2×2 타일 (빠른 진입) — 보조 섹션 */}
+      <div className="hp-section-head">
+        <h2 className="hp-section-title">빠른 진입</h2>
+      </div>
       <section className="hp-tiles">
         <button
           type="button"
