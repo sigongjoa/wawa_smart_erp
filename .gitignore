@@ -188,3 +188,6 @@ ENV/
 env/
 *.egg-info/
 .eggs/
+.cf-account
+.claude/
+**/.claude/
