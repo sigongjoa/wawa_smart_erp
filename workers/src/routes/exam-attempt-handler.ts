@@ -400,7 +400,10 @@ async function handleTeacherRoutes(
            LEFT JOIN exam_papers epaper ON epaper.id = a.exam_paper_id
           WHERE a.academy_id = ?
             AND st.teacher_id = ?
-            AND a.exam_status IN ('absent', 'rescheduled')
+            AND (
+              a.exam_status IN ('absent', 'rescheduled')
+              OR (a.exam_status = 'scheduled' AND ep.status IN ('preparing', 'in_progress'))
+            )
             AND NOT EXISTS (SELECT 1 FROM exam_attempts ea WHERE ea.exam_assignment_id = a.id)
           ORDER BY s.grade, s.name`,
         [academyId, userId]
