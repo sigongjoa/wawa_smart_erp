@@ -1,0 +1,46 @@
+/* StudentProfilePage — 페이지 전용 보조 스타일
+   (공통 primitive/토큰은 components.css·index.css 정의 사용) */
+
+/* 담임 선택 구분선 영역 */
+.sp-homeroom-divider {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border-primary);
+}
+
+/* 라이브 시작 버튼의 상태 점 */
+.sp-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  margin-right: var(--sp-2);
+  vertical-align: middle;
+}
+
+/* 삭제 모달 보조 안내 문구 */
+.sp-delete-hint {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin-top: var(--sp-1);
+}
+
+/* 학부모 링크 모달 안내 문구 */
+.sp-share-note {
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-3);
+}
+
+/* 학부모 링크 읽기전용 입력 */
+.sp-share-url {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-3);
+  font-size: var(--fs-13);
+  font-family: monospace;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}

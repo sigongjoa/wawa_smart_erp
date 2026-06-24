@@ -1,5 +1,5 @@
 .vcard {
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%);
   color: white;
   border-radius: 16px;
   padding: 1.25rem;
@@ -10,8 +10,8 @@
 }
 
 .vcard-loading {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-paper);
+  color: var(--ink-60);
   text-align: center;
   font-size: 0.9rem;
   padding: 1.5rem;
@@ -44,7 +44,7 @@
 
 .vcard-error {
   background: rgba(254, 226, 226, 0.95);
-  color: #991b1b;
+  color: var(--danger);
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -62,11 +62,11 @@
 }
 .vcard-btn:active:not(:disabled) { transform: scale(0.98); }
 .vcard-btn-start {
-  background: white;
-  color: #1e40af;
+  background: var(--bg-card);
+  color: var(--accent);
 }
 .vcard-btn-resume {
-  background: #fbbf24;
+  background: var(--warning);
   color: #78350f;
 }
 .vcard-btn-disabled {
@@ -108,7 +108,7 @@
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  color: var(--text-on-primary);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -126,6 +126,6 @@
   cursor: not-allowed;
 }
 .vcard-source-select option {
-  background: #1a1a1a;
-  color: #fff;
+  background: var(--ink);
+  color: var(--text-on-primary);
 }

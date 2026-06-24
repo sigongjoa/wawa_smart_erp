@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, ExamPaperItem, ExamPaperDistribution } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
+import { Plus } from 'lucide-react';
+import './ExamPapersPage.css';
 
 type ExamType = 'midterm' | 'final' | 'performance';
 
@@ -9,6 +11,12 @@ const EXAM_TYPE_LABEL: Record<ExamType, string> = {
   midterm: '중간고사',
   final: '기말고사',
   performance: '수행평가',
+};
+
+const EXAM_TYPE_BADGE: Record<ExamType, string> = {
+  midterm: 'badge-info',
+  final: 'badge-danger',
+  performance: 'badge-success',
 };
 
 const GRADE_OPTIONS = ['중1', '중2', '중3', '고1', '고2', '고3'];
@@ -255,7 +263,10 @@ export default function ExamPapersPage() {
           <h1 className="page-title">시험지 관리</h1>
           <p className="page-description">중간고사 · 기말고사 · 수행평가 유인물 업로드와 자동 배포</p>
         </div>
-        <button className="btn btn-primary" onClick={openUpload}>+ 업로드</button>
+        <button className="btn btn-primary with-icon" onClick={openUpload}>
+          <Plus size={16} aria-hidden="true" />
+          업로드
+        </button>
       </div>
 
       <div className="filter-bar" role="group" aria-label="시험지 필터">
@@ -314,7 +325,7 @@ export default function ExamPapersPage() {
                   <tr key={p.id}>
                     <td>{p.title}</td>
                     <td>
-                      <span className={`badge badge--${p.exam_type}`}>{EXAM_TYPE_LABEL[p.exam_type as ExamType]}</span>
+                      <span className={`badge ${EXAM_TYPE_BADGE[p.exam_type as ExamType]}`}>{EXAM_TYPE_LABEL[p.exam_type as ExamType]}</span>
                     </td>
                     <td>{p.school || '-'}</td>
                     <td>{p.grade || '-'}</td>
@@ -345,7 +356,7 @@ export default function ExamPapersPage() {
             {papers.map(p => (
               <li key={p.id} className="exam-paper-card">
                 <div className="exam-paper-card-head">
-                  <span className={`badge badge--${p.exam_type}`}>{EXAM_TYPE_LABEL[p.exam_type as ExamType]}</span>
+                  <span className={`badge ${EXAM_TYPE_BADGE[p.exam_type as ExamType]}`}>{EXAM_TYPE_LABEL[p.exam_type as ExamType]}</span>
                   <strong className="exam-paper-card-title">{p.title}</strong>
                 </div>
                 <dl className="exam-paper-card-meta">
@@ -547,7 +558,7 @@ export default function ExamPapersPage() {
               <Modal.Header>{detailData.title}</Modal.Header>
               <Modal.Body>
                 <div className="detail-meta">
-                  <span className={`badge badge--${detailData.exam_type}`}>{EXAM_TYPE_LABEL[detailData.exam_type as ExamType]}</span>
+                  <span className={`badge ${EXAM_TYPE_BADGE[detailData.exam_type as ExamType]}`}>{EXAM_TYPE_LABEL[detailData.exam_type as ExamType]}</span>
                   <span>{detailData.school || '-'}</span>
                   <span>{detailData.grade || '-'}</span>
                   <span>{detailData.subject || '-'}</span>
@@ -570,7 +581,7 @@ export default function ExamPapersPage() {
                       <li key={d.id}>
                         <span>{d.student_name}</span>
                         <span className="muted">{d.student_grade} · {d.student_school || '-'}</span>
-                        <span className={`badge badge--${d.source}`}>{d.source === 'auto' ? '자동' : '수동'}</span>
+                        <span className={`badge ${d.source === 'auto' ? 'badge-neutral' : 'badge-warning'}`}>{d.source === 'auto' ? '자동' : '수동'}</span>
                         <button
                           className="btn btn-sm btn-danger-ghost"
                           onClick={async () => {
@@ -615,7 +626,7 @@ export default function ExamPapersPage() {
         <Modal onClose={closeEdit} className="modal-content--wide">
           <Modal.Header closeDisabled={editSaving}>시험지 정보 수정</Modal.Header>
           <Modal.Body>
-            <p className="form-help" style={{ marginBottom: 12, color: 'var(--text-tertiary)', fontSize: 13 }}>
+            <p className="form-help exam-edit-note">
               파일 자체는 변경되지 않습니다. 메타데이터만 수정합니다.
             </p>
             <div className="form-grid">

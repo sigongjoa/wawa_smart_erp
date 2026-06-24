@@ -5,6 +5,7 @@ import { toast } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
 import { errorMessage } from '../utils/errors';
 import { MS_PER_DAY } from '../constants/timing';
+import './HomeroomExamsPage.css';
 
 type Summary = Awaited<ReturnType<typeof api.getHomeroomSummary>>;
 type Calendar = Awaited<ReturnType<typeof api.getHomeroomCalendar>>;
@@ -71,18 +72,23 @@ export default function HomeroomExamsPage() {
   }, [summary]);
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>시험 전후 상담</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
+    <div className="page-container">
+      <div className="page-header">
+        <h2 className="page-title">시험 전후 상담</h2>
+        <p className="page-description">
           14일 내 시험을 앞둔 담임 학생과 이번 달 시험 전/후 상담 기록을 함께 확인합니다.
         </p>
       </div>
 
       {loading ? (
-        <p className="no-data" role="status" aria-live="polite">불러오는 중...</p>
+        <div className="loading-state" role="status" aria-live="polite">
+          <div className="spinner" />
+          불러오는 중...
+        </div>
       ) : !summary ? (
-        <p className="no-data">데이터를 불러오지 못했습니다.</p>
+        <div className="empty-state">
+          <div className="empty-state-title">데이터를 불러오지 못했습니다.</div>
+        </div>
       ) : summary.upcoming_exams.length === 0 ? (
         (() => {
           const preTotal = Array.from(examConsultByStudent.values()).reduce(
@@ -94,10 +100,12 @@ export default function HomeroomExamsPage() {
             0
           );
           return (
-            <section className="dashboard-section" style={{ padding: 12 }}>
-              <p className="no-data">14일 내 예정된 시험이 없습니다.</p>
+            <section className="section">
+              <div className="empty-state">
+                <div className="empty-state-title">14일 내 예정된 시험이 없습니다.</div>
+              </div>
               {(preTotal > 0 || postTotal > 0) && (
-                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                <p className="hrx-summary-note">
                   이번 달 시험 전 상담 {preTotal}건 / 시험 후 상담 {postTotal}건 기록됨.
                 </p>
               )}
@@ -105,15 +113,15 @@ export default function HomeroomExamsPage() {
           );
         })()
       ) : (
-        <section className="dashboard-section" style={{ padding: 12 }}>
-          <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
+        <section className="section">
+          <table className="hrx-table">
             <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '6px 8px' }}>학생</th>
-                <th style={{ padding: '6px 8px' }}>D-일</th>
-                <th style={{ padding: '6px 8px' }}>시험</th>
-                <th style={{ padding: '6px 8px' }}>시험 전 상담</th>
-                <th style={{ padding: '6px 8px' }}>시험 후 상담</th>
+              <tr>
+                <th>학생</th>
+                <th>D-일</th>
+                <th>시험</th>
+                <th>시험 전 상담</th>
+                <th>시험 후 상담</th>
                 <th />
               </tr>
             </thead>
@@ -124,51 +132,47 @@ export default function HomeroomExamsPage() {
                 const d = daysUntil(nearest.starts_at);
                 const ec = examConsultByStudent.get(studentId) ?? { pre: [], post: [] };
                 return (
-                  <tr key={studentId} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px' }}>
+                  <tr key={studentId}>
+                    <td>
                       <Link to={`/student/${studentId}`}>{student_name}</Link>
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    <td>
                       <span
-                        className="badge"
-                        style={{
-                          borderColor: d <= 3 ? 'var(--danger-text)' : d <= 7 ? 'var(--warning)' : 'var(--info)',
-                          color: d <= 3 ? 'var(--danger-text)' : d <= 7 ? 'var(--warning)' : 'var(--info)',
-                        }}
+                        className={`badge ${d <= 3 ? 'badge-danger' : d <= 7 ? 'badge-warning' : 'badge-info'}`}
                       >
                         D-{d}
                       </span>
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    <td>
                       <div>
                         <strong>{new Date(nearest.starts_at).toLocaleDateString('ko-KR')}</strong>{' '}
                         {nearest.title}
                       </div>
                       {sorted.length > 1 && (
-                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                        <div className="hrx-exam-more">
                           +{sorted.length - 1}건
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    <td>
                       {ec.pre.length > 0 ? (
-                        <span className="with-icon" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                        <span className="with-icon hrx-consult-done">
                           <Icon name="Check" size={14} /> {ec.pre.length}건
                         </span>
                       ) : (
-                        <span style={{ color: 'var(--warning-text)' }}>미실시</span>
+                        <span className="hrx-consult-pending">미실시</span>
                       )}
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    <td>
                       {ec.post.length > 0 ? (
-                        <span className="with-icon" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                        <span className="with-icon hrx-consult-done">
                           <Icon name="Check" size={14} /> {ec.post.length}건
                         </span>
                       ) : (
-                        <span style={{ color: 'var(--text-tertiary)' }}>—</span>
+                        <span className="hrx-consult-empty">—</span>
                       )}
                     </td>
-                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                    <td className="hrx-cell-actions">
                       <Link to={`/student/${studentId}`} className="btn btn-ghost btn-sm">
                         상담 기록
                       </Link>

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import './StudentProfilePage.css';
 import { api, StudentProfile, CommentHistoryEntry, AttendanceSummary as AttendanceData } from '../api';
 import ScoreChart from '../components/ScoreChart';
 import CommentTimeline from '../components/CommentTimeline';
@@ -138,23 +140,33 @@ export default function StudentProfilePage() {
   };
 
   if (loading) {
-    return <div className="student-profile-page"><p>불러오는 중...</p></div>;
+    return (
+      <div className="student-profile-page">
+        <div className="loading-state"><div className="spinner" />불러오는 중...</div>
+      </div>
+    );
   }
 
   if (!profile) {
-    return <div className="student-profile-page"><p>학생을 찾을 수 없습니다</p></div>;
+    return (
+      <div className="student-profile-page">
+        <div className="empty-state">
+          <p className="empty-state-title">학생을 찾을 수 없습니다</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="student-profile-page">
       {loadWarning && (
-        <div role="alert" style={{ padding: '8px 12px', margin: '0 0 12px', background: 'var(--danger-surface)', border: '1px solid var(--danger)', borderRadius: 6, color: 'var(--danger)', fontSize: 13 }}>
+        <div role="alert" className="error-message">
           {loadWarning}
         </div>
       )}
       <div className="student-profile-header">
-        <button className="back-btn" onClick={() => navigate('/student')}>
-          &larr; 학생 목록
+        <button className="back-btn with-icon" onClick={() => navigate('/student')}>
+          <ArrowLeft size={16} aria-hidden="true" /> 학생 목록
         </button>
         <div className="student-profile-title-row">
           <h2>{profile.name} <span className="student-grade-badge">{profile.grade}</span></h2>
@@ -164,7 +176,7 @@ export default function StudentProfilePage() {
                 className="btn btn-primary btn-sm"
                 onClick={() => { setLiveSubject('수학'); setShowLive(true); }}
               >
-                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)', marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true" />
+                <span className="sp-live-dot" aria-hidden="true" />
                 라이브 시작
               </button>
             )}
@@ -244,7 +256,7 @@ export default function StudentProfilePage() {
           <h3>기본 정보</h3>
           <StudentInfo profile={profile} />
           {user?.role === 'admin' && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <div className="sp-homeroom-divider">
               <HomeroomSelector profile={profile} onChanged={loadProfile} />
             </div>
           )}
@@ -356,7 +368,7 @@ export default function StudentProfilePage() {
             <h3 className="modal-title">학생 삭제</h3>
             <div className="modal-body">
               <p><strong>{profile.name}</strong> 학생을 삭제하시겠습니까?</p>
-              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              <p className="sp-delete-hint">
                 성적, 출결, 시간표 등 관련 데이터가 모두 삭제됩니다.
               </p>
             </div>
@@ -378,7 +390,7 @@ export default function StudentProfilePage() {
         <Modal onClose={() => setShareUrl(null)}>
           <h3 className="modal-title">학부모 월간 리포트 링크</h3>
           <div className="modal-body">
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+            <p className="sp-share-note">
               아래 링크를 카톡/문자로 전달해 주세요.
               {shareExpires && (
                 <> 만료일: <strong>{new Date(shareExpires).toLocaleDateString('ko-KR')}</strong></>
@@ -389,16 +401,7 @@ export default function StudentProfilePage() {
               readOnly
               value={shareUrl}
               onFocus={(e) => e.currentTarget.select()}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                fontSize: 13,
-                fontFamily: 'monospace',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-              }}
+              className="sp-share-url"
               aria-label="학부모 리포트 링크"
             />
           </div>

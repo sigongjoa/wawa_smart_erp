@@ -1,0 +1,628 @@
+/* ═══════════════════════════════════════════════════════
+   WAWA Smart ERP — Desktop Design System: Component Primitives
+   ───────────────────────────────────────────────────────
+   import해서 재사용하는 컴포넌트 클래스 레이어 (tokens.css 위에 빌드).
+   App Shell(.app-nav/.app-main/.page-head) + Common Components
+   (.section/.btn/.input/.chip/.badge/.pill/.grade/skeleton/spinner/empty/snackbar).
+   페이지 전용 스타일은 index.css. 토큰은 styles/tokens.css(SSoT).
+   참조: design/system/DESKTOP.md · design/mockups/v2/00-design-system.html
+   ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════
+   APP SHELL — Sidebar (PC) / Bottom Nav (Mobile)
+   ═══════════════════════════════════════ */
+
+/* ═══════════════════════════════════════
+   App shell — mockup v2 톤
+   좌측 sticky sidebar + 우측 main grid
+   ═══════════════════════════════════════ */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ── Sidebar (.app-nav) ── */
+.app-nav {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-primary);
+  padding: var(--sp-5) var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-primary) transparent;
+}
+.app-nav::-webkit-scrollbar { width: 6px; }
+.app-nav::-webkit-scrollbar-track { background: transparent; }
+.app-nav::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: var(--radius-full); }
+.app-nav::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+.app-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+}
+.app-nav__brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--text-on-primary);
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: var(--fs-15);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+.app-nav__brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.app-nav__brand-name {
+  font-weight: 800;
+  font-size: var(--fs-15);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-nav__brand-sub {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-nav__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.app-nav__label {
+  font-size: var(--fs-11);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 var(--sp-3);
+  margin-bottom: var(--sp-1);
+}
+.app-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 8px var(--sp-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+.app-nav__item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.app-nav__item.is-active {
+  background: var(--primary-surface);
+  color: var(--primary);
+}
+.app-nav__item.is-active svg { color: var(--primary); }
+.app-nav__item > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.app-nav__count {
+  margin-left: auto;
+  font-size: var(--fs-11);
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: var(--text-on-primary);
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Sidebar footer (user + logout) */
+.app-nav__footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-top: 1px solid var(--border-secondary);
+}
+.app-nav__user {
+  flex: 1;
+  min-width: 0;
+}
+.app-nav__user-name {
+  font-size: var(--fs-13);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-nav__user-role {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.app-nav__logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+.app-nav__logout:hover {
+  background: var(--danger-surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ── Main content (mockup .app-main) ── */
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--border, #e3e6ea);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.app-topbar-spacer {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .app-topbar {
+    padding: 8px 12px;
+  }
+}
+
+.page-container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-10) var(--sp-8);
+}
+
+/* ── Page Header (Toss-style: big text, no decoration) ── */
+.page-header {
+  margin-bottom: var(--sp-10);
+}
+
+.page-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.page-description {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-top: var(--sp-2);
+  line-height: 1.5;
+}
+
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+/* ═══════════════════════════════════════
+   COMMON COMPONENTS
+   ═══════════════════════════════════════ */
+
+/* ── Section: replaces cards ── */
+.section {
+  padding: var(--sp-6) 0;
+}
+
+.section + .section {
+  border-top: 1px solid var(--border-secondary);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--sp-5);
+  letter-spacing: -0.2px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--sp-3);
+}
+
+/* Icon + text 인라인 정렬 유틸 — span/div/non-.btn 버튼용
+   (.btn 은 자체적으로 inline-flex 갖고 있어 별도 적용 불필요) */
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:disabled {
+  background: var(--border-primary);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--text-on-primary);
+}
+.btn-accent:hover { background: var(--accent-hover); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+}
+.btn-ghost:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}
+
+/* secondary: 취소·보조 액션. .btn 없이 단독으로도 동작하는 자립형 변형 */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast) ease;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover { background: var(--border-primary); color: var(--text-primary); }
+
+.btn-danger {
+  background: var(--danger-surface);
+  color: var(--danger);
+}
+.btn-danger:hover { background: var(--danger-surface); filter: brightness(0.97); }
+
+.btn-sm {
+  padding: var(--sp-1) var(--sp-3);
+  font-size: 12px;
+  border-radius: var(--radius-xs);
+}
+
+.btn-lg {
+  padding: var(--sp-4) var(--sp-8);
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-present {
+  background: var(--success);
+  color: var(--text-on-primary);
+}
+.btn-present:hover { background: var(--success); filter: brightness(0.93); }
+.btn-present:disabled {
+  background: var(--border-primary);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.btn-share {
+  background: #fee500;
+  color: #1a1e2e;
+  font-weight: 600;
+}
+.btn-share:hover { background: #fdd800; }
+
+/* ── Inputs ── */
+.input {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  font-size: 16px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) ease;
+}
+
+.input:hover {
+  background: var(--border-secondary);
+}
+
+.input:focus {
+  outline: none;
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-surface);
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-2);
+}
+
+/* ── Chip / Filter buttons ── */
+.chip-group {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  transition: all var(--duration-fast) ease;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+
+.chip:hover {
+  background: var(--border-primary);
+  color: var(--text-primary);
+}
+
+.chip.active,
+.filter-btn.active,
+.filter-btn.filter-btn--active {
+  background: var(--primary-surface);
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  transition: all var(--duration-fast) ease;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+
+.filter-btn:hover {
+  background: var(--border-primary);
+  color: var(--text-primary);
+}
+
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--primary);
+  color: var(--text-on-primary);
+  border-radius: var(--radius-full);
+}
+
+/* ── Badge / Status ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--sp-2);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.3px;
+}
+
+.badge-success { background: var(--success-surface); color: var(--success); }
+.badge-warning { background: var(--warning-surface); color: var(--warning-text); }
+.badge-danger { background: var(--danger-surface); color: var(--danger); }
+.badge-info { background: var(--info-surface); color: var(--info); }
+.badge-neutral { background: var(--bg-tertiary); color: var(--text-secondary); }
+
+/* ── Skeleton loading ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* ── Loading spinner ── */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: var(--sp-16) 0;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--border-primary);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Legacy spinner aliases */
+.rpt-loading {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: var(--sp-4); padding: var(--sp-16) 0;
+  color: var(--text-tertiary); font-size: 14px;
+}
+.rpt-spinner {
+  width: 28px; height: 28px;
+  border: 2.5px solid var(--border-primary);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner, .rpt-spinner, .meeting-spinner { animation: none; }
+}
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: var(--sp-16) var(--sp-8);
+  color: var(--text-tertiary);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: var(--sp-4);
+  opacity: 0.3;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-2);
+}
+
+.empty-state-desc {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Snackbar/Error ── */
+.error-message {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--danger-surface);
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--sp-4);
+}
+
+/* ── Page loading fallback for lazy routes ── */
+.page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--text-tertiary);
+  font-size: 15px;
+}
+

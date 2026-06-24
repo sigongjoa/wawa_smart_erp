@@ -18,17 +18,17 @@
   box-shadow: var(--shadow-sm);
 }
 .parent-lessons-eyebrow {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--text-tertiary);
 }
 .parent-lessons-title {
   margin: var(--sp-1) 0 var(--sp-1);
-  font-size: 22px;
+  font-size: var(--fs-22);
   color: var(--text-primary);
 }
 .parent-lessons-subtitle {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .parent-lessons-list {
@@ -60,7 +60,7 @@
 }
 .parent-lessons-card-title {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--fs-17);
   color: var(--text-primary);
 }
 .parent-lessons-purpose {
@@ -68,18 +68,18 @@
   color: var(--primary);
   padding: 2px var(--sp-2);
   border-radius: var(--radius-full);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   white-space: nowrap;
 }
 .parent-lessons-meta {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--text-secondary);
   margin-top: var(--sp-1);
 }
 .parent-lessons-understanding {
   margin-top: var(--sp-2);
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--text-primary);
 }
 .parent-lessons-understanding strong {
@@ -87,7 +87,7 @@
 }
 .parent-lessons-description {
   margin-top: var(--sp-2);
-  font-size: 14px;
+  font-size: var(--fs-14);
   color: var(--text-primary);
   white-space: pre-wrap;
 }
@@ -111,12 +111,12 @@
   color: var(--primary);
   padding: 2px var(--sp-2);
   border-radius: var(--radius-xs);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
 }
 .parent-lessons-file-info {
   flex: 1;
-  font-size: 13px;
+  font-size: var(--fs-13);
   min-width: 0;
 }
 .parent-lessons-file-name {
@@ -125,7 +125,7 @@
   white-space: nowrap;
 }
 .parent-lessons-file-meta {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--text-tertiary);
 }
 .parent-lessons-download {
@@ -134,7 +134,7 @@
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--radius-sm);
   text-decoration: none;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   transition: background var(--duration-fast) var(--ease-out);
 }
@@ -147,7 +147,7 @@
 }
 .parent-lessons-download-disabled {
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 .parent-lessons-preview {
   background: var(--bg-secondary);
@@ -155,7 +155,7 @@
   border: 1px solid var(--primary);
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
@@ -170,7 +170,7 @@
 
 .parent-lessons-card-footer {
   margin-top: var(--sp-2);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--text-tertiary);
 }
 
@@ -178,7 +178,7 @@
   margin-top: var(--sp-6);
   text-align: center;
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .parent-lessons-error-shell {
@@ -206,7 +206,7 @@
 }
 .parent-lessons-error-card .hint {
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: var(--fs-13);
   margin-top: var(--sp-4);
 }
 

@@ -1,0 +1,45 @@
+.hfu-bucket {
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  border-left: 4px solid var(--border-primary);
+}
+
+.hfu-bucket-title {
+  margin: 0 0 var(--sp-2);
+}
+
+.hfu-bucket-count {
+  color: var(--text-tertiary);
+}
+
+.hfu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hfu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--border-secondary);
+}
+
+.hfu-badge {
+  min-width: 72px;
+  justify-content: center;
+}
+
+.hfu-due {
+  min-width: 90px;
+}
+
+.hfu-name {
+  min-width: 80px;
+}
+
+.hfu-note {
+  flex: 1;
+  color: var(--text-secondary);
+}

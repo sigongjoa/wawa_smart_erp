@@ -269,6 +269,7 @@ export default function MedTermAdminPage() {
         </fieldset>
         <button
           type="button"
+          className="btn btn-primary"
           onClick={submitAssign}
           disabled={assigning}
           aria-busy={assigning}
@@ -345,6 +346,7 @@ export default function MedTermAdminPage() {
           </label>
           <button
             type="button"
+            className="btn btn-primary"
             onClick={uploadFigure}
             disabled={uploading || !uploadFile || !uploadFigId.trim() || !uploadLabel.trim()}
             aria-busy={uploading}
@@ -378,11 +380,11 @@ export default function MedTermAdminPage() {
                     <td>{f.fig_type}</td>
                     <td>
                       {f.has_image ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--success-text)' }}>
+                        <span className="badge badge-success with-icon">
                           <Check size={14} aria-hidden /> 업로드됨
                         </span>
                       ) : (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--warning-text)' }}>
+                        <span className="badge badge-warning with-icon">
                           <AlertTriangle size={14} aria-hidden /> 없음
                         </span>
                       )}
@@ -428,6 +430,7 @@ export default function MedTermAdminPage() {
           </label>
           <button
             type="button"
+            className="btn btn-primary"
             onClick={createExam}
             disabled={examCreating}
             aria-busy={examCreating}
@@ -444,7 +447,7 @@ export default function MedTermAdminPage() {
             data-testid="medterm-exam-result"
           >
             {examAttempts.length}개 attempt 생성됨:
-            <ul style={{ margin: '6px 0 0 16px', fontSize: 12 }}>
+            <ul className="medterm-admin-attempt-list">
               {examAttempts.map((a) => (
                 <li key={a.attempt_id}>
                   학생 <code>{a.student_id}</code> → attempt <code>{a.attempt_id}</code>
@@ -469,6 +472,7 @@ export default function MedTermAdminPage() {
           />
           <button
             type="button"
+            className="btn btn-primary"
             onClick={loadProgress}
             disabled={progressLoading}
             aria-busy={progressLoading}

@@ -1,0 +1,165 @@
+/* ExamManagementPage 전용 클래스 — 디자인 토큰만 사용 */
+
+/* ── 영어 시험지 / 프리셋 드롭다운 공통 ── */
+.exam-dropdown {
+  position: relative;
+}
+.exam-dropdown--push {
+  margin-left: auto;
+}
+
+.exam-dropdown-trigger {
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-md);
+  background: var(--primary-surface);
+  color: var(--primary);
+  border: 1px solid var(--border-primary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--fs-13);
+}
+.exam-dropdown-trigger:hover {
+  background: var(--primary-light);
+}
+
+.exam-dropdown-trigger--plain {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+.exam-dropdown-trigger--plain:hover {
+  background: var(--bg-secondary);
+}
+
+.exam-dropdown-trigger__inner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.exam-dropdown-panel {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  z-index: 20;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  min-width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  padding: var(--sp-2);
+}
+.exam-dropdown-panel--menu {
+  z-index: 30;
+  max-height: 420px;
+  padding: var(--sp-2);
+}
+
+.exam-dropdown-empty {
+  padding: var(--sp-3);
+  color: var(--text-secondary);
+  font-size: var(--fs-13);
+}
+.exam-dropdown-empty--sm {
+  font-size: var(--fs-12);
+}
+
+.exam-paper-item {
+  display: block;
+  width: 100%;
+  padding: var(--sp-3);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--fs-13);
+  color: var(--text-primary);
+}
+.exam-paper-item:hover {
+  background: var(--bg-secondary);
+}
+.exam-paper-item__title {
+  font-weight: 600;
+}
+.exam-paper-item__grade {
+  font-size: var(--fs-11);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ── 프리셋 메뉴 ── */
+.exam-preset-group-label {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-11);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.exam-preset-group-label--shared {
+  margin-top: var(--sp-1);
+}
+
+.exam-preset-footer {
+  border-top: 1px solid var(--border-primary);
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+}
+.exam-preset-save {
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--fs-13);
+  color: var(--primary);
+  font-weight: 600;
+}
+.exam-preset-save:hover {
+  background: var(--primary-surface);
+}
+
+.exam-preset-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.exam-preset-row__main {
+  flex: 1;
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--fs-13);
+  color: var(--text-primary);
+}
+.exam-preset-row__main:hover {
+  background: var(--bg-secondary);
+}
+.exam-preset-row__name {
+  font-weight: 600;
+}
+.exam-preset-row__meta {
+  font-size: var(--fs-11);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.exam-preset-row__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+}
+.exam-preset-row__icon-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}

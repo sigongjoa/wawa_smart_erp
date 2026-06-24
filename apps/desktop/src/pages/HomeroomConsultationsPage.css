@@ -1,0 +1,92 @@
+.hc-month-nav {
+  flex: 1;
+}
+
+.hc-month-input {
+  width: 160px;
+}
+
+.hc-pending {
+  border-left: 4px solid var(--warning);
+}
+
+.hc-pending-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.hc-pending-link {
+  text-decoration: none;
+}
+
+.hc-pending-grade {
+  color: var(--text-tertiary);
+}
+
+.hc-table {
+  width: 100%;
+  font-size: var(--fs-14);
+  border-collapse: collapse;
+}
+
+.hc-table thead tr {
+  text-align: left;
+  color: var(--text-secondary);
+}
+
+.hc-table th {
+  padding: var(--sp-2) var(--sp-2);
+}
+
+.hc-table tbody tr {
+  border-top: 1px solid var(--border-primary);
+}
+
+.hc-table td {
+  padding: var(--sp-2);
+}
+
+.hc-cell-student-grade {
+  color: var(--text-tertiary);
+  font-size: var(--fs-12);
+}
+
+.hc-cell-count {
+  font-weight: 600;
+}
+
+.hc-cell-count.is-empty {
+  color: var(--warning-text);
+}
+
+.hc-cell-count.has-records {
+  color: var(--accent);
+}
+
+.hc-cell-detail {
+  color: var(--text-secondary);
+}
+
+.hc-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.hc-detail-row {
+  font-size: var(--fs-13);
+}
+
+.hc-detail-cat {
+  margin-right: var(--sp-2);
+}
+
+.hc-detail-more {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+}
+
+.hc-cell-action {
+  text-align: right;
+}

@@ -154,6 +154,7 @@
   margin-bottom: var(--sp-1);
   font-weight: 500;
 }
+.curr-form-textarea { resize: vertical; }
 
 /* 페이지 부제 / 섹션 헤더 / 위험 액션 */
 .curr-page-subtitle {
@@ -211,6 +212,7 @@
   opacity: 0.4;
   cursor: default;
 }
+.curr-item-reorder-btn--down { margin-left: var(--sp-1); }
 
 @media (max-width: 480px) {
   .curr-toolbar { flex-direction: column; align-items: stretch; }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuthStore } from '../store';
+import './ChangePinPage.css';
 
 /**
  * SEC-AUTH-PWMC: 임시 PIN 첫 로그인 후 강제 변경 화면.
@@ -50,64 +51,64 @@ export default function ChangePinPage() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '60px auto', padding: 24 }}>
-      <h1 style={{ marginBottom: 8 }}>PIN 변경</h1>
+    <div className="change-pin-page">
+      <h1 className="change-pin-title">PIN 변경</h1>
       {user?.passwordMustChange ? (
-        <p style={{ color: 'var(--danger)', fontSize: 14, marginBottom: 24 }}>
+        <p className="change-pin-intro change-pin-intro--warn">
           관리자가 발급한 임시 PIN으로 로그인하셨습니다.
           계속 사용하려면 PIN을 변경해주세요.
         </p>
       ) : (
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
+        <p className="change-pin-intro change-pin-intro--muted">
           현재 PIN과 새 PIN을 입력하세요.
         </p>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <form onSubmit={handleSubmit} className="change-pin-form">
         <label>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>현재 PIN</span>
+          <span className="input-label">현재 PIN</span>
           <input
             type="password"
+            className="input"
             value={currentPin}
             onChange={(e) => setCurrentPin(e.target.value)}
             autoComplete="current-password"
             required
-            style={{ width: '100%', padding: 8, fontSize: 16 }}
           />
         </label>
 
         <label>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>새 PIN (4~20자)</span>
+          <span className="input-label">새 PIN (4~20자)</span>
           <input
             type="password"
+            className="input"
             value={newPin}
             onChange={(e) => setNewPin(e.target.value)}
             autoComplete="new-password"
             minLength={4}
             maxLength={20}
             required
-            style={{ width: '100%', padding: 8, fontSize: 16 }}
           />
         </label>
 
         <label>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>새 PIN 확인</span>
+          <span className="input-label">새 PIN 확인</span>
           <input
             type="password"
+            className="input"
             value={confirmPin}
             onChange={(e) => setConfirmPin(e.target.value)}
             autoComplete="new-password"
             required
-            style={{ width: '100%', padding: 8, fontSize: 16 }}
           />
         </label>
 
-        {error && <div style={{ color: 'var(--danger)', fontSize: 14 }}>{error}</div>}
+        {error && <div className="change-pin-error">{error}</div>}
 
         <button
           type="submit"
+          className="btn btn-primary btn-block"
           disabled={loading || !currentPin || !newPin || !confirmPin}
-          style={{ padding: 12, fontSize: 16, marginTop: 8 }}
         >
           {loading ? '변경 중...' : 'PIN 변경'}
         </button>

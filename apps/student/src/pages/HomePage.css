@@ -296,11 +296,11 @@
   --hp-surface: rgba(226, 88, 34, 0.08);
 }
 .hp-tile--dragon {
-  --hp-c: #5060E1;
+  --hp-c: var(--type-dragon);
   --hp-surface: rgba(80, 96, 225, 0.08);
 }
 .hp-tile--psychic {
-  --hp-c: #F584A8;
+  --hp-c: var(--type-psychic);
   --hp-surface: rgba(245, 132, 168, 0.10);
 }
 

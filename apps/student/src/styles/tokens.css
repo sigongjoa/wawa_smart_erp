@@ -146,6 +146,86 @@
   --shadow-lg: var(--shadow-pop);
 }
 
+/* ═════════════════════════════════════════════════════════
+   WHITE / MINIMAL 테마 (선택 가능 · 기본값)
+   data-theme="white" 셀렉터에서 기존 토큰 이름을 그대로 덮어씀.
+   캐노니컬 화이트 팔레트: bg #fff · ink #111418 · accent #2563eb · primary mono.
+   ═════════════════════════════════════════════════════════ */
+:root[data-theme="white"] {
+  /* ─ 잉크 ─ */
+  --ink: #111418;
+  --ink-72: rgba(17, 20, 24, 0.72);
+  --ink-60: rgba(17, 20, 24, 0.62);
+  --ink-40: rgba(17, 20, 24, 0.40);
+  --ink-20: rgba(17, 20, 24, 0.20);
+  --ink-09: rgba(17, 20, 24, 0.10);
+  --ink-05: rgba(17, 20, 24, 0.05);
+
+  /* ─ 배경 / 서피스 ─ */
+  --bg-canvas: #ffffff;
+  --bg-card: #ffffff;
+  --bg-paper: #f6f7f8;
+  --bg-question: #f6f7f8;
+  --bg-photo: #f6f7f8;
+  --paper-textbook: #ffffff;
+
+  /* ─ 시멘틱 (모노 프라이머리 + 단일 액센트) ─ */
+  --primary: #111418;
+  --primary-hover: #000000;
+  --primary-light: #3a3f47;
+  --primary-surface: rgba(17, 20, 24, 0.06);
+
+  --accent: #2563eb;
+  --accent-surface: rgba(37, 99, 235, 0.08);
+
+  --success: #16a34a;
+  --success-surface: rgba(22, 163, 74, 0.08);
+  --danger: #dc2626;
+  --danger-surface: rgba(220, 38, 38, 0.08);
+  --warning: #d97706;
+  --warning-surface: rgba(217, 119, 6, 0.10);
+
+  /* ─ 타입 컬러 → 모노/뉴트럴 화이트 톤으로 정돈 (액센트만 컬러) ─ */
+  --type-electric: #d97706;
+  --type-water:    #2563eb;
+  --type-grass:    #16a34a;
+  --type-psychic:  #7c3aed;
+  --type-ground:   #57534e;
+  --type-dragon:   #2563eb;
+  --type-electric-surface: rgba(217, 119, 6, 0.08);
+  --type-water-surface:    rgba(37, 99, 235, 0.08);
+  --type-grass-surface:    rgba(22, 163, 74, 0.08);
+  --type-psychic-surface:  rgba(124, 58, 237, 0.08);
+  --type-ground-surface:   rgba(87, 83, 78, 0.08);
+  --type-dragon-surface:   rgba(37, 99, 235, 0.08);
+
+  /* ─ 도메인 ─ */
+  --medterm-signature: #111418;
+  --medterm-signature-hover: #000000;
+
+  /* ─ 노트/종이 디테일 → 뉴트럴 하이라인 ─ */
+  --rule-line: var(--ink-09);
+  --rule-line-soft: var(--ink-09);
+  --margin-line: rgba(220, 38, 38, 0.40);
+  --textbook-blue: #2563eb;
+  --pen-red: #dc2626;
+  --pen-red-soft: rgba(220, 38, 38, 0.10);
+
+  /* ─ 라디우스 (md 12 / sm 10 / full 999) ─ */
+  --r-sm: 10px;
+  --r-md: 12px;
+  --radius-full: 999px;
+
+  /* ─ 섀도우 미니멀 (하이라인 우선) ─ */
+  --shadow-pop:   0 4px 16px rgba(17, 20, 24, 0.10);
+  --shadow-card:  0 1px 2px rgba(17, 20, 24, 0.04);
+  --shadow-photo: 0 2px 8px rgba(17, 20, 24, 0.08);
+  --shadow-frame: 0 8px 24px rgba(17, 20, 24, 0.10);
+
+  /* ─ 레거시 흰 글자 (모노 프라이머리 위에서도 흰색 유지) ─ */
+  --text-on-primary: #ffffff;
+}
+
 /* ─ 페이지 공용 헤더 ──────────────────────────────────── */
 .page-header {
   padding: var(--sp-6) var(--sp-5) var(--sp-4);

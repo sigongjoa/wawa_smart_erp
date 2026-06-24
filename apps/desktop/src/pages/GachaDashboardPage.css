@@ -1,0 +1,14 @@
+/* GachaDashboardPage — 페이지 전용 정적 스타일 (디자인 시스템 토큰 사용) */
+
+/* 최근 활동 경고 아이콘 (테이블 셀 내 인라인) */
+.gacha-recent-warn-icon {
+  margin-left: var(--sp-1);
+  vertical-align: middle;
+  color: var(--danger);
+}
+
+/* 난이도 별점 표시 (인라인) */
+.gacha-difficulty-stars {
+  display: inline-flex;
+  vertical-align: middle;
+}

@@ -137,7 +137,7 @@ export default function SimpleCanvas({
               style={{
                 width: 28, height: 28, borderRadius: '50%',
                 background: c,
-                border: color === c && !erasing ? '2px solid #f59e0b' : '1px solid #94a3b8',
+                border: color === c && !erasing ? '2px solid var(--warning)' : '1px solid var(--ink-40)',
               }}
             />
           ))}
@@ -172,8 +172,8 @@ export default function SimpleCanvas({
           width: '100%',
           maxWidth: width,
           aspectRatio: `${width}/${height}`,
-          background: '#fff',
-          border: '1px solid #cbd5e1',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--ink-09)',
           borderRadius: 6,
           touchAction: 'none',
           cursor: readOnly ? 'default' : (erasing ? 'cell' : 'crosshair'),

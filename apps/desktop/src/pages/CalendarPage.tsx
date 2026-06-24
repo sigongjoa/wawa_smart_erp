@@ -12,11 +12,11 @@ import {
 import './CalendarPage.css';
 
 const CATEGORY_META: Record<CalendarCategory, { label: string; color: string }> = {
-  performance: { label: '수행평가', color: 'var(--type-electric, #FAC000)' },
-  school_exam: { label: '학교시험', color: 'var(--type-ground, #915121)' },
-  external_exam: { label: '검정고시·공인시험', color: 'var(--type-dragon, #5060E1)' },
-  academy: { label: '학원일정', color: 'var(--type-water, #2980EF)' },
-  personal: { label: '학생 개인', color: 'var(--type-psychic, #F584A8)' },
+  performance: { label: '수행평가', color: 'var(--warning)' },
+  school_exam: { label: '학교시험', color: 'var(--danger)' },
+  external_exam: { label: '검정고시·공인시험', color: 'var(--primary)' },
+  academy: { label: '학원일정', color: 'var(--info)' },
+  personal: { label: '학생 개인', color: 'var(--accent)' },
 };
 const CATEGORY_ORDER: CalendarCategory[] = ['performance', 'school_exam', 'external_exam', 'academy', 'personal'];
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -148,7 +148,7 @@ export default function CalendarPage() {
           <h1 className="dcal-page-title">캘린더</h1>
           <p className="dcal-page-sub">학원 공통 일정 등록 · 담당 학생 일정 확인</p>
         </div>
-        <button type="button" className="dcal-btn dcal-btn--primary" onClick={() => setEditor({ mode: 'create', initialDate: selectedDate })}>
+        <button type="button" className="btn btn-primary with-icon" onClick={() => setEditor({ mode: 'create', initialDate: selectedDate })}>
           <Plus size={16} aria-hidden />
           학원 공통 일정 등록
         </button>
@@ -343,7 +343,7 @@ function WidgetSection({ title, events, categoryMeta }: WidgetSectionProps) {
                 </span>
               </div>
               {ev.total_students > 0 && (
-                <span className={`dcal-widget-badge${ev.unconfirmed_count > 0 ? ' dcal-widget-badge--warn' : ' dcal-widget-badge--ok'}`}>
+                <span className={`badge dcal-widget-badge ${ev.unconfirmed_count > 0 ? 'badge-warning' : 'badge-success'}`}>
                   미확인 {ev.unconfirmed_count}/{ev.total_students}
                 </span>
               )}
@@ -468,8 +468,8 @@ function EditorModal({ state, onClose, onSaved, onError }: EditorModalProps) {
         </div>
       </Modal.Body>
       <Modal.Footer>
-        <button type="button" className="dcal-btn dcal-btn--ghost" onClick={onClose} disabled={saving}>취소</button>
-        <button type="button" className="dcal-btn dcal-btn--primary" onClick={submit} disabled={saving}>
+        <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>취소</button>
+        <button type="button" className="btn btn-primary" onClick={submit} disabled={saving}>
           {saving ? '저장 중…' : '저장'}
         </button>
       </Modal.Footer>

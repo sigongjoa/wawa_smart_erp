@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useAuthStore } from '../store';
 import { errorMessage } from '../utils/errors';
 import { PageHeader, Panel } from '../components/v2';
+import './SettingsPage.css';
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -13,6 +14,18 @@ export default function SettingsPage() {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.getAttribute('data-theme') || 'white';
+    }
+    return 'white';
+  });
+
+  const applyTheme = (next: string) => {
+    setTheme(next);
+    try { localStorage.setItem('theme', next); } catch { /* ignore */ }
+    document.documentElement.setAttribute('data-theme', next);
+  };
 
   useEffect(() => {
     api.getActiveMonth().then((res) => {
@@ -50,8 +63,27 @@ export default function SettingsPage() {
     <div className="settings-page">
       <PageHeader crumb="시스템 · 설정" title="설정" sub="성적 입력 기준 월과 학원 운영 설정을 관리합니다." />
 
+      <div className="settings-grid">
+      <Panel title="화면 테마">
+        <p className="settings-panel-desc">
+          앱 전체에 적용할 색상 테마입니다. 화이트(미니멀)가 기본입니다.
+        </p>
+        <div className="month-selector">
+          <label htmlFor="app-theme" className="sr-only">테마 선택</label>
+          <select
+            id="app-theme"
+            className="form-select form-select--sm"
+            value={theme}
+            onChange={(e) => applyTheme(e.target.value)}
+          >
+            <option value="white">화이트 (미니멀)</option>
+            <option value="default">기본 (인디고)</option>
+          </select>
+        </div>
+      </Panel>
+
       <Panel title="성적 입력 활성 월">
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 var(--sp-4)' }}>
+        <p className="settings-panel-desc">
           리포트·성적 입력에 사용할 기준 월입니다. 선택한 월의 성적만 입력·집계됩니다.
         </p>
         <div className="month-selector">
@@ -85,14 +117,15 @@ export default function SettingsPage() {
 
       {isAdmin && (
         <Panel title="학원 · 선생님 관리">
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 var(--sp-4)' }}>
+          <p className="settings-panel-desc">
             학원 정보 수정, 선생님 초대·추가·권한 관리는 <strong>학원 관리</strong> 페이지에서 할 수 있습니다.
           </p>
-          <Link to="/academy" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+          <Link to="/academy" className="btn btn-primary settings-link-btn">
             학원 관리 페이지 열기
           </Link>
         </Panel>
       )}
+      </div>
     </div>
   );
 }

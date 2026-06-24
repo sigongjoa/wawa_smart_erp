@@ -4,6 +4,7 @@ import { api } from '../api';
 import HomeroomNotesOverview from '../components/HomeroomNotesOverview';
 import { Icon } from '../components/icons/Icon';
 import { PageHeader } from '../components/v2';
+import './HomeroomPage.css';
 
 type Calendar = Awaited<ReturnType<typeof api.getHomeroomCalendar>>;
 type CalendarConsultation = Calendar['consultations'][number];
@@ -80,13 +81,13 @@ export default function HomeroomPage() {
   }, [calendar]);
 
   return (
-    <div style={{ padding: 16 }}>
+    <div className="homeroom-page">
       <PageHeader
         crumb="운영 · 담임"
         title="담임 대시보드"
         sub="월별 학부모 상담 매트릭스 · 후속 / 시험 전후 상담 현황"
         titleExtra={
-          <nav style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <nav className="homeroom-nav">
             <Link className="btn btn-ghost btn-sm" to="/homeroom/consultations">
               학부모 상담
             </Link>
@@ -109,11 +110,10 @@ export default function HomeroomPage() {
             </button>
             <input
               type="month"
-              className="form-input"
+              className="form-input homeroom-month-input"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
               aria-label="조회 월 선택"
-              style={{ width: 160 }}
             />
             <button
               className="btn btn-ghost btn-sm"
@@ -126,22 +126,20 @@ export default function HomeroomPage() {
         }
       />
       {summary && summary.homeroom_count === 0 ? (
-        <p className="no-data">담임으로 지정된 학생이 없습니다. (관리자에게 문의)</p>
+        <div className="empty-state">
+          <div className="empty-state-title">담임으로 지정된 학생이 없습니다</div>
+          <div className="empty-state-desc">관리자에게 문의하세요.</div>
+        </div>
       ) : loading ? (
-        <p className="no-data" role="status" aria-live="polite">불러오는 중...</p>
+        <div className="loading-state" role="status" aria-live="polite">
+          <span className="spinner" />
+          불러오는 중...
+        </div>
       ) : (
         <>
           {/* 요약 카드 */}
           {summary && (
-            <section
-              className="dashboard-section"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                gap: 12,
-                padding: 12,
-              }}
-            >
+            <section className="dashboard-section homeroom-summary">
               <KV label="담임 학생" value={`${summary.homeroom_count}명`} />
               <KV
                 label="이번 달 상담 완료"
@@ -153,12 +151,12 @@ export default function HomeroomPage() {
           )}
 
           {/* 상담 달력 매트릭스 */}
-          <section className="dashboard-section" style={{ marginTop: 16, padding: 12 }}>
+          <section className="dashboard-section homeroom-section">
             <div className="section-title-row">
-              <h3 style={{ margin: 0 }}>월별 상담 매트릭스 ({month})</h3>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+              <h3 className="homeroom-matrix-heading">월별 상담 매트릭스 ({month})</h3>
+              <div className="homeroom-legend">
                 {Object.entries(CATEGORY_LABEL).map(([k, v]) => (
-                  <span key={k} style={{ marginLeft: 8 }}>
+                  <span key={k} className="homeroom-legend-item">
                     <span style={{ color: CATEGORY_COLOR[k] }}>{CATEGORY_DOT[k]}</span> {v}
                   </span>
                 ))}
@@ -166,53 +164,23 @@ export default function HomeroomPage() {
             </div>
 
             {calendar && calendar.students.length === 0 ? (
-              <p className="no-data">담임 학생이 없습니다</p>
+              <div className="empty-state">
+                <div className="empty-state-title">담임 학생이 없습니다</div>
+              </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table
-                  style={{
-                    borderCollapse: 'collapse',
-                    fontSize: 12,
-                    minWidth: 600,
-                    width: '100%',
-                  }}
-                >
+              <div className="homeroom-matrix-scroll">
+                <table className="homeroom-matrix">
                   <thead>
                     <tr>
-                      <th
-                        style={{
-                          position: 'sticky',
-                          left: 0,
-                          background: 'var(--bg-primary)',
-                          textAlign: 'left',
-                          padding: '4px 8px',
-                          borderBottom: '1px solid var(--border)',
-                          minWidth: 120,
-                        }}
-                      >
+                      <th className="homeroom-matrix-th-name">
                         학생
                       </th>
                       {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
-                        <th
-                          key={d}
-                          style={{
-                            padding: '4px 2px',
-                            borderBottom: '1px solid var(--border)',
-                            textAlign: 'center',
-                            minWidth: 20,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
+                        <th key={d} className="homeroom-matrix-th-day">
                           {d}
                         </th>
                       ))}
-                      <th
-                        style={{
-                          padding: '4px 8px',
-                          borderBottom: '1px solid var(--border)',
-                          textAlign: 'center',
-                        }}
-                      >
+                      <th className="homeroom-matrix-th-total">
                         합
                       </th>
                     </tr>
@@ -228,17 +196,12 @@ export default function HomeroomPage() {
                       return (
                         <tr key={s.id}>
                           <td
-                            style={{
-                              position: 'sticky',
-                              left: 0,
-                              background: 'var(--bg-primary)',
-                              padding: '6px 8px',
-                              borderBottom: '1px solid var(--border)',
-                              fontWeight: compliant ? 500 : 400,
-                            }}
+                            className={`homeroom-matrix-name${
+                              compliant ? ' is-compliant' : ''
+                            }`}
                           >
                             <Link to={`/student/${s.id}`}>{s.name}</Link>{' '}
-                            <span style={{ color: 'var(--text-tertiary)' }}>{s.grade}</span>
+                            <span className="homeroom-matrix-grade">{s.grade}</span>
                           </td>
                           {Array.from({ length: days }, (_, i) => i + 1).map((d) => {
                             const cs: CalendarConsultation[] = byDay.get(d) || [];
@@ -251,12 +214,9 @@ export default function HomeroomPage() {
                                       `[${CATEGORY_LABEL[c.category]}] ${c.summary.slice(0, 40)}`
                                   )
                                   .join('\n')}
-                                style={{
-                                  padding: '2px',
-                                  textAlign: 'center',
-                                  borderBottom: '1px solid var(--border)',
-                                  cursor: cs.length ? 'help' : 'default',
-                                }}
+                                className={`homeroom-matrix-cell${
+                                  cs.length ? ' has-consult' : ''
+                                }`}
                               >
                                 {cs.map((c: CalendarConsultation, i: number) => (
                                   <span
@@ -270,13 +230,9 @@ export default function HomeroomPage() {
                             );
                           })}
                           <td
-                            style={{
-                              padding: '4px 8px',
-                              textAlign: 'center',
-                              borderBottom: '1px solid var(--border)',
-                              color: compliant ? 'var(--accent)' : 'var(--warning-text)',
-                              fontWeight: 600,
-                            }}
+                            className={`homeroom-matrix-total${
+                              compliant ? ' is-compliant' : ''
+                            }`}
                           >
                             {total}
                           </td>
@@ -294,11 +250,11 @@ export default function HomeroomPage() {
 
           {/* 후속 상담 리스트 */}
           {summary && summary.follow_ups_due.length > 0 && (
-            <section className="dashboard-section" style={{ marginTop: 16, padding: 12 }}>
+            <section className="dashboard-section homeroom-section">
               <h3>7일 내 후속 상담</h3>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <ul className="homeroom-list">
                 {summary.follow_ups_due.map((f) => (
-                  <li key={f.id} style={{ marginBottom: 6 }}>
+                  <li key={f.id}>
                     <strong>{f.follow_up_due}</strong>{' '}
                     <Link to={`/student/${f.student_id}`}>{f.student_name}</Link> — {f.follow_up}
                   </li>
@@ -309,11 +265,11 @@ export default function HomeroomPage() {
 
           {/* 다가오는 시험 */}
           {summary && summary.upcoming_exams.length > 0 && (
-            <section className="dashboard-section" style={{ marginTop: 16, padding: 12 }}>
+            <section className="dashboard-section homeroom-section">
               <h3>14일 내 시험</h3>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <ul className="homeroom-list">
                 {summary.upcoming_exams.map((e) => (
-                  <li key={e.id} style={{ marginBottom: 6 }}>
+                  <li key={e.id}>
                     <strong>{new Date(e.starts_at).toLocaleDateString('ko-KR')}</strong>{' '}
                     <Link to={`/student/${e.student_id}`}>{e.student_name}</Link> — {e.title}
                   </li>
@@ -329,15 +285,9 @@ export default function HomeroomPage() {
 
 function KV({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      style={{
-        padding: 12,
-        background: 'var(--bg-secondary)',
-        borderRadius: 6,
-      }}
-    >
-      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+    <div className="homeroom-kv">
+      <div className="homeroom-kv-label">{label}</div>
+      <div className="homeroom-kv-value">{value}</div>
     </div>
   );
 }

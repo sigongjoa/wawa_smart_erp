@@ -1,0 +1,50 @@
+/**
+ * ExamTimerPage — 페이지 전용 스타일
+ * 정적 inline style 을 디자인 토큰 기반 클래스로 이전.
+ */
+
+/* 상단 필터바 — 시험 시간 입력 폭 */
+.exam-timer-duration-input {
+  width: 80px;
+  margin-left: var(--sp-2);
+}
+
+/* 일시정지 사유 모달 */
+.exam-timer-pause-modal {
+  max-width: 420px;
+}
+
+.exam-timer-pause-title {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-15);
+  font-weight: 600;
+}
+
+.exam-timer-pause-desc {
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  margin: 0 0 var(--sp-3);
+}
+
+.exam-timer-pause-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.exam-timer-pause-option {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-14);
+  cursor: pointer;
+}
+
+.exam-timer-pause-custom {
+  width: 100%;
+  margin-top: var(--sp-1);
+}
+
+.exam-timer-pause-footer {
+  margin-top: var(--sp-4);
+}

@@ -1,0 +1,46 @@
+/* ReportPage 전용 — index.css 평행 클래스를 건드리지 않고
+   .tsx 정적 inline style 만 토큰화해 옮긴 보조 시트 */
+
+/* 학생 범위 세그먼트 토글 래퍼 (구 inline: display:inline-flex; gap:0; marginLeft:12) */
+.report-scope-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin-left: var(--sp-3);
+}
+
+/* 총평 섹션 라벨 (구 inline: padding:0; margin:0 0 8px 0) */
+.rpt-total-comment-label {
+  padding: 0;
+  margin: 0 0 var(--sp-2) 0;
+}
+
+/* AI 총평 생성 버튼 간격 (구 inline: marginTop:10) */
+.rpt-summary-btn {
+  margin-top: var(--sp-3);
+}
+
+/* 담당 과목 미매핑 안내 빈 상태 (구 inline: marginTop:24; padding:16; 1px dashed border 등) */
+.rpt-no-subjects {
+  margin-top: var(--sp-6);
+  padding: var(--sp-4);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--warning-surface);
+}
+
+.rpt-no-subjects-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
+.rpt-no-subjects-desc {
+  margin: 6px 0 0;
+  font-size: var(--fs-13);
+  color: var(--warning-text);
+}
+
+/* 성적 데이터 없음 빈 상태 (구 inline: marginTop:24) */
+.rpt-no-data {
+  margin-top: var(--sp-6);
+}

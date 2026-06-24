@@ -1,4 +1,5 @@
 .dcal-page {
+  width: 100%;
   padding: var(--sp-6) var(--sp-6) var(--sp-10);
   max-width: var(--content-max, 1200px);
   margin: 0 auto;
@@ -476,53 +477,8 @@
 }
 
 .dcal-widget-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px var(--sp-2);
-  border-radius: 9999px;
   white-space: nowrap;
-  letter-spacing: 0.3px;
-}
-.dcal-widget-badge--warn {
-  background: color-mix(in srgb, var(--warning) 14%, transparent);
-  color: var(--warning);
-}
-.dcal-widget-badge--ok {
-  background: color-mix(in srgb, var(--success) 12%, transparent);
-  color: var(--success);
-}
-
-/* Buttons */
-
-.dcal-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-1);
-  padding: var(--sp-2) var(--sp-4);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all var(--duration-fast, 150ms) var(--ease-out);
-  min-height: 36px;
-}
-.dcal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.dcal-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.dcal-btn--primary {
-  background: var(--primary);
-  color: var(--text-on-primary);
-}
-.dcal-btn--primary:hover:not(:disabled) { background: var(--primary-hover, var(--primary)); }
-.dcal-btn--ghost {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  border-color: var(--border-primary);
-}
-.dcal-btn--ghost:hover:not(:disabled) {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  flex-shrink: 0;
 }
 
 /* Form */

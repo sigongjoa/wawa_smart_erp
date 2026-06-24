@@ -269,7 +269,7 @@ export default function BoardPage() {
       />
 
       {loading ? (
-        <div className="rpt-loading" role="status"><div className="rpt-spinner" /><span>로딩 중...</span></div>
+        <div className="loading-state" role="status"><div className="spinner" /><span>로딩 중...</span></div>
       ) : (
         <div className="board-layout">
           {/* ═══ 좌측: 고정 공지 + 내 할일 ═══ */}
@@ -296,7 +296,7 @@ export default function BoardPage() {
                           <span className="board-cat" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                           {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
                           {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정 해제">고정 해제</button>}
-                          <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}>×</button>
+                          <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}><Icon name="X" size={14} /></button>
                         </div>
                         <div className="board-card-title">{n.title}</div>
                         {n.content && <div className="board-card-content">{n.content}</div>}
@@ -374,7 +374,7 @@ export default function BoardPage() {
                         <span className="board-action-title">{a.title}</span>
                         {dday && <span className={`board-dday board-dday--${dday.urgency}`}>{dday.text}</span>}
                         {canDelete && (
-                          <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.assigned_to_name}의 ${a.title} (${a.due_date || '기한없음'}) 삭제`}>×</button>
+                          <button className="board-del-btn" onClick={() => handleDeleteAction(a)} aria-label={`${a.assigned_to_name}의 ${a.title} (${a.due_date || '기한없음'}) 삭제`}><Icon name="X" size={14} /></button>
                         )}
                       </div>
                     );
@@ -406,7 +406,7 @@ export default function BoardPage() {
                         <span className="board-cat board-cat--sm" style={{ color: cat.color, background: cat.bg }}>{cat.label}</span>
                         <span className="board-notice-date">{formatDate(n.created_at)}</span>
                         {user?.role === 'admin' && <button className="board-pin-btn" onClick={(e) => { e.stopPropagation(); handleTogglePin(n); }} aria-label="고정">고정</button>}
-                        <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}>×</button>
+                        <button className="board-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteNotice(n.id); }} aria-label={`${n.title} 삭제`}><Icon name="X" size={14} /></button>
                       </div>
                       <div className="board-notice-item-title">{n.title}</div>
                       {n.content && <div className="board-notice-item-body">{n.content.slice(0, 80)}{n.content.length > 80 ? '...' : ''}</div>}
@@ -450,7 +450,7 @@ export default function BoardPage() {
               <div className="form-divider" />
               <div className="form-row">
                 <span className="form-label">액션 아이템</span>
-                <button className="btn btn-sm btn-secondary" onClick={() => setActionDrafts((p) => [...p, { title: '', assignedTo: '', dueDate: '' }])}>+ 추가</button>
+                <button className="btn btn-sm btn-secondary with-icon" onClick={() => setActionDrafts((p) => [...p, { title: '', assignedTo: '', dueDate: '' }])}><Icon name="Plus" size={14} /> 추가</button>
               </div>
               {actionDrafts.map((draft, i) => (
                 <div key={i} className="form-action-draft">
@@ -460,7 +460,7 @@ export default function BoardPage() {
                     {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                   <input type="date" className="form-input form-input--xs" min={new Date().toISOString().slice(0, 10)} value={draft.dueDate} onChange={(e) => { const d = [...actionDrafts]; d[i].dueDate = e.target.value; setActionDrafts(d); }} />
-                  <button className="btn-icon" onClick={() => setActionDrafts((p) => p.filter((_, j) => j !== i))}>×</button>
+                  <button className="btn-icon" onClick={() => setActionDrafts((p) => p.filter((_, j) => j !== i))} aria-label="액션 아이템 삭제"><Icon name="X" size={14} /></button>
                 </div>
               ))}
             </div>

@@ -26,9 +26,9 @@ const STATUS_LABEL: Record<LessonItemStatus, string> = {
 };
 
 const STATUS_CHIP_CLASS: Record<LessonItemStatus, string> = {
-  todo: '',
-  in_progress: 'lessons-chip--info',
-  done: 'lessons-chip--success',
+  todo: 'badge-neutral',
+  in_progress: 'badge-info',
+  done: 'badge-success',
 };
 
 const KIND_LABEL: Record<LessonItemKind, string> = {
@@ -359,18 +359,18 @@ export default function StudentLessonsPage() {
             ))}
           </select>
           <button
-            className="btn btn-ghost"
+            className="btn btn-ghost with-icon"
             disabled={!selectedStudent}
             onClick={() => setShowApply(true)}
           >
-            + 커리큘럼 적용
+            <Icon name="Plus" size={14} /> 커리큘럼 적용
           </button>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary with-icon"
             disabled={!selectedStudent}
             onClick={() => { setCreateSource('exam_prep'); setShowCreate(true); setDraft({ kind: 'free' }); }}
           >
-            + 시험대비·자료
+            <Icon name="Plus" size={14} /> 시험대비·자료
           </button>
         </div>
       </div>
@@ -424,7 +424,7 @@ export default function StudentLessonsPage() {
                 <LessonSectionHeader
                   label={`이번 학기 진도 (${curriculumItems.length})`}
                   onCreate={() => setShowApply(true)}
-                  createLabel="+ 적용"
+                  createLabel="적용"
                   hidden={curriculumItems.length === 0}
                 />
                 {curriculumItems.map((it) => (
@@ -438,7 +438,7 @@ export default function StudentLessonsPage() {
                 <LessonSectionHeader
                   label={`시험대비·기타 (${otherItems.length})`}
                   onCreate={() => { setCreateSource('exam_prep'); setShowCreate(true); setDraft({ kind: 'free' }); }}
-                  createLabel="+ 추가"
+                  createLabel="추가"
                   hidden={otherItems.length === 0}
                 />
                 {otherItems.map((it) => (
@@ -613,21 +613,11 @@ function LessonSectionHeader({
 }: { label: string; onCreate: () => void; createLabel: string; hidden?: boolean }) {
   if (hidden) return null;
   return (
-    <div
-      style={{
-        padding: 'var(--sp-2) var(--sp-3)',
-        background: 'var(--bg-tertiary)',
-        borderBottom: '1px solid var(--border-secondary)',
-        fontSize: 12,
-        fontWeight: 600,
-        color: 'var(--text-secondary)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}
-    >
+    <div className="lessons-section-header">
       <span>{label}</span>
-      <button className="btn btn-sm btn-ghost" onClick={onCreate}>{createLabel}</button>
+      <button className="btn btn-sm btn-ghost with-icon" onClick={onCreate}>
+        <Icon name="Plus" size={12} /> {createLabel}
+      </button>
     </div>
   );
 }
@@ -657,15 +647,15 @@ function LessonListItem({
       onClick={onSelect}
     >
       <div className="lessons-list-meta">
-        <span className="lessons-chip">{KIND_LABEL[item.kind]}</span>
-        <span className={`lessons-chip ${statusChipClass}`}>{STATUS_LABEL[item.status]}</span>
+        <span className="badge badge-neutral">{KIND_LABEL[item.kind]}</span>
+        <span className={`badge ${statusChipClass}`}>{STATUS_LABEL[item.status]}</span>
         {item.visible_to_parent && <span className="lessons-chip lessons-chip--parent">학부모공개</span>}
         {item.files.length > 0 && (
-          <span className="lessons-chip with-icon">
+          <span className="badge badge-neutral with-icon">
             <Icon name="Paperclip" size={12} /> {item.files.length}
           </span>
         )}
-        {isArchived && <span className="lessons-chip lessons-chip--archived">보관됨</span>}
+        {isArchived && <span className="badge badge-neutral">보관됨</span>}
       </div>
       <div className="lessons-list-title">{titleText}</div>
       {item.textbook && <div className="lessons-list-sub">{item.textbook}</div>}
@@ -1409,8 +1399,8 @@ function FileUploadButton({ onUpload }: { onUpload: (file: File, role: LessonFil
         <option value="solution">해설</option>
         <option value="extra">교안</option>
       </select>
-      <span className="btn btn-sm btn-primary lessons-upload-button">
-        + 업로드
+      <span className="btn btn-sm btn-primary lessons-upload-button with-icon">
+        <Icon name="Plus" size={14} /> 업로드
         <input
           type="file"
           aria-label="파일 선택"

@@ -1,0 +1,65 @@
+/* GachaStudentPage — 디자인 시스템 정렬용 페이지 전용 클래스 */
+
+/* 가입 요청 대기 카드 (warning 강조) */
+.gacha-signup-card {
+  border-color: var(--warning);
+  background: var(--warning-surface);
+}
+.gacha-signup-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.gacha-signup-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.gacha-signup-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr auto;
+  gap: var(--sp-3);
+  align-items: center;
+  padding: var(--sp-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+.gacha-signup-name {
+  font-weight: 700;
+}
+.gacha-signup-meta {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+.gacha-signup-detail {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+  word-break: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gacha-signup-detail strong {
+  color: var(--text-primary);
+}
+.gacha-signup-detail-muted {
+  color: var(--text-tertiary);
+}
+.gacha-signup-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+/* 모달 안내 문구 */
+.gacha-modal-hint {
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  margin: var(--sp-2) 0 var(--sp-3);
+}
+.gacha-modal-note {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+  margin-top: var(--sp-3);
+}

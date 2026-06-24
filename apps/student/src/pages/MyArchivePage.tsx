@@ -82,8 +82,8 @@ export default function MyArchivePage() {
                   padding: '6px 14px',
                   borderRadius: 999,
                   border: '1px solid var(--border-primary)',
-                  background: subject === '' ? '#4a5cff' : '#fff',
-                  color: subject === '' ? '#fff' : '#333',
+                  background: subject === '' ? 'var(--type-dragon)' : 'var(--bg-card)',
+                  color: subject === '' ? 'var(--text-on-primary)' : 'var(--ink)',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -97,8 +97,8 @@ export default function MyArchivePage() {
                     padding: '6px 14px',
                     borderRadius: 999,
                     border: '1px solid var(--border-primary)',
-                    background: subject === s ? '#4a5cff' : '#fff',
-                    color: subject === s ? '#fff' : '#333',
+                    background: subject === s ? 'var(--type-dragon)' : 'var(--bg-card)',
+                    color: subject === s ? 'var(--text-on-primary)' : 'var(--ink)',
                     whiteSpace: 'nowrap',
                   }}
                 >

@@ -189,6 +189,19 @@
   }
 }
 
+/* 좌측 섹션 구분 헤더 (진도 / 시험대비) */
+.lessons-section-header {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-secondary);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .lessons-list-item {
   display: block;
   width: 100%;

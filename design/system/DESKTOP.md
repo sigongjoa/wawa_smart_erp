@@ -205,17 +205,21 @@ import { Check, X, Clock, AlertTriangle } from 'lucide-react';
 - 무한 글로우/바운스 애니
 - 친절 카피 도배 ("AI가 친절하게 다 적어줍니다!" 같은)
 
-## 8. 파일 구조 (목표)
+## 8. 파일 구조
 
 ```
 apps/desktop/src/
-├── styles/
-│   ├── tokens.css         # :root 토큰만 (현재 index.css에 통합 — P0 분할 작업 진행 중)
-│   ├── reset.css          # 리셋
-│   ├── components.css     # 공통 컴포넌트 클래스
-│   └── utilities.css      # 유틸리티
-└── components/
-    └── ...
+├── main.tsx               # index.css 한 번 import → 전체 체인 로드
+├── index.css              # ① tokens ② reset ③ components import + 페이지 전용 스타일
+└── styles/
+    ├── tokens.css         # ✅ SSoT — :root 토큰(110개) + 다크모드 override
+    ├── reset.css          # ✅ 리셋
+    └── components.css      # ✅ 디자인 시스템 프리미티브 (App Shell + Common Components)
+                           #    — import해서 재사용하는 컴포넌트 클래스 레이어
 ```
 
-(현재 `index.css` 단일 파일 8,654줄 — P0 분할 작업 진행 중)
+import 체인(cascade 순서 고정): `tokens.css` → `reset.css` → `components.css` → `index.css`(페이지 스타일).
+
+**재사용**: 새 페이지/컴포넌트는 `components.css`의 프리미티브(.app-nav/.page-head/.section/.btn/.input/.chip/.badge/.pill/.grade 등)를 그대로 사용. 페이지 고유 스타일만 추가.
+
+(`index.css` 7,237줄 — 페이지 전용 스타일. `utilities.css` 분리는 추후 항목.)

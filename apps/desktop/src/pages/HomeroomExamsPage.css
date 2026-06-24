@@ -1,0 +1,52 @@
+/* HomeroomExamsPage — 시험 전후 상담 */
+
+.hrx-table {
+  width: 100%;
+  font-size: var(--fs-14);
+  border-collapse: collapse;
+}
+
+.hrx-table thead tr {
+  text-align: left;
+  color: var(--text-secondary);
+}
+
+.hrx-table th {
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.hrx-table td {
+  padding: var(--sp-3);
+}
+
+.hrx-table tbody tr {
+  border-top: 1px solid var(--border-primary);
+}
+
+.hrx-cell-actions {
+  text-align: right;
+}
+
+.hrx-exam-more {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+}
+
+.hrx-consult-done {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.hrx-consult-pending {
+  color: var(--warning-text);
+}
+
+.hrx-consult-empty {
+  color: var(--text-tertiary);
+}
+
+.hrx-summary-note {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  text-align: center;
+}

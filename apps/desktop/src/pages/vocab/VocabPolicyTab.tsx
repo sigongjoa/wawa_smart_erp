@@ -15,6 +15,7 @@ import Modal from '../../components/Modal';
 import { useOutletContext } from 'react-router-dom';
 import type { VocabOutletContext } from '../VocabAdminPage';
 import { Icon } from '../../components/icons/Icon';
+import './VocabPolicyTab.css';
 
 const DEFAULT_INPUT: VocabExamPolicyInput = {
   vocab_count: 10,
@@ -228,7 +229,7 @@ export default function VocabPolicyTab() {
               </p>
             </div>
             <div className="v2-cluster">
-              <div className="v2-input-group" style={{ width: 220 }}>
+              <div className="v2-input-group vpol-search">
                 <Icon name="Search" size={14} />
                 <input
                   placeholder="학생 이름 검색"
@@ -236,7 +237,7 @@ export default function VocabPolicyTab() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <span className="v2-text-mute" style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+              <span className="v2-text-mute vpol-count">
                 {filteredStudents.length} / {students.length}명
               </span>
             </div>
@@ -252,11 +253,11 @@ export default function VocabPolicyTab() {
             <thead>
               <tr>
                 <th>이름</th>
-                <th style={{ width: 140 }}>적용 정책</th>
-                <th style={{ width: 70 }} className="v2-tabular">문항</th>
-                <th style={{ width: 100 }} className="v2-tabular">쿨다운</th>
-                <th style={{ width: 70 }} className="v2-tabular">일일</th>
-                <th style={{ width: 200 }}>작업</th>
+                <th className="vpol-col-policy">적용 정책</th>
+                <th className="v2-tabular vpol-col-num">문항</th>
+                <th className="v2-tabular vpol-col-cooldown">쿨다운</th>
+                <th className="v2-tabular vpol-col-num">일일</th>
+                <th className="vpol-col-action">작업</th>
               </tr>
             </thead>
             <tbody>

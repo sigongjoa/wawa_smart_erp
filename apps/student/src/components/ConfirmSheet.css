@@ -53,14 +53,14 @@
 .confirm-sheet-btn--primary {
   background: var(--primary);
   border-color: var(--primary);
-  color: #fff;
+  color: var(--text-on-primary);
 }
 .confirm-sheet-btn--primary:hover { background: var(--primary-hover); }
 
 .confirm-sheet-btn--danger {
   background: var(--danger);
   border-color: var(--danger);
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 .confirm-sheet-btn:focus-visible {

@@ -25,8 +25,8 @@ export default function AssignmentStatusBadge({ status, size = 'md' }: Props) {
   return (
     <span
       style={{
-        background: STATUS_COLOR[status] || '#888',
-        color: '#fff',
+        background: STATUS_COLOR[status] || 'var(--ink-40)',
+        color: 'var(--text-on-primary, #fff)',
         padding,
         borderRadius: 12,
         fontSize,

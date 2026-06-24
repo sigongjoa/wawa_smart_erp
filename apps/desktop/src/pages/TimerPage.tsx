@@ -14,6 +14,7 @@ import { PageHeader, SummaryBar, Panel, Pill } from '../components/v2';
 import { Icon } from '../components/icons/Icon';
 import DialogShell from '../components/DialogShell';
 import Modal from '../components/Modal';
+import './TimerPage.css';
 
 type Day = '월' | '화' | '수' | '목' | '금' | '토' | '일';
 const DAYS: Day[] = ['월', '화', '수', '목', '금', '토', '일'];
@@ -139,9 +140,9 @@ const ActiveSessionCard = memo(function ActiveSessionCard({
           </span>
         </div>
         {isOvertime ? (
-          <Pill tone="danger"><Icon name="AlertCircle" size={12} /> 초과</Pill>
+          <span className="badge badge-danger with-icon"><Icon name="AlertCircle" size={12} /> 초과</span>
         ) : isWarning ? (
-          <Pill tone="warning"><Icon name="Clock" size={12} /> 임박</Pill>
+          <span className="badge badge-warning with-icon"><Icon name="Clock" size={12} /> 임박</span>
         ) : (
           <Pill tone="primary"><Icon name="Play" size={12} /> 수업 중</Pill>
         )}
@@ -241,7 +242,7 @@ const PausedSessionCard = memo(function PausedSessionCard({
             <span>예정종료 <strong>{expectedEndHHMM}</strong></span>
           </span>
         </div>
-        <Pill tone="warning"><Icon name="Pause" size={12} /> 정지</Pill>
+        <span className="badge badge-warning with-icon"><Icon name="Pause" size={12} /> 정지</span>
       </div>
 
       <div className="v2-timer-card__pause-info">
@@ -543,7 +544,7 @@ export default function TimerPage() {
                 type="button"
                 data-testid="finish-day-btn"
               >
-                <Icon name="LogIn" size={14} style={{ transform: 'rotate(180deg)' }} /> 퇴근
+                <Icon name="LogIn" size={14} className="timer-leave-icon" /> 퇴근
               </button>
             )}
           </>
@@ -618,8 +619,8 @@ export default function TimerPage() {
                           <span className="v2-pending-row__name">
                             {s.name}
                             {s.grade && <span className={`grade-badge ${gradeClass(s.grade)}`}>{s.grade}</span>}
-                            {hasMakeup && <Pill tone="info">보강 {pendingMakeups.length}</Pill>}
-                            {hasAdhoc && <Pill tone="warning">임시</Pill>}
+                            {hasMakeup && <span className="badge badge-info">보강 {pendingMakeups.length}</span>}
+                            {hasAdhoc && <span className="badge badge-warning">임시</span>}
                           </span>
                           {e ? (
                             <span className="v2-pending-row__meta">

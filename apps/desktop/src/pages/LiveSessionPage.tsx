@@ -7,6 +7,7 @@ import { toast } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
 import { TIMING, SIZE_LIMITS } from '../constants/timing';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
+import './LiveSessionPage.css';
 
 const CANVAS_W = 800;
 const CANVAS_H = 500;
@@ -173,61 +174,51 @@ export default function LiveSessionPage() {
     }
   };
 
-  if (loading) return <div style={{ padding: 16 }}>불러오는 중...</div>;
-  if (error || !session || !state) return <div style={{ padding: 16, color: 'var(--danger-text)' }}>{error || '세션 없음'}</div>;
+  if (loading) return <div className="live-state-pad">불러오는 중...</div>;
+  if (error || !session || !state) return <div className="live-state-error">{error || '세션 없음'}</div>;
 
   const displayName = studentName || session.student_id;
   const ended = state.status === 'ended' || session.status === 'ended';
 
   return (
-    <div style={{ padding: 12, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="live-page">
       {/* 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+      <div className="live-header">
         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/student/${session.student_id}`)}>
           <Icon name="ArrowLeft" /> 학생 프로필
         </button>
-        <h2 style={{ margin: 0, fontSize: 18 }}>
-          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--danger-text)', marginRight: 8, verticalAlign: 'middle' }} aria-hidden="true" />
-          라이브 — {displayName} <span style={{ color: 'var(--text-tertiary)' }}>· {session.subject}</span>
+        <h2 className="live-header-title">
+          <span className="live-live-dot" aria-hidden="true" />
+          라이브 — {displayName} <span className="live-header-subject">· {session.subject}</span>
         </h2>
-        <span className="with-icon" style={{ fontSize: 14, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-          <Icon name="Timer" size={14} /> {fmtElapsed(session.started_at)} <span style={{ visibility: 'hidden' }}>{tick}</span>
+        <span className="with-icon live-elapsed">
+          <Icon name="Timer" size={14} /> {fmtElapsed(session.started_at)} <span className="live-tick-hidden">{tick}</span>
         </span>
         <span
-          className="with-icon"
-          style={{
-            fontSize: 12,
-            color: state.student.updated_at && Date.now() - state.student.updated_at < 6000 ? '#16a34a' : '#94a3b8',
-          }}
+          className={`with-icon live-presence ${
+            state.student.updated_at && Date.now() - state.student.updated_at < 6000 ? 'live-presence-active' : 'live-presence-idle'
+          }`}
         >
           <Icon name="Circle" size={8} fill="currentColor" />
           학생 {state.student.updated_at ? `${Math.round((Date.now() - state.student.updated_at) / 1000)}초 전 활동` : '연결 대기'}
         </span>
-        <div style={{ flex: 1 }} />
+        <div className="live-header-spacer" />
         {!ended && (
           <button className="btn btn-danger btn-sm" onClick={() => setEndOpen(true)}>
             세션 종료
           </button>
         )}
         {ended && (
-          <span className="badge" style={{ background: 'var(--text-tertiary)', color: 'var(--text-on-primary)' }}>종료됨</span>
+          <span className="badge badge-neutral">종료됨</span>
         )}
       </div>
 
       {/* 분할 뷰 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-          flex: 1,
-          minHeight: 0,
-        }}
-      >
+      <div className="live-split">
         {/* 좌: 교사 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'auto' }}>
-          <section className="dashboard-section" style={{ padding: 10 }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>문제</h3>
+        <div className="live-col">
+          <section className="dashboard-section live-section">
+            <h3 className="live-section-title">문제</h3>
             <textarea
               className="form-input"
               rows={2}
@@ -236,7 +227,7 @@ export default function LiveSessionPage() {
               onChange={(e) => { setProblemText(e.target.value); pushProblem(e.target.value); }}
               disabled={ended}
             />
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+            <div className="live-file-row">
               <input
                 type="file"
                 accept="image/*"
@@ -247,7 +238,7 @@ export default function LiveSessionPage() {
                 disabled={ended}
               />
               {problemImageDataUrl && (
-                <span className="with-icon" style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                <span className="with-icon live-hint">
                   <Icon name="Check" size={12} /> 이미지 전송됨
                 </span>
               )}
@@ -256,13 +247,13 @@ export default function LiveSessionPage() {
               <img
                 src={problemImageDataUrl}
                 alt="문제"
-                style={{ marginTop: 6, maxWidth: '100%', maxHeight: 180, border: '1px solid var(--border)', borderRadius: 6 }}
+                className="live-problem-img"
               />
             )}
           </section>
 
-          <section className="dashboard-section" style={{ padding: 10, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <h3 className="with-icon" style={{ margin: '0 0 6px', fontSize: 14 }}><Icon name="Pencil" size={14} /> 내 풀이</h3>
+          <section className="dashboard-section live-section-grow">
+            <h3 className="with-icon live-section-title"><Icon name="Pencil" size={14} /> 내 풀이</h3>
             <textarea
               className="form-input"
               rows={2}
@@ -274,7 +265,7 @@ export default function LiveSessionPage() {
               }}
               disabled={ended}
             />
-            <div style={{ marginTop: 6 }}>
+            <div className="live-canvas-wrap">
               <SimpleCanvas
                 width={CANVAS_W}
                 height={CANVAS_H}
@@ -290,26 +281,21 @@ export default function LiveSessionPage() {
         </div>
 
         {/* 우: 학생 미러 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'auto' }}>
-          <section className="dashboard-section" style={{ padding: 10 }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>학생 화면 (실시간)</h3>
+        <div className="live-col">
+          <section className="dashboard-section live-section">
+            <h3 className="live-section-title">학생 화면 (실시간)</h3>
             {state.student.text ? (
-              <div style={{
-                whiteSpace: 'pre-wrap',
-                background: 'var(--bg-secondary)',
-                padding: 8, borderRadius: 6, fontSize: 13,
-                marginBottom: 6,
-              }}>
+              <div className="live-student-text">
                 {state.student.text}
               </div>
             ) : (
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>(학생 텍스트 없음)</div>
+              <div className="live-hint">(학생 텍스트 없음)</div>
             )}
             {state.student.photo_data_urls && state.student.photo_data_urls.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              <div className="live-student-photos">
                 {state.student.photo_data_urls.map((u, i) => (
                   <img key={i} src={u} alt={`학생 사진 ${i + 1}`}
-                    style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }}
+                    className="live-student-photo"
                     onClick={() => window.open(u, '_blank', 'noopener,noreferrer')}
                   />
                 ))}
@@ -317,8 +303,8 @@ export default function LiveSessionPage() {
             )}
           </section>
 
-          <section className="dashboard-section" style={{ padding: 10, flex: 1 }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>학생 캔버스</h3>
+          <section className="dashboard-section live-section-grow-plain">
+            <h3 className="live-section-title">학생 캔버스</h3>
             <SimpleCanvas
               width={CANVAS_W}
               height={CANVAS_H}
@@ -334,7 +320,7 @@ export default function LiveSessionPage() {
         <Modal onClose={() => !endSubmitting && setEndOpen(false)}>
           <h3 className="modal-title">세션 종료 + 자동 메모</h3>
           <div className="modal-body">
-            <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-secondary)' }}>
+            <p className="live-end-note">
               종료하면 양쪽 풀이가 R2에 저장되고, 요약을 입력하면 학생 프로필에 교과 메모로 자동 등록됩니다.
             </p>
             <label className="form-label">상태</label>
@@ -347,8 +333,8 @@ export default function LiveSessionPage() {
               <option value="neutral">보통</option>
               <option value="concern">우려</option>
             </select>
-            <label className="form-label" style={{ marginTop: 8 }}>
-              요약 메모 <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(비우면 메모 자동생성 안 함)</span>
+            <label className="form-label live-end-label-spaced">
+              요약 메모 <span className="live-end-label-muted">(비우면 메모 자동생성 안 함)</span>
             </label>
             <textarea
               className="form-input"

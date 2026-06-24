@@ -4,6 +4,7 @@ import { api } from '../api';
 import { toast } from '../components/Toast';
 import { errorMessage } from '../utils/errors';
 import { MS_PER_DAY } from '../constants/timing';
+import './HomeroomFollowUpsPage.css';
 
 type Summary = Awaited<ReturnType<typeof api.getHomeroomSummary>>;
 type FollowUp = Summary['follow_ups_due'][number];
@@ -60,20 +61,27 @@ export default function HomeroomFollowUpsPage() {
   }, [summary]);
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>후속 상담</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
+    <div className="page-container">
+      <div className="page-header">
+        <h2 className="page-title">후속 상담</h2>
+        <p className="page-description">
           상담 시 예약한 후속 일정을 기한별로 관리합니다.
         </p>
       </div>
 
       {loading ? (
-        <p className="no-data" role="status" aria-live="polite">불러오는 중...</p>
+        <div className="loading-state" role="status" aria-live="polite">
+          <div className="spinner" />
+          불러오는 중...
+        </div>
       ) : !summary ? (
-        <p className="no-data">데이터를 불러오지 못했습니다.</p>
+        <div className="empty-state">
+          <div className="empty-state-title">데이터를 불러오지 못했습니다.</div>
+        </div>
       ) : summary.follow_ups_due.length === 0 ? (
-        <p className="no-data">예정된 후속 상담이 없습니다.</p>
+        <div className="empty-state">
+          <div className="empty-state-title">예정된 후속 상담이 없습니다.</div>
+        </div>
       ) : (
         <>
           <Bucket
@@ -113,36 +121,21 @@ function Bucket({
 }) {
   if (items.length === 0) return null;
   return (
-    <section
-      className="dashboard-section"
-      style={{ padding: 12, marginBottom: 16, borderLeft: `4px solid ${color}` }}
-    >
-      <h3 style={{ margin: '0 0 8px' }}>
-        {title} <span style={{ color: 'var(--text-tertiary)' }}>({items.length})</span>
+    <section className="hfu-bucket" style={{ borderLeftColor: color }}>
+      <h3 className="hfu-bucket-title">
+        {title} <span className="hfu-bucket-count">({items.length})</span>
       </h3>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      <ul className="hfu-list">
         {items.map((f) => (
-          <li
-            key={f.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '8px 0',
-              borderTop: '1px solid var(--border)',
-            }}
-          >
-            <span
-              className="badge"
-              style={{ borderColor: color, color, minWidth: 72, textAlign: 'center' }}
-            >
+          <li key={f.id} className="hfu-item">
+            <span className="badge hfu-badge" style={{ borderColor: color, color }}>
               {badge(f)}
             </span>
-            <strong style={{ minWidth: 90 }}>{f.follow_up_due}</strong>
-            <Link to={`/student/${f.student_id}`} style={{ minWidth: 80 }}>
+            <strong className="hfu-due">{f.follow_up_due}</strong>
+            <Link to={`/student/${f.student_id}`} className="hfu-name">
               {f.student_name}
             </Link>
-            <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{f.follow_up}</span>
+            <span className="hfu-note">{f.follow_up}</span>
           </li>
         ))}
       </ul>

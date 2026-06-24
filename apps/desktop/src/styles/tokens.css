@@ -102,13 +102,155 @@
   /* Layout */
   --sidebar-width: 240px;
   --header-height: 0px;
-  --content-max: 960px;
+  --content-max: 1200px;
   --bottom-nav-height: 64px;
+
+  /* ═══════════════════════════════════════════════════════
+     SEMANTIC ALIASES (SSoT)
+     하드코딩 hex fallback(var(--x, #hex))으로 흩어져 있던 토큰명을
+     여기서 한 곳에 정의해 테마 전환(데이터-테마) 대상으로 흡수한다.
+     기본값(:root)은 현재 Toss 룩을 보존, white 블록에서 일괄 override.
+     ═══════════════════════════════════════════════════════ */
+
+  /* Canonical palette names (white-theme target names) */
+  --bg: var(--bg-secondary);
+  --surface: var(--bg-secondary);
+  --surface-2: var(--bg-tertiary);
+  --surface-sunken: var(--bg-tertiary);
+  --surface-hover: var(--bg-tertiary);
+  --bg-surface: var(--bg-secondary);
+  --bg-subtle: var(--bg-primary);
+  --bg-hover: var(--primary-surface);
+
+  --ink: var(--text-primary);
+  --ink-70: #41464d;
+  --ink-60: var(--text-secondary);
+  --ink-50: #6e7480;
+  --ink-40: var(--text-tertiary);
+  --ink-30: #c7ccd2;
+  --text: var(--text-primary);
+
+  --line: var(--border-primary);
+  --border: var(--border-primary);
+  --border-light: var(--border-secondary);
+  --border-medium: var(--border-primary);
+  --border-strong: #cfd4dd;
+  --primary-border: var(--border-primary);
+  --slip-color: var(--border-primary);
+
+  --color-primary: var(--primary);
+  --primary-soft: var(--primary-surface);
+  --accent-ink: var(--primary-hover);
+
+  /* misc non-color aliases (definitions so var() resolves cleanly) */
+  --bar-bg: transparent;
+  --bar-scale: 0;
+  --tts-icon-size: 14px;
 }
 
-/* ── Dark Mode (부분 적용 — 다크 완전 대응은 v2) ── */
+/* ═══════════════════════════════════════════════════════
+   WHITE / MINIMAL THEME  —  :root[data-theme="white"]
+   bg #fff · surface #fff · sunken #f6f7f8 · ink #111418
+   mono primary #111418 · accent #2563eb · 미니멀 섀도우 · Pretendard
+   index.html 의 pre-paint 스크립트가 기본값으로 주입한다.
+   ═══════════════════════════════════════════════════════ */
+:root[data-theme="white"] {
+  /* Primary — monochrome ink */
+  --primary: #111418;
+  --primary-light: #3a3f47;
+  --primary-surface: rgba(17,20,24,0.06);
+  --primary-hover: #000000;
+  --primary-soft: rgba(17,20,24,0.06);
+
+  /* Accent — blue for links/CTAs */
+  --accent: #2563eb;
+  --accent-light: #dbeafe;
+  --accent-surface: #eff6ff;
+  --accent-hover: #1d4ed8;
+  --accent-ink: #1d4ed8;
+
+  /* Neutrals — pure white surfaces */
+  --bg-primary: #f6f7f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f6f7f8;
+  --bg-elevated: #ffffff;
+  --bg-inverse: #111418;
+
+  --text-primary: #111418;
+  --text-secondary: rgba(17,20,24,0.62);
+  --text-tertiary: rgba(17,20,24,0.40);
+  --text-inverse: #ffffff;
+  --text-on-primary: #ffffff;
+
+  --border-primary: rgba(17,20,24,0.10);
+  --border-secondary: rgba(17,20,24,0.06);
+  --border-focus: #2563eb;
+
+  /* Status */
+  --success: #16a34a;
+  --success-surface: #f0fdf4;
+  --success-text: #15803d;
+  --warning: #d97706;
+  --warning-surface: #fffbeb;
+  --warning-text: #b45309;
+  --danger: #dc2626;
+  --danger-surface: #fef2f2;
+  --danger-text: #b91c1c;
+  --info: #2563eb;
+  --info-surface: #eff6ff;
+
+  /* domain signature stays distinct */
+  --medterm-signature: #8B0000;
+  --medterm-signature-hover: #6a0000;
+
+  /* Radius — card 12 / btn 10 / pill 999 */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* Shadow — minimal */
+  --shadow-xs: 0 1px 1px rgba(17,20,24,0.04);
+  --shadow-sm: 0 1px 2px rgba(17,20,24,0.05);
+  --shadow-md: 0 2px 6px rgba(17,20,24,0.06);
+  --shadow-lg: 0 6px 20px rgba(17,20,24,0.08);
+  --shadow-overlay: 0 12px 40px rgba(17,20,24,0.12);
+
+  /* Aliases — white */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f6f7f8;
+  --surface-sunken: #f6f7f8;
+  --surface-hover: #f6f7f8;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f6f7f8;
+  --bg-hover: #f6f7f8;
+
+  --ink: #111418;
+  --ink-70: rgba(17,20,24,0.78);
+  --ink-60: rgba(17,20,24,0.62);
+  --ink-50: rgba(17,20,24,0.50);
+  --ink-40: rgba(17,20,24,0.40);
+  --ink-30: rgba(17,20,24,0.24);
+  --text: #111418;
+
+  --line: rgba(17,20,24,0.10);
+  --border: rgba(17,20,24,0.10);
+  --border-light: rgba(17,20,24,0.06);
+  --border-medium: rgba(17,20,24,0.10);
+  --border-strong: rgba(17,20,24,0.18);
+  --primary-border: rgba(17,20,24,0.10);
+  --slip-color: rgba(17,20,24,0.10);
+
+  --color-primary: #111418;
+}
+
+/* ── Dark Mode (부분 적용 — 다크 완전 대응은 v2) ──
+   data-theme 가 명시되면(white 등) OS 다크는 무시한다. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --primary: #7b8cde;
     --primary-light: #9aa6e8;
     --primary-surface: rgba(123,140,222,0.12);

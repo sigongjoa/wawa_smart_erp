@@ -1,4 +1,5 @@
 .askai-q {
+  width: 100%;
   padding: var(--sp-6) var(--sp-6) var(--sp-4);
   max-width: var(--content-max, 1400px);
   margin: 0 auto;
@@ -283,25 +284,6 @@
 
 .askai-q-conf-text {
   font-size: 11px;
-}
-
-.askai-q-badge {
-  display: inline-block;
-  padding: 2px var(--sp-2);
-  border-radius: 9999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-}
-.askai-q-badge--warn {
-  background: color-mix(in srgb, var(--warning) 12%, transparent);
-  color: var(--warning);
-}
-.askai-q-badge--ok {
-  background: color-mix(in srgb, var(--success) 12%, transparent);
-  color: var(--success);
 }
 
 /* ── 우: 상세 */
@@ -681,20 +663,12 @@
   gap: var(--sp-2);
 }
 
+/* layout-only: 색/패딩/폰트는 .btn 프리미티브가 제공 */
 .askai-q-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
   height: 40px;
-  padding: 0 var(--sp-3);
-  border-radius: var(--radius-sm);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  padding-left: var(--sp-3);
+  padding-right: var(--sp-3);
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: all var(--duration-fast, 150ms) var(--ease-out);
 }
 .askai-q-action-btn:disabled {
   opacity: 0.5;
@@ -703,29 +677,4 @@
 .askai-q-action-btn:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
-}
-
-.askai-q-action-btn--ok {
-  background: var(--success);
-  color: var(--text-on-primary);
-}
-.askai-q-action-btn--ok:hover:not(:disabled) {
-  filter: brightness(0.92);
-}
-
-.askai-q-action-btn--comment {
-  background: var(--primary);
-  color: var(--text-on-primary);
-}
-.askai-q-action-btn--comment:hover:not(:disabled) {
-  background: var(--primary-hover, var(--primary));
-}
-
-.askai-q-action-btn--wrong {
-  background: var(--bg-secondary);
-  color: var(--danger);
-  border-color: var(--danger);
-}
-.askai-q-action-btn--wrong:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger) 6%, transparent);
 }

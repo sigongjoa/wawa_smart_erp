@@ -1,0 +1,18 @@
+.settings-panel-desc {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--sp-4);
+}
+
+.settings-link-btn {
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* sparse 페이지 가로 활용: 패널 2열 반응형 그리드 */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--sp-5);
+  align-items: start;
+}

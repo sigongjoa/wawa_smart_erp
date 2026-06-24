@@ -120,7 +120,7 @@ export default function HomeroomNotesOverview() {
                           key={subj}
                           style={{
                             ...cell,
-                            background: b.sentiment_counts.concern > 0 ? 'rgba(220, 38, 38, 0.08)' : undefined,
+                            background: b.sentiment_counts.concern > 0 ? 'var(--danger-surface)' : undefined,
                           }}
                           title={`긍정 ${b.sentiment_counts.positive} · 보통 ${b.sentiment_counts.neutral} · 우려 ${b.sentiment_counts.concern}`}
                         >

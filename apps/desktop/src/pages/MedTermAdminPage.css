@@ -1,4 +1,5 @@
 .medterm-admin {
+  width: 100%;
   padding: 24px;
   max-width: 960px;
   margin: 0 auto;
@@ -91,17 +92,17 @@
   cursor: pointer;
 }
 
-.medterm-admin button {
+.medterm-admin button:not(.btn) {
   padding: 9px 18px;
-  background: var(--type-water);
-  color: white;
+  background: var(--primary);
+  color: var(--text-on-primary);
   border: none;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
-.medterm-admin button:hover { background: var(--primary-hover); }
+.medterm-admin button:not(.btn):hover { background: var(--primary-hover); }
 
 .medterm-admin-error {
   background: var(--danger-surface);
@@ -170,6 +171,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.medterm-admin-attempt-list {
+  margin: 6px 0 0 16px;
+  font-size: 12px;
 }
 
 .medterm-admin-modes {

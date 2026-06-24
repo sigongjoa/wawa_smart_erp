@@ -160,9 +160,9 @@ export default function LiveSessionPage() {
             aria-pressed={mode === 'text'}
             style={{
               padding: '10px 14px', minHeight: 40,
-              background: mode === 'text' ? '#2563eb' : '#fff',
-              color: mode === 'text' ? '#fff' : '#000',
-              border: '1px solid #94a3b8', borderRadius: 4,
+              background: mode === 'text' ? 'var(--accent)' : 'var(--bg-card)',
+              color: mode === 'text' ? 'var(--text-on-primary)' : 'var(--ink)',
+              border: '1px solid var(--ink-40)', borderRadius: 4,
               fontWeight: 600,
             }}
           >텍스트</button>
@@ -172,9 +172,9 @@ export default function LiveSessionPage() {
             aria-pressed={mode === 'canvas'}
             style={{
               padding: '10px 14px', minHeight: 40,
-              background: mode === 'canvas' ? '#2563eb' : '#fff',
-              color: mode === 'canvas' ? '#fff' : '#000',
-              border: '1px solid #94a3b8', borderRadius: 4,
+              background: mode === 'canvas' ? 'var(--accent)' : 'var(--bg-card)',
+              color: mode === 'canvas' ? 'var(--text-on-primary)' : 'var(--ink)',
+              border: '1px solid var(--ink-40)', borderRadius: 4,
               fontWeight: 600,
             }}
           >캔버스</button>
@@ -182,7 +182,7 @@ export default function LiveSessionPage() {
             style={{
               padding: '10px 14px', minHeight: 40, display: 'inline-flex', alignItems: 'center',
               background: 'var(--bg-secondary)',
-              border: '1px solid #94a3b8', borderRadius: 4,
+              border: '1px solid var(--ink-40)', borderRadius: 4,
               cursor: 'pointer', fontWeight: 600,
             }}
           >

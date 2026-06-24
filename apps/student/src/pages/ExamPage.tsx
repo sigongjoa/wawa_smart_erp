@@ -232,7 +232,7 @@ export default function ExamPage() {
             disabled={!ready}
             style={{
               width: '100%', padding: '14px 20px', fontSize: 16, fontWeight: 700,
-              background: ready ? 'var(--primary)' : 'var(--ink-20)', color: '#fff',
+              background: ready ? 'var(--primary)' : 'var(--ink-20)', color: 'var(--text-on-primary)',
               border: 'none', borderRadius: 10, cursor: ready ? 'pointer' : 'not-allowed',
             }}
           >
@@ -317,7 +317,7 @@ export default function ExamPage() {
                 <span style={{
                   width: 26, height: 26, borderRadius: '50%',
                   background: selected ? 'var(--primary)' : 'var(--ink-09)',
-                  color: selected ? '#fff' : 'var(--ink-60)',
+                  color: selected ? 'var(--text-on-primary)' : 'var(--ink-60)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontWeight: 700, fontSize: 13, flexShrink: 0,
                 }}>{n}</span>
@@ -346,7 +346,7 @@ export default function ExamPage() {
               disabled={submitting}
               style={{
                 flex: 2, padding: '12px', borderRadius: 10,
-                border: 'none', background: 'var(--success)', color: '#fff',
+                border: 'none', background: 'var(--success)', color: 'var(--text-on-primary)',
                 fontWeight: 700, fontSize: 15,
                 cursor: submitting ? 'not-allowed' : 'pointer',
               }}
@@ -356,7 +356,7 @@ export default function ExamPage() {
               onClick={() => setIdx(i => Math.min(total - 1, i + 1))}
               style={{
                 flex: 2, padding: '12px', borderRadius: 10,
-                border: 'none', background: 'var(--primary)', color: '#fff',
+                border: 'none', background: 'var(--primary)', color: 'var(--text-on-primary)',
                 fontWeight: 700, fontSize: 15, cursor: 'pointer',
               }}
             >다음 →</button>
@@ -375,7 +375,7 @@ export default function ExamPage() {
                 style={{
                   width: 28, height: 28, borderRadius: 6,
                   background: active ? 'var(--primary)' : (a ? 'var(--success-surface)' : 'var(--bg-canvas)'),
-                  color: active ? '#fff' : (a ? 'var(--success)' : 'var(--ink-40)'),
+                  color: active ? 'var(--text-on-primary)' : (a ? 'var(--success)' : 'var(--ink-40)'),
                   border: '1px solid ' + (active ? 'var(--primary)' : 'var(--ink-09)'),
                   fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 }}
@@ -497,7 +497,7 @@ export default function ExamPage() {
                   <div key={b.questionNo} style={{
                     padding: '14px 0 10px',
                     background: b.correct ? 'var(--type-grass)' : 'var(--danger)',
-                    color: '#fff',
+                    color: 'var(--text-on-primary)',
                     textAlign: 'center',
                     fontFamily: 'var(--font-display)',
                     display: 'flex',

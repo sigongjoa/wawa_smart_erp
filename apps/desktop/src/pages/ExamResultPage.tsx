@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, type ExamAttemptDetail } from '../api';
 import { Icon } from '../components/icons/Icon';
 import { errorMessage } from '../utils/errors';
+import './ExamResultPage.css';
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
@@ -47,8 +48,8 @@ export default function ExamResultPage() {
   if (loading) {
     return (
       <div className="exam-result-page">
-        <div className="rpt-loading" role="status">
-          <div className="rpt-spinner" />
+        <div className="loading-state" role="status">
+          <div className="spinner" />
           <span>응시 결과를 불러오고 있어요</span>
         </div>
       </div>
@@ -94,8 +95,8 @@ export default function ExamResultPage() {
           <span>응시 시작 · {fmtDate(detail.startedAt)}</span>
           <span>제출 · {fmtDate(detail.endedAt)}</span>
           <span>소요 · {fmtDuration(detail.startedAt, detail.endedAt)}</span>
-          {detail.status === 'expired' && <span className="exam-result-chip exam-result-chip--expired">시간 초과</span>}
-          {detail.status === 'voided' && <span className="exam-result-chip exam-result-chip--expired">무효</span>}
+          {detail.status === 'expired' && <span className="badge badge-danger">시간 초과</span>}
+          {detail.status === 'voided' && <span className="badge badge-danger">무효</span>}
         </div>
       </header>
 
@@ -113,11 +114,11 @@ export default function ExamResultPage() {
         </div>
         <div className="exam-result-stats">
           <div className="exam-result-stat">
-            <span className="exam-result-stat-value" style={{ color: 'var(--success)' }}>{correct}</span>
+            <span className="exam-result-stat-value exam-result-stat-value--correct">{correct}</span>
             <span className="exam-result-stat-label">정답</span>
           </div>
           <div className="exam-result-stat">
-            <span className="exam-result-stat-value" style={{ color: 'var(--danger)' }}>{wrong}</span>
+            <span className="exam-result-stat-value exam-result-stat-value--wrong">{wrong}</span>
             <span className="exam-result-stat-label">오답</span>
           </div>
           <div className="exam-result-stat">

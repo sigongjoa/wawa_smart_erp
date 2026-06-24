@@ -130,15 +130,20 @@ export default function VocabWrongTab() {
   }, [groups]);
 
   if (loading) {
-    return <div className="v2-empty">오답 내역을 불러오고 있어요</div>;
+    return (
+      <div className="loading-state">
+        <div className="spinner" />
+        오답 내역을 불러오고 있어요
+      </div>
+    );
   }
 
   if (groups.length === 0) {
     return (
-      <div className="v2-empty">
-        <Icon name="CheckCircle2" size={32} />
-        <div style={{ fontSize: 16, fontWeight: 700 }}>오답이 없어요</div>
-        <div className="v2-text-mute">학생들이 단어를 잘 외우고 있어요.</div>
+      <div className="empty-state">
+        <Icon name="CheckCircle2" size={32} className="empty-state-icon" />
+        <div className="empty-state-title">오답이 없어요</div>
+        <div className="empty-state-desc">학생들이 단어를 잘 외우고 있어요.</div>
       </div>
     );
   }
@@ -188,7 +193,7 @@ export default function VocabWrongTab() {
                   {g.studentGrade && (
                     <span className={`grade-badge ${gradeClass(g.studentGrade)}`}>{g.studentGrade}</span>
                   )}
-                  <span className={`v2-pill v2-pill--${tone}`}>오답 {wrongCount}개</span>
+                  <span className={`badge badge-${tone}`}>오답 {wrongCount}개</span>
                 </div>
                 <div />
                 <div className="v2-student-group__total">총 {g.wrongTotal}회</div>
@@ -202,13 +207,13 @@ export default function VocabWrongTab() {
                       <div key={w.id} className="v2-wrong-word">
                         <span className="v2-word">{(w as any).english}</span>
                         <span className="v2-wrong-word__ko">{(w as any).korean}</span>
-                        <span className="v2-pill v2-pill--neutral">{pos ? POS_LABEL[pos] || pos : '품사'}</span>
-                        <span className="v2-pill v2-pill--neutral">Box {w.box}</span>
+                        <span className="badge badge-neutral">{pos ? POS_LABEL[pos] || pos : '품사'}</span>
+                        <span className="badge badge-neutral">Box {w.box}</span>
                         <div className="v2-wrong-word__actions">
                           <span className="v2-wrong-word__count">{w.wrong_count}회</span>
                           <button
                             type="button"
-                            className="v2-btn v2-btn--sm"
+                            className="btn btn-secondary btn-sm with-icon"
                             onClick={() => resetWrong(w)}
                             title="Box 1로 초기화"
                           >

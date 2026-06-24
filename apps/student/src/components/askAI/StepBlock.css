@@ -9,7 +9,7 @@
   width: 36px;
   height: 36px;
   background: var(--ink, #11141a);
-  color: white;
+  color: var(--text-on-primary);
   border-radius: 10px;
   display: grid;
   place-items: center;
@@ -46,7 +46,7 @@
   color: rgba(17, 20, 26, 0.40);
 }
 .askai-step .ocr-content {
-  background: #f7f5ee;
+  background: var(--bg-paper);
   padding: 12px 16px;
   border-radius: 8px;
   border-left: 3px solid var(--ink, #11141a);
@@ -55,7 +55,7 @@
 .askai-inline-cite {
   margin: 16px 0;
   padding: 12px 16px;
-  background: #f7f5ee;
+  background: var(--bg-paper);
   border-left: 3px solid var(--type-grass, #3FA129);
   border-radius: 0 8px 8px 0;
   font-size: 13px;
@@ -82,7 +82,7 @@
 .askai-figure {
   margin: 18px 0;
   padding: 14px;
-  background: white;
+  background: var(--bg-card);
   border: 1px solid rgba(17, 20, 26, 0.09);
   border-radius: 12px;
 }

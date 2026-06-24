@@ -159,8 +159,8 @@ export default function ExamTimerPage() {
       style={{
         position: 'fixed',
         inset: 0,
-        background: '#0f172a',
-        color: '#fff',
+        background: 'var(--ink)',
+        color: 'var(--text-on-primary)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 9999,
@@ -189,7 +189,7 @@ export default function ExamTimerPage() {
             fontWeight: 800,
             fontVariantNumeric: 'tabular-nums',
             letterSpacing: '0.05em',
-            color: isLowTime ? '#ef4444' : isPaused ? '#facc15' : '#fff',
+            color: isLowTime ? 'var(--danger)' : isPaused ? 'var(--warning)' : 'var(--text-on-primary)',
             transition: 'color 0.3s',
             lineHeight: 1,
           }}
@@ -202,8 +202,8 @@ export default function ExamTimerPage() {
       {isPaused && (
         <div
           style={{
-            background: '#facc15',
-            color: '#1f2937',
+            background: 'var(--warning)',
+            color: 'var(--ink)',
             padding: '16px 20px',
             borderRadius: 12,
             textAlign: 'center',
@@ -224,8 +224,8 @@ export default function ExamTimerPage() {
       {showCallTeacher && (
         <div
           style={{
-            background: '#dc2626',
-            color: '#fff',
+            background: 'var(--danger)',
+            color: 'var(--text-on-primary)',
             padding: '12px 16px',
             borderRadius: 12,
             textAlign: 'center',
@@ -241,8 +241,8 @@ export default function ExamTimerPage() {
       {error && (
         <div
           style={{
-            background: '#7f1d1d',
-            color: '#fff',
+            background: 'var(--danger)',
+            color: 'var(--text-on-primary)',
             padding: '10px 14px',
             borderRadius: 8,
             textAlign: 'center',
@@ -258,8 +258,8 @@ export default function ExamTimerPage() {
           onClick={() => setConfirmOpen(true)}
           disabled={submitting || !['running', 'paused'].includes(attempt.status)}
           style={{
-            background: '#22c55e',
-            color: '#fff',
+            background: 'var(--success)',
+            color: 'var(--text-on-primary)',
             border: 'none',
             borderRadius: 12,
             padding: '18px 48px',
@@ -291,7 +291,7 @@ export default function ExamTimerPage() {
           <div
             style={{
               background: 'var(--bg-card)',
-              color: '#1f2937',
+              color: 'var(--ink)',
               padding: 28,
               borderRadius: 16,
               minWidth: 320,
@@ -311,8 +311,8 @@ export default function ExamTimerPage() {
                 onClick={() => setConfirmOpen(false)}
                 disabled={submitting}
                 style={{
-                  background: '#e5e7eb',
-                  color: '#1f2937',
+                  background: 'var(--ink-09)',
+                  color: 'var(--ink)',
                   border: 'none',
                   borderRadius: 8,
                   padding: '12px 24px',
@@ -327,8 +327,8 @@ export default function ExamTimerPage() {
                 onClick={handleSubmit}
                 disabled={submitting}
                 style={{
-                  background: '#22c55e',
-                  color: '#fff',
+                  background: 'var(--success)',
+                  color: 'var(--text-on-primary)',
                   border: 'none',
                   borderRadius: 8,
                   padding: '12px 24px',

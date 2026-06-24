@@ -9,16 +9,19 @@
  * 폴링: 5초 — `/api/exam-attempts/today`
  * 카운트다운: 1초 (클라이언트 자체 계산)
  */
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ExamAttempt, ExamAttemptPendingAssignment } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
 import DialogShell from '../components/DialogShell';
+import './ExamTimerPage.css';
 
 const PAUSE_REASONS = ['화장실', '몸이 안 좋음', '교사 호출', '기타'] as const;
 const POLL_INTERVAL_MS = 5000;
+// 잔여 시간 임계 알림 (초): 10분, 5분
+const ALERT_THRESHOLDS = [600, 300] as const;
 
 const GRADE_CLASS_MAP: Record<string, string> = {
   초1: 'm1', 초2: 'm1', 초3: 'm1', 초4: 'm2', 초5: 'm2', 초6: 'm2',
@@ -27,6 +30,15 @@ const GRADE_CLASS_MAP: Record<string, string> = {
   검정고시: 'etc',
 };
 const gradeClass = (g?: string) => (g && GRADE_CLASS_MAP[g]) || 'etc';
+
+const STATUS_BADGE: Record<ExamAttempt['status'], string> = {
+  ready: 'badge-neutral',
+  running: 'badge-success',
+  paused: 'badge-warning',
+  expired: 'badge-danger',
+  submitted: 'badge-info',
+  voided: 'badge-neutral',
+};
 
 function formatMMSS(totalSec: number): string {
   const sec = Math.max(0, Math.floor(totalSec));
@@ -84,7 +96,7 @@ const AttemptCard = memo(function AttemptCard({
             <span className="exam-timer-card__paper">· {attempt.paperTitle}</span>
           )}
         </div>
-        <span className={`exam-timer-card__status exam-timer-card__status--${effectiveStatus}`}>
+        <span className={`badge ${STATUS_BADGE[effectiveStatus]}`}>
           {effectiveStatus === 'ready' && '대기'}
           {effectiveStatus === 'running' && '진행 중'}
           {effectiveStatus === 'paused' && '일시정지'}
@@ -246,6 +258,27 @@ export default function ExamTimerPage() {
     };
   }, []);
 
+  // 잔여 10분/5분 임계 알림 — attempt별로 각 임계 1회만 토스트
+  const alertedRef = useRef<Map<string, Set<number>>>(new Map());
+  useEffect(() => {
+    for (const a of attempts) {
+      if (a.status !== 'running') continue;
+      const remaining = computeRemaining(a, fetchedAt, now);
+      let fired = alertedRef.current.get(a.id);
+      if (!fired) {
+        fired = new Set();
+        alertedRef.current.set(a.id, fired);
+      }
+      for (const th of ALERT_THRESHOLDS) {
+        // 임계 직후 60초 윈도우에서만 발화 → 페이지 진입 시 과거 임계 소급 알림 방지
+        if (remaining <= th && remaining > th - 60 && !fired.has(th)) {
+          fired.add(th);
+          toast.info(`${a.studentName || '학생'} — 시험 종료 ${th / 60}분 전`);
+        }
+      }
+    }
+  }, [attempts, now, fetchedAt]);
+
   // 시험 종류 옵션 (pending + attempts에서 추출)
   const periodOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -366,7 +399,7 @@ export default function ExamTimerPage() {
           <div>
             <h1 className="page-title">시험 타이머 ({user?.name || ''})</h1>
             <p className="page-description">
-              결시 학생을 선택해 개별 시험 타이머를 시작합니다. 5초마다 자동 새로고침됩니다.
+              학생을 선택해 수업 중 개별 시험 타이머를 시작합니다. 잔여 10분·5분에 알림이 표시되며, 5초마다 자동 새로고침됩니다.
             </p>
           </div>
         </div>
@@ -391,10 +424,9 @@ export default function ExamTimerPage() {
             type="number"
             min={1}
             max={600}
-            className="exam-input"
+            className="exam-input exam-timer-duration-input"
             value={defaultDuration}
             onChange={(e) => setDefaultDuration(parseInt(e.target.value, 10) || 0)}
-            style={{ width: 80, marginLeft: 6 }}
           />
         </label>
         <button
@@ -409,8 +441,8 @@ export default function ExamTimerPage() {
       </div>
 
       {loading ? (
-        <div className="rpt-loading" role="status">
-          <div className="rpt-spinner" />
+        <div className="loading-state" role="status">
+          <div className="spinner" />
           <span>로딩 중...</span>
         </div>
       ) : (
@@ -423,7 +455,7 @@ export default function ExamTimerPage() {
             </div>
             <div className="exam-timer-col-body">
               {filteredPending.length === 0 ? (
-                <div className="exam-timer-empty">결시/재시험 대기 학생이 없습니다</div>
+                <div className="exam-timer-empty">응시 대기 학생이 없습니다</div>
               ) : (
                 filteredPending.map(p => {
                   const checked = selectedAssignments.has(p.assignment_id);
@@ -444,8 +476,14 @@ export default function ExamTimerPage() {
                           {p.student_grade && (
                             <span className={`grade-badge ${gradeClass(p.student_grade)}`}>{p.student_grade}</span>
                           )}
-                          <span className={`exam-timer-pending-status exam-timer-pending-status--${p.exam_status}`}>
-                            {p.exam_status === 'absent' ? '결시' : '재시험 예정'}
+                          <span className={`badge ${
+                            p.exam_status === 'absent' ? 'badge-warning'
+                            : p.exam_status === 'scheduled' ? 'badge-neutral'
+                            : 'badge-info'
+                          }`}>
+                            {p.exam_status === 'absent' ? '결시'
+                              : p.exam_status === 'scheduled' ? '응시 예정'
+                              : '재시험 예정'}
                           </span>
                         </div>
                         <div className="exam-timer-pending-meta">
@@ -496,16 +534,16 @@ export default function ExamTimerPage() {
           ariaLabel="일시정지 사유 입력"
           onClose={() => !pauseSaving && setPauseTarget(null)}
         >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>
+          <div className="modal-content exam-timer-pause-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="exam-timer-pause-title">
               일시정지 — {pauseTarget.studentName || '학생'}
             </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+            <p className="exam-timer-pause-desc">
               사유는 필수입니다. 재개 시까지 시계가 멈춥니다.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="exam-timer-pause-options">
               {PAUSE_REASONS.map(r => (
-                <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
+                <label key={r} className="exam-timer-pause-option">
                   <input
                     type="radio"
                     name="pause-reason"
@@ -519,16 +557,15 @@ export default function ExamTimerPage() {
               {pauseReason === '기타' && (
                 <input
                   type="text"
-                  className="exam-input"
+                  className="exam-input exam-timer-pause-custom"
                   placeholder="사유를 직접 입력"
                   value={pauseCustom}
                   onChange={(e) => setPauseCustom(e.target.value)}
                   autoFocus
-                  style={{ width: '100%', marginTop: 4 }}
                 />
               )}
             </div>
-            <div className="modal-footer" style={{ marginTop: 16 }}>
+            <div className="modal-footer exam-timer-pause-footer">
               <button
                 type="button"
                 className="btn btn-secondary"

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { Icon } from '../components/icons/Icon';
+import './RegisterPage.css';
 
 type Step = 'slug' | 'info' | 'done';
 
@@ -79,7 +81,7 @@ export default function RegisterPage() {
 
   return (
     <div className="login-page">
-      <div className="login-card" style={{ maxWidth: 420 }}>
+      <div className="login-card reg-card">
         <h2>새 학원 등록</h2>
         <p className="login-subtitle">WAWA 학습 관리 시스템에 학원을 등록하세요</p>
 
@@ -88,10 +90,10 @@ export default function RegisterPage() {
         {step === 'slug' && (
           <>
             <label htmlFor="reg-slug">학원코드</label>
-            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
+            <p className="reg-hint">
               영문 소문자, 숫자, 하이픈만 가능 (3~30자). 로그인 시 사용됩니다.
             </p>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="reg-slug-row">
               <input
                 id="reg-slug"
                 className="input"
@@ -102,45 +104,44 @@ export default function RegisterPage() {
                 }}
                 placeholder="예: mathking"
                 autoFocus
-                style={{ flex: 1 }}
               />
               <button
                 type="button"
+                className="btn btn-secondary reg-check-btn"
                 onClick={checkSlug}
                 disabled={slugChecking || slug.length < 3}
-                style={{ whiteSpace: 'nowrap', padding: '8px 16px' }}
               >
                 {slugChecking ? '...' : '확인'}
               </button>
             </div>
 
             {slugAvailable === true && (
-              <p style={{ color: 'var(--success)', fontSize: 13, margin: '8px 0' }}>
+              <p className="reg-available">
                 사용 가능한 학원코드입니다
               </p>
             )}
 
             <button
               type="button"
+              className="btn btn-primary btn-block reg-next-btn"
               onClick={handleSlugNext}
               disabled={!slugAvailable}
-              style={{ marginTop: 16 }}
             >
               다음
             </button>
 
-            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 16, textAlign: 'center' }}>
+            <p className="reg-login-link">
               이미 학원이 있나요?{' '}
-              <a href="#/login" style={{ color: 'var(--info)' }}>로그인</a>
+              <a href="#/login">로그인</a>
             </p>
           </>
         )}
 
         {step === 'info' && (
           <form onSubmit={handleRegister}>
-            <p style={{ fontSize: 13, color: 'var(--info)', margin: '0 0 16px' }}>
+            <p className="reg-slug-summary">
               학원코드: <strong>{slug}</strong>
-              <button type="button" onClick={() => setStep('slug')} style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>변경</button>
+              <button type="button" className="reg-change-btn" onClick={() => setStep('slug')}>변경</button>
             </p>
 
             <label htmlFor="reg-academy">학원 이름</label>
@@ -191,24 +192,24 @@ export default function RegisterPage() {
               placeholder="PIN을 한 번 더 입력"
             />
 
-            <button type="submit" disabled={loading} style={{ marginTop: 16 }}>
+            <button type="submit" className="btn btn-primary btn-block reg-submit-btn" disabled={loading}>
               {loading ? '등록 중...' : '학원 등록'}
             </button>
           </form>
         )}
 
         {step === 'done' && result && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>&#10003;</div>
-            <h3 style={{ marginBottom: 8 }}>{result.academyName}</h3>
-            <p style={{ color: 'var(--text-tertiary)', marginBottom: 24 }}>학원이 성공적으로 등록되었습니다!</p>
+          <div className="reg-done">
+            <div className="reg-done-icon"><Icon name="CheckCircle2" size={48} aria-label="등록 완료" /></div>
+            <h3 className="reg-done-title">{result.academyName}</h3>
+            <p className="reg-done-desc">학원이 성공적으로 등록되었습니다!</p>
 
-            <div style={{ background: 'var(--bg-tertiary)', borderRadius: 8, padding: 16, marginBottom: 24, textAlign: 'left' }}>
-              <p style={{ fontSize: 13, margin: '0 0 4px' }}><strong>학원코드:</strong> {result.slug}</p>
-              <p style={{ fontSize: 13, margin: 0 }}>로그인 시 이 코드를 입력하세요.</p>
+            <div className="reg-done-card">
+              <p><strong>학원코드:</strong> {result.slug}</p>
+              <p>로그인 시 이 코드를 입력하세요.</p>
             </div>
 
-            <button onClick={goToLogin} style={{ width: '100%' }}>
+            <button type="button" className="btn btn-primary btn-block reg-done-btn" onClick={goToLogin}>
               로그인하기
             </button>
           </div>

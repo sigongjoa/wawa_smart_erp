@@ -4,6 +4,7 @@ import { toast, useConfirm } from '../components/Toast';
 import DialogShell from '../components/DialogShell';
 import { Icon } from '../components/icons/Icon';
 import { useAuthStore } from '../store';
+import './GachaStudentPage.css';
 
 const GRADE_OPTIONS = ['중1', '중2', '중3', '고1', '고2', '고3'];
 
@@ -194,45 +195,32 @@ export default function GachaStudentPage() {
 
       {/* 자가 가입 요청 (pending) — 있을 때만 노출 */}
       {signupRequests.length > 0 && (
-        <div className="gacha-form-card" style={{ borderColor: 'var(--warning)', background: 'var(--warning-surface)' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="gacha-form-card gacha-signup-card">
+          <h3 className="gacha-signup-title">
             가입 요청 대기
-            <span style={{
-              background: 'var(--warning)', color: 'var(--text-primary)',
-              padding: '2px 8px', borderRadius: 12,
-              fontSize: 12, fontWeight: 800,
-            }}>{signupRequests.length}</span>
+            <span className="badge badge-warning">{signupRequests.length}</span>
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+          <div className="gacha-signup-list">
             {signupRequests.map((req) => (
-              <div key={req.id} style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 2fr auto',
-                gap: 12,
-                alignItems: 'center',
-                padding: '10px 12px',
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 8,
-              }}>
+              <div key={req.id} className="gacha-signup-row">
                 <div>
-                  <div style={{ fontWeight: 700 }}>{req.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{req.grade ?? '학년 미지정'}</div>
+                  <div className="gacha-signup-name">{req.name}</div>
+                  <div className="gacha-signup-meta">{req.grade ?? '학년 미지정'}</div>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div className="gacha-signup-meta">
                   {new Date(req.submitted_at + (req.submitted_at.endsWith('Z') ? '' : 'Z')).toLocaleString('ko-KR', {
                     month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div className="gacha-signup-detail">
                   {req.requested_teacher_name ? (
-                    <span><strong style={{ color: 'var(--text-primary)' }}>지정 선생님:</strong> {req.requested_teacher_name}</span>
+                    <span><strong>지정 선생님:</strong> {req.requested_teacher_name}</span>
                   ) : (
-                    <span style={{ color: 'var(--text-tertiary)' }}>지정 선생님 없음</span>
+                    <span className="gacha-signup-detail-muted">지정 선생님 없음</span>
                   )}
-                  {req.memo && <span style={{ color: 'var(--text-tertiary)' }}>{req.memo}</span>}
+                  {req.memo && <span className="gacha-signup-detail-muted">{req.memo}</span>}
                 </div>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div className="gacha-signup-actions">
                   <button
                     className="btn-primary with-icon"
                     disabled={signupBusy === req.id}
@@ -269,7 +257,7 @@ export default function GachaStudentPage() {
               >모두 보기</button>
             </div>
           )}
-          <button className="btn-primary" onClick={() => setShowAdd(true)}>+ 학생 추가</button>
+          <button className="btn-primary with-icon" onClick={() => setShowAdd(true)}><Icon name="Plus" /> 학생 추가</button>
         </div>
       </div>
 
@@ -318,7 +306,7 @@ export default function GachaStudentPage() {
         >
           <div className="gacha-modal" onClick={e => e.stopPropagation()}>
             <h3>PIN 재설정</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 12px' }}>
+            <p className="gacha-modal-hint">
               <strong>{students.find(s => s.id === resetPinId)?.name}</strong> 학생의 PIN.
               저장된 PIN은 단방향 해시라 보기는 불가하며, 새 값으로만 변경할 수 있습니다.
             </p>
@@ -328,7 +316,7 @@ export default function GachaStudentPage() {
                 <div className="gacha-pin-display-label">새 PIN</div>
                 <div className="gacha-pin-display-value">{generatedPin}</div>
                 <button className="btn-sm btn-primary" onClick={() => copyPin(generatedPin)}>복사</button>
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 12 }}>
+                <p className="gacha-modal-note">
                   이 PIN은 한 번만 표시됩니다. 학생에게 즉시 안내해주세요.
                 </p>
                 <div className="gacha-form-actions">
@@ -372,7 +360,7 @@ export default function GachaStudentPage() {
         >
           <div className="gacha-modal" onClick={e => e.stopPropagation()}>
             <h3>가입 요청 거절</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 12px' }}>
+            <p className="gacha-modal-hint">
               <strong>{rejectReq.name}</strong> 학생의 가입 요청을 거절합니다.
               사유는 선택 사항이며 학생에게 표시되지 않습니다.
             </p>
@@ -420,11 +408,11 @@ export default function GachaStudentPage() {
                   <div className="gacha-student-info">
                     <span className="gacha-student-name">{s.name}</span>
                     <span className="gacha-student-grade">{s.grade || '-'}</span>
-                    <span className={`gacha-student-status gacha-student-status--${s.status}`}>
+                    <span className={`badge ${s.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
                       {s.status === 'active' ? '활성' : '비활성'}
                     </span>
                     {(!s.pin_hash || s.pin_hash.length === 0) && (
-                      <span className="gacha-student-status gacha-student-status--no-pin" title="PIN 미설정 — 학생 로그인 불가">
+                      <span className="badge badge-warning" title="PIN 미설정 — 학생 로그인 불가">
                         PIN 미설정
                       </span>
                     )}

@@ -1,0 +1,147 @@
+/* HomeroomPage — 담임 대시보드 전용 스타일 (디자인 시스템 토큰 사용) */
+
+.homeroom-page {
+  padding: var(--sp-4);
+}
+
+.homeroom-month-input {
+  width: 160px;
+}
+
+.homeroom-nav {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.homeroom-matrix-heading {
+  margin: 0;
+}
+
+/* 요약 카드 그리드 */
+.homeroom-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+}
+
+.homeroom-section {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3);
+}
+
+/* 매트릭스 범례 */
+.homeroom-legend {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+}
+
+.homeroom-legend-item {
+  margin-left: var(--sp-2);
+}
+
+/* 상담 매트릭스 테이블 */
+.homeroom-matrix-scroll {
+  overflow-x: auto;
+}
+
+.homeroom-matrix {
+  border-collapse: collapse;
+  font-size: var(--fs-12);
+  min-width: 600px;
+  width: 100%;
+}
+
+.homeroom-matrix th {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.homeroom-matrix-th-name {
+  position: sticky;
+  left: 0;
+  background: var(--bg-primary);
+  text-align: left;
+  padding: var(--sp-1) var(--sp-2);
+  min-width: 120px;
+}
+
+.homeroom-matrix-th-day {
+  padding: var(--sp-1) 2px;
+  text-align: center;
+  min-width: 20px;
+  color: var(--text-secondary);
+}
+
+.homeroom-matrix-th-total {
+  padding: var(--sp-1) var(--sp-2);
+  text-align: center;
+}
+
+.homeroom-matrix td {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.homeroom-matrix-name {
+  position: sticky;
+  left: 0;
+  background: var(--bg-primary);
+  padding: var(--sp-2) var(--sp-2);
+  font-weight: 400;
+}
+
+.homeroom-matrix-name.is-compliant {
+  font-weight: 500;
+}
+
+.homeroom-matrix-grade {
+  color: var(--text-tertiary);
+}
+
+.homeroom-matrix-cell {
+  padding: 2px;
+  text-align: center;
+  cursor: default;
+}
+
+.homeroom-matrix-cell.has-consult {
+  cursor: help;
+}
+
+.homeroom-matrix-total {
+  padding: var(--sp-1) var(--sp-2);
+  text-align: center;
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.homeroom-matrix-total.is-compliant {
+  color: var(--accent);
+}
+
+/* 후속/시험 리스트 */
+.homeroom-list {
+  margin: 0;
+  padding-left: var(--sp-5);
+}
+
+.homeroom-list li {
+  margin-bottom: var(--sp-2);
+}
+
+/* 요약 KV 카드 */
+.homeroom-kv {
+  padding: var(--sp-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.homeroom-kv-label {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
+.homeroom-kv-value {
+  font-size: var(--fs-22);
+  font-weight: 700;
+}

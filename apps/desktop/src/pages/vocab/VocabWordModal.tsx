@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Modal from '../../components/Modal';
 import { api } from '../../api';
 import { toast } from '../../components/Toast';
+import './VocabWordModal.css';
 
 type GachaStudentLite = { id: string; name: string };
 
@@ -75,7 +76,7 @@ export default function VocabWordModal({ students, onClose, onSaved }: Props) {
             />
           </label>
           <label className="form-field">
-            <span className="form-label">유형 <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(선택)</span></span>
+            <span className="form-label">유형 <span className="vocab-modal-label-hint">(선택)</span></span>
             <input
               className="form-input"
               value={category}

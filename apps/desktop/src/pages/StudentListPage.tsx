@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { X, Plus } from 'lucide-react';
 import { api, Student, StudentCreateInput, TeacherOption } from '../api';
 import { useAuthStore } from '../store';
 import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
 import { errorMessage } from '../utils/errors';
+import './StudentListPage.css';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -300,7 +302,7 @@ export default function StudentListPage() {
             <input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} />
             활성만
           </label>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ 학생 추가</button>
+          <button className="btn btn-primary btn-sm with-icon" onClick={() => setShowAdd(true)}><Plus size={14} />학생 추가</button>
         </div>
       </div>
 
@@ -354,7 +356,7 @@ export default function StudentListPage() {
                 <td className="student-cell-contact">{s.contact || '-'}</td>
                 <td className="student-cell-contact">{s.guardian_contact || '-'}</td>
                 <td>
-                  <span className={`student-status student-status--${s.status}`}>
+                  <span className={`badge ${s.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
                     {s.status === 'active' ? '활성' : '비활성'}
                   </span>
                 </td>
@@ -455,13 +457,13 @@ export default function StudentListPage() {
               <section className="form-section">
                 <h4 className="form-section-title">담당 선생님</h4>
                 <p className="form-hint">선생님을 체크하고, 이 학생에게 가르치는 과목을 선택하세요. 정기고사 리포트 전송 시 과목 매칭에 사용됩니다.</p>
-                <div className="teacher-checkboxes" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="teacher-checkboxes student-teacher-list">
                   {teachers.map(t => {
                     const assigned = assignedTeachers.find(a => a.id === t.id);
                     const checked = !!assigned;
                     return (
-                      <div key={t.id} style={{ border: '1px solid var(--border-primary)', borderRadius: 6, padding: 8 }}>
-                        <label className="teacher-checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <div key={t.id} className="student-teacher-card">
+                        <label className="teacher-checkbox student-teacher-card-label">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -471,30 +473,18 @@ export default function StudentListPage() {
                           <span className="teacher-role">({t.role === 'admin' ? '관리자' : '강사'})</span>
                         </label>
                         {checked && (
-                          <div style={{ marginTop: 6, paddingLeft: 22, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          <div className="student-subject-chips">
                             {SUBJECT_OPTIONS.map(subject => {
                               const subChecked = assigned!.subjects.includes(subject);
                               return (
                                 <label
                                   key={subject}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    padding: '2px 8px',
-                                    borderRadius: 12,
-                                    border: '1px solid',
-                                    borderColor: subChecked ? '#2563eb' : '#d1d5db',
-                                    background: subChecked ? '#dbeafe' : '#fff',
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                  }}
+                                  className={`student-subject-chip ${subChecked ? 'student-subject-chip--active' : ''}`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={subChecked}
                                     onChange={() => toggleTeacherSubject(t.id, subject)}
-                                    style={{ margin: 0 }}
                                   />
                                   {subject}
                                 </label>
@@ -513,11 +503,11 @@ export default function StudentListPage() {
               <div className="form-section-head">
                 <h4 className="form-section-title">수강 시간표</h4>
                 <button
-                  className="btn btn-sm btn-primary"
+                  className="btn btn-sm btn-primary with-icon"
                   type="button"
                   onClick={() => setEnrollAddOpen(!enrollAddOpen)}
                 >
-                  {enrollAddOpen ? '닫기' : '+ 추가'}
+                  {enrollAddOpen ? '닫기' : <><Plus size={14} />추가</>}
                 </button>
               </div>
 
@@ -578,12 +568,12 @@ export default function StudentListPage() {
                             <span>{e.startTime}~{e.endTime}</span>
                             {e.subject && <span className="enroll-edit-subject">{e.subject}</span>}
                             <button
-                              className="enroll-edit-delete"
+                              className="enroll-edit-delete with-icon"
                               type="button"
                               onClick={() => handleDeleteEnrollment(e.id)}
                               aria-label="삭제"
                             >
-                              &times;
+                              <X size={14} />
                             </button>
                           </div>
                         ))}

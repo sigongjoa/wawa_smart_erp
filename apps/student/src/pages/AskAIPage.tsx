@@ -379,7 +379,7 @@ export default function AskAIPage() {
             aria-label="첨부된 사진"
             style={{
               display: 'flex', gap: 6, padding: '6px 12px',
-              fontSize: 12, color: 'var(--ink-60, #5e6478)',
+              fontSize: 12, color: 'var(--ink-60)',
               borderTop: '1px solid var(--ink-09, rgba(0,0,0,0.09))',
               flexWrap: 'wrap', alignItems: 'center',
             }}
@@ -390,7 +390,7 @@ export default function AskAIPage() {
                 key={p.r2_key}
                 role="listitem"
                 style={{
-                  background: 'var(--bg-canvas, #fafbfc)',
+                  background: 'var(--bg-canvas)',
                   border: '1px solid var(--ink-09, rgba(0,0,0,0.09))',
                   borderRadius: 6, padding: '2px 8px',
                   display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -403,12 +403,12 @@ export default function AskAIPage() {
                   onClick={() => setAttachedPhotos((prev) => prev.filter((x) => x.r2_key !== p.r2_key))}
                   style={{
                     border: 0, background: 'transparent', padding: 0, marginLeft: 2,
-                    cursor: 'pointer', color: 'var(--ink-40, #9098ad)', lineHeight: 1,
+                    cursor: 'pointer', color: 'var(--ink-40)', lineHeight: 1,
                   }}
                 >×</button>
               </span>
             ))}
-            {photoUploading && <span style={{ color: 'var(--primary, #2d3a8c)' }}>업로드 중…</span>}
+            {photoUploading && <span style={{ color: 'var(--primary)' }}>업로드 중…</span>}
           </div>
         )}
 

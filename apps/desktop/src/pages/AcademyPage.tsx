@@ -4,6 +4,7 @@ import { useAuthStore } from '../store';
 import AcademyInfoForm from '../components/academy/AcademyInfoForm';
 import TeacherList from '../components/academy/TeacherList';
 import InvitePendingList, { type InvitePendingHandle } from '../components/academy/InvitePendingList';
+import './AcademyPage.css';
 
 export default function AcademyPage() {
   const user = useAuthStore((s) => s.user);
@@ -24,11 +25,11 @@ export default function AcademyPage() {
 
       <AcademyInfoForm />
 
-      <div style={{ marginTop: 24 }}>
+      <div className="academy-section-gap">
         <TeacherList onCreateInvite={handleCreateInvite} />
       </div>
 
-      <div id="invite-section" style={{ marginTop: 24 }}>
+      <div id="invite-section" className="academy-section-gap">
         <InvitePendingList ref={inviteRef} />
       </div>
     </div>

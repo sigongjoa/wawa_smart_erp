@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { parentApi, ParentApiError } from '../api/parent';
 import { ParentGateView, useParentToken } from '../components/ParentTokenGate';
+import './ParentHomeworkPage.css';
 
 interface SubmissionFile {
   key: string;
@@ -103,20 +105,17 @@ export default function ParentHomeworkPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+    <div className="phw-page">
+      <div className="phw-shell">
         {/* 헤더 */}
-        <header style={{
-          background: '#fff', border: '2px solid #1a1d24', borderRadius: 12,
-          padding: 20, marginBottom: 16,
-        }}>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
+        <header className="phw-header">
+          <div className="phw-header-meta">
             {data.student.name}{data.student.grade ? ` · ${data.student.grade}` : ''}
           </div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>
+          <h1 className="phw-header-title">
             {data.assignment.title}
           </h1>
-          <div style={{ marginTop: 10, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-secondary)' }}>
+          <div className="phw-header-dates">
             {data.assignment.due_at && (
               <span>마감 {new Date(data.assignment.due_at).toLocaleDateString('ko-KR')}</span>
             )}
@@ -128,10 +127,7 @@ export default function ParentHomeworkPage() {
             )}
           </div>
           {data.assignment.instructions && (
-            <div style={{
-              marginTop: 12, padding: 12, background: '#f3f4f6', borderRadius: 8,
-              fontSize: 13, whiteSpace: 'pre-wrap', color: 'var(--text-primary)',
-            }}>
+            <div className="phw-instructions">
               {data.assignment.instructions}
             </div>
           )}
@@ -139,14 +135,11 @@ export default function ParentHomeworkPage() {
 
         {/* 타임라인 */}
         {events.length === 0 ? (
-          <div style={{
-            background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12,
-            padding: 32, textAlign: 'center', color: 'var(--text-secondary)',
-          }}>
-            아직 제출 기록이 없습니다.
+          <div className="empty-state">
+            <div className="empty-state-desc">아직 제출 기록이 없습니다.</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="phw-timeline">
             {events.map((ev, idx) => {
               if (ev.kind === 'sub') {
                 const s = ev.data;
@@ -155,49 +148,37 @@ export default function ParentHomeworkPage() {
                 return (
                   <section
                     key={idx}
-                    style={{
-                      background: '#fff', borderRadius: 12,
-                      border: '1.5px solid #e5e7eb', borderLeft: '4px solid #2563eb',
-                      padding: 16,
-                    }}
+                    className="phw-card phw-card-sub"
                   >
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>
+                    <div className="phw-card-label">
                       학생 제출 · {new Date(s.submitted_at).toLocaleString('ko-KR')}
                     </div>
                     {s.note && (
-                      <div style={{ fontSize: 14, marginBottom: 10, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+                      <div className="phw-note">
                         {s.note}
                       </div>
                     )}
                     {images.length > 0 && (
-                      <div style={{
-                        display: 'grid', gap: 8, marginBottom: others.length ? 10 : 0,
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                      }}>
+                      <div className={`phw-image-grid${others.length ? ' phw-image-grid-gap' : ''}`}>
                         {images.map((f, i) => (
                           <button
                             key={i}
                             type="button"
                             onClick={() => setLightbox({ src: fileUrl(f.key), name: f.name })}
-                            style={{
-                              padding: 0, border: '2px solid #e5e7eb', borderRadius: 8,
-                              overflow: 'hidden', cursor: 'pointer', background: '#fff',
-                              aspectRatio: '1 / 1',
-                            }}
+                            className="phw-image-btn"
                             aria-label={`${f.name} 크게 보기`}
                           >
                             <img
                               src={fileUrl(f.key)}
                               alt={f.name}
                               loading="lazy"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                           </button>
                         ))}
                       </div>
                     )}
                     {others.length > 0 && (
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <div className="phw-file-list">
                         {others.map((f, i) => (
                           <a
                             key={i}
@@ -205,11 +186,7 @@ export default function ParentHomeworkPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             referrerPolicy="no-referrer"
-                            style={{
-                              fontSize: 13, color: '#2563eb', textDecoration: 'none',
-                              padding: '6px 10px', border: '1.5px solid #dbeafe',
-                              borderRadius: 6, background: '#eff6ff',
-                            }}
+                            className="phw-file-link"
                           >
                             {f.name}
                           </a>
@@ -224,21 +201,16 @@ export default function ParentHomeworkPage() {
               return (
                 <section
                   key={idx}
-                  style={{
-                    background: '#fff', borderRadius: 12,
-                    border: '1.5px solid #e5e7eb',
-                    borderLeft: `4px solid ${isResubmit ? 'var(--danger-text)' : '#16a34a'}`,
-                    padding: 16,
-                  }}
+                  className={`phw-card ${isResubmit ? 'phw-card-res-resubmit' : 'phw-card-res-accept'}`}
                 >
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>
+                  <div className="phw-card-label">
                     {r.teacher_name || '선생님'} 피드백 · {new Date(r.created_at).toLocaleString('ko-KR')}
                     {isResubmit && (
-                      <span style={{ marginLeft: 8, color: 'var(--danger-text)' }}>[재제출 요청]</span>
+                      <span className="phw-card-resubmit-tag">[재제출 요청]</span>
                     )}
                   </div>
                   {r.comment && (
-                    <div style={{ fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', marginBottom: r.file_key ? 10 : 0 }}>
+                    <div className={`phw-comment${r.file_key ? ' phw-comment-gap' : ''}`}>
                       {r.comment}
                     </div>
                   )}
@@ -248,11 +220,7 @@ export default function ParentHomeworkPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       referrerPolicy="no-referrer"
-                      style={{
-                        display: 'inline-block', fontSize: 13, color: '#2563eb',
-                        textDecoration: 'none', padding: '6px 10px',
-                        border: '1.5px solid #dbeafe', borderRadius: 6, background: '#eff6ff',
-                      }}
+                      className="phw-file-link phw-file-link-inline"
                     >
                       {r.file_name || '첨삭본 열기'}
                     </a>
@@ -263,7 +231,7 @@ export default function ParentHomeworkPage() {
           </div>
         )}
 
-        <footer style={{ marginTop: 24, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+        <footer className="phw-footer">
           와와 학원 · 이 페이지는 보호된 링크로만 열람할 수 있습니다.
         </footer>
       </div>
@@ -286,29 +254,20 @@ function Lightbox({ src, name, onClose }: { src: string; name: string; onClose: 
       role="dialog"
       aria-label={`${name} 크게 보기`}
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(0,0,0,0.9)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24, cursor: 'zoom-out',
-      }}
+      className="phw-lightbox"
     >
       <img
         src={src}
         alt={name}
-        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', border: '4px solid var(--bg-secondary)' }}
       />
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
         aria-label="닫기"
-        style={{
-          position: 'absolute', top: 16, right: 16,
-          width: 44, height: 44, borderRadius: 22,
-          background: '#fff', border: '2px solid #000',
-          fontSize: 20, fontWeight: 700, cursor: 'pointer',
-        }}
-      >×</button>
+        className="phw-lightbox-close with-icon"
+      >
+        <X size={20} />
+      </button>
     </div>
   );
 }

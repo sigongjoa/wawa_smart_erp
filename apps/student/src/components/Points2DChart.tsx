@@ -68,51 +68,51 @@ export function Points2DChart({ spec, caption, width = 320, height = 220 }: Prop
         style={{ width: '100%', height: 'auto', display: 'block' }}
       >
         {/* plot 배경 */}
-        <rect x={PAD_L} y={PAD_T} width={plotW} height={plotH} fill="#FAFAFA" stroke="#E5E5E5" />
+        <rect x={PAD_L} y={PAD_T} width={plotW} height={plotH} fill="var(--bg-paper)" stroke="var(--bg-paper)" />
 
         {/* y 눈금 + 가로 격자 */}
         {yTicks.map((t, i) => (
           <g key={`yt-${i}`}>
-            <line x1={PAD_L} y1={sy(t)} x2={PAD_L + plotW} y2={sy(t)} stroke="#EEE" strokeDasharray="2 2" />
-            <text x={PAD_L - 4} y={sy(t) + 3} fontSize="9" fill="#666" textAnchor="end">{fmt(t)}</text>
+            <line x1={PAD_L} y1={sy(t)} x2={PAD_L + plotW} y2={sy(t)} stroke="var(--bg-paper)" strokeDasharray="2 2" />
+            <text x={PAD_L - 4} y={sy(t) + 3} fontSize="9" fill="var(--ink-60)" textAnchor="end">{fmt(t)}</text>
           </g>
         ))}
 
         {/* x 눈금 */}
         {xTicks.map((t, i) => (
           <g key={`xt-${i}`}>
-            <line x1={sx(t)} y1={PAD_T + plotH} x2={sx(t)} y2={PAD_T + plotH + 3} stroke="#666" />
-            <text x={sx(t)} y={PAD_T + plotH + 13} fontSize="9" fill="#666" textAnchor="middle">{fmt(t)}</text>
+            <line x1={sx(t)} y1={PAD_T + plotH} x2={sx(t)} y2={PAD_T + plotH + 3} stroke="var(--ink-60)" />
+            <text x={sx(t)} y={PAD_T + plotH + 13} fontSize="9" fill="var(--ink-60)" textAnchor="middle">{fmt(t)}</text>
           </g>
         ))}
 
         {/* 0축 */}
-        {showXAxis && <line x1={PAD_L} y1={sy(0)} x2={PAD_L + plotW} y2={sy(0)} stroke="#999" strokeWidth="1" />}
-        {showYAxis && <line x1={sx(0)} y1={PAD_T} x2={sx(0)} y2={PAD_T + plotH} stroke="#999" strokeWidth="1" />}
+        {showXAxis && <line x1={PAD_L} y1={sy(0)} x2={PAD_L + plotW} y2={sy(0)} stroke="var(--ink-40)" strokeWidth="1" />}
+        {showYAxis && <line x1={sx(0)} y1={PAD_T} x2={sx(0)} y2={PAD_T + plotH} stroke="var(--ink-40)" strokeWidth="1" />}
 
         {/* 곡선 */}
-        <path d={path} fill="none" stroke="#3FA129" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={path} fill="none" stroke="var(--type-grass)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
 
         {/* markers */}
         {markers.map((m, i) => (
           <g key={`m-${i}`}>
-            <circle cx={sx(m.x)} cy={sy(m.y)} r="4" fill="#E62829" />
+            <circle cx={sx(m.x)} cy={sy(m.y)} r="4" fill="var(--danger)" />
             {m.label && (
-              <text x={sx(m.x) + 6} y={sy(m.y) - 4} fontSize="10" fill="#E62829" fontWeight="700">{m.label}</text>
+              <text x={sx(m.x) + 6} y={sy(m.y) - 4} fontSize="10" fill="var(--danger)" fontWeight="700">{m.label}</text>
             )}
           </g>
         ))}
 
         {/* 축 라벨 */}
         {xlabel && (
-          <text x={PAD_L + plotW / 2} y={height - 4} fontSize="10" fill="#333" textAnchor="middle">{xlabel}</text>
+          <text x={PAD_L + plotW / 2} y={height - 4} fontSize="10" fill="var(--ink)" textAnchor="middle">{xlabel}</text>
         )}
         {ylabel && (
           <text
             x={10}
             y={PAD_T + plotH / 2}
             fontSize="10"
-            fill="#333"
+            fill="var(--ink)"
             textAnchor="middle"
             transform={`rotate(-90 10 ${PAD_T + plotH / 2})`}
           >

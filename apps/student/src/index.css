@@ -81,14 +81,14 @@ a[role="button"] {
 }
 
 .btn-success {
-  background: var(--success); color: #fff; border: none;
+  background: var(--success); color: var(--text-on-primary); border: none;
   border-radius: var(--radius-sm); padding: 14px 24px;
   min-height: 48px;
   font-size: 16px; font-weight: 600;
 }
 
 .btn-fail {
-  background: var(--danger); color: #fff; border: none;
+  background: var(--danger); color: var(--text-on-primary); border: none;
   border-radius: var(--radius-sm); padding: 14px 24px;
   min-height: 48px;
   font-size: 16px; font-weight: 600;
@@ -427,7 +427,7 @@ a[role="button"] {
   field-sizing: content;
 }
 .fillblank-input:focus {
-  background: #dde0f3; border-color: var(--primary-hover);
+  background: var(--ink-09); border-color: var(--primary-hover);
 }
 .fillblank-input::placeholder {
   color: var(--text-tertiary); font-weight: 400;
@@ -486,7 +486,7 @@ a[role="button"] {
 /* ─ a11y 글로벌 (mockup _shared.css 에서 머지) ────────────── */
 .skip-link {
   position: absolute; top: -48px; left: 8px;
-  background: var(--primary); color: white;
+  background: var(--primary); color: var(--text-on-primary);
   padding: 10px 16px; border-radius: 0 0 8px 8px;
   text-decoration: none; font-weight: 700; font-size: 13px;
   z-index: 10000;

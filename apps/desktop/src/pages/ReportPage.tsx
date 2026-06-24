@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
+import './ReportPage.css';
 import { api, Student, ReportEntry, ReportType } from '../api';
 import { toast } from '../components/Toast';
 import { Icon } from '../components/icons/Icon';
@@ -370,7 +371,7 @@ export default function ReportPage() {
         <div className="report-month-badge">
           {periodLabel || '미설정'}
         </div>
-        <div className="scope-toggle" role="group" aria-label="학생 범위" style={{ display: 'inline-flex', gap: 0, marginLeft: 12 }}>
+        <div className="scope-toggle report-scope-toggle" role="group" aria-label="학생 범위">
           <button
             type="button"
             className={`scope-toggle-btn ${scope === 'mine' ? 'scope-toggle-btn--active' : ''}`}
@@ -674,7 +675,7 @@ export default function ReportPage() {
                       })}
 
                       <div className="rpt-total-comment">
-                        <div className="rpt-section-label" style={{ padding: 0, margin: '0 0 8px 0' }}>총평</div>
+                        <div className="rpt-section-label rpt-total-comment-label">총평</div>
                         {captureMode ? (
                           (totalComment[selectedStudent] || studentReport?.totalComment) ? (
                             <p className="rpt-comment-text">{totalComment[selectedStudent] || studentReport?.totalComment}</p>
@@ -694,8 +695,7 @@ export default function ReportPage() {
                               ref={(el) => { if (el) autoResize(el); }}
                             />
                             <button
-                              className="rpt-ai-btn"
-                              style={{ marginTop: 10 }}
+                              className="rpt-ai-btn rpt-summary-btn"
                               disabled={summaryLoading}
                               onClick={handleGenerateSummary}
                             >
@@ -707,18 +707,18 @@ export default function ReportPage() {
                     </div>
                   ) : (
                     studentReport && (studentReport.studentSubjects?.length ?? 0) === 0 ? (
-                      <div className="report-empty" style={{ marginTop: 24, padding: 16, border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'var(--warning-surface)' }}>
-                        <p style={{ margin: 0, fontWeight: 600, color: 'var(--warning-text)' }}>
+                      <div className="report-empty rpt-no-subjects">
+                        <p className="rpt-no-subjects-title">
                           이 학생에게 매핑된 담당 과목이 없습니다.
                         </p>
-                        <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--warning-text)' }}>
+                        <p className="rpt-no-subjects-desc">
                           왼쪽 메뉴 <strong>학생 → 학생 관리</strong>에서 <strong>{currentStudent?.name || '이 학생'}</strong>을 수정하고,
                           담당 선생님의 chip을 클릭해 가르치는 과목을 선택해 주세요.
                           저장 후 이 페이지 새로고침하면 해당 과목 입력칸이 나타납니다.
                         </p>
                       </div>
                     ) : (
-                      <p className="report-empty" style={{ marginTop: 24 }}>
+                      <p className="report-empty rpt-no-data">
                         이 학생의 {periodLabel} {REPORT_TYPE_LABEL[reportType]} 성적 데이터가 없습니다 (해당 월에 시험이 등록되지 않았거나, 학생 수강 과목과 시험 과목이 일치하지 않습니다)
                       </p>
                     )

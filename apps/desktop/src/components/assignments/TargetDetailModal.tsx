@@ -152,7 +152,7 @@ export default function TargetDetailModal({ targetId, onClose, onChanged }: Prop
                     type="button"
                     onClick={() => setLightbox({ src: api.assignmentFileUrl(f.key), name: f.name })}
                     style={{
-                      padding: 0, border: '2px solid #e5e7eb', borderRadius: 8,
+                      padding: 0, border: '2px solid var(--line)', borderRadius: 8,
                       overflow: 'hidden', cursor: 'pointer', background: 'var(--bg-secondary)',
                       aspectRatio: '1 / 1',
                     }}
@@ -332,7 +332,7 @@ function ImageLightbox({ src, name, onClose }: { src: string; name: string; onCl
         style={{
           position: 'absolute', top: 16, right: 16,
           width: 44, height: 44, borderRadius: 22,
-          background: 'var(--bg-secondary)', border: '2px solid #000',
+          background: 'var(--bg-secondary)', border: '2px solid var(--ink)',
           fontSize: 20, fontWeight: 700, cursor: 'pointer',
         }}
       >×</button>

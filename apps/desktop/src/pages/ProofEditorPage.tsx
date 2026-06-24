@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Star } from 'lucide-react';
+import { Star, Plus, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { api, Proof, ProofDetail, ProofStep, ProofStepInput, GachaStudent } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import DialogShell from '../components/DialogShell';
@@ -332,7 +332,7 @@ export default function ProofEditorPage() {
 
       <div className="gacha-page-header">
         <h1>증명 연습 관리</h1>
-        <button className="btn-primary" onClick={openNewProof}>+ 새 증명 만들기</button>
+        <button className="btn btn-primary with-icon" onClick={openNewProof}><Plus size={16} aria-hidden />새 증명 만들기</button>
       </div>
 
       {/* 탭 */}
@@ -390,7 +390,7 @@ export default function ProofEditorPage() {
               {formDescImage && (
                 <div className="proof-image-preview">
                   <img src={`${API_BASE}/api/proof/image/${formDescImage}`} alt="desc" />
-                  <button className="btn-sm btn-danger" onClick={() => setFormDescImage(null)}>제거</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => setFormDescImage(null)}>제거</button>
                 </div>
               )}
             </div>
@@ -404,9 +404,9 @@ export default function ProofEditorPage() {
                 <div className="proof-step-header">
                   <span className="proof-step-num">Step {idx + 1}</span>
                   <div className="proof-step-controls">
-                    <button className="btn-sm" onClick={() => moveStep(idx, -1)} disabled={idx === 0} title="위로">&#9650;</button>
-                    <button className="btn-sm" onClick={() => moveStep(idx, 1)} disabled={idx === formSteps.length - 1} title="아래로">&#9660;</button>
-                    <button className="btn-sm btn-danger" onClick={() => removeStep(idx)} disabled={formSteps.length <= 1}>&#10005;</button>
+                    <button className="btn btn-secondary btn-sm with-icon" onClick={() => moveStep(idx, -1)} disabled={idx === 0} title="위로" aria-label="위로"><ChevronUp size={14} aria-hidden /></button>
+                    <button className="btn btn-secondary btn-sm with-icon" onClick={() => moveStep(idx, 1)} disabled={idx === formSteps.length - 1} title="아래로" aria-label="아래로"><ChevronDown size={14} aria-hidden /></button>
+                    <button className="btn btn-danger btn-sm with-icon" onClick={() => removeStep(idx)} disabled={formSteps.length <= 1} aria-label="단계 삭제"><X size={14} aria-hidden /></button>
                   </div>
                 </div>
 
@@ -426,7 +426,7 @@ export default function ProofEditorPage() {
                   {step.content_image && (
                     <div className="proof-image-preview proof-image-preview--small">
                       <img src={`${API_BASE}/api/proof/image/${step.content_image}`} alt="step" />
-                      <button className="btn-sm btn-danger" onClick={() => updateStep(idx, { content_image: undefined })}>제거</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => updateStep(idx, { content_image: undefined })}>제거</button>
                     </div>
                   )}
                 </div>
@@ -477,22 +477,22 @@ export default function ProofEditorPage() {
                             onChange={e => updateBlank(idx, bi, { answer: e.target.value })}
                             className="proof-blank-answer"
                           />
-                          <button className="btn-sm btn-danger" onClick={() => removeBlank(idx, bi)}>&#10005;</button>
+                          <button className="btn btn-danger btn-sm with-icon" onClick={() => removeBlank(idx, bi)} aria-label="빈칸 삭제"><X size={14} aria-hidden /></button>
                         </div>
                       ))}
-                      <button className="btn-sm" onClick={() => addBlank(idx)}>+ 빈칸 추가</button>
+                      <button className="btn btn-secondary btn-sm with-icon" onClick={() => addBlank(idx)}><Plus size={14} aria-hidden />빈칸 추가</button>
                     </div>
                   )}
                 </div>
               </div>
             ))}
 
-            <button className="btn-secondary proof-add-step" onClick={addStep}>+ 단계 추가</button>
+            <button className="btn btn-secondary proof-add-step with-icon" onClick={addStep}><Plus size={16} aria-hidden />단계 추가</button>
           </div>
 
           <div className="proof-editor-actions">
-            <button className="btn-secondary" onClick={() => setShowEditor(false)}>취소</button>
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+            <button className="btn btn-ghost" onClick={() => setShowEditor(false)}>취소</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
               {saving ? '저장 중...' : '저장'}
             </button>
           </div>
@@ -521,11 +521,11 @@ export default function ProofEditorPage() {
                   {s.content_image && (
                     <img src={`${API_BASE}/api/proof/image/${s.content_image}`} alt={`step ${i + 1}`} className="proof-preview-step-img" />
                   )}
-                  {s.blanks_json && <span className="proof-preview-blank-badge">빈칸 {JSON.parse(s.blanks_json).length}개</span>}
+                  {s.blanks_json && <span className="badge badge-warning">빈칸 {JSON.parse(s.blanks_json).length}개</span>}
                 </div>
               ))}
             </div>
-            <button className="btn-secondary" onClick={() => setPreviewProof(null)}>닫기</button>
+            <button className="btn btn-ghost" onClick={() => setPreviewProof(null)}>닫기</button>
           </div>
         </DialogShell>
       )}
@@ -556,8 +556,8 @@ export default function ProofEditorPage() {
               ))}
             </div>
             <div className="gacha-form-actions">
-              <button className="btn-secondary" onClick={() => setAssignProofId(null)}>취소</button>
-              <button className="btn-primary" onClick={handleAssign} disabled={selectedStudents.size === 0}>
+              <button className="btn btn-ghost" onClick={() => setAssignProofId(null)}>취소</button>
+              <button className="btn btn-primary" onClick={handleAssign} disabled={selectedStudents.size === 0}>
                 {selectedStudents.size}명 배정
               </button>
             </div>
@@ -575,7 +575,7 @@ export default function ProofEditorPage() {
               <div key={p.id} className="proof-card">
                 <div className="proof-card-header">
                   <h3>{p.title}</h3>
-                  {p.is_shared ? <span className="proof-shared-badge">공유됨</span> : null}
+                  {p.is_shared ? <span className="badge badge-info">공유됨</span> : null}
                 </div>
                 <div className="proof-card-meta">
                   <span>{p.grade}</span>
@@ -585,18 +585,18 @@ export default function ProofEditorPage() {
                   {p.share_count > 0 && <span>복사 {p.share_count}회</span>}
                 </div>
                 <div className="proof-card-actions">
-                  <button className="btn-sm" onClick={() => openPreview(p.id)}>미리보기</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => openPreview(p.id)}>미리보기</button>
                   {tab === 'mine' ? (
                     <>
-                      <button className="btn-sm" onClick={() => openEditProof(p.id)}>편집</button>
-                      <button className="btn-sm" onClick={() => openAssign(p.id)}>배정</button>
-                      <button className="btn-sm" onClick={() => handleShare(p)}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openEditProof(p.id)}>편집</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openAssign(p.id)}>배정</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => handleShare(p)}>
                         {p.is_shared ? '공유 해제' : '공유'}
                       </button>
-                      <button className="btn-sm btn-danger" onClick={() => handleDelete(p)}>삭제</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p)}>삭제</button>
                     </>
                   ) : (
-                    <button className="btn-sm btn-primary" onClick={() => handleCopy(p)}>내 학원에 복사</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => handleCopy(p)}>내 학원에 복사</button>
                   )}
                 </div>
               </div>

@@ -187,7 +187,7 @@
   color: var(--type-grass);
 }
 .dr-card[data-type="ground"]   .dr-source { color: var(--type-ground); }
-.dr-card[data-type="electric"] .dr-source { color: #b18800; }
+.dr-card[data-type="electric"] .dr-source { color: var(--warning); }
 .dr-card[data-type="water"]    .dr-source { color: var(--type-water); }
 .dr-source .ico {
   font-size: 13px; line-height: 1; text-transform: none;
@@ -340,7 +340,7 @@
 .dr-rate-btn.hard:hover, .dr-rate-btn.hard:active {
   background: var(--type-electric-surface, rgba(250, 192, 0, 0.08));
 }
-.dr-rate-btn.hard .label { color: #b18800; }
+.dr-rate-btn.hard .label { color: var(--warning); }
 
 .dr-rate-btn.dunno { border-color: rgba(230, 40, 41, 0.30); }
 .dr-rate-btn.dunno:hover, .dr-rate-btn.dunno:active {

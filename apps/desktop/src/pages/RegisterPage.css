@@ -1,0 +1,107 @@
+/* RegisterPage — 학원 등록 플로우. .login-page/.login-card 레이아웃 위에 얹는 페이지 전용 보조 클래스 */
+
+.reg-card {
+  max-width: 420px;
+}
+
+.reg-hint {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--sp-2);
+}
+
+.reg-slug-row {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.reg-slug-row .input {
+  flex: 1;
+}
+
+.reg-check-btn {
+  white-space: nowrap;
+  padding: var(--sp-2) var(--sp-4);
+}
+
+.reg-available {
+  color: var(--success);
+  font-size: var(--fs-13);
+  margin: var(--sp-2) 0;
+}
+
+.reg-next-btn {
+  margin-top: var(--sp-4);
+}
+
+.reg-login-link {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin-top: var(--sp-4);
+  text-align: center;
+}
+
+.reg-login-link a {
+  color: var(--info);
+}
+
+.reg-slug-summary {
+  font-size: var(--fs-13);
+  color: var(--info);
+  margin: 0 0 var(--sp-4);
+}
+
+.reg-change-btn {
+  margin-left: var(--sp-2);
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.reg-submit-btn {
+  margin-top: var(--sp-4);
+}
+
+.reg-done {
+  text-align: center;
+}
+
+.reg-done-icon {
+  display: flex;
+  justify-content: center;
+  color: var(--success);
+  margin-bottom: var(--sp-4);
+}
+
+.reg-done-title {
+  margin-bottom: var(--sp-2);
+}
+
+.reg-done-desc {
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-6);
+}
+
+.reg-done-card {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-6);
+  text-align: left;
+}
+
+.reg-done-card p {
+  font-size: var(--fs-13);
+  margin: 0 0 var(--sp-1);
+}
+
+.reg-done-card p:last-child {
+  margin: 0;
+}
+
+.reg-done-btn {
+  width: 100%;
+}

@@ -1,0 +1,6 @@
+/* TimerPage 전용 — 정적 스타일 (디자인 시스템 마이그레이션) */
+
+/* 퇴근(LogIn) 아이콘 방향 반전 */
+.timer-leave-icon {
+  transform: rotate(180deg);
+}

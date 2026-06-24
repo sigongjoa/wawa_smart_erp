@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ExamQuestionDto } from '../api';
 import { Icon } from '../components/icons/Icon';
 import { errorMessage } from '../utils/errors';
+import './ExamQuestionEditorPage.css';
 
 function blank(n: number): ExamQuestionDto {
   return {
@@ -110,34 +111,30 @@ export default function ExamQuestionEditorPage() {
     q.prompt.trim() && q.choices.every(c => c.trim())
   ).length, [questions]);
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>불러오는 중...</div>;
+  if (loading) return <div className="loading-state"><span className="spinner" /> 불러오는 중...</div>;
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+    <div className="eqe-page">
+      <div className="eqe-back-row">
         <button
-          className="with-icon"
+          className="btn btn-ghost btn-sm with-icon"
           onClick={() => navigate(backTo)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
         ><Icon name="ArrowLeft" /> 돌아가기</button>
       </div>
-      <h1 style={{ fontSize: 22, margin: '4px 0 20px', color: 'var(--text-primary)' }}>
-        문제 입력 {paperTitleQ && <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>— {paperTitleQ}</span>}
+      <h1 className="eqe-title">
+        문제 입력 {paperTitleQ && <span className="eqe-title-sub">— {paperTitleQ}</span>}
       </h1>
 
-      <div style={{
-        background: 'var(--bg-tertiary)', borderRadius: 10, padding: 16, marginBottom: 16,
-        display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap',
-      }}>
-        <label style={{ fontSize: 14 }}>
+      <div className="eqe-meta-bar">
+        <label className="eqe-meta-label">
           과목:&nbsp;
-          <select value={subject} onChange={e => setSubject(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6 }}>
+          <select value={subject} onChange={e => setSubject(e.target.value)} className="eqe-select">
             <option value="english">영어</option>
             <option value="math" disabled>수학 (v2)</option>
             <option value="korean" disabled>국어 (v2)</option>
           </select>
         </label>
-        <label style={{ fontSize: 14 }}>
+        <label className="eqe-meta-label">
           제한 시간:&nbsp;
           <input
             type="number"
@@ -145,10 +142,10 @@ export default function ExamQuestionEditorPage() {
             onChange={e => setDurationMinutes(Number(e.target.value) || 50)}
             min={10}
             max={180}
-            style={{ width: 80, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-primary)' }}
+            className="eqe-input-duration"
           /> 분
         </label>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+        <span className="eqe-meta-count">
           · {readyCount}/{questions.length} 완성
         </span>
       </div>
@@ -162,24 +159,22 @@ export default function ExamQuestionEditorPage() {
         <option value="작문" />
       </datalist>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="eqe-list">
         {questions.map((q, qIdx) => (
-          <div key={qIdx} style={{
-            background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: 16,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <strong style={{ color: 'var(--primary)', fontSize: 16 }}>Q{q.questionNo}</strong>
-              <label style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          <div key={qIdx} className="eqe-card">
+            <div className="eqe-card-head">
+              <strong className="eqe-q-no">Q{q.questionNo}</strong>
+              <label className="eqe-field-label">
                 점수:&nbsp;
                 <input
                   type="number"
                   value={q.points ?? 1}
                   step={0.5}
                   onChange={e => updateQ(qIdx, { points: Number(e.target.value) || 1 })}
-                  style={{ width: 60, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)' }}
+                  className="eqe-input-points"
                 />
               </label>
-              <label style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              <label className="eqe-field-label">
                 유형:&nbsp;
                 <input
                   type="text"
@@ -187,17 +182,14 @@ export default function ExamQuestionEditorPage() {
                   list="exam-category-suggest"
                   placeholder="예: 어법/독해"
                   onChange={e => updateQ(qIdx, { category: e.target.value || null })}
-                  style={{ width: 130, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)' }}
+                  className="eqe-input-category"
                 />
               </label>
-              <div style={{ marginLeft: 'auto' }}>
+              <div className="eqe-card-head-end">
                 <button
+                  className="btn btn-danger btn-sm with-icon"
                   onClick={() => removeQuestion(qIdx)}
-                  style={{
-                    background: 'var(--danger-surface)', color: 'var(--danger-text)', border: 'none',
-                    padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer',
-                  }}
-                >삭제</button>
+                ><Icon name="Trash2" size={14} /> 삭제</button>
               </div>
             </div>
 
@@ -206,44 +198,30 @@ export default function ExamQuestionEditorPage() {
               onChange={e => updateQ(qIdx, { prompt: e.target.value })}
               placeholder="문제 지문…"
               rows={3}
-              style={{
-                width: '100%', padding: 10, borderRadius: 6, border: '1px solid var(--border-primary)',
-                fontSize: 14, fontFamily: 'inherit', resize: 'vertical', marginBottom: 10,
-              }}
+              className="eqe-prompt"
             />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="eqe-choices">
               {q.choices.map((c, cIdx) => {
                 const n = cIdx + 1;
                 const isCorrect = q.correctChoice === n;
                 return (
-                  <div key={cIdx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div key={cIdx} className="eqe-choice-row">
                     <button
                       onClick={() => updateQ(qIdx, { correctChoice: n })}
                       title="정답으로 설정"
-                      style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: isCorrect ? '#00c4a3' : '#e2e8f0',
-                        color: isCorrect ? '#fff' : '#4a5568',
-                        border: 'none', cursor: 'pointer',
-                        fontWeight: 700, fontSize: 13, flexShrink: 0,
-                      }}
+                      className={isCorrect ? 'eqe-choice-btn is-correct' : 'eqe-choice-btn'}
                     >{n}</button>
                     <input
                       value={c}
                       onChange={e => updateChoice(qIdx, cIdx, e.target.value)}
                       placeholder={`보기 ${n}`}
-                      style={{
-                        flex: 1, padding: '8px 10px', borderRadius: 6,
-                        border: `1px solid ${isCorrect ? '#00c4a3' : '#cbd5e0'}`,
-                        background: isCorrect ? '#e8faf6' : '#fff',
-                        fontSize: 14,
-                      }}
+                      className={isCorrect ? 'eqe-choice-input is-correct' : 'eqe-choice-input'}
                     />
                   </div>
                 );
               })}
-              <div className="with-icon" style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              <div className="with-icon eqe-choice-hint">
                 <Icon name="ArrowLeft" size={12} /> 번호 버튼을 눌러 정답 설정 (현재: {q.correctChoice})
               </div>
             </div>
@@ -252,41 +230,23 @@ export default function ExamQuestionEditorPage() {
       </div>
 
       <button
+        className="btn btn-ghost with-icon eqe-add-btn"
         onClick={addQuestion}
-        style={{
-          marginTop: 12, padding: '10px 20px', borderRadius: 8,
-          background: '#eef0f8', color: 'var(--primary)', border: '1px dashed #2d3a8c',
-          cursor: 'pointer', fontWeight: 600,
-        }}
-      >+ 문제 추가</button>
+      ><Icon name="Plus" size={16} /> 문제 추가</button>
 
       {msg && (
-        <div style={{
-          marginTop: 16, padding: 10, borderRadius: 8,
-          background: msg.kind === 'ok' ? 'var(--success-surface)' : 'var(--danger-surface)',
-          color: msg.kind === 'ok' ? 'var(--success-text)' : 'var(--danger-text)',
-          fontSize: 14,
-        }}>{msg.text}</div>
+        <div className={msg.kind === 'ok' ? 'eqe-msg is-ok' : 'eqe-msg is-err'}>{msg.text}</div>
       )}
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 20, position: 'sticky', bottom: 0, paddingBottom: 10 }}>
+      <div className="eqe-footer">
         <button
+          className="btn btn-secondary eqe-footer-cancel"
           onClick={() => navigate(backTo)}
-          style={{
-            flex: 1, padding: '12px', borderRadius: 10,
-            background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)',
-            cursor: 'pointer', fontWeight: 600,
-          }}
         >취소</button>
         <button
+          className="btn btn-primary btn-lg eqe-footer-save"
           onClick={handleSave}
           disabled={saving}
-          style={{
-            flex: 2, padding: '12px', borderRadius: 10,
-            background: saving ? '#cbd5e0' : '#2d3a8c', color: '#fff',
-            border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-            fontWeight: 700, fontSize: 15,
-          }}
         >{saving ? '저장 중…' : `저장 (${questions.length}문항)`}</button>
       </div>
     </div>

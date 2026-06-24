@@ -1,0 +1,6 @@
+/* ExamPapersPage 전용 정적 스타일 — inline style 리터럴을 토큰화하여 이관 */
+.exam-papers-page .exam-edit-note {
+  margin-bottom: var(--sp-3);
+  color: var(--text-tertiary);
+  font-size: var(--fs-13);
+}

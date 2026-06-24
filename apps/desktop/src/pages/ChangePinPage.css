@@ -1,0 +1,33 @@
+.change-pin-page {
+  max-width: 400px;
+  margin: 60px auto;
+  padding: var(--sp-6);
+}
+
+.change-pin-title {
+  margin-bottom: var(--sp-2);
+}
+
+.change-pin-intro {
+  font-size: var(--fs-14);
+  margin-bottom: var(--sp-6);
+}
+
+.change-pin-intro--warn {
+  color: var(--danger-text);
+}
+
+.change-pin-intro--muted {
+  color: var(--text-secondary);
+}
+
+.change-pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.change-pin-error {
+  color: var(--danger-text);
+  font-size: var(--fs-14);
+}

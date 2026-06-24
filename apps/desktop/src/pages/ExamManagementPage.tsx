@@ -4,10 +4,11 @@ import { api, type ExamAbsentee, type ExamPaper, type ExamAttemptByPeriod, type 
 import { toast, useConfirm } from '../components/Toast';
 import Modal from '../components/Modal';
 import { Icon } from '../components/icons/Icon';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Plus } from 'lucide-react';
 import { useAuthStore } from '../store';
 import { escapeHtml } from '../utils/html';
 import { PageHeader } from '../components/v2';
+import './ExamManagementPage.css';
 
 const PAGE_STATE_KEY = 'exam-mgmt';
 
@@ -888,10 +889,10 @@ export default function ExamManagementPage() {
                     ) : (
                       <button
                         type="button"
-                        className="exam-link-add"
+                        className="exam-link-add with-icon"
                         onClick={() => setEditingLinkId(s.student_id)}
                       >
-                        + 링크
+                        <Plus size={12} /> 링크
                       </button>
                     )}
                   </td>
@@ -984,15 +985,15 @@ export default function ExamManagementPage() {
                   <td className="exam-cell-summary">
                     <span className="exam-cell-summary__desktop">
                       {!s.assigned ? (
-                        <span className="exam-badge exam-badge--none">미배정</span>
+                        <span className="badge badge-danger">미배정</span>
                       ) : done ? (
-                        <span className="exam-badge exam-badge--done">완료</span>
+                        <span className="badge badge-success">완료</span>
                       ) : s.created_check && s.printed ? (
-                        <span className="exam-badge exam-badge--review">검토전</span>
+                        <span className="badge badge-warning">검토전</span>
                       ) : s.created_check ? (
-                        <span className="exam-badge exam-badge--print">프린트전</span>
+                        <span className="badge badge-info">프린트전</span>
                       ) : (
-                        <span className="exam-badge exam-badge--none">미제작</span>
+                        <span className="badge badge-danger">미제작</span>
                       )}
                     </span>
                     {s.assigned && (
@@ -1113,26 +1114,17 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
   if (!periodId) return null;
 
   return (
-    <div style={{ position: 'relative', marginLeft: 'auto' }}>
+    <div className="exam-dropdown exam-dropdown--push">
       <button
         type="button"
         onClick={toggle}
-        style={{
-          padding: '8px 14px', borderRadius: 8,
-          background: '#eef0f8', color: 'var(--primary)', border: '1px solid #2d3a8c',
-          cursor: 'pointer', fontWeight: 600, fontSize: 13,
-        }}
-      ><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>영어 문제 입력 {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span></button>
+        className="exam-dropdown-trigger"
+      ><span className="exam-dropdown-trigger__inner">영어 문제 입력 {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span></button>
       {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: '110%', zIndex: 20,
-          background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 8,
-          minWidth: 280, maxHeight: 400, overflowY: 'auto',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.08)', padding: 8,
-        }}>
-          {loading && <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: 13 }}>불러오는 중...</div>}
+        <div className="exam-dropdown-panel">
+          {loading && <div className="exam-dropdown-empty">불러오는 중...</div>}
           {!loading && papers.length === 0 && (
-            <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: 13 }}>
+            <div className="exam-dropdown-empty">
               이 기간에 시험지가 없습니다.
             </div>
           )}
@@ -1143,19 +1135,11 @@ function EnglishExamPaperPicker({ periodId }: { periodId: string }) {
                 setOpen(false);
                 navigate(`/exam-questions/${p.id}?back=/exams&title=${encodeURIComponent(p.title)}`);
               }}
-              style={{
-                display: 'block', width: '100%',
-                padding: '10px 12px', textAlign: 'left',
-                background: 'transparent', border: 'none',
-                borderRadius: 6, cursor: 'pointer',
-                fontSize: 13, color: 'var(--text-primary)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#f7fafc')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              className="exam-paper-item"
             >
-              <div style={{ fontWeight: 600 }}>{p.title}</div>
+              <div className="exam-paper-item__title">{p.title}</div>
               {p.grade_filter && (
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{p.grade_filter}</div>
+                <div className="exam-paper-item__grade">{p.grade_filter}</div>
               )}
             </button>
           ))}
@@ -1189,32 +1173,23 @@ function PresetMenu({
   const shared = presets.filter(p => p.owner_user_id !== userId && p.visibility === 'academy');
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="exam-dropdown">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        style={{
-          padding: '8px 14px', borderRadius: 8,
-          background: '#fff', color: 'var(--text-primary)', border: '1px solid var(--border-primary)',
-          cursor: 'pointer', fontWeight: 600, fontSize: 13,
-        }}
-      ><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ChevronDown size={14} /> 프리셋 {presets.length > 0 && `(${presets.length})`}</span></button>
+        className="exam-dropdown-trigger exam-dropdown-trigger--plain"
+      ><span className="exam-dropdown-trigger__inner"><ChevronDown size={14} /> 프리셋 {presets.length > 0 && `(${presets.length})`}</span></button>
       {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: '110%', zIndex: 30,
-          background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 8,
-          minWidth: 280, maxHeight: 420, overflowY: 'auto',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.08)', padding: 6,
-        }}>
+        <div className="exam-dropdown-panel exam-dropdown-panel--menu">
           {mine.length === 0 && shared.length === 0 && (
-            <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: 12 }}>
+            <div className="exam-dropdown-empty exam-dropdown-empty--sm">
               저장된 프리셋이 없습니다.
             </div>
           )}
           {mine.length > 0 && (
             <>
-              <div style={{ padding: '6px 10px', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>내 프리셋</div>
+              <div className="exam-preset-group-label">내 프리셋</div>
               {mine.map(p => (
                 <PresetRow key={p.id} preset={p} editable onApply={onApply} onEdit={onEdit} onDelete={onDelete} />
               ))}
@@ -1222,7 +1197,7 @@ function PresetMenu({
           )}
           {shared.length > 0 && (
             <>
-              <div style={{ padding: '6px 10px 6px', marginTop: mine.length > 0 ? 4 : 0, fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>
+              <div className={`exam-preset-group-label ${mine.length > 0 ? 'exam-preset-group-label--shared' : ''}`}>
                 학원 공유
               </div>
               {shared.map(p => (
@@ -1230,17 +1205,12 @@ function PresetMenu({
               ))}
             </>
           )}
-          <div style={{ borderTop: '1px solid var(--border-primary)', marginTop: 6, paddingTop: 6 }}>
+          <div className="exam-preset-footer">
             <button
               type="button"
               onClick={onSaveNew}
-              style={{
-                width: '100%', textAlign: 'left',
-                padding: '8px 10px', background: 'transparent', border: 'none',
-                borderRadius: 6, cursor: 'pointer',
-                fontSize: 13, color: 'var(--primary)', fontWeight: 600,
-              }}
-            >+ 현재 화면 저장</button>
+              className="exam-preset-save with-icon"
+            ><Plus size={12} /> 현재 화면 저장</button>
           </div>
         </div>
       )}
@@ -1258,21 +1228,14 @@ function PresetRow({
   onDelete: (p: ExamViewPreset) => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+    <div className="exam-preset-row">
       <button
         type="button"
         onClick={() => onApply(preset)}
-        style={{
-          flex: 1, textAlign: 'left',
-          padding: '8px 10px', background: 'transparent', border: 'none',
-          borderRadius: 6, cursor: 'pointer',
-          fontSize: 13, color: 'var(--text-primary)',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = '#f7fafc')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        className="exam-preset-row__main"
       >
-        <div style={{ fontWeight: 600 }}>{preset.name}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+        <div className="exam-preset-row__name">{preset.name}</div>
+        <div className="exam-preset-row__meta">
           {monthRefLabel(preset.month_ref)} · {preset.scope === 'all' ? '모두' : '내 학생'}
           {preset.visibility === 'academy' && ' · 공유'}
         </div>
@@ -1284,15 +1247,15 @@ function PresetRow({
             onClick={() => onEdit(preset)}
             aria-label={`${preset.name} 편집`}
             title="편집"
-            style={{ padding: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            className="exam-preset-row__icon-btn"
           ><Icon name="Pencil" size={14} /></button>
           <button
             type="button"
             onClick={() => onDelete(preset)}
             aria-label={`${preset.name} 삭제`}
             title="삭제"
-            style={{ padding: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
-          >×</button>
+            className="exam-preset-row__icon-btn"
+          ><X size={14} /></button>
         </>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Plus, ArrowLeft, Check, FileText } from 'lucide-react';
 import { api } from '../api';
 import { errorMessage } from '../utils/errors';
 import { toast, useConfirm } from '../components/Toast';
@@ -139,23 +140,28 @@ export default function MeetingPage() {
     return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  const statusBadgeClass = (status: string) =>
+    status === 'done' ? 'badge badge-success' : status === 'error' ? 'badge badge-danger' : 'badge badge-warning';
+
   if (viewMode === 'list') {
     return (
       <div className="meeting-page">
         <div className="meeting-header">
           <h2>회의록</h2>
-          <button className="btn btn-primary" onClick={() => setViewMode('record')}>
-            + 새 회의
+          <button className="btn btn-primary with-icon" onClick={() => setViewMode('record')}>
+            <Plus size={16} /> 새 회의
           </button>
         </div>
 
         {loading ? (
-          <p className="no-data">불러오는 중...</p>
+          <div className="loading-state">
+            <div className="spinner" />
+          </div>
         ) : meetings.length === 0 ? (
-          <div className="meeting-empty">
-            <div className="meeting-empty-icon">&#128221;</div>
-            <p>등록된 회의록이 없습니다</p>
-            <p className="meeting-empty-hint">
+          <div className="empty-state">
+            <div className="empty-state-icon"><FileText size={48} /></div>
+            <div className="empty-state-title">등록된 회의록이 없습니다</div>
+            <p className="empty-state-desc">
               회의 내용을 텍스트로 입력하고 저장하세요
             </p>
             <button className="btn btn-primary meeting-empty-cta" onClick={() => setViewMode('record')}>
@@ -175,7 +181,7 @@ export default function MeetingPage() {
               >
                 <div className="meeting-card-header">
                   <span className="meeting-card-title">{m.title}</span>
-                  <span className={`meeting-status meeting-status--${m.status}`}>
+                  <span className={statusBadgeClass(m.status)}>
                     {m.status === 'done' ? '완료' : m.status === 'error' ? '오류' : '처리중'}
                   </span>
                 </div>
@@ -202,7 +208,7 @@ export default function MeetingPage() {
     return (
       <div className="meeting-page">
         <div className="meeting-header">
-          <button className="back-btn" onClick={handleCancel}>&larr; 목록</button>
+          <button className="back-btn with-icon" onClick={handleCancel}><ArrowLeft size={16} /> 목록</button>
           <h2>새 회의</h2>
         </div>
 
@@ -251,8 +257,8 @@ export default function MeetingPage() {
     return (
       <div className="meeting-page">
         <div className="meeting-header">
-          <button className="back-btn" onClick={() => { setViewMode('list'); setSelectedMeeting(null); }}>
-            &larr; 목록
+          <button className="back-btn with-icon" onClick={() => { setViewMode('list'); setSelectedMeeting(null); }}>
+            <ArrowLeft size={16} /> 목록
           </button>
           <h2>{m.title}</h2>
         </div>
@@ -261,7 +267,7 @@ export default function MeetingPage() {
           <div className="meeting-detail-meta">
             <span>{formatDate(m.created_at)}</span>
             {m.participants.length > 0 && <span>참석: {m.participants.join(', ')}</span>}
-            <span className={`meeting-status meeting-status--${m.status}`}>
+            <span className={statusBadgeClass(m.status)}>
               {m.status === 'done' ? '완료' : m.status === 'error' ? '오류' : '처리중'}
             </span>
           </div>
@@ -298,7 +304,7 @@ export default function MeetingPage() {
                       className="meeting-action-check"
                       onClick={() => handleToggleAction(a.id, a.status)}
                     >
-                      {a.status === 'done' ? '\u2713' : ''}
+                      {a.status === 'done' ? <Check size={14} /> : ''}
                     </button>
                     <div className="meeting-action-content">
                       <span className="meeting-action-title">{a.title}</span>

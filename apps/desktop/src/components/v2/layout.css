@@ -473,7 +473,7 @@
 .v2-timer-card__btn--primary:hover { filter: brightness(0.95); background: var(--primary); }
 .v2-timer-card__btn--danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--text-on-primary, #fff);
   border-color: var(--danger);
 }
 .v2-timer-card__btn--danger:hover { filter: brightness(0.95); background: var(--danger); }

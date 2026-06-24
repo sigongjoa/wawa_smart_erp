@@ -53,9 +53,9 @@ export default function TeacherList({ onCreateInvite }: Props) {
             onClick={() => setFilter(f)}
             style={{
               padding: '4px 12px',
-              border: '1px solid ' + (filter === f ? '#4a90d9' : '#ddd'),
-              background: filter === f ? '#4a90d9' : '#fff',
-              color: filter === f ? '#fff' : '#555',
+              border: '1px solid ' + (filter === f ? 'var(--accent)' : 'var(--line)'),
+              background: filter === f ? 'var(--accent)' : 'var(--surface)',
+              color: filter === f ? 'var(--text-on-primary)' : 'var(--ink-60)',
               borderRadius: 4,
               cursor: 'pointer',
             }}

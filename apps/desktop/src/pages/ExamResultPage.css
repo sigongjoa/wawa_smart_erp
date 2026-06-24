@@ -1,0 +1,6 @@
+/* ExamResultPage — 페이지 전용 보조 스타일.
+   본문 레이아웃은 index.css의 .exam-result-* 규칙을 사용한다.
+   여기서는 .tsx 안에 있던 정적 inline style을 토큰 클래스로 분리한다. */
+
+.exam-result-stat-value--correct { color: var(--success); }
+.exam-result-stat-value--wrong { color: var(--danger); }

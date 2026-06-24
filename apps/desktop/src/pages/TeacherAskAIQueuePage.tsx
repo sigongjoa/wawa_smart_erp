@@ -237,10 +237,10 @@ export default function TeacherAskAIQueuePage() {
                         <div className="askai-q-slip-row2">{it.unit}</div>
                         <div className="askai-q-slip-row3">
                           <ConfidenceMeter level={it.confidence} />
-                          {it.needs_teacher && <span className="askai-q-badge askai-q-badge--warn">검토 필요</span>}
+                          {it.needs_teacher && <span className="badge badge-warning">검토 필요</span>}
                           {it.decision === null
-                            ? <span className="askai-q-badge">미코멘트</span>
-                            : <span className="askai-q-badge askai-q-badge--ok">{DECISION_LABEL[it.decision]}</span>}
+                            ? <span className="badge badge-neutral">미코멘트</span>
+                            : <span className="badge badge-success">{DECISION_LABEL[it.decision]}</span>}
                         </div>
                       </div>
                     </button>
@@ -300,7 +300,7 @@ export default function TeacherAskAIQueuePage() {
                     <h3>AI 응답</h3>
                     <span className="askai-q-ai-conf">{CONFIDENCE_LABEL[detail.conversation.confidence]}</span>
                     {detail.conversation.needs_teacher && (
-                      <span className="askai-q-badge askai-q-badge--warn">검토 필요</span>
+                      <span className="badge badge-warning">검토 필요</span>
                     )}
                     <span className="askai-q-ai-spacer" />
                     {detail.conversation.duration_ms != null && (
@@ -348,7 +348,7 @@ export default function TeacherAskAIQueuePage() {
                   <div className="askai-q-action-buttons">
                     <button
                       type="button"
-                      className="askai-q-action-btn askai-q-action-btn--ok"
+                      className="btn btn-present askai-q-action-btn with-icon"
                       onClick={() => applyDecision('ok')}
                       disabled={applying}
                     >
@@ -357,7 +357,7 @@ export default function TeacherAskAIQueuePage() {
                     </button>
                     <button
                       type="button"
-                      className="askai-q-action-btn askai-q-action-btn--comment"
+                      className="btn btn-primary askai-q-action-btn with-icon"
                       onClick={() => applyDecision('comment')}
                       disabled={applying || !comment.trim()}
                     >
@@ -366,7 +366,7 @@ export default function TeacherAskAIQueuePage() {
                     </button>
                     <button
                       type="button"
-                      className="askai-q-action-btn askai-q-action-btn--wrong"
+                      className="btn btn-danger askai-q-action-btn with-icon"
                       onClick={() => applyDecision('ai_wrong')}
                       disabled={applying}
                     >

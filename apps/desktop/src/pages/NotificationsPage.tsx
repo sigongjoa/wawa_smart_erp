@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { api, type NotificationItem } from '../api';
+import './NotificationsPage.css';
 
 type Filter = 'unread' | 'read' | 'all';
 
@@ -63,9 +65,9 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="page-container" style={{ padding: '24px 16px', maxWidth: 800 }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 22 }}>알림</h1>
+    <div className="page-container notif-page">
+      <header className="page-header page-header-row">
+        <h1 className="page-title">알림</h1>
         <button
           type="button"
           onClick={handleReadAll}
@@ -76,7 +78,7 @@ export default function NotificationsPage() {
         </button>
       </header>
 
-      <div role="tablist" aria-label="알림 필터" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div role="tablist" aria-label="알림 필터" className="chip-group" style={{ marginBottom: 'var(--sp-4)' }}>
         {(['unread', 'read', 'all'] as Filter[]).map((f) => (
           <button
             key={f}
@@ -84,17 +86,7 @@ export default function NotificationsPage() {
             role="tab"
             aria-selected={filter === f}
             onClick={() => setFilter(f)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: 18,
-              border: '1px solid',
-              borderColor: filter === f ? 'var(--accent, #1f7a4d)' : 'var(--border, #e3e6ea)',
-              background: filter === f ? 'var(--accent, #1f7a4d)' : '#fff',
-              color: filter === f ? '#fff' : 'var(--ink, #0a1f14)',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className={`filter-btn${filter === f ? ' active' : ''}`}
           >
             {f === 'unread' ? '미확인' : f === 'read' ? '확인됨' : '전체'}
           </button>
@@ -102,54 +94,37 @@ export default function NotificationsPage() {
       </div>
 
       {error && (
-        <div role="alert" style={{
-          padding: 12, background: '#FEF2F2', color: '#B91C1C',
-          borderRadius: 8, marginBottom: 12, fontSize: 13,
-        }}>{error}</div>
+        <div role="alert" className="error-message with-icon">
+          <AlertCircle size={16} aria-hidden />
+          {error}
+        </div>
       )}
 
       {items.length === 0 && !loading ? (
-        <div style={{
-          padding: 48, textAlign: 'center', color: 'var(--ink-60, #5a6068)',
-          background: 'var(--surface-2, #fafbfc)', borderRadius: 12,
-        }}>
-          {filter === 'unread' ? '확인하지 않은 알림이 없습니다' : '알림이 없습니다'}
+        <div className="empty-state">
+          <div className="empty-state-desc">
+            {filter === 'unread' ? '확인하지 않은 알림이 없습니다' : '알림이 없습니다'}
+          </div>
         </div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <ul className="notif-list">
           {items.map((it) => (
             <li key={it.id}>
               <button
                 type="button"
                 onClick={() => handleClick(it)}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '14px 16px',
-                  border: '1px solid var(--border, #e3e6ea)',
-                  background: it.is_read ? 'var(--surface-2, #fafbfc)' : '#fff',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
+                className={`notif-item${it.is_read ? ' notif-item--read' : ''}`}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {!it.is_read && (
-                    <span aria-hidden style={{
-                      display: 'inline-block', width: 8, height: 8,
-                      borderRadius: '50%', background: '#e23b3b',
-                    }} />
-                  )}
-                  <span style={{ fontWeight: 600, color: 'var(--ink, #0a1f14)' }}>{it.title}</span>
+                <div className="notif-item-head">
+                  {!it.is_read && <span aria-hidden className="notif-dot" />}
+                  <span className="notif-title">{it.title}</span>
                 </div>
                 {it.body && (
-                  <div style={{ fontSize: 13, color: 'var(--ink-70, #41464d)', lineHeight: 1.45 }}>
+                  <div className="notif-body">
                     {it.body}
                   </div>
                 )}
-                <div style={{ fontSize: 11.5, color: 'var(--ink-50, #6e7480)', marginTop: 2 }}>
+                <div className="notif-time">
                   {formatFull(it.created_at)}
                 </div>
               </button>
@@ -159,13 +134,14 @@ export default function NotificationsPage() {
       )}
 
       {loading && (
-        <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink-60, #5a6068)' }}>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden />
           불러오는 중...
         </div>
       )}
 
       {!loading && !reachedEnd && cursor && (
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
+        <div className="notif-more">
           <button type="button" className="btn-secondary" onClick={() => load(false)}>
             더 보기
           </button>

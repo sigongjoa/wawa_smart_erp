@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Star } from 'lucide-react';
 import { api, GachaStats } from '../api';
+import './GachaDashboardPage.css';
 
 export default function GachaDashboardPage() {
   const [stats, setStats] = useState<GachaStats | null>(null);
@@ -14,8 +15,8 @@ export default function GachaDashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="gacha-page"><div className="gacha-loading">불러오는 중...</div></div>;
-  if (!stats) return <div className="gacha-page"><div className="gacha-empty">데이터를 불러올 수 없습니다.</div></div>;
+  if (loading) return <div className="gacha-page"><div className="loading-state"><div className="spinner" />불러오는 중...</div></div>;
+  if (!stats) return <div className="gacha-page"><div className="empty-state"><div className="empty-state-title">데이터를 불러올 수 없습니다.</div></div></div>;
 
   const { summary, studentProgress, hardProofs } = stats;
 
@@ -49,7 +50,7 @@ export default function GachaDashboardPage() {
       <div className="gacha-section">
         <h2>학생별 진도</h2>
         {studentProgress.length === 0 ? (
-          <div className="gacha-empty">학생 데이터가 없습니다.</div>
+          <div className="empty-state"><div className="empty-state-title">학생 데이터가 없습니다.</div></div>
         ) : (
           <div className="gacha-table-wrapper">
             <table className="gacha-table">
@@ -84,7 +85,7 @@ export default function GachaDashboardPage() {
                         {daysSince !== null
                           ? daysSince === 0 ? '오늘'
                             : daysSince === 1 ? '어제'
-                            : <>{daysSince}일 전{isWarning && <AlertTriangle size={12} aria-hidden style={{ marginLeft: 4, verticalAlign: 'middle', color: 'var(--danger)' }} />}</>
+                            : <>{daysSince}일 전{isWarning && <AlertTriangle size={12} aria-hidden className="gacha-recent-warn-icon" />}</>
                           : '없음'}
                       </td>
                     </tr>
@@ -106,7 +107,7 @@ export default function GachaDashboardPage() {
                 <span className="gacha-hard-proof-rank">{i + 1}</span>
                 <div className="gacha-hard-proof-info">
                   <span className="gacha-hard-proof-title">{p.title}</span>
-                  <span className="gacha-hard-proof-meta">{p.grade} · <span style={{ display: 'inline-flex', verticalAlign: 'middle' }} aria-label={`난이도 ${p.difficulty}`}>{Array.from({ length: p.difficulty }, (_, i) => <Star key={i} size={11} fill="currentColor" aria-hidden />)}</span> · {p.attempt_count}회 시도</span>
+                  <span className="gacha-hard-proof-meta">{p.grade} · <span className="gacha-difficulty-stars" aria-label={`난이도 ${p.difficulty}`}>{Array.from({ length: p.difficulty }, (_, i) => <Star key={i} size={11} fill="currentColor" aria-hidden />)}</span> · {p.attempt_count}회 시도</span>
                 </div>
                 <span className="gacha-score-low">평균 {Math.round(p.avg_score)}점</span>
               </div>

@@ -97,7 +97,7 @@ const errorShellStyle: React.CSSProperties = {
 };
 
 const errorCardStyle: React.CSSProperties = {
-  background: '#fff',
+  background: 'var(--surface, #fff)',
   padding: 32,
   borderRadius: 12,
   boxShadow: '0 4px 20px rgba(0,0,0,0.08)',

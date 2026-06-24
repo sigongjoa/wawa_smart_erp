@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { api, GachaCard, GachaStudent } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 
@@ -156,7 +157,7 @@ export default function GachaCardPage() {
 
       <div className="gacha-page-header">
         <h1>가차 카드 관리</h1>
-        <button className="btn-primary" onClick={openAdd}>+ 카드 추가</button>
+        <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> 카드 추가</button>
       </div>
 
       {/* 필터 */}
@@ -225,8 +226,8 @@ export default function GachaCardPage() {
           </div>
 
           <div className="gacha-form-actions">
-            <button className="btn-secondary" onClick={() => { setShowForm(false); resetForm(); }}>취소</button>
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+            <button className="btn btn-secondary" onClick={() => { setShowForm(false); resetForm(); }}>취소</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
               {saving ? '저장 중...' : editCard ? '수정' : '추가'}
             </button>
           </div>
@@ -258,8 +259,8 @@ export default function GachaCardPage() {
                 <span className="gacha-card-score">O{c.success_count} X{c.fail_count}</span>
               </div>
               <div className="gacha-card-actions">
-                <button className="btn-sm" onClick={() => openEdit(c)}>수정</button>
-                <button className="btn-sm btn-danger" onClick={() => handleDelete(c)}>삭제</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}>수정</button>
+                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c)}>삭제</button>
               </div>
             </div>
           ))}

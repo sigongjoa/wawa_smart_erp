@@ -1,0 +1,219 @@
+/* AssignmentsPage — 과제 회수·첨삭 페이지 전용 정적 스타일 */
+
+.asn-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.asn-stat-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.asn-stat-label {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
+.asn-stat-value {
+  font-size: var(--fs-22);
+  font-weight: 700;
+}
+
+.asn-tabs {
+  display: flex;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--border-secondary);
+  margin-bottom: var(--sp-3);
+}
+
+.asn-tab {
+  padding: var(--sp-2) var(--sp-4);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-weight: 400;
+  cursor: pointer;
+  font-size: var(--fs-14);
+}
+
+.asn-tab.asn-tab--active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.asn-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.asn-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.asn-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.asn-row-titleline {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.asn-row-title {
+  font-size: var(--fs-14);
+}
+
+.asn-kind {
+  font-size: var(--fs-11);
+  color: var(--text-tertiary);
+}
+
+.asn-kind-tag {
+  font-size: var(--fs-11);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.asn-row-sub {
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.asn-row-sub--sm {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
+.asn-muted {
+  color: var(--text-tertiary);
+}
+
+.asn-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.asn-due {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+}
+
+.asn-due--overdue {
+  color: var(--danger-text);
+}
+
+.asn-created {
+  font-size: var(--fs-11);
+  color: var(--text-tertiary);
+}
+
+.asn-filters {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  align-items: center;
+}
+
+.asn-filter-select {
+  width: 120px;
+}
+
+.asn-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+
+/* ── 상세 모달 ── */
+.asn-modal-sub {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.asn-instructions {
+  background: var(--bg-tertiary);
+  padding: var(--sp-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-13);
+  margin-bottom: var(--sp-3);
+  white-space: pre-wrap;
+}
+
+.asn-modal-section-title {
+  margin: var(--sp-2) 0;
+  font-size: var(--fs-14);
+}
+
+.asn-target-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.asn-target-row {
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: var(--fs-13);
+}
+
+.asn-target-name {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.asn-target-grade {
+  color: var(--text-tertiary);
+  font-size: var(--fs-12);
+}
+
+.asn-target-meta {
+  font-size: var(--fs-11);
+  color: var(--text-tertiary);
+}
+
+.asn-footer-spacer {
+  flex: 1;
+}
+
+.asn-inline-gap {
+  margin-left: var(--sp-2);
+}

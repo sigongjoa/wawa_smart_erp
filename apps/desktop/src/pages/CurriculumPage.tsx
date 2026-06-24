@@ -286,11 +286,11 @@ export default function CurriculumPage() {
                     카탈로그 항목 ({detail.items.length})
                   </h3>
                   <button
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-sm btn-primary with-icon"
                     onClick={handleAddDraft}
                     disabled={!!pendingDraft}
                   >
-                    + 항목 추가
+                    <Icon name="Plus" size={14} /> 항목 추가
                   </button>
                 </div>
                 <div
@@ -327,11 +327,10 @@ export default function CurriculumPage() {
                                 aria-label={`${it.unit_name} 위로 이동`}
                               ><Icon name="ArrowUp" size={14} /></button>
                               <button
-                                className="curr-item-reorder-btn"
+                                className="curr-item-reorder-btn curr-item-reorder-btn--down"
                                 disabled={idx === arr.length - 1}
                                 onClick={() => handleMoveItem(it, 1)}
                                 aria-label={`${it.unit_name} 아래로 이동`}
-                                style={{ marginLeft: 4 }}
                               ><Icon name="ArrowDown" size={14} /></button>
                             </td>
                             <td>
@@ -463,11 +462,10 @@ export default function CurriculumPage() {
               <label>
                 <span className="curr-form-field-label">설명 (선택)</span>
                 <textarea
-                  className="input"
+                  className="input curr-form-textarea"
                   rows={2}
                   value={draft.description ?? ''}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                  style={{ resize: 'vertical' }}
                 />
               </label>
             </div>

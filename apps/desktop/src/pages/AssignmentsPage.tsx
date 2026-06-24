@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { api } from '../api';
 import { toast, useConfirm } from '../components/Toast';
 import { useAuthStore } from '../store';
@@ -7,6 +8,7 @@ import AssignmentCreateModal from '../components/assignments/AssignmentCreateMod
 import TargetDetailModal from '../components/assignments/TargetDetailModal';
 import AssignmentStatusBadge from '../components/assignments/AssignmentStatusBadge';
 import { errorMessage } from '../utils/errors';
+import './AssignmentsPage.css';
 
 const KIND_LABEL: Record<string, string> = {
   perf_eval: '수행평가',
@@ -159,38 +161,32 @@ export default function AssignmentsPage() {
   );
 
   return (
-    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
+    <div className="page-container">
       {/* 헤더 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="page-header page-header-row">
         <div>
-          <h1 style={{ margin: 0, fontSize: 22 }}>과제 회수·첨삭</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+          <h1 className="page-title">과제 회수·첨삭</h1>
+          <p className="page-description">
             수행평가·시험지를 학생에게 발행하고, 제출물을 회수해서 피드백합니다.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          + 새 과제 발행
+        <button className="btn btn-primary with-icon" onClick={() => setShowCreate(true)}>
+          <Plus size={16} /> 새 과제 발행
         </button>
       </div>
 
       {/* 통계 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+      <div className="asn-stats-grid">
         {statsCards.map((c) => (
-          <div
-            key={c.key}
-            style={{
-              background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)', borderRadius: 8, padding: 12,
-              display: 'flex', flexDirection: 'column', gap: 4,
-            }}
-          >
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>{c.value}</div>
+          <div key={c.key} className="asn-stat-card">
+            <div className="asn-stat-label">{c.label}</div>
+            <div className="asn-stat-value" style={{ color: c.color }}>{c.value}</div>
           </div>
         ))}
       </div>
 
       {/* 탭 */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-secondary)', marginBottom: 12 }}>
+      <div className="asn-tabs">
         <TabButton active={tab === 'inbox'} onClick={() => setTab('inbox')}>
           회신 대기 {stats.inbox_count ? `(${stats.inbox_count})` : ''}
         </TabButton>
@@ -262,16 +258,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      style={{
-        padding: '8px 16px',
-        background: 'transparent',
-        border: 'none',
-        borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
-        color: active ? '#2563eb' : '#666',
-        fontWeight: active ? 600 : 400,
-        cursor: 'pointer',
-        fontSize: 14,
-      }}
+      className={`asn-tab${active ? ' asn-tab--active' : ''}`}
     >
       {children}
     </button>
@@ -285,57 +272,51 @@ const InboxTab = memo(function InboxTab({
   onSelect: (targetId: string) => void;
   onDelete: (targetId: string, studentName: string, title: string) => void;
 }) {
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>로딩 중...</div>;
+  if (loading) {
+    return (
+      <div className="loading-state">
+        <div className="spinner" />
+        로딩 중...
+      </div>
+    );
+  }
   if (rows.length === 0) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
-        회신 대기 중인 제출물이 없습니다.
+      <div className="empty-state">
+        <div className="empty-state-desc">회신 대기 중인 제출물이 없습니다.</div>
       </div>
     );
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="asn-list">
       {rows.map((r) => (
-        <div
-          key={r.target_id}
-          style={{
-            background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)', borderRadius: 8, padding: 12,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-          }}
-        >
-          <div
-            onClick={() => onSelect(r.target_id)}
-            style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, cursor: 'pointer', minWidth: 0 }}
-          >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div key={r.target_id} className="asn-row">
+          <div onClick={() => onSelect(r.target_id)} className="asn-row-main">
+            <div className="asn-row-titleline">
               <AssignmentStatusBadge status={r.status} size="sm" />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{KIND_LABEL[r.kind] || r.kind}</span>
-              <strong style={{ fontSize: 14 }}>{r.title}</strong>
+              <span className="asn-kind">{KIND_LABEL[r.kind] || r.kind}</span>
+              <strong className="asn-row-title">{r.title}</strong>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              {r.student_name} {r.student_grade && <span style={{ color: 'var(--text-tertiary)' }}>({r.student_grade})</span>}
+            <div className="asn-row-sub">
+              {r.student_name} {r.student_grade && <span className="asn-muted">({r.student_grade})</span>}
               {r.last_submitted_at && (
-                <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>
+                <span className="asn-muted asn-inline-gap">
                   · 제출: {new Date(r.last_submitted_at).toLocaleString('ko-KR')}
                 </span>
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div className="asn-row-meta">
             {r.due_at && (
-              <span style={{ fontSize: 12, color: isOverdue(r.due_at) ? 'var(--danger-text)' : 'var(--text-tertiary)' }}>
+              <span className={`asn-due${isOverdue(r.due_at) ? ' asn-due--overdue' : ''}`}>
                 마감: {new Date(r.due_at).toLocaleDateString('ko-KR')}
               </span>
             )}
             <button
               type="button"
+              className="btn btn-danger btn-sm"
               onClick={(e) => { e.stopPropagation(); onDelete(r.target_id, r.student_name || '-', r.title); }}
               aria-label={`${r.student_name || ''} ${r.title} 삭제`}
-              style={{
-                padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                background: 'var(--bg-secondary)', color: 'var(--danger-text)',
-                border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
-              }}
             >
               삭제
             </button>
@@ -359,20 +340,20 @@ const ListTab = memo(function ListTab({
   return (
     <div>
       {/* 필터 */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center' }}>
-        <select className="input" value={kindFilter} onChange={(e) => onKindFilter(e.target.value)} style={{ width: 120 }}>
+      <div className="asn-filters">
+        <select className="input asn-filter-select" value={kindFilter} onChange={(e) => onKindFilter(e.target.value)}>
           <option value="">전체 종류</option>
           <option value="perf_eval">수행평가</option>
           <option value="exam_paper">시험지</option>
           <option value="general">일반</option>
         </select>
-        <select className="input" value={statusFilter} onChange={(e) => onStatusFilter(e.target.value)} style={{ width: 120 }}>
+        <select className="input asn-filter-select" value={statusFilter} onChange={(e) => onStatusFilter(e.target.value)}>
           <option value="">전체 상태</option>
           <option value="published">진행 중</option>
           <option value="closed">닫힘</option>
         </select>
         {isAdmin && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, cursor: 'pointer' }}>
+          <label className="asn-checkbox-label">
             <input type="checkbox" checked={mineOnly} onChange={(e) => onMineOnly(e.target.checked)} />
             내가 발행한 것만
           </label>
@@ -380,70 +361,56 @@ const ListTab = memo(function ListTab({
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>로딩 중...</div>
+        <div className="loading-state">
+          <div className="spinner" />
+          로딩 중...
+        </div>
       ) : rows.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
-          발행한 과제가 없습니다.
+        <div className="empty-state">
+          <div className="empty-state-desc">발행한 과제가 없습니다.</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="asn-list">
           {rows.map((a) => (
-            <div
-              key={a.id}
-              style={{
-                background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)', borderRadius: 8, padding: 12,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-              }}
-            >
-              <div
-                onClick={() => onSelect(a.id)}
-                style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, cursor: 'pointer', minWidth: 0 }}
-              >
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: 4 }}>
+            <div key={a.id} className="asn-row">
+              <div onClick={() => onSelect(a.id)} className="asn-row-main">
+                <div className="asn-row-titleline">
+                  <span className="asn-kind-tag">
                     {KIND_LABEL[a.kind] || a.kind}
                   </span>
                   {a.status === 'closed' && (
-                    <span style={{ fontSize: 11, color: 'var(--text-on-primary)', background: 'var(--text-tertiary)', padding: '2px 6px', borderRadius: 4 }}>
+                    <span className="badge badge-neutral">
                       닫힘
                     </span>
                   )}
-                  <strong style={{ fontSize: 14 }}>{a.title}</strong>
+                  <strong className="asn-row-title">{a.title}</strong>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div className="asn-row-sub--sm">
                   대상 {a.target_count}명 · 제출 {a.submitted_count} · 완료 {a.completed_count}
                   {a.due_at && (
-                    <span style={{ marginLeft: 8 }}>
+                    <span className="asn-inline-gap">
                       · 마감 {new Date(a.due_at).toLocaleDateString('ko-KR')}
                     </span>
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <div className="asn-row-meta">
+                <span className="asn-created">
                   {new Date(a.created_at).toLocaleDateString('ko-KR')}
                 </span>
                 {a.status === 'published' && (
                   <button
                     type="button"
+                    className="btn btn-ghost btn-sm"
                     onClick={(e) => { e.stopPropagation(); onClose(a.id, a.title); }}
-                    style={{
-                      padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                      background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
-                      border: '1.5px solid #d1d5db', borderRadius: 6, cursor: 'pointer',
-                    }}
                   >
                     닫기
                   </button>
                 )}
                 <button
                   type="button"
+                  className="btn btn-danger btn-sm"
                   onClick={(e) => { e.stopPropagation(); onDelete(a.id, a.title); }}
-                  style={{
-                    padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                    background: 'var(--bg-secondary)', color: 'var(--danger-text)',
-                    border: '1.5px solid #fecaca', borderRadius: 6, cursor: 'pointer',
-                  }}
                 >
                   삭제
                 </button>
@@ -493,7 +460,7 @@ function AssignmentDetailModal({
     <Modal onClose={onClose} className="modal-content--lg">
       <Modal.Header>
         {assignment.title}
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400, marginTop: 2 }}>
+        <div className="asn-modal-sub">
           {KIND_LABEL[assignment.kind] || assignment.kind}
           {assignment.due_at && ` · 마감 ${new Date(assignment.due_at).toLocaleString('ko-KR')}`}
           {assignment.status === 'closed' && ' · 닫힘'}
@@ -501,29 +468,25 @@ function AssignmentDetailModal({
       </Modal.Header>
       <Modal.Body>
         {assignment.instructions && (
-          <div style={{ background: 'var(--bg-tertiary)', padding: 10, borderRadius: 6, fontSize: 13, marginBottom: 12, whiteSpace: 'pre-wrap' }}>
+          <div className="asn-instructions">
             {assignment.instructions}
           </div>
         )}
 
-        <h4 style={{ margin: '8px 0', fontSize: 14 }}>학생별 현황 ({targets.length}명)</h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <h4 className="asn-modal-section-title">학생별 현황 ({targets.length}명)</h4>
+        <div className="asn-target-list">
           {targets.map((t) => (
             <div
               key={t.id}
               onClick={() => onSelectTarget(t.id)}
-              style={{
-                border: '1px solid var(--border-secondary)', borderRadius: 6, padding: 10,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                cursor: 'pointer', fontSize: 13,
-              }}
+              className="asn-target-row"
             >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div className="asn-target-name">
                 <AssignmentStatusBadge status={t.status} size="sm" />
                 <strong>{t.student_name || '-'}</strong>
-                {t.student_grade && <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{t.student_grade}</span>}
+                {t.student_grade && <span className="asn-target-grade">{t.student_grade}</span>}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <div className="asn-target-meta">
                 제출 {t.submission_count || 0} · 회신 {t.response_count || 0}
                 {t.last_submitted_at && (
                   <span style={{ marginLeft: 6 }}>
@@ -538,9 +501,8 @@ function AssignmentDetailModal({
       <Modal.Footer>
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-danger"
           onClick={onHardDelete}
-          style={{ color: 'var(--danger-text)', borderColor: 'var(--danger-surface)' }}
         >
           완전 삭제
         </button>
@@ -549,7 +511,7 @@ function AssignmentDetailModal({
             과제 닫기
           </button>
         )}
-        <div style={{ flex: 1 }} />
+        <div className="asn-footer-spacer" />
         <button type="button" className="btn btn-secondary" onClick={onClose}>닫기</button>
       </Modal.Footer>
     </Modal>
