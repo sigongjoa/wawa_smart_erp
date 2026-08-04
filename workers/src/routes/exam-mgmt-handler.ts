@@ -95,8 +95,8 @@ export async function handleExamMgmt(
     const url = new URL(request.url);
     const month = url.searchParams.get('month');
     const isAdmin = context.auth!.role === 'admin';
-    // admin = 학원 전체 학생 / 그 외 = 담당 학생만 (과목·담임 무관, role 기준)
-    const showAll = isAdmin;
+    // admin은 scope=all일 때만 학원 전체 / 그 외(내 학생·비admin)는 담당 학생만
+    const showAll = isAdmin && url.searchParams.get('scope') === 'all';
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
     }
@@ -182,7 +182,7 @@ export async function handleExamMgmt(
     const url = new URL(request.url);
     const month = url.searchParams.get('month');
     const isAdmin = context.auth!.role === 'admin';
-    const showAll = isAdmin;
+    const showAll = isAdmin && url.searchParams.get('scope') === 'all';
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return errorResponse('month는 YYYY-MM 형식이어야 합니다', 400);
     }
