@@ -10,9 +10,6 @@ export function corsHeaders(env: Env, origin?: string): Record<string, string> {
   const ALLOWED_ORIGINS = [
     'https://wawa-smart-erp.pages.dev',
     'https://wawa.app',
-    'https://learn.wawa.app',
-    'https://wawa-learn.pages.dev',
-    'https://master.wawa-learn.pages.dev',
   ];
 
   // localhost/127.0.0.1 + 포트만 허용 (subdomain bypass 방지)

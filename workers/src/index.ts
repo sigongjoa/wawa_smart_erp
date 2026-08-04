@@ -22,7 +22,6 @@ import { handleStudent } from '@/routes/student-handler';
 import { handleTeachers } from '@/routes/teachers-handler';
 import { handleSettings } from '@/routes/settings-handler';
 import { handleAI } from '@/routes/ai-handler';
-import { handleAskAI } from '@/routes/ask-ai-handler';
 import { handleAbsence } from '@/routes/absence-handler';
 import { handleBoard } from '@/routes/board-handler';
 import { handleOnboard } from '@/routes/onboard-handler';
@@ -31,31 +30,21 @@ import { handleMeeting } from '@/routes/meeting-handler';
 import { handleGachaStudent } from '@/routes/gacha-student-handler';
 import { handleNotifications } from '@/routes/notifications-handler';
 import { handleCalendar } from '@/routes/calendar-handler';
-import { handlePlayCalendar } from '@/routes/play-calendar-handler';
 import { handleProof } from '@/routes/proof-handler';
-import { handleGachaPlay } from '@/routes/gacha-play-handler';
-import { handlePlayRs } from '@/routes/play-rs-handler';
 import { handleExamMgmt } from '@/routes/exam-mgmt-handler';
 import { handleUserState } from '@/routes/user-state-handler';
 import { handleExamPaper } from '@/routes/exam-paper-handler';
-import { handleVocab } from '@/routes/vocab-handler';
-import { handleVocabPlay } from '@/routes/vocab-play-handler';
-import { handleBaseballPlay } from '@/routes/baseball-play-handler';
-import { handleVocabPolicy } from '@/routes/vocab-policy-handler';
 import { handleSignal } from '@/routes/signal-handler';
 import { handleGachaReview } from '@/routes/gacha-review-handler';
 import { handleJingdariAttempt } from '@/routes/jingdari-attempt-handler';
 import { handleSsaem } from '@/routes/ssaem-handler';
 import { handleFlywheelAdmin } from '@/routes/flywheel-admin-handler';
 import { handleMedTerm } from '@/routes/medterm-handler';
-import { handleMedTermPlay } from '@/routes/medterm-play-handler';
 import { handleMedTermFigures } from '@/routes/medterm-figures-handler';
 import { handleMedTermExam } from '@/routes/medterm-exam-handler';
-import { handleExamPlay } from '@/routes/exam-play-handler';
 import { handleExamAttempt } from '@/routes/exam-attempt-handler';
 import { handleAssignments } from '@/routes/assignments-handler';
-import { handlePlayAssignments } from '@/routes/play-assignments-handler';
-import { handleLive, handlePlayLive } from '@/routes/live-handler';
+import { handleLive } from '@/routes/live-handler';
 import { handleParentReport } from '@/routes/parent-report-handler';
 import { handleParentHomework } from '@/routes/parent-homework-handler';
 import { handleLessonItems } from '@/routes/lesson-items-handler';
@@ -128,7 +117,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         return addCorsHeaders(await handleAuth(method, pathname, request, context), env, origin);
       }
 
-      // 온보딩 라우트 (공개)
+      // 학원 온보딩 (공개) — 새 학원 등록·slug 확인
       if (pathname.startsWith('/api/onboard/')) {
         return addCorsHeaders(await handleOnboard(method, pathname, request, context), env, origin);
       }
@@ -136,39 +125,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 초대 수락 (공개)
       if (pathname === '/api/invite/accept' && method === 'POST') {
         return addCorsHeaders(await handleAcademy(method, pathname, request, context), env, origin);
-      }
-
-      // 학생 앱 (PIN 토큰 인증 — JWT 미들웨어 스킵)
-      if (pathname.startsWith('/api/play/vocab/')) {
-        return addCorsHeaders(await handleVocabPlay(method, pathname, request, context), env, origin);
-      }
-      if (pathname.startsWith('/api/play/baseball/')) {
-        return addCorsHeaders(await handleBaseballPlay(method, pathname, request, context), env, origin);
-      }
-      if (pathname.startsWith('/api/play/medterm/')) {
-        return addCorsHeaders(await handleMedTermPlay(method, pathname, request, context), env, origin);
-      }
-      if (pathname.startsWith('/api/play/exam-attempts')) {
-        return addCorsHeaders(await handleExamAttempt(method, pathname, request, context), env, origin);
-      }
-      if (pathname === '/api/play/exams' || pathname.startsWith('/api/play/exams/') || pathname.startsWith('/api/play/attempts/')) {
-        return addCorsHeaders(await handleExamPlay(method, pathname, request, context), env, origin);
-      }
-      if (pathname.startsWith('/api/play/assignments')) {
-        return addCorsHeaders(await handlePlayAssignments(method, pathname, request, context), env, origin);
-      }
-      if (pathname.startsWith('/api/play/live')) {
-        return addCorsHeaders(await handlePlayLive(method, pathname, request, context), env, origin);
-      }
-      if (pathname.startsWith('/api/play/calendar')) {
-        return addCorsHeaders(await handlePlayCalendar(method, pathname, request, context), env, origin);
-      }
-      // 2계층 RS 학생 표면(오늘의 길) — 가챠 플레이 catch-all 앞에 매칭(학생 PIN 토큰 인증)
-      if (pathname === '/api/play/today' || pathname.match(/^\/api\/play\/recommendations\/[^/]+\/act$/)) {
-        return addCorsHeaders(await handlePlayRs(method, pathname, request, context), env, origin);
-      }
-      if (pathname.startsWith('/api/play/')) {
-        return addCorsHeaders(await handleGachaPlay(method, pathname, request, context), env, origin);
       }
 
       // 학부모 리포트 조회 (HMAC 토큰 기반 공개 - GET만)
@@ -184,11 +140,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 학부모 숙제 피드백 조회/파일 (HMAC 토큰 기반 공개)
       if (pathname.startsWith('/api/parent-homework/')) {
         return addCorsHeaders(await handleParentHomework(method, pathname, request, context), env, origin);
-      }
-
-      // ask-ai: 학생/강사 두 인증 모두 핸들러 내부에서 자체 분기 (전역 JWT auth 우회)
-      if (pathname.startsWith('/api/ask-ai/')) {
-        return addCorsHeaders(await handleAskAI(method, pathname, request, context), env, origin);
       }
 
       // /api/signal: 외부 생성 워커 전용 — 워커키로 자체 인증 (전역 JWT 게이트 우회)
@@ -339,16 +290,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       // 시험지 관리 (중간/기말/수행평가 유인물)
       if (pathname.startsWith('/api/exam-papers')) {
         return addCorsHeaders(await handleExamPaper(method, pathname, request, context), env, origin);
-      }
-
-      // Vocab Exam Policy (정책 CRUD) — /api/vocab/policy 가 /api/vocab/ 보다 먼저
-      if (pathname.startsWith('/api/vocab/policy')) {
-        return addCorsHeaders(await handleVocabPolicy(method, pathname, request, context), env, origin);
-      }
-
-      // Vocab Gacha (영단어 학습)
-      if (pathname.startsWith('/api/vocab/')) {
-        return addCorsHeaders(await handleVocab(method, pathname, request, context), env, origin);
       }
 
       // MedTerm — 강사용 (라우트 우선순위: 더 구체적인 경로 먼저)

@@ -2,9 +2,7 @@
  * 시험 결시 학생 개별 타이머 핸들러
  * 설계 문서: docs/EXAM_MAKEUP_TIMER_DESIGN.md §3
  *
- * 두 종류의 라우트를 한 핸들러에서 처리:
- *  - /api/exam-attempts/...        : 교사 JWT 인증 (instructor/admin)
- *  - /api/play/exam-attempts/...   : 학생 PIN 토큰 인증 (본인 attempt만)
+ *  - /api/exam-attempts/... : 교사 JWT 인증 (instructor/admin)
  */
 
 import { RequestContext } from '@/types';
@@ -42,24 +40,6 @@ interface PauseEvent {
   resumedAt?: string;
   reason?: string;
   byUserId?: string;
-}
-
-interface PlayAuth {
-  studentId: string;
-  academyId: string;
-  teacherId: string;
-  name: string;
-}
-
-// ─────────────────────────────────────────────
-// 학생 PIN 토큰 인증 (gacha-play-handler 와 동일 KV 형식)
-// ─────────────────────────────────────────────
-async function getPlayAuth(context: RequestContext): Promise<PlayAuth | null> {
-  const authHeader = context.request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const data = await context.env.KV.get(`play:${token}`, 'json') as PlayAuth | null;
-  return data;
 }
 
 // ─────────────────────────────────────────────
@@ -530,100 +510,6 @@ async function handleTeacherRoutes(
 }
 
 // ─────────────────────────────────────────────
-// 학생 라우트: /api/play/exam-attempts/*
-// ─────────────────────────────────────────────
-
-async function handlePlayRoutes(
-  method: string,
-  pathname: string,
-  request: Request,
-  context: RequestContext
-): Promise<Response> {
-  const auth = await getPlayAuth(context);
-  if (!auth) return unauthorizedResponse();
-
-  const db = context.env.DB;
-
-  // 학생용 활성 attempt 조회 (HomePage 폴링용 — 자동 진입)
-  // NOTE: `/:id` 패턴보다 먼저 매칭해야 함 (그렇지 않으면 id='active'로 잡혀 404)
-  if (method === 'GET' && pathname === '/api/play/exam-attempts/active') {
-    const activeRow = await executeFirst<ExamAttemptRow>(
-      db,
-      `SELECT * FROM exam_attempts
-        WHERE student_id = ? AND academy_id = ? AND status IN ('running','paused')
-        ORDER BY started_at DESC LIMIT 1`,
-      [auth.studentId, auth.academyId]
-    );
-    if (!activeRow) return successResponse({ active: null });
-    return successResponse({
-      active: {
-        id: activeRow.id,
-        status: activeRow.status,
-        durationMinutes: activeRow.duration_minutes,
-        remainingSeconds: calcRemainingSeconds(activeRow),
-        isPaused: activeRow.status === 'paused',
-        startedAt: activeRow.started_at,
-        deadlineAt: calcDeadlineIso(activeRow),
-      },
-    });
-  }
-
-  // 학생용 단건 조회 (본인 attempt 만)
-  const getMatch = pathname.match(/^\/api\/play\/exam-attempts\/([^/]+)$/);
-  if (method === 'GET' && getMatch) {
-    const id = getMatch[1];
-    const row = await executeFirst<ExamAttemptRow>(
-      db,
-      `SELECT * FROM exam_attempts WHERE id = ? AND student_id = ? AND academy_id = ?`,
-      [id, auth.studentId, auth.academyId]
-    );
-    if (!row) return notFoundResponse();
-
-    // 학생 응답은 최소 필드만
-    return successResponse({
-      id: row.id,
-      status: row.status,
-      durationMinutes: row.duration_minutes,
-      remainingSeconds: calcRemainingSeconds(row),
-      isPaused: row.status === 'paused',
-      startedAt: row.started_at,
-      endedAt: row.ended_at,
-      deadlineAt: calcDeadlineIso(row),
-      studentName: auth.name,
-    });
-  }
-
-  // 학생 본인 제출
-  const submitMatch = pathname.match(/^\/api\/play\/exam-attempts\/([^/]+)\/submit$/);
-  if (method === 'POST' && submitMatch) {
-    const id = submitMatch[1];
-    const body = await request.json().catch(() => ({})) as any;
-    const note = sanitizeNote(body?.note);  // SEC-EXAM-M3+M4
-
-    const row = await executeFirst<ExamAttemptRow>(
-      db,
-      `SELECT * FROM exam_attempts WHERE id = ? AND student_id = ? AND academy_id = ?`,
-      [id, auth.studentId, auth.academyId]
-    );
-    if (!row) return notFoundResponse();
-    if (!['running', 'paused', 'ready'].includes(row.status)) {
-      return errorResponse(`현재 상태(${row.status})에서는 제출할 수 없습니다`, 409);
-    }
-
-    const fresh = await actionSubmit(context, row, note);
-    logger.logSecurity('EXAM_ATTEMPT_SUBMIT_BY_STUDENT', 'low', { attemptId: id, studentId: auth.studentId });
-    return successResponse({
-      id: fresh.id,
-      status: fresh.status,
-      endedAt: fresh.ended_at,
-      remainingSeconds: 0,
-    });
-  }
-
-  return errorResponse('Not found', 404);
-}
-
-// ─────────────────────────────────────────────
 // 외부에 노출되는 메인 엔트리
 // ─────────────────────────────────────────────
 
@@ -634,9 +520,6 @@ export async function handleExamAttempt(
   context: RequestContext
 ): Promise<Response> {
   try {
-    if (pathname.startsWith('/api/play/exam-attempts')) {
-      return await handlePlayRoutes(method, pathname, request, context);
-    }
     if (pathname.startsWith('/api/exam-attempts')) {
       return await handleTeacherRoutes(method, pathname, request, context);
     }

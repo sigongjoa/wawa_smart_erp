@@ -26,59 +26,14 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/exam-timer', label: '시험 타이머', icon: 'CalendarClock' },
       { to: '/calendar', label: '캘린더', icon: 'Calendar' },
       { to: '/absence', label: '보강 관리', icon: 'CalendarX' },
-    ],
-  },
-  {
-    label: '학생',
-    items: [
       { to: '/student', label: '학생 관리', icon: 'Users' },
-      { to: '/recommendations', label: '코칭 큐', icon: 'TrendingUp' },
-      { to: '/lessons', label: '학습 기록', icon: 'BookOpen' },
       { to: '/exams', label: '정기고사', icon: 'ClipboardList' },
-      { to: '/assignments', label: '과제 회수·첨삭', icon: 'PencilLine' },
       { to: '/report', label: '평가/리포트', icon: 'BarChart3' },
-    ],
-  },
-  {
-    label: '담임',
-    items: [
-      { to: '/homeroom', label: '담임 대시보드', icon: 'LayoutDashboard', exact: true },
-      { to: '/homeroom/consultations', label: '학부모 상담', icon: 'MessageCircle' },
-      { to: '/homeroom/follow-ups', label: '후속 상담', icon: 'MessageSquareText' },
-      { to: '/homeroom/exams', label: '시험 전후 상담', icon: 'ClipboardCheck' },
-    ],
-  },
-  {
-    label: '학습 · 수학',
-    items: [
-      { to: '/gacha', label: '학생 현황', icon: 'User', exact: true },
-      { to: '/gacha/cards', label: '카드 관리', icon: 'Layers' },
-      { to: '/gacha/proofs', label: '증명 연습', icon: 'FunctionSquare' },
-      { to: '/gacha/dashboard', label: '학습 현황', icon: 'Activity' },
-      { to: '/teacher/ask-ai', label: '설명 AI 큐', icon: 'MessageSquareText' },
-    ],
-  },
-  {
-    label: '학습 · 영단어',
-    items: [
-      { to: '/vocab', label: '단어 관리', icon: 'BookMarked', exact: true },
-      { to: '/vocab/wrong', label: '오답 현황', icon: 'AlertCircle' },
-      { to: '/vocab/grading', label: '출제·채점', icon: 'CheckSquare' },
-    ],
-  },
-  {
-    label: '학원',
-    items: [
-      { to: '/board', label: '보드', icon: 'Megaphone' },
-      { to: '/meeting', label: '회의 요약', icon: 'FileText' },
-      { to: '/exam-papers', label: '시험지', icon: 'FilePlus2' },
-      { to: '/curriculum', label: '커리큘럼', icon: 'Calendar' },
     ],
   },
   {
     label: '시스템',
     items: [
-      { to: '/academy', label: '학원 관리', icon: 'School', adminOnly: true },
       { to: '/settings', label: '설정', icon: 'Settings' },
     ],
   },

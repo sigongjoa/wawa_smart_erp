@@ -25,12 +25,7 @@ const GachaDashboardPage = lazy(() => import('./pages/GachaDashboardPage'));
 const ExamManagementPage = lazy(() => import('./pages/ExamManagementPage'));
 const ExamPapersPage = lazy(() => import('./pages/ExamPapersPage'));
 const ExamQuestionEditorPage = lazy(() => import('./pages/ExamQuestionEditorPage'));
-const VocabAdminPage = lazy(() => import('./pages/VocabAdminPage'));
 const MedTermAdminPage = lazy(() => import('./pages/MedTermAdminPage'));
-const VocabWordsTab = lazy(() => import('./pages/vocab/VocabWordsTab'));
-const VocabWrongTab = lazy(() => import('./pages/vocab/VocabWrongTab'));
-const VocabGradeTab = lazy(() => import('./pages/vocab/VocabGradeTab'));
-const VocabPolicyTab = lazy(() => import('./pages/vocab/VocabPolicyTab'));
 const ExamResultPage = lazy(() => import('./pages/ExamResultPage'));
 const ExamTimerPage = lazy(() => import('./pages/ExamTimerPage'));
 const AcademyPage = lazy(() => import('./pages/AcademyPage'));
@@ -45,7 +40,6 @@ const StudentLessonsPage = lazy(() => import('./pages/StudentLessonsPage'));
 const ParentLessonsPage = lazy(() => import('./pages/ParentLessonsPage'));
 const CurriculumPage = lazy(() => import('./pages/CurriculumPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
-const TeacherAskAIQueuePage = lazy(() => import('./pages/TeacherAskAIQueuePage'));
 const RecommendationQueuePage = lazy(() => import('./pages/RecommendationQueuePage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -110,12 +104,6 @@ export default function App() {
             <Route path="/exams" element={<ExamManagementPage />} />
             <Route path="/exam-papers" element={<ExamPapersPage />} />
             <Route path="/exam-questions/:paperId" element={<ExamQuestionEditorPage />} />
-            <Route path="/vocab" element={<VocabAdminPage />}>
-              <Route index element={<VocabWordsTab />} />
-              <Route path="wrong" element={<VocabWrongTab />} />
-              <Route path="grading" element={<VocabGradeTab />} />
-              <Route path="policy" element={<VocabPolicyTab />} />
-            </Route>
             <Route path="/exam-result/:attemptId" element={<ExamResultPage />} />
             <Route path="/lessons" element={<StudentLessonsPage />} />
             <Route path="/curriculum" element={<CurriculumPage />} />
@@ -126,7 +114,6 @@ export default function App() {
             <Route path="/homeroom/exams" element={<HomeroomExamsPage />} />
             <Route path="/medterm" element={<MedTermAdminPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/teacher/ask-ai" element={<TeacherAskAIQueuePage />} />
             <Route path="/recommendations" element={<RecommendationQueuePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/timer" replace />} />

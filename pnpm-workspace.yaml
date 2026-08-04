@@ -1,4 +1,7 @@
 packages:
   - 'apps/desktop'
-  - 'apps/student'
   - 'workers'
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
