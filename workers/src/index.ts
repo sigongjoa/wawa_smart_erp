@@ -23,6 +23,7 @@ import { handleTeachers } from '@/routes/teachers-handler';
 import { handleSettings } from '@/routes/settings-handler';
 import { handleAI } from '@/routes/ai-handler';
 import { handleAbsence } from '@/routes/absence-handler';
+import { handleContracts } from '@/routes/contracts-handler';
 import { handleBoard } from '@/routes/board-handler';
 import { handleOnboard } from '@/routes/onboard-handler';
 import { handleAcademy } from '@/routes/academy-handler';
@@ -228,6 +229,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
       if (pathname.startsWith('/api/ai/')) {
         return addCorsHeaders(await handleAI(method, pathname, request, context), env, origin);
+      }
+
+      if (pathname.startsWith('/api/contracts')) {
+        return addCorsHeaders(await handleContracts(method, pathname, request, context), env, origin);
       }
 
       if (pathname.startsWith('/api/absence') || pathname.startsWith('/api/makeup')) {

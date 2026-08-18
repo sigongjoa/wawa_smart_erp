@@ -8,6 +8,7 @@ import CommentTimeline from '../components/CommentTimeline';
 import AttendanceSummary from '../components/AttendanceSummary';
 import StudentInfo from '../components/StudentInfo';
 import EnrollmentManager from '../components/EnrollmentManager';
+import ContractManager from '../components/ContractManager';
 import ConsultationPanel from '../components/ConsultationPanel';
 import ExternalSchedulePanel from '../components/ExternalSchedulePanel';
 import TeacherNotesPanel from '../components/TeacherNotesPanel';
@@ -222,6 +223,8 @@ export default function StudentProfilePage() {
 
       {/* 시간표 관리 */}
       <EnrollmentManager studentId={id!} studentName={profile.name} />
+
+      <ContractManager studentId={id!} studentName={profile.name} grade={profile.grade} />
 
       {/* 성적 추이 차트 */}
       <section className="dashboard-section">

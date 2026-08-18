@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko" data-theme="white">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>수강계약 · 회차 — 목업</title>
+
+<!-- 실제 앱 스타일시트를 그대로 링크한다. 토큰을 복사하지 않으므로 드리프트가 없다. -->
+<link rel="stylesheet" href="../../apps/desktop/src/index.css" />
+
+<style>
+  /* 목업 셸 — 앱에서는 페이지 레이아웃이 담당하는 영역 */
+  body {
+    background: var(--bg-primary);
+    padding: var(--sp-8) var(--sp-6);
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
+    color: var(--text-primary);
+  }
+  .mock-wrap { max-width: var(--content-max); margin: 0 auto; display: grid; gap: var(--sp-8); }
+  .mock-label {
+    font-size: var(--fs-12); font-weight: 700; color: var(--text-tertiary);
+    letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: var(--sp-3);
+  }
+  .mock-note {
+    font-size: var(--fs-12); color: var(--text-secondary); margin-top: var(--sp-2);
+    padding-left: var(--sp-3); border-left: 2px solid var(--border-primary);
+  }
+  .mock-head h1 { font-size: var(--fs-22); font-weight: 800; letter-spacing: -0.3px; }
+  .mock-head p { font-size: var(--fs-13); color: var(--text-secondary); margin-top: var(--sp-1); }
+  /* 모달을 정적으로 배치해 목업 한 장에 같이 담는다 (실제로는 overlay) */
+  .mock-modal-stage { position: relative; padding: var(--sp-6); background: rgba(17,20,24,0.06); border-radius: var(--radius-lg); }
+  .mock-modal-stage .modal-content { position: static; margin: 0 auto; max-width: 460px; }
+</style>
+</head>
+<body>
+<div class="mock-wrap">
+
+  <header class="mock-head">
+    <h1>수강계약 · 회차</h1>
+    <p>학생 프로필의 &lt;ContractManager /&gt; — 정산 구간은 지난 입금일 ~ 이번 입금일</p>
+  </header>
+
+  <!-- ════════ 1. 표 ════════ -->
+  <div>
+    <p class="mock-label">1 · 목록 — 입금일 15일, 구간 8/15~9/14</p>
+
+    <section class="dashboard-section contract-section">
+      <div class="section-title-row">
+        <h3>수강계약 · 회차<span class="contract-who">황지휘 · 중2</span></h3>
+        <div class="contract-cycle-nav">
+          <button class="btn btn-ghost btn-sm" aria-label="이전 정산 구간">‹</button>
+          <input class="form-input form-input--sm" type="date" value="2026-09-01" aria-label="기준일" />
+          <button class="btn btn-ghost btn-sm" aria-label="다음 정산 구간">›</button>
+        </div>
+      </div>
+
+      <div class="contract-cycle">
+        <div class="contract-cycle-range">
+          <strong>2026-08-15 ~ 2026-09-14</strong>
+          <span>매월 15일 입금 기준</span>
+        </div>
+        <dl class="contract-stats">
+          <div><dt>수업</dt><dd>40/44<small>3,540분</small></dd></div>
+          <div><dt>안 한 수업</dt><dd class="contract-mismatch">4회</dd></div>
+          <div><dt>결석</dt><dd class="contract-mismatch">3회<small>보강 미지정 1</small></dd></div>
+          <div><dt>보강</dt><dd>완료 1<small class="contract-mismatch">미완료 1</small></dd></div>
+          <div><dt>월 수강료</dt><dd>715,000원</dd></div>
+        </dl>
+      </div>
+
+      <div class="contract-table-wrap">
+        <table class="contract-table">
+          <thead>
+            <tr>
+              <th>과목</th><th>상품</th>
+              <th class="cc-num">단가</th>
+              <th class="cc-num">월 금액</th>
+              <th class="cc-num">수업</th>
+              <th class="cc-num">안 한 수업</th>
+              <th>입금일</th><th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="contract-row" tabindex="0" role="button">
+              <td>국어</td><td>와와중등B</td>
+              <td class="cc-num">65,000</td>
+              <td class="cc-num">260,000</td>
+              <td class="cc-num" title="1,530분">17/17</td>
+              <td class="cc-num">0</td>
+              <td>15일</td><td>수강중</td>
+            </tr>
+            <tr class="contract-row" tabindex="0" role="button">
+              <td>수학</td><td>와와중등B</td>
+              <td class="cc-num">65,000</td>
+              <td class="cc-num">195,000</td>
+              <td class="cc-num" title="900분">10/13</td>
+              <td class="cc-num contract-mismatch">3</td>
+              <td>15일</td><td>수강중</td>
+            </tr>
+            <tr class="contract-row" tabindex="0" role="button">
+              <td>영어</td><td>와와중등B</td>
+              <td class="cc-num">65,000</td>
+              <td class="cc-num">130,000</td>
+              <td class="cc-num" title="810분">9/9</td>
+              <td class="cc-num">0</td>
+              <td>15일</td><td>수강중</td>
+            </tr>
+            <tr class="contract-row" tabindex="0" role="button">
+              <td>과학</td><td>와와중등B</td>
+              <td class="cc-num">65,000</td>
+              <td class="cc-num">130,000</td>
+              <td class="cc-num" title="300분">4/5</td>
+              <td class="cc-num contract-mismatch">1</td>
+              <td>15일</td><td>휴회</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="no-data contract-foot">행을 누르면 계약 정보를 수정할 수 있습니다 · 과목 미기입 출석 1회는 과목별 회차에 반영되지 않았습니다</p>
+    </section>
+
+    <p class="mock-note">
+      <b>n/m</b> = 실제로 한 횟수 / 그 구간에 해야 했던 횟수.
+      m은 시간표 요일이 구간 안에 몇 번 오는지 세서 나온다(수학 화·목·토 → 8/15~9/14 사이 13번).
+      <b>안 한 수업</b>이 곧 m−n이고, 0보다 크면 빨갛게 뜬다.
+      제목 옆에 누구 계약인지 항상 붙는다.
+    </p>
+  </div>
+
+  <!-- ════════ 2. 모달 ════════ -->
+  <div>
+    <p class="mock-label">2 · 행 클릭 → 계약 정보 모달</p>
+
+    <div class="mock-modal-stage">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">황지휘 (중2) · 수학</h3>
+          <button class="modal-close" aria-label="닫기">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="contract-modal-summary">
+            <div>
+              <dt>2026-08-15 ~ 2026-09-14</dt>
+              <dd>수업 <strong>10/13</strong><span class="contract-mismatch"> · 안 한 수업 3회</span></dd>
+            </div>
+          </div>
+
+<div class="cc">
+<div class="cc-grid cc-head"><div class="cc-dow">일</div><div class="cc-dow">월</div><div class="cc-dow">화</div><div class="cc-dow">수</div><div class="cc-dow">목</div><div class="cc-dow">금</div><div class="cc-dow">토</div></div>
+<div class="cc-grid"><div class="cc-cell cc-out" title="2026-08-09"><span class="cc-day">9</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-08-10"><span class="cc-day">10</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-08-11"><span class="cc-day">11</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-08-12"><span class="cc-day">12</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-08-13"><span class="cc-day">13</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-08-14"><span class="cc-day">14</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-15"><span class="cc-day">15</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-08-16"><span class="cc-day">16</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-17"><span class="cc-day">17</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-18"><span class="cc-day">18</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-08-19"><span class="cc-day">19</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-20"><span class="cc-day">20</span><span class="cc-dots"><i class="cc-dot cc-absent"></i></span></div><div class="cc-cell" title="2026-08-21"><span class="cc-day">21</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-22"><span class="cc-day">22</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-08-23"><span class="cc-day">23</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-24"><span class="cc-day">24</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-25"><span class="cc-day">25</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-08-26"><span class="cc-day">26</span><span class="cc-dots"><i class="cc-dot cc-extra"></i><i class="cc-dot cc-makeup-plan"></i></span></div><div class="cc-cell" title="2026-08-27"><span class="cc-day">27</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-08-28"><span class="cc-day">28</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-29"><span class="cc-day">29</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-08-30"><span class="cc-day">30</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-08-31"><span class="cc-day">31</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-01"><span class="cc-day">9/1</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-09-02"><span class="cc-day">2</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-03"><span class="cc-day">3</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-09-04"><span class="cc-day">4</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-05"><span class="cc-day">5</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-09-06"><span class="cc-day">6</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-07"><span class="cc-day">7</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-08"><span class="cc-day">8</span><span class="cc-dots"><i class="cc-dot cc-done"></i></span></div><div class="cc-cell" title="2026-09-09"><span class="cc-day">9</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-10"><span class="cc-day">10</span><span class="cc-dots"><i class="cc-dot cc-missed"></i></span></div><div class="cc-cell" title="2026-09-11"><span class="cc-day">11</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-12"><span class="cc-day">12</span><span class="cc-dots"><i class="cc-dot cc-missed"></i></span></div><div class="cc-cell" title="2026-09-13"><span class="cc-day">13</span><span class="cc-dots"></span></div><div class="cc-cell" title="2026-09-14"><span class="cc-day">14</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-09-15"><span class="cc-day">15</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-09-16"><span class="cc-day">16</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-09-17"><span class="cc-day">17</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-09-18"><span class="cc-day">18</span><span class="cc-dots"></span></div><div class="cc-cell cc-out" title="2026-09-19"><span class="cc-day">19</span><span class="cc-dots"></span></div></div>
+<div class="cc-legend"><span><i class="cc-dot cc-done"></i> 수업함</span><span><i class="cc-dot cc-missed"></i> 안 함</span><span><i class="cc-dot cc-absent"></i> 결석</span><span><i class="cc-dot cc-extra"></i> 보강·추가</span><span><i class="cc-dot cc-makeup-plan"></i> 보강일</span></div>
+</div>
+          <label class="form-label">상품명</label>
+          <input class="form-input" value="와와중등B" />
+
+          <label class="form-label">시수당 단가</label>
+          <input class="form-input" type="number" value="65000" />
+
+          <label class="form-label">주당 시수 (계약)</label>
+          <input class="form-input" type="number" value="3" />
+
+          <label class="form-label">입회일</label>
+          <input class="form-input" type="date" value="2026-08-01" />
+
+          <label class="form-label">입금일 (매월)</label>
+          <input class="form-input" type="number" value="15" />
+
+          <label class="form-label">상태</label>
+          <select class="form-select">
+            <option>수강중</option><option>휴회</option><option>종료</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost">취소</button>
+          <button class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="mock-note">
+      계약 "추가"는 없다 — 이미 등록된 학생의 과목 행을 눌러 정보를 채우는 방식.
+      달력은 정산 구간(8/15~9/14)을 덮는 6주 그리드 — 구간이 달을 걸치므로 월 달력이 아니다.
+      점이 찍힌 날이 원래 수업일(화·목·토)이고, <b>초록 = 수업함 · 빨강 = 안 함 · 주황 = 결석(사유 기록됨) · 파랑 = 보강·추가</b>.
+      점 없는 날은 애초에 수업일이 아니다. 빨강+주황 = 안 한 수업 3회와 정확히 맞는다.
+    </p>
+  </div>
+
+  <!-- ════════ 3. 계약 시수 ↔ 시간표 불일치 경고 ════════ -->
+  <div>
+    <p class="mock-label">3 · 계약 시수와 시간표가 안 맞을 때</p>
+
+    <div class="mock-modal-stage">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">황지휘 (중2) · 과학</h3>
+          <button class="modal-close" aria-label="닫기">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="contract-modal-summary">
+            <div>
+              <dt>2026-08-15 ~ 2026-09-14</dt>
+              <dd>수업 <strong>4/5</strong><span class="contract-mismatch"> · 안 한 수업 1회</span></dd>
+            </div>
+          </div>
+
+          <label class="form-label">상품명</label>
+          <input class="form-input" value="와와중등B" />
+
+          <label class="form-label">시수당 단가</label>
+          <input class="form-input" type="number" value="65000" />
+
+          <label class="form-label">주당 시수 (계약)</label>
+          <input class="form-input" type="number" value="2" />
+          <p class="contract-mismatch contract-warn">시간표에는 주 1회만 등록돼 있습니다</p>
+
+          <label class="form-label">입회일</label>
+          <input class="form-input" type="date" value="2026-08-01" />
+
+          <label class="form-label">입금일 (매월)</label>
+          <input class="form-input" type="number" value="15" />
+
+          <label class="form-label">상태</label>
+          <select class="form-select">
+            <option>휴회</option><option>수강중</option><option>종료</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost">취소</button>
+          <button class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="mock-note">
+      주 2회 값을 받는데 시간표는 1회만 잡혀 있으면 m이 절반으로 계산된다.
+      회차 숫자를 믿을 수 없게 되는 지점이라 입력하는 자리에서 바로 경고한다.
+    </p>
+  </div>
+
+  <!-- ════════ 4. 이상 없는 구간 ════════ -->
+  <div>
+    <p class="mock-label">4 · 이상 없는 구간 — 빨간 표시 없음</p>
+
+    <section class="dashboard-section contract-section">
+      <div class="section-title-row">
+        <h3>수강계약 · 회차<span class="contract-who">황지휘 · 중2</span></h3>
+        <div class="contract-cycle-nav">
+          <button class="btn btn-ghost btn-sm">‹</button>
+          <input class="form-input form-input--sm" type="date" value="2026-07-20" />
+          <button class="btn btn-ghost btn-sm">›</button>
+        </div>
+      </div>
+
+      <div class="contract-cycle">
+        <div class="contract-cycle-range">
+          <strong>2026-07-15 ~ 2026-08-14</strong>
+          <span>매월 15일 입금 기준</span>
+        </div>
+        <dl class="contract-stats">
+          <div><dt>수업</dt><dd>44/44<small>3,960분</small></dd></div>
+          <div><dt>안 한 수업</dt><dd>0회</dd></div>
+          <div><dt>결석</dt><dd>0회</dd></div>
+          <div><dt>보강</dt><dd>완료 0</dd></div>
+          <div><dt>월 수강료</dt><dd>715,000원</dd></div>
+        </dl>
+      </div>
+
+      <div class="contract-table-wrap">
+        <table class="contract-table">
+          <thead>
+            <tr>
+              <th>과목</th><th>상품</th>
+              <th class="cc-num">단가</th>
+              <th class="cc-num">월 금액</th>
+              <th class="cc-num">수업</th>
+              <th class="cc-num">안 한 수업</th>
+              <th>입금일</th><th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="contract-row" tabindex="0" role="button">
+              <td>국어</td><td>와와중등B</td>
+              <td class="cc-num">65,000</td><td class="cc-num">260,000</td>
+              <td class="cc-num">17/17</td><td class="cc-num">0</td>
+              <td>15일</td><td>수강중</td>
+            </tr>
+            <tr class="contract-row" tabindex="0" role="button">
+              <td>수학</td><td>와와중등B</td>
+              <td class="cc-num">65,000</td><td class="cc-num">195,000</td>
+              <td class="cc-num">13/13</td><td class="cc-num">0</td>
+              <td>15일</td><td>수강중</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="no-data contract-foot">행을 누르면 계약 정보를 수정할 수 있습니다</p>
+    </section>
+
+    <p class="mock-note">문제 없는 달은 빨간 게 하나도 안 뜬다. 스캔해서 이상만 걸러내는 게 목적.</p>
+  </div>
+
+</div>
+</body>
+</html>

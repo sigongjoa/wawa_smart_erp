@@ -7233,3 +7233,164 @@ input[type="number"] {
   font-family: 'Pretendard', monospace;
   margin-bottom: 12px;
 }
+
+/* ── 수강계약 (ContractManager) ── */
+/* .section-title-row / .no-data 는 프로젝트에 정의가 없어 이 섹션 안에서만 채운다 */
+.contract-section .section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+.contract-section .section-title-row h3 {
+  font-size: var(--fs-15);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.contract-section .no-data {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+}
+.contract-section .no-data:empty { display: none; }
+
+.contract-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.contract-table thead th {
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-secondary);
+  white-space: nowrap;
+}
+.contract-table tbody td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.contract-table tbody tr:last-child td { border-bottom: none; }
+/* 정산이 어긋나는 신호 — 표 셀·요약 수치 어디서든 동일하게.
+   .contract-table tbody td / .contract-stats dd 의 color를 이겨야 해서 섹션까지 얹는다. */
+.contract-section .contract-mismatch,
+.modal-content .contract-mismatch { color: var(--danger); font-weight: 600; }
+
+/* 정산 구간 요약 (ContractManager) */
+.contract-cycle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-6);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+}
+.contract-cycle-range { display: flex; flex-direction: column; gap: 2px; }
+.contract-cycle-range strong { font-size: 15px; color: var(--text-primary); }
+.contract-cycle-range span { font-size: 12px; color: var(--text-secondary); }
+.contract-stats { display: flex; gap: var(--sp-6); margin: 0; }
+.contract-stats > div { display: flex; flex-direction: column; gap: 2px; }
+.contract-stats dt { font-size: 12px; color: var(--text-secondary); }
+.contract-stats dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.contract-stats dd small { margin-left: var(--sp-2); font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+.contract-stats dd small.contract-mismatch { color: var(--danger); }
+
+/* 표 행 = 모달 열기 버튼 */
+.contract-row { cursor: pointer; }
+.contract-row:hover td { background: var(--surface-hover); }
+.contract-row:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+
+/* 모달 상단 — 이 계약의 구간 실적 */
+.contract-modal-summary {
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-4);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+.contract-modal-summary dt { font-size: var(--fs-12); color: var(--text-secondary); margin-bottom: 2px; }
+.contract-modal-summary dd { margin: 0; font-size: var(--fs-14); color: var(--text-primary); }
+.contract-modal-summary dd strong { font-size: var(--fs-17); }
+
+/* ── 정산 구간 달력 (ContractCalendar) ── */
+/* 달력 전용 치수 — 스케일 토큰에 없는 값은 여기서 한 번만 정의 */
+.cc {
+  --cc-cell-h: 42px;
+  --cc-gap: 2px;
+  --cc-dot: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+.cc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--cc-gap); }
+.cc-dow {
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-11);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.cc-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--cc-cell-h);
+  padding: var(--sp-1) 0 var(--sp-2);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-xs);
+}
+.cc-out { background: transparent; }
+.cc-out .cc-day { color: var(--ink-30); }
+.cc-day { font-size: var(--fs-11); color: var(--text-secondary); }
+.cc-dots { display: flex; gap: var(--cc-gap); min-height: var(--cc-dot); }
+.cc-dot { width: var(--cc-dot); height: var(--cc-dot); border-radius: var(--radius-full); display: inline-block; }
+.cc-done { background: var(--success); }
+.cc-missed { background: var(--danger); }
+/* 결석은 "안 함"과 원인이 달라 구분 — 사유가 기록된 결석 */
+.cc-absent { background: var(--warning); }
+.cc-extra { background: var(--accent); }
+.cc-makeup-done { background: transparent; border: 2px solid var(--success); }
+.cc-makeup-plan { background: transparent; border: 2px solid var(--accent); }
+/* 범례의 점은 .cc 밖(모달 본문)에서도 쓰이므로 폴백을 둔다 */
+.cc-legend .cc-dot { width: var(--sp-2); height: var(--sp-2); }
+.cc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-11);
+  color: var(--text-secondary);
+}
+.cc-legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* 숫자 열 우측 정렬 */
+.cc-num { text-align: right; }
+
+.contract-cycle-nav { display: flex; gap: var(--sp-2); align-items: center; }
+.contract-table-wrap { overflow-x: auto; }
+.contract-section .contract-foot { margin-top: var(--sp-2); }
+.contract-warn { font-size: var(--fs-12); margin-top: var(--sp-1); }
+
+/* 모달 헤더의 학생 식별 */
+.contract-who {
+  font-size: var(--fs-12);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: var(--sp-2);
+}
+
+/* 계약 미등록 과목 — 시간표에만 있는 행 */
+.contract-draft { color: var(--text-tertiary); font-weight: 500; }
+.contract-row--draft td { color: var(--text-secondary); }
+.contract-section .modal-footer { justify-content: space-between; }

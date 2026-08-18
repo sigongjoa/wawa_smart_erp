@@ -430,6 +430,59 @@ export interface ExamMgmtPageState {
   subTab?: 'assign' | 'absentees';
 }
 
+export interface Contract {
+  /** 아직 계약이 저장되지 않은 과목이면 null */
+  id: string | null;
+  /** 시간표에만 있고 계약이 없는 행 */
+  is_draft: boolean;
+  subject: string;
+  product_name: string | null;
+  unit_price: number;
+  session_count: number;
+  in_date: string | null;
+  out_date: string | null;
+  collect_day: number | null;
+  status: 'active' | 'suspended' | 'ended';
+  note: string | null;
+  total_price: number;
+  /** 시간표상 주당 타임 (계약 타임과 대조용) */
+  weekly_slots: number;
+  has_schedule: boolean;
+  /** m — 주당 타임 × 4 */
+  planned_slots: number;
+  /** n — 실제 수업 분 ÷ 30 */
+  done_slots: number;
+  /** m - n */
+  missed_slots: number;
+  done_minutes: number;
+  /** 캘린더용 — 예정일별 상태 + 예정에 없던 출석(extra) */
+  sessions: Array<{ date: string; status: 'done' | 'missed' | 'absent' | 'extra' }>;
+}
+
+export interface ContractSummary {
+  /** 수납일 기준 정산 구간 (달력 월이 아님) */
+  cycle: { from: string; to: string; collect_day: number | null; anchor: string };
+  contracts: Contract[];
+  monthly_total: number;
+  /** 시간표에만 있고 아직 계약이 없는 과목 수 */
+  draft_count: number;
+  /** 1타임 = 몇 분인지 (현재 30) */
+  slot_minutes: number;
+  planned_slots: number;
+  missed_slots: number;
+  done_slots: number;
+  done_minutes: number;
+  absent_count: number;
+  absences: Array<{ date: string; reason: string }>;
+  makeups: Array<{ date: string; status: string }>;
+  makeup_completed: number;
+  makeup_pending: number;
+  makeup_pending_minutes: number;
+  /** 결석했는데 보강 자체가 안 잡힌 건수 */
+  makeup_unscheduled: number;
+  unassigned_attendance: number;
+}
+
 export const api = {
   // Auth — 1차는 httpOnly 쿠키, 폴백으로 body의 accessToken/refreshToken을
   // localStorage에 저장하고 Authorization 헤더로 전송 (모바일 쿠키 차단 대응)
@@ -911,6 +964,25 @@ export const api = {
     request('/api/timer/enrollments', { method: 'POST', body: JSON.stringify(data) }),
   deleteEnrollment: (id: string) =>
     request(`/api/timer/enrollments/${id}`, { method: 'DELETE' }),
+
+  // 수강계약 (상품·회차) — 수동 입력
+  getContracts: (studentId: string, anchor?: string) =>
+    request<ContractSummary>(
+      `/api/contracts?${new URLSearchParams({ student_id: studentId, ...(anchor ? { anchor } : {}) })}`
+    ),
+  putContract: (data: {
+    student_id: string;
+    subject: string;
+    product_name?: string | null;
+    unit_price: number;
+    session_count: number;
+    in_date?: string | null;
+    out_date?: string | null;
+    collect_day?: number | null;
+    status?: 'active' | 'suspended' | 'ended';
+    note?: string | null;
+  }) => request<{ ok: true }>('/api/contracts', { method: 'PUT', body: JSON.stringify(data) }),
+  deleteContract: (id: string) => request<{ ok: true }>(`/api/contracts/${id}`, { method: 'DELETE' }),
 
   // 임시 수업 CRUD
   listAdhocSessions: (date: string) =>
