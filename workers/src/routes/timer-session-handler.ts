@@ -3,8 +3,9 @@
  * v1.9.0 timer 시스템 복원 — enrollment + realtime_session + attendance_record
  *
  * 인가 원칙:
- *   모든 조회/수정은 student_teachers INNER JOIN teacher_id = userId.
- *   admin 도 본인 담당 학생만. (MEMORY: feedback_admin_scope)
+ *   담당(student_teachers.teacher_id = userId) 이거나,
+ *   내 과목(users.subjects) 수업을 듣는 학생이면 접근 허용.
+ *   admin 도 학원 전체가 아니라 이 범위만. (MEMORY: feedback_admin_scope)
  */
 
 import { RequestContext } from '@/types';
@@ -60,6 +61,18 @@ function calcPausedMinutes(history: PauseRecord[], now: Date): number {
   return Math.floor(total);
 }
 
+// 내 담당 과목 (users.subjects) — 미설정이면 빈 배열 → 기존 담당 기준만 동작
+async function teacherSubjects(db: any, teacherId: string): Promise<string[]> {
+  const row = await executeFirst<{ subjects: string | null }>(
+    db,
+    'SELECT subjects FROM users WHERE id = ?',
+    [teacherId]
+  );
+  const parsed = safeJsonParse<string[]>(row?.subjects ?? null, []);
+  return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string' && x) : [];
+}
+
+// 담당(student_teachers)이거나, 내 과목 수업을 듣는 학생이면 접근 허용
 async function assertTeacherOwnsStudent(
   db: any,
   teacherId: string,
@@ -70,7 +83,28 @@ async function assertTeacherOwnsStudent(
     'SELECT 1 AS n FROM student_teachers WHERE teacher_id = ? AND student_id = ? LIMIT 1',
     [teacherId, studentId]
   );
-  return !!row;
+  if (row) return true;
+
+  // 내가 만든 임시수업/세션이 있으면 담당이 아니어도 허용 (생성 API가 학원 전체에 열려 있으므로 조회도 맞춘다)
+  const mine = await executeFirst<{ n: number }>(
+    db,
+    `SELECT 1 AS n FROM adhoc_sessions WHERE teacher_id = ? AND student_id = ?
+      UNION ALL
+     SELECT 1 AS n FROM realtime_sessions WHERE teacher_id = ? AND student_id = ?
+     LIMIT 1`,
+    [teacherId, studentId, teacherId, studentId]
+  );
+  if (mine) return true;
+
+  const subjects = await teacherSubjects(db, teacherId);
+  if (subjects.length === 0) return false;
+  const hit = await executeFirst<{ n: number }>(
+    db,
+    `SELECT 1 AS n FROM enrollments
+      WHERE student_id = ? AND subject IN (${subjects.map(() => '?').join(',')}) LIMIT 1`,
+    [studentId, ...subjects]
+  );
+  return !!hit;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -169,20 +203,56 @@ async function handleRealtimeToday(
   const userId = context.auth!.userId;
   const academyId = context.auth!.academyId;
 
-  // 1) 담당 학생 — INNER JOIN student_teachers (admin 도 본인만)
+  // 0) 내가 오늘 만든 세션·임시수업 — 담당이 아니어도 이 학생들은 반드시 보여야 한다
+  const sessions = await executeQuery<SessionRow>(
+    context.env.DB,
+    `SELECT * FROM realtime_sessions
+      WHERE teacher_id = ? AND date = ?`,
+    [userId, date]
+  );
+  const adhocRows = await executeQuery<any>(
+    context.env.DB,
+    `SELECT id, student_id, teacher_id, date, start_time, end_time, subject, reason, status
+       FROM adhoc_sessions
+      WHERE teacher_id = ? AND date = ? AND academy_id = ? AND status = 'scheduled'`,
+    [userId, date, academyId]
+  );
+  const pinnedIds = [
+    ...new Set([
+      ...sessions.map((r: any) => r.student_id),
+      ...adhocRows.map((r: any) => r.student_id),
+    ]),
+  ] as string[];
+
+  // 1) 담당 학생 + 내 과목 수업을 듣는 학생
+  //    users.subjects 미설정이면 과목 조건은 빠지고 기존 담당 기준만 동작
+  const mySubjects = await teacherSubjects(context.env.DB, userId);
+  const subjectJoin = mySubjects.length
+    ? `LEFT JOIN enrollments e ON e.student_id = s.id
+         AND e.subject IN (${mySubjects.map(() => '?').join(',')})
+         ${dayParam ? 'AND e.day = ?' : ''}`
+    : '';
   const students = await executeQuery<any>(
     context.env.DB,
-    `SELECT s.id, s.name, s.grade, s.subjects
+    `SELECT DISTINCT s.id, s.name, s.grade, s.subjects
        FROM students s
-       INNER JOIN student_teachers st ON s.id = st.student_id AND st.teacher_id = ?
+       LEFT JOIN student_teachers st ON s.id = st.student_id AND st.teacher_id = ?
+       ${subjectJoin}
       WHERE s.academy_id = ? AND s.status = 'active'
+        AND (st.teacher_id IS NOT NULL${mySubjects.length ? ' OR e.id IS NOT NULL' : ''}${pinnedIds.length ? ` OR s.id IN (${pinnedIds.map(() => '?').join(',')})` : ''})
       ORDER BY s.grade DESC, s.name`,
-    [userId, academyId]
+    [
+      userId,
+      ...mySubjects,
+      ...(mySubjects.length && dayParam ? [dayParam] : []),
+      academyId,
+      ...pinnedIds,
+    ]
   );
 
   const studentIds = students.map((s: any) => s.id);
   if (studentIds.length === 0) {
-    return successResponse({ date, day: dayParam, students: [] });
+    return successResponse({ date, day: dayParam, students: [], hidden: 0 });
   }
 
   // 2) 오늘 요일 enrollment
@@ -199,30 +269,13 @@ async function handleRealtimeToday(
   const enrollmentParams = dayParam ? [...studentIds, dayParam] : studentIds;
   const enrollments = await executeQuery<any>(context.env.DB, enrollmentSql, enrollmentParams);
 
-  // 학원 전체에 enrollment이 하나라도 있는지 (시간표 설정 여부 판단)
-  const allEnrollmentCount = await executeFirst<{ cnt: number }>(
+  // 학생별 시간표 보유 여부 (요일 무관) — 시간표가 아예 없는 학생은 항상 표시
+  const scheduledRows = await executeQuery<{ student_id: string }>(
     context.env.DB,
-    `SELECT COUNT(*) as cnt FROM enrollments WHERE student_id IN (${placeholders})`,
+    `SELECT DISTINCT student_id FROM enrollments WHERE student_id IN (${placeholders})`,
     studentIds
   );
-  const hasAnyEnrollments = (allEnrollmentCount?.cnt || 0) > 0;
-
-  // 3) 오늘 진행 중/완료 세션 (본인이 체크인한 것만)
-  const sessions = await executeQuery<SessionRow>(
-    context.env.DB,
-    `SELECT * FROM realtime_sessions
-      WHERE teacher_id = ? AND date = ?`,
-    [userId, date]
-  );
-
-  // 3-1) 해당 날짜의 임시 수업
-  const adhocRows = await executeQuery<any>(
-    context.env.DB,
-    `SELECT id, student_id, teacher_id, date, start_time, end_time, subject, reason, status
-       FROM adhoc_sessions
-      WHERE teacher_id = ? AND date = ? AND academy_id = ? AND status = 'scheduled'`,
-    [userId, date, academyId]
-  );
+  const hasSchedule = new Set(scheduledRows.map((r) => r.student_id));
 
   // 3-2) 해당 날짜의 예정된 보강 (담당 학생)
   const makeupRows = await executeQuery<any>(
@@ -290,6 +343,7 @@ async function handleRealtimeToday(
   }
 
   const result: any[] = [];
+  let hidden = 0; // 선택 요일에 수업이 없어 숨겨진 담당 학생 수
   for (const s of students) {
     let subjects: string[] = [];
     try {
@@ -321,8 +375,9 @@ async function handleRealtimeToday(
     const completedSession = studentSessions.find((s) => s.status === 'completed') || null;
 
     // 해당 요일에 수업이 없고 진행/완료 세션도 없고 보강/임시도 없으면 목록에서 제외
-    // 단, enrollment이 하나도 없는 학원(시간표 미설정)은 담당 학생 전원 표시
-    if (dayParam && hasAnyEnrollments && studentEnrollments.length === 0 && studentMakeups.length === 0 && studentAdhocs.length === 0 && !activeSession && !completedSession) {
+    // 단, 시간표가 아예 없는 학생(신규 등록 등)은 체크인할 방법이 없으므로 항상 표시
+    if (dayParam && hasSchedule.has(s.id) && studentEnrollments.length === 0 && studentMakeups.length === 0 && studentAdhocs.length === 0 && !activeSession && !completedSession) {
+      hidden++;
       continue;
     }
 
@@ -339,7 +394,7 @@ async function handleRealtimeToday(
     });
   }
 
-  return successResponse({ date, day: dayParam, students: result });
+  return successResponse({ date, day: dayParam, students: result, hidden });
 }
 
 // ─── GET /api/timer/enrollments ────────────────────────

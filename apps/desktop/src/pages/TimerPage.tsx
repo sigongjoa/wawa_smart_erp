@@ -276,6 +276,7 @@ export default function TimerPage() {
   const todayDay = getTodayDay();
   const [selectedDay, setSelectedDay] = useState<Day>(todayDay);
   const [students, setStudents] = useState<StudentRow[]>([]);
+  const [hidden, setHidden] = useState(0);
   const [loading, setLoading] = useState(true);
   const [pauseTarget, setPauseTarget] = useState<RealtimeSession | null>(null);
   const [now, setNow] = useState(new Date());
@@ -290,9 +291,11 @@ export default function TimerPage() {
     try {
       const res = await api.getRealtimeToday(selectedDay, dateForDay(selectedDay));
       setStudents(res?.students || []);
+      setHidden(res?.hidden || 0);
     } catch (err) {
       toast.error('목록 조회 실패: ' + (err as Error).message);
       setStudents([]);
+      setHidden(0);
     } finally {
       setLoading(false);
     }
@@ -574,7 +577,7 @@ export default function TimerPage() {
           {/* LEFT: 대기 학생 (mockup pending panel) */}
           <Panel
             title="대기 학생"
-            titleMeta={`총 ${waiting.length}명`}
+            titleMeta={hidden > 0 ? `총 ${waiting.length}명 · 다른 요일 ${hidden}명 숨김` : `총 ${waiting.length}명`}
             headerActions={
               <select
                 className="v2-timer-day-select"
@@ -593,7 +596,9 @@ export default function TimerPage() {
           >
             {waiting.length === 0 ? (
               <div className="v2-timer-empty">
-                {isToday ? '모든 학생이 수업 중입니다' : '학생이 없습니다'}
+                {hidden > 0
+                  ? `${selectedDay}요일 수업이 있는 담당 학생이 없습니다 (다른 요일 수업만 있는 학생 ${hidden}명은 숨김 — 요일을 바꿔보세요)`
+                  : isToday ? '모든 학생이 수업 중입니다' : '학생이 없습니다'}
               </div>
             ) : (
                 <div className="v2-pending-list">

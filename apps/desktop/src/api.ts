@@ -941,6 +941,7 @@ export const api = {
     return request<{
       date: string;
       day: string | null;
+      hidden?: number;
       students: Array<{
         id: string;
         name: string;
